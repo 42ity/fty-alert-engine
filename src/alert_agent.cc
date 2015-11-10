@@ -502,33 +502,6 @@ Rule* readRule (std::ifstream &f)
     }
 };
 
-struct Alert {
-    Rule *rule;
-    PureAlert pureAlert;
-
-    Alert (
-        Rule *r,
-        const PureAlert &a):
-        rule(r),
-        pureAlert(a)
-    {
-    };
-};
-
-std::vector<Alert> alerts{};
-
-std::vector<Alert>::iterator isAlertOngoing(const std::string &rule_name, const std::string &element)
-{
-    for(std::vector<Alert>::iterator it = alerts.begin(); it != alerts.cend(); ++it)
-    {
-        if ( ( it->rule->_rule_name == rule_name ) && ( it->pureAlert.element == element ) )
-        {
-            return it;
-        }
-    }
-    return alerts.end();
-};
-
 class AlertConfiguration{
 public:
     AlertConfiguration(){};
