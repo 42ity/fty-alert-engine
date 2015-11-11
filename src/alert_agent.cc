@@ -252,6 +252,10 @@ public:
     std::string _rule_name;
     std::string _element;
     std::string _severity;
+    // this field doesn't have any impact on alert evaluation
+    // but this information should be propagated to GATEWAY components
+    // So, need to have it here
+    std::set < std::string> _actions;
 
     Rule(){};
 
@@ -613,44 +617,85 @@ private:
     std::string _rex_str;
 };
 
+// It tries to simply parse and read JSON
 Rule* readRule (std::ifstream &f)
 {
-    // try catch TODO
-    cxxtools::JsonDeserializer json(f);
-    json.deserialize();
-    const cxxtools::SerializationInfo *si = json.si();
-    if ( si->findMember("in") ) {
-        NormalRule *rule = new NormalRule();
-        si->getMember("in") >>= rule->_in;
-        si->getMember("element") >>= rule->_element;
-        si->getMember("evaluation") >>= rule->_lua_code;
-        si->getMember("rule_name") >>= rule->_rule_name;
-        si->getMember("severity") >>= rule->_severity;
-        zsys_info ("lua = %s", rule->_lua_code.c_str());
-        return rule;
+    try {
+        cxxtools::JsonDeserializer json(f);
+        json.deserialize();
+        const cxxtools::SerializationInfo *si = json.si();
+        // TODO too complex method, need to split it
+        if ( si->findMember("in") ) {
+            NormalRule *rule = new NormalRule();
+            try {
+                si->getMember("in") >>= rule->_in;
+                si->getMember("element") >>= rule->_element;
+                si->getMember("evaluation") >>= rule->_lua_code;
+                si->getMember("rule_name") >>= rule->_rule_name;
+                si->getMember("severity") >>= rule->_severity;
+            }
+            catch ( const std::exception &e ) {
+                zsys_warning ("NORMAL rule doesn't have all required fields, ignore it. %s", e.what());
+                delete rule;
+                return NULL;
+            }
+            // this field is optional
+            if ( si->findMember("action") ) {
+                si->getMember("action") >>= rule->_actions;
+            }
+            zsys_info ("lua = %s", rule->_lua_code.c_str());
+            return rule;
+        }
+        else if ( si->findMember("in_rex") ) {
+            RegexRule *rule = new RegexRule();
+            try {
+                si->getMember("in_rex") >>= rule->_rex_str;
+                rule->_rex = zrex_new(rule->_rex_str.c_str());
+                si->getMember("evaluation") >>= rule->_lua_code;
+                si->getMember("rule_name") >>= rule->_rule_name;
+                si->getMember("severity") >>= rule->_severity;
+                zsys_info ("lua = %s", rule->_lua_code.c_str());
+            }
+            catch ( const std::exception &e ) {
+                zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
+                delete rule;
+                return NULL;
+            }
+            // this field is optional
+            if ( si->findMember("action") ) {
+                si->getMember("action") >>= rule->_actions;
+            }
+            return rule;
+        } else if ( si->findMember("metric") ){
+            ThresholdRule *rule = new ThresholdRule();
+            try {
+                si->getMember("metric") >>= rule->_metric;
+                si->getMember("element") >>= rule->_element;
+                si->getMember("rule_name") >>= rule->_rule_name;
+                si->getMember("severity") >>= rule->_severity;
+                si->getMember("type") >>= rule->_type;
+                si->getMember("value") >>= rule->_value;
+            }
+            catch ( const std::exception &e ) {
+                zsys_warning ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
+                delete rule;
+                return NULL;
+            }
+            // this field is optional
+            if ( si->findMember("action") ) {
+                si->getMember("action") >>= rule->_actions;
+            }
+            rule->generateLua();
+            rule->generateNeededTopic();
+            return rule;
+        }
+        else {
+            zsys_warning ("Cannot detect type of the rule, ignore it");
+            return NULL;
+        }
     }
-    else if ( si->findMember("in_rex") ) {
-        RegexRule *rule = new RegexRule();
-        si->getMember("in_rex") >>= rule->_rex_str;
-        rule->_rex = zrex_new(rule->_rex_str.c_str());
-        si->getMember("evaluation") >>= rule->_lua_code;
-        si->getMember("rule_name") >>= rule->_rule_name;
-        si->getMember("severity") >>= rule->_severity;
-        zsys_info ("lua = %s", rule->_lua_code.c_str());
-        return rule;
-    } else if ( si->findMember("metric") ){
-        ThresholdRule *rule = new ThresholdRule();
-        si->getMember("metric") >>= rule->_metric;
-        si->getMember("element") >>= rule->_element;
-        si->getMember("rule_name") >>= rule->_rule_name;
-        si->getMember("severity") >>= rule->_severity;
-        si->getMember("type") >>= rule->_type;
-        si->getMember("value") >>= rule->_value;
-        rule->generateLua();
-        rule->generateNeededTopic();
-        return rule;
-    }
-    else {
+    catch ( const std::exception &e) {
+        zsys_error ("Cannot parse JSON, ignore it");
         return NULL;
     }
 };
@@ -679,6 +724,7 @@ public:
             // TODO memory leak
             Rule *rule = readRule (f);
             // TODO check, that rule name is unique
+            // TODO check, that rule actions are valie
             for ( const auto &interestedTopic : rule->getNeededTopics() ) {
                 result.insert (interestedTopic);
             }
@@ -843,6 +889,7 @@ int main (int argc, char** argv) {
                 // nothing to send
                 continue;
             }
+            // TODO here add ACTIONs in the message and optional information
             alert_send (client, rule->_rule_name.c_str(), toSend->element.c_str(), toSend->timestamp, get_status_string(toSend->status), rule->_severity.c_str(), toSend->description.c_str());
         }
     }
