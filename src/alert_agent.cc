@@ -265,16 +265,35 @@ public:
 
     virtual std::set<std::string> getNeededTopics(void) const = 0;
 
+    bool isSameAs (const Rule &rule) const {
+        if ( this->_rule_name == rule._rule_name ) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+
+    bool isSameAs (const Rule *rule) const {
+        if ( this->_rule_name == rule->_rule_name ) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+
+
 protected:
 
     virtual lua_State* setContext (const MetricList &metricList) const = 0;
 };
 
+
 class NormalRule : public Rule
 {
 public:
     NormalRule(){};
-
 
     int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
     {
@@ -339,7 +358,7 @@ public:
         return _in;
     };
 
-    friend Rule* readRule (std::ifstream &f);
+    friend Rule* readRule (std::istream &f);
 
 protected:
 
@@ -436,7 +455,7 @@ public:
         return {_in};
     };
 
-    friend Rule* readRule (std::ifstream &f);
+    friend Rule* readRule (std::istream &f);
 
 protected:
 
@@ -588,7 +607,7 @@ public:
         return std::set<std::string>{_rex_str};
     };
 
-    friend Rule* readRule (std::ifstream &f);
+    friend Rule* readRule (std::istream &f);
 
 protected:
 
@@ -618,7 +637,7 @@ private:
 };
 
 // It tries to simply parse and read JSON
-Rule* readRule (std::ifstream &f)
+Rule* readRule (std::istream &f)
 {
     try {
         cxxtools::JsonDeserializer json(f);
@@ -720,9 +739,14 @@ public:
             if ( fn.compare(fn.length() - 5, 5, ".rule") != 0 ) {
                 continue;
             }
+            zsys_info ("json to parse: %s", fn.c_str());
             std::ifstream f(fn);
             // TODO memory leak
             Rule *rule = readRule (f);
+            if ( rule == NULL ) {
+                zsys_info ("nothing to do");
+                continue;
+            }
             // TODO check, that rule name is unique
             // TODO check, that rule actions are valie
             for ( const auto &interestedTopic : rule->getNeededTopics() ) {
@@ -739,7 +763,66 @@ public:
         return _configs;
     };
 
-//    std::vector <std::string> updateConfiguration(const Rule &rule);
+    // alertsToSend must be send in the order from first element to last element!!!
+    int updateConfiguration(std::istream newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
+    {
+        // ASSUMPTION: function should be used as intended to be used
+        assert (newRule);
+        // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
+        // TODO memory leak
+        *newRule = readRule (newRuleString);
+        if ( *newRule == NULL ) {
+            zsys_info ("nothing to update");
+            return -1;
+        }
+        // need to find out if rule exists already or not
+        if ( !haveRule (*newRule) )
+        {
+            // add new rule
+            std::vector<PureAlert> emptyAlerts{};
+            _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
+            _configs.push_back (*newRule);
+            for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
+                newSubjectsToSubscribe.insert (interestedTopic);
+            }
+        }
+        else
+        {
+            // find alerts, that should be resolved
+            for ( auto &oneRuleAlerts: _alerts ) {
+                if ( ! oneRuleAlerts.first->isSameAs (*newRule) ) {
+                    continue;
+                }
+                // so we finally found a list of alerts
+                // resolve found alerts
+                for ( auto &oneAlert : oneRuleAlerts.second ) {
+                    oneAlert.status = ALERT_RESOLVED;
+                    oneAlert.description = "Rule changed";
+                    // put them into the list of alerts that changed
+                    alertsToSend.push_back (oneAlert);
+                }
+                oneRuleAlerts.second.clear();
+                // update rule
+                // This part is ugly, as there are duplicate pointers
+                for ( auto &oneRule: _configs ) {
+                    if ( oneRule->isSameAs (*newRule) ) {
+                        // -- free memory used by oldone
+                        delete oneRule;
+                        oneRule = *newRule;
+                    }
+                }
+                // -- use new rule
+                oneRuleAlerts.first = *newRule;
+            }
+
+            // TODO delete old rule from persistance
+        }
+        // TODO save new rule to persistence
+        // CURRENT: wait until new measurements arrive
+        // TODO: reevaluate immidiately ( new Method )
+        // reevaluate rule for every known metric
+        //  ( requires more sophisticated approach: need to refactor evaluate back for 2 params + some logic here )
+    };
 
     PureAlert* updateAlert (const Rule *rule, const PureAlert &pureAlert)
     {
@@ -811,86 +894,156 @@ public:
         } // end of processing one rule
     };
 
+    bool haveRule (const Rule *rule) const {
+        for ( const auto &oneRule: _configs ) {
+            if ( oneRule->isSameAs(rule) )
+                return true;
+        }
+        return false;
+    };
 
 private:
+    // TODO it is bad implementation, any improvements are welcome
     std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
     std::vector <Rule*> _configs;
 };
 
-int main (int argc, char** argv) {
 
+// mockup
+int  rule_decode (zmsg_t **msg, std::string &rule_json)
+{
+    rule_json = "{\"rule_name\": \"threshold1_from_mailbox\",\"severity\": \"CRITICAL\", "
+        "  \"metric\" : \"humidity\","
+        "  \"type\" : \"low\","
+        "  \"element\": \"CCC\","
+        "  \"value\": 5.666,"
+        "  \"action\" : [\"EMAIL\", \"SMS\"]}";
+    zmsg_destroy (msg);
+    return 0;
+};
+
+#define THIS_AGENT_NAME "alert_generator"
+
+int main (int argc, char** argv)
+{
+    // create a malamute client
     mlm_client_t *client = mlm_client_new();
-    mlm_client_connect (client, "ipc://@/malamute", 1000, argv[0]);
-    mlm_client_set_producer(client, "ALERTS");
+    // ASSUMPTION : only one instance can be in the system
+    mlm_client_connect (client, "ipc://@/malamute", 1000, THIS_AGENT_NAME);
+    zsys_info ("Agent '%s' started", THIS_AGENT_NAME);
+    // The goal of this agent is to produce alerts
+    mlm_client_set_producer (client, "ALERTS");
 
+    // Read initial configuration
     AlertConfiguration alertConfiguration;
     std::set <std::string> subjectsToConsume = alertConfiguration.readConfiguration();
     zsys_info ("subjectsToConsume count: %d\n", subjectsToConsume.size());
+
     // Subscribe to all subjects
     for ( const auto &interestedSubject : subjectsToConsume ) {
         mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
 
+    // need to track incoming measurements
     MetricList cache;
 
-    while(!zsys_interrupted) {
-        zmsg_t *zmessage = mlm_client_recv(client);
+    while ( !zsys_interrupted ) {
+        // This agent is a reactive agent, it reacts only on messages
+        // and doesn't do anything if there is no messages
+        zmsg_t *zmessage = mlm_client_recv (client);
+        std::string topic = mlm_client_subject(client);
+        zsys_info("Got message '%s'", topic.c_str());
         if ( zmessage == NULL ) {
             continue;
         }
-        char *type = NULL;
-        char *element_src = NULL;
-        char *value = NULL;
-        char *unit = NULL;
-        int64_t timestamp = 0;
-        int rv = metric_decode (&zmessage, &type, &element_src, &value, &unit, &timestamp, NULL);
-        if ( rv != 0 ) {
-            zsys_info ("cannot decode metric, ignore message\n");
-            continue;
-        }
-        char *end;
-        double dvalue = strtod (value, &end);
-        if (errno == ERANGE) {
-            errno = 0;
-            zsys_info ("cannot convert to double, ignore message\n");
-            continue;
-        }
-        else if (end == value || *end != '\0') {
-            zsys_info ("cannot convert to double, ignore message\n");
-            continue;
-        }
 
-        std::string topic = mlm_client_subject(client);
-        zsys_info("Got message '%s' with value %s\n", topic.c_str(), value);
-
-        // Update cache with new value
-        MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
-        cache.addMetric (m);
-        cache.removeOldMetrics();
-
-        for ( const auto &rule : alertConfiguration.getRules() )
+        // There are two possible inputs and they come in different ways
+        // from the stream  -> metrics
+        // from the mailbox -> rules
+        if ( streq (mlm_client_command (client), "STREAM DELIVER" ) )
         {
-            if ( !rule->isTopicInteresting (m.generateTopic())) {
-                // metric is not interesting for the rule
+            // process as metric message
+            char *type = NULL;
+            char *element_src = NULL;
+            char *value = NULL;
+            char *unit = NULL;
+            int64_t timestamp = 0;
+            int rv = metric_decode (&zmessage, &type, &element_src, &value, &unit, &timestamp, NULL);
+            if ( rv != 0 ) {
+                zsys_info ("cannot decode metric, ignore message\n");
+                continue;
+            }
+            char *end;
+            double dvalue = strtod (value, &end);
+            if (errno == ERANGE) {
+                errno = 0;
+                zsys_info ("cannot convert to double, ignore message\n");
+                continue;
+            }
+            else if (end == value || *end != '\0') {
+                zsys_info ("cannot convert to double, ignore message\n");
                 continue;
             }
 
-            PureAlert *pureAlert = NULL;
+            std::string topic = mlm_client_subject(client);
+            zsys_info("Got message '%s' with value %s\n", topic.c_str(), value);
+
+            // Update cache with new value
+            MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
+            cache.addMetric (m);
+            cache.removeOldMetrics();
+
+            for ( const auto &rule : alertConfiguration.getRules() )
+            {
+                if ( !rule->isTopicInteresting (m.generateTopic())) {
+                    // metric is not interesting for the rule
+                    continue;
+                }
+
+                PureAlert *pureAlert = NULL;
+                // TODO memory leak
+                // TODO return value
+                rule->evaluate (cache, &pureAlert);
+                if ( pureAlert == NULL ) {
+                    continue;
+                }
+
+                auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
+                if ( toSend == NULL ) {
+                    // nothing to send
+                    continue;
+                }
+                // TODO here add ACTIONs in the message and optional information
+                alert_send (client, rule->_rule_name.c_str(), toSend->element.c_str(), toSend->timestamp, get_status_string(toSend->status), rule->_severity.c_str(), toSend->description.c_str());
+            }
+        }
+        else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
+        {
+            // process as rule message
+            std::string rule_json;
+            int rv = rule_decode (&zmessage, rule_json);
+            zsys_info ("new_json: %s", rule_json.c_str());
+            if ( rv != 0 ) {
+                zsys_info ("cannot decode rule information, ignore message\n");
+                continue;
+            }
+            std::string topic = mlm_client_subject(client);
+            zsys_info("Got message '%s'", topic.c_str());
             // TODO memory leak
-            // TODO return value
-            rule->evaluate (cache, &pureAlert);
-            if ( pureAlert == NULL ) {
+            std::istringstream f(rule_json);
+            Rule *rule = readRule (f);
+            if ( rule == NULL ) {
                 continue;
             }
-
-            auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
-            if ( toSend == NULL ) {
-                // nothing to send
-                continue;
-            }
-            // TODO here add ACTIONs in the message and optional information
-            alert_send (client, rule->_rule_name.c_str(), toSend->element.c_str(), toSend->timestamp, get_status_string(toSend->status), rule->_severity.c_str(), toSend->description.c_str());
+            /*
+            std::set <std::string> newSubjectsToSubscribe;
+            std::vector <PureAlert> alertsToSend;
+            Rule* newRule = NULL;
+            int rv = updateConfiguration(f, newSubjectsToSubscribe, alertsToSend, &newRule);
+            zsys_info ("rv = %d", rv);
+            zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+            */
         }
     }
     mlm_client_destroy(&client);
