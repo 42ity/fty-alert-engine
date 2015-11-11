@@ -16,11 +16,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+/*! \file alert_agent.cc
+ *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
+ *  \brief Alert agent based on rules processing
+ */
 
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
+
 #include <string.h>
 #include <stdio.h>
 #include <vector>
@@ -33,6 +38,8 @@ extern "C" {
 #include <malamute.h>
 #include "bios_proto.h"
 #include <math.h>
+
+#include "metricinfo.h"
 
 #define ALERT_UNKNOWN  0
 #define ALERT_START    1
@@ -60,48 +67,6 @@ const char* get_status_string(int status)
     }
     return "UNKNOWN";
 }
-
-class MetricInfo {
-public:
-    std::string _element_name;
-    std::string _source;
-    std::string _units;
-    double      _value;
-    int64_t     _timestamp;
-    std::string _element_destination_name;
-
-    std::string generateTopic(void) const{
-        return _source + "@" + _element_name;
-    };
-
-    MetricInfo() {};
-    MetricInfo (
-        const std::string &element_name,
-        const std::string &source,
-        const std::string &units,
-        double value,
-        int64_t timestamp,
-        const std::string &destination
-        ):
-        _element_name(element_name),
-        _source(source),
-        _units(units),
-        _value(value),
-        _timestamp(timestamp),
-        _element_destination_name (destination)
-    {};
-
-    void print(void)
-    {
-        zsys_info ("element_name = %s", _element_name.c_str());
-        zsys_info ("source = %s", _source.c_str());
-        zsys_info ("units = %s", _units.c_str());
-        zsys_info ("value = %lf", _value);
-        zsys_info ("timestamp = %d", _timestamp);
-        zsys_info ("destination = %s", _element_destination_name.c_str());
-    };
-};
-
 
 class MetricList {
 public:
@@ -613,22 +578,15 @@ protected:
 
     lua_State* setContext (const MetricList &metricList) const
     {
-        MetricInfo metricInfo;
-        int rv = metricList.getMetricInfo (metricList.getLastMetric().generateTopic(), metricInfo);
-        if ( rv != 0 ) {
-            zsys_error ("last metric  wasn't found in the list of known metrics, code %d", rv);
-            return NULL;
-        }
-        else {
-            lua_State *lua_context = lua_open();
-            lua_pushnumber(lua_context, metricInfo._value);
-            lua_setglobal(lua_context, "value");
-            zsys_info("Setting value to %lf\n", metricInfo._value);
-            lua_pushstring(lua_context, metricInfo._element_name.c_str());
-            lua_setglobal(lua_context, "element");
-            zsys_info("Setting element to %s\n", metricInfo._element_name.c_str());
-            return lua_context;
-        }
+        MetricInfo metricInfo = metricList.getLastMetric();
+        lua_State *lua_context = lua_open();
+        lua_pushnumber(lua_context, metricInfo.getValue());
+        lua_setglobal(lua_context, "value");
+        zsys_info("Setting value to %lf\n", metricInfo.getValue());
+        lua_pushstring(lua_context, metricInfo.getElementName().c_str());
+        lua_setglobal(lua_context, "element");
+        zsys_info("Setting element to %s\n", metricInfo.getElementName().c_str());
+        return lua_context;
     };
 
 private:
