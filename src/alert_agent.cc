@@ -764,7 +764,7 @@ public:
     };
 
     // alertsToSend must be send in the order from first element to last element!!!
-    int updateConfiguration(std::istream newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
+    int updateConfiguration(std::istream &newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
     {
         // ASSUMPTION: function should be used as intended to be used
         assert (newRule);
@@ -782,9 +782,6 @@ public:
             std::vector<PureAlert> emptyAlerts{};
             _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
             _configs.push_back (*newRule);
-            for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
-                newSubjectsToSubscribe.insert (interestedTopic);
-            }
         }
         else
         {
@@ -817,11 +814,17 @@ public:
 
             // TODO delete old rule from persistance
         }
+        // in any case we need to check new subjects
+        for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
+                newSubjectsToSubscribe.insert (interestedTopic);
+        }
+
         // TODO save new rule to persistence
         // CURRENT: wait until new measurements arrive
         // TODO: reevaluate immidiately ( new Method )
         // reevaluate rule for every known metric
         //  ( requires more sophisticated approach: need to refactor evaluate back for 2 params + some logic here )
+        return 0;
     };
 
     PureAlert* updateAlert (const Rule *rule, const PureAlert &pureAlert)
@@ -1031,19 +1034,21 @@ int main (int argc, char** argv)
             std::string topic = mlm_client_subject(client);
             zsys_info("Got message '%s'", topic.c_str());
             // TODO memory leak
+
             std::istringstream f(rule_json);
-            Rule *rule = readRule (f);
-            if ( rule == NULL ) {
-                continue;
-            }
-            /*
             std::set <std::string> newSubjectsToSubscribe;
             std::vector <PureAlert> alertsToSend;
             Rule* newRule = NULL;
-            int rv = updateConfiguration(f, newSubjectsToSubscribe, alertsToSend, &newRule);
+            rv = alertConfiguration.updateConfiguration (f, newSubjectsToSubscribe, alertsToSend, &newRule);
             zsys_info ("rv = %d", rv);
             zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-            */
+            zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+            for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+                mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+                zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+            }
+            // TODO send a reply back
+            // TODO send alertsToSend
         }
     }
     mlm_client_destroy(&client);
