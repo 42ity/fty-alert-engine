@@ -31,7 +31,7 @@ extern "C" {
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/directory.h>
 #include <malamute.h>
-#include "bios_proto.h"
+#include <bios_proto.h>
 #include <math.h>
 
 #define ALERT_UNKNOWN  0
@@ -952,70 +952,90 @@ int main (int argc, char** argv)
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there is no messages
         zmsg_t *zmessage = mlm_client_recv (client);
-        std::string topic = mlm_client_subject(client);
-        zsys_info("Got message '%s'", topic.c_str());
         if ( zmessage == NULL ) {
             continue;
         }
-
+        std::string topic = mlm_client_subject(client);
+        zsys_info("Got message '%s'", topic.c_str());
         // There are two possible inputs and they come in different ways
         // from the stream  -> metrics
         // from the mailbox -> rules
-        if ( streq (mlm_client_command (client), "STREAM DELIVER" ) )
-        {
-            // process as metric message
-            char *type = NULL;
-            char *element_src = NULL;
-            char *value = NULL;
-            char *unit = NULL;
-            int64_t timestamp = 0;
-            int rv = metric_decode (&zmessage, &type, &element_src, &value, &unit, &timestamp, NULL);
-            if ( rv != 0 ) {
-                zsys_info ("cannot decode metric, ignore message\n");
+        // but even so we try to decide according what we got, not from where
+        if( is_bios_proto(zmessage) ) {
+            bios_proto_t *bmessage = bios_proto_decode(&zmessage);
+            zmsg_destroy(&zmessage);
+            if( ! bmessage ) {
+                zsys_info ("cannot decode message, ignoring\n");
                 continue;
             }
-            char *end;
-            double dvalue = strtod (value, &end);
-            if (errno == ERANGE) {
-                errno = 0;
-                zsys_info ("cannot convert to double, ignore message\n");
-                continue;
-            }
-            else if (end == value || *end != '\0') {
-                zsys_info ("cannot convert to double, ignore message\n");
-                continue;
-            }
+            if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
+                // process as metric message
+                const char *type = bios_proto_type(bmessage);
+                const char *element_src = bios_proto_element_src(bmessage);
+                const char *value = bios_proto_value(bmessage);
+                const char *unit = bios_proto_unit(bmessage);
+                int64_t timestamp = bios_proto_time(bmessage);
+                if( timestamp <= 0 ) timestamp = time(NULL);
 
-            std::string topic = mlm_client_subject(client);
-            zsys_info("Got message '%s' with value %s\n", topic.c_str(), value);
-
-            // Update cache with new value
-            MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
-            cache.addMetric (m);
-            cache.removeOldMetrics();
-
-            for ( const auto &rule : alertConfiguration.getRules() )
-            {
-                if ( !rule->isTopicInteresting (m.generateTopic())) {
-                    // metric is not interesting for the rule
+                char *end;
+                double dvalue = strtod (value, &end);
+                if (errno == ERANGE) {
+                    errno = 0;
+                    zsys_info ("cannot convert value to double, ignore message\n");
+                    continue;
+                }
+                else if (end == value || *end != '\0') {
+                    zsys_info ("cannot convert value to double, ignore message\n");
                     continue;
                 }
 
-                PureAlert *pureAlert = NULL;
-                // TODO memory leak
-                // TODO return value
-                rule->evaluate (cache, &pureAlert);
-                if ( pureAlert == NULL ) {
-                    continue;
-                }
+                std::string topic = mlm_client_subject(client);
+                zsys_info("Got message '%s' with value %s\n", topic.c_str(), value);
 
-                auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
-                if ( toSend == NULL ) {
-                    // nothing to send
-                    continue;
+                // Update cache with new value
+                MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
+                cache.addMetric (m);
+                cache.removeOldMetrics();
+
+                for ( const auto &rule : alertConfiguration.getRules() ) {
+                    if ( !rule->isTopicInteresting (m.generateTopic())) {
+                        // metric is not interesting for the rule
+                        continue;
+                    }
+
+                    PureAlert *pureAlert = NULL;
+                    // TODO memory leak
+                    // TODO return value
+                    rule->evaluate (cache, &pureAlert);
+                    if ( pureAlert == NULL ) {
+                        continue;
+                    }
+
+                    auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
+                    if ( toSend == NULL ) {
+                        // nothing to send
+                        continue;
+                    }
+                    // TODO here add ACTIONs in the message and optional information
+                    // alert_send (client, rule->_rule_name.c_str(), toSend->element.c_str(), toSend->timestamp, get_status_string(toSend->status), rule->_severity.c_str(), toSend->description.c_str());
+                    zmsg_t *alert = bios_proto_encode_alert(
+                        NULL,
+                        rule->_rule_name.c_str(),
+                        element_src,
+                        get_status_string(toSend->status),
+                        rule->_severity.c_str(),
+                        toSend->description.c_str(),
+                        time(NULL),
+                        NULL);
+                    if( alert ) {
+                        std::string atopic = rule->_rule_name + "/"
+                            + rule->_severity + "@"
+                            + element_src;
+                        mlm_client_send(client, atopic.c_str(), &alert);
+                        zmsg_destroy(&alert);
+                    }
                 }
-                // TODO here add ACTIONs in the message and optional information
-                alert_send (client, rule->_rule_name.c_str(), toSend->element.c_str(), toSend->timestamp, get_status_string(toSend->status), rule->_severity.c_str(), toSend->description.c_str());
+                bios_proto_destroy(&bmessage);
             }
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
