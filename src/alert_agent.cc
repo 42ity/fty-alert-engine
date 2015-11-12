@@ -39,7 +39,7 @@ extern "C" {
 #include "bios_proto.h"
 #include <math.h>
 
-#include "metricinfo.h"
+#include "metriclist.h"
 
 #define ALERT_UNKNOWN  0
 #define ALERT_START    1
@@ -68,122 +68,6 @@ const char* get_status_string(int status)
     return "UNKNOWN";
 }
 
-class MetricList {
-public:
-    MetricList(){};
-    ~MetricList(){};
-
-    void addMetric (
-        const std::string &element_name,
-        const std::string &source,
-        const std::string &units,
-        double value,
-        int64_t timestamp,
-        const std::string &destination)
-    {
-        // create Metric first
-        MetricInfo m = MetricInfo(element_name,
-                                  source,
-                                  units,
-                                  value,
-                                  timestamp,
-                                  destination);
-
-        // try to find topic
-        auto it = knownMetrics.find (m.generateTopic());
-        if ( it != knownMetrics.cend() ) {
-            // if it was found -> replace with new value
-            it->second = m;
-        }
-        else {
-            // if it wasn't found -> insert new metric
-            knownMetrics.emplace (m.generateTopic(), m);
-        }
-    };
-
-    void addMetric (const MetricInfo &m)
-    {
-        // try to find topic
-        auto it = knownMetrics.find (m.generateTopic());
-        if ( it != knownMetrics.cend() ) {
-            // if it was found -> replace with new value
-            it->second = m;
-        }
-        else {
-            // if it wasn't found -> insert new metric
-            knownMetrics.emplace (m.generateTopic(), m);
-        }
-        lastInsertedMetric = m;
-    };
-
-    double findAndCheck (const std::string &topic)
-    {
-        auto it = knownMetrics.find(topic);
-        if ( it == knownMetrics.cend() ) {
-            return NAN;
-        }
-        else {
-            int maxLiveTime = 5*60;
-            int64_t currentTimestamp = ::time(NULL);
-            if ( ( currentTimestamp - it->second._timestamp ) > maxLiveTime ) {
-                knownMetrics.erase(it);
-                return NAN;
-            }
-            else {
-                return it->second._value;
-            }
-        }
-    };
-
-    double find (const std::string &topic) const
-    {
-        auto it = knownMetrics.find(topic);
-        if ( it == knownMetrics.cend() ) {
-            return NAN;
-        }
-        else {
-            return it->second._value;
-        }
-    };
-
-    int getMetricInfo (const std::string &topic, MetricInfo &metricInfo) const
-    {
-        auto it = knownMetrics.find(topic);
-        if ( it == knownMetrics.cend() ) {
-            return -1;
-        }
-        else {
-            metricInfo = it->second;
-            return 0;
-        }
-    };
-
-    void removeOldMetrics()
-    {
-        int maxLiveTime = 5*60;
-        int64_t currentTimestamp = ::time(NULL);
-
-        for ( std::map<std::string, MetricInfo>::iterator iter = knownMetrics.begin(); iter != knownMetrics.end() ; /* empty */)
-        {
-            if ( ( currentTimestamp - iter->second._timestamp ) > maxLiveTime ) {
-                knownMetrics.erase(iter++);
-            }
-            else {
-                ++iter;
-            }
-        }
-    };
-
-    MetricInfo getLastMetric(void) const
-    {
-        return lastInsertedMetric;
-    };
-
-
-private:
-    std::map<std::string, MetricInfo> knownMetrics;
-    MetricInfo lastInsertedMetric;
-};
 
 struct PureAlert{
     int status; // on Off ack
