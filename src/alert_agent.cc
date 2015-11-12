@@ -16,11 +16,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+/*! \file alert_agent.cc
+ *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
+ *  \brief Alert agent based on rules processing
+ */
 
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
+
 #include <string.h>
 #include <stdio.h>
 #include <vector>
@@ -33,6 +38,8 @@ extern "C" {
 #include <malamute.h>
 #include <bios_proto.h>
 #include <math.h>
+
+#include "metriclist.h"
 
 #define ALERT_UNKNOWN  0
 #define ALERT_START    1
@@ -61,164 +68,6 @@ const char* get_status_string(int status)
     return "UNKNOWN";
 }
 
-class MetricInfo {
-public:
-    std::string _element_name;
-    std::string _source;
-    std::string _units;
-    double      _value;
-    int64_t     _timestamp;
-    std::string _element_destination_name;
-
-    std::string generateTopic(void) const{
-        return _source + "@" + _element_name;
-    };
-
-    MetricInfo() {};
-    MetricInfo (
-        const std::string &element_name,
-        const std::string &source,
-        const std::string &units,
-        double value,
-        int64_t timestamp,
-        const std::string &destination
-        ):
-        _element_name(element_name),
-        _source(source),
-        _units(units),
-        _value(value),
-        _timestamp(timestamp),
-        _element_destination_name (destination)
-    {};
-
-    void print(void)
-    {
-        zsys_info ("element_name = %s", _element_name.c_str());
-        zsys_info ("source = %s", _source.c_str());
-        zsys_info ("units = %s", _units.c_str());
-        zsys_info ("value = %lf", _value);
-        zsys_info ("timestamp = %d", _timestamp);
-        zsys_info ("destination = %s", _element_destination_name.c_str());
-    };
-};
-
-
-class MetricList {
-public:
-    MetricList(){};
-    ~MetricList(){};
-
-    void addMetric (
-        const std::string &element_name,
-        const std::string &source,
-        const std::string &units,
-        double value,
-        int64_t timestamp,
-        const std::string &destination)
-    {
-        // create Metric first
-        MetricInfo m = MetricInfo(element_name,
-                                  source,
-                                  units,
-                                  value,
-                                  timestamp,
-                                  destination);
-
-        // try to find topic
-        auto it = knownMetrics.find (m.generateTopic());
-        if ( it != knownMetrics.cend() ) {
-            // if it was found -> replace with new value
-            it->second = m;
-        }
-        else {
-            // if it wasn't found -> insert new metric
-            knownMetrics.emplace (m.generateTopic(), m);
-        }
-    };
-
-    void addMetric (const MetricInfo &m)
-    {
-        // try to find topic
-        auto it = knownMetrics.find (m.generateTopic());
-        if ( it != knownMetrics.cend() ) {
-            // if it was found -> replace with new value
-            it->second = m;
-        }
-        else {
-            // if it wasn't found -> insert new metric
-            knownMetrics.emplace (m.generateTopic(), m);
-        }
-        lastInsertedMetric = m;
-    };
-
-    double findAndCheck (const std::string &topic)
-    {
-        auto it = knownMetrics.find(topic);
-        if ( it == knownMetrics.cend() ) {
-            return NAN;
-        }
-        else {
-            int maxLiveTime = 5*60;
-            int64_t currentTimestamp = ::time(NULL);
-            if ( ( currentTimestamp - it->second._timestamp ) > maxLiveTime ) {
-                knownMetrics.erase(it);
-                return NAN;
-            }
-            else {
-                return it->second._value;
-            }
-        }
-    };
-
-    double find (const std::string &topic) const
-    {
-        auto it = knownMetrics.find(topic);
-        if ( it == knownMetrics.cend() ) {
-            return NAN;
-        }
-        else {
-            return it->second._value;
-        }
-    };
-
-    int getMetricInfo (const std::string &topic, MetricInfo &metricInfo) const
-    {
-        auto it = knownMetrics.find(topic);
-        if ( it == knownMetrics.cend() ) {
-            return -1;
-        }
-        else {
-            metricInfo = it->second;
-            return 0;
-        }
-    };
-
-    void removeOldMetrics()
-    {
-        int maxLiveTime = 5*60;
-        int64_t currentTimestamp = ::time(NULL);
-
-        for ( std::map<std::string, MetricInfo>::iterator iter = knownMetrics.begin(); iter != knownMetrics.end() ; /* empty */)
-        {
-            if ( ( currentTimestamp - iter->second._timestamp ) > maxLiveTime ) {
-                knownMetrics.erase(iter++);
-            }
-            else {
-                ++iter;
-            }
-        }
-    };
-
-    MetricInfo getLastMetric(void) const
-    {
-        return lastInsertedMetric;
-    };
-
-
-private:
-    std::map<std::string, MetricInfo> knownMetrics;
-    MetricInfo lastInsertedMetric;
-};
 
 struct PureAlert{
     int status; // on Off ack
@@ -613,22 +462,15 @@ protected:
 
     lua_State* setContext (const MetricList &metricList) const
     {
-        MetricInfo metricInfo;
-        int rv = metricList.getMetricInfo (metricList.getLastMetric().generateTopic(), metricInfo);
-        if ( rv != 0 ) {
-            zsys_error ("last metric  wasn't found in the list of known metrics, code %d", rv);
-            return NULL;
-        }
-        else {
-            lua_State *lua_context = lua_open();
-            lua_pushnumber(lua_context, metricInfo._value);
-            lua_setglobal(lua_context, "value");
-            zsys_info("Setting value to %lf\n", metricInfo._value);
-            lua_pushstring(lua_context, metricInfo._element_name.c_str());
-            lua_setglobal(lua_context, "element");
-            zsys_info("Setting element to %s\n", metricInfo._element_name.c_str());
-            return lua_context;
-        }
+        MetricInfo metricInfo = metricList.getLastMetric();
+        lua_State *lua_context = lua_open();
+        lua_pushnumber(lua_context, metricInfo.getValue());
+        lua_setglobal(lua_context, "value");
+        zsys_info("Setting value to %lf\n", metricInfo.getValue());
+        lua_pushstring(lua_context, metricInfo.getElementName().c_str());
+        lua_setglobal(lua_context, "element");
+        zsys_info("Setting element to %s\n", metricInfo.getElementName().c_str());
+        return lua_context;
     };
 
 private:
@@ -764,7 +606,7 @@ public:
     };
 
     // alertsToSend must be send in the order from first element to last element!!!
-    int updateConfiguration(std::istream newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
+    int updateConfiguration(std::istream &newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
     {
         // ASSUMPTION: function should be used as intended to be used
         assert (newRule);
@@ -782,9 +624,6 @@ public:
             std::vector<PureAlert> emptyAlerts{};
             _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
             _configs.push_back (*newRule);
-            for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
-                newSubjectsToSubscribe.insert (interestedTopic);
-            }
         }
         else
         {
@@ -817,11 +656,17 @@ public:
 
             // TODO delete old rule from persistance
         }
+        // in any case we need to check new subjects
+        for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
+                newSubjectsToSubscribe.insert (interestedTopic);
+        }
+
         // TODO save new rule to persistence
         // CURRENT: wait until new measurements arrive
         // TODO: reevaluate immidiately ( new Method )
         // reevaluate rule for every known metric
         //  ( requires more sophisticated approach: need to refactor evaluate back for 2 params + some logic here )
+        return 0;
     };
 
     PureAlert* updateAlert (const Rule *rule, const PureAlert &pureAlert)
@@ -1051,19 +896,21 @@ int main (int argc, char** argv)
             std::string topic = mlm_client_subject(client);
             zsys_info("Got message '%s'", topic.c_str());
             // TODO memory leak
+
             std::istringstream f(rule_json);
-            Rule *rule = readRule (f);
-            if ( rule == NULL ) {
-                continue;
-            }
-            /*
             std::set <std::string> newSubjectsToSubscribe;
             std::vector <PureAlert> alertsToSend;
             Rule* newRule = NULL;
-            int rv = updateConfiguration(f, newSubjectsToSubscribe, alertsToSend, &newRule);
+            rv = alertConfiguration.updateConfiguration (f, newSubjectsToSubscribe, alertsToSend, &newRule);
             zsys_info ("rv = %d", rv);
             zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-            */
+            zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+            for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+                mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+                zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+            }
+            // TODO send a reply back
+            // TODO send alertsToSend
         }
     }
     mlm_client_destroy(&client);
