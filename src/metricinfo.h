@@ -30,7 +30,10 @@ public:
         return _source + "@" + _element_name;
     };
 
-    MetricInfo() {};
+    MetricInfo() {
+        _timestamp = 0;
+    };
+
     MetricInfo (
         const std::string &element_name,
         const std::string &source,
@@ -54,6 +57,16 @@ public:
     std::string getElementName (void) {
         return _element_name;
     };
+    
+    bool isUnknown() const {
+        if ( _element_name.empty() ||
+             _source.empty() ||
+             _units.empty() ) {
+            return true;
+        }
+        return false;
+    };
+
     // This class is very close to metric info
     // So let it use fields directly
     friend class MetricList;
