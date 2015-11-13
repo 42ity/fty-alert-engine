@@ -600,18 +600,42 @@ Rule* readRule (std::istream &f)
     }
 };
 
+// Alert configuration is class that manage rules and evaruted alerts
+//
+// ASSUMPTIONS:
+//  1. Rules are stored in files. One rule = one file
+//  2. File name is a rule name
+//  3. Files should have extention ".rule
+//  4. Directory to the files is configurable. Cannot be changed without recompilation
+//  5. If rule has at least one mostake or broke any rule, it is ignored
+//  6. Rule name is unique string
+//
+//
 class AlertConfiguration{
 public:
+
+    /*
+     * \brief Creates an enpty rule-alert configuration
+     *
+     * \param[in] @path - a directory where rules are stored
+     */
     AlertConfiguration (const std::string &path)
         : _path (path)
     {};
 
-    ~AlertConfiguration(){};
+    /*
+     * \brief Destroys alert configuration
+     */
+    ~AlertConfiguration() {
+        for ( auto &oneRule : _configs )
+            delete oneRule;
+    };
 
     // returns list of topics to be consumed
     // Reads rules from persistence
-    std::set <std::string> readConfiguration(void)
+    std::set <std::string> readConfiguration (void)
     {
+        // list of topics, that are needed to be consumed for rules
         std::set <std::string> result;
 
         cxxtools::Directory d(_path);
@@ -669,7 +693,11 @@ public:
     };
 
     // alertsToSend must be send in the order from first element to last element!!!
-    int updateConfiguration (std::istream &newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
+    int updateConfiguration (
+        std::istream &newRuleString,
+        std::set <std::string> &newSubjectsToSubscribe,
+        std::vector <PureAlert> &alertsToSend,
+        Rule** newRule)
     {
         // ASSUMPTION: function should be used as intended to be used
         assert (newRule);
@@ -716,12 +744,10 @@ public:
                 // -- use new rule
                 oneRuleAlerts.first = *newRule;
             }
-
-            // TODO delete old rule from persistance
         }
         // in any case we need to check new subjects
         for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
-                newSubjectsToSubscribe.insert (interestedTopic);
+            newSubjectsToSubscribe.insert (interestedTopic);
         }
         (*newRule)->save();
         // CURRENT: wait until new measurements arrive
@@ -811,6 +837,7 @@ public:
 private:
     // TODO it is bad implementation, any improvements are welcome
     std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
+
     std::vector <Rule*> _configs;
 
     // directory, where rules are stored
@@ -870,6 +897,7 @@ int main (int argc, char** argv)
         // There are two possible inputs and they come in different ways
         // from the stream  -> metrics
         // from the mailbox -> rules
+        //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
         if( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
@@ -899,7 +927,6 @@ int main (int argc, char** argv)
                     continue;
                 }
 
-                std::string topic = mlm_client_subject(client);
                 zsys_info("Got message '%s' with value %s\n", topic.c_str(), value);
 
                 // Update cache with new value
@@ -907,6 +934,7 @@ int main (int argc, char** argv)
                 cache.addMetric (m);
                 cache.removeOldMetrics();
 
+                // Go through all known rules, and try to evaluate them
                 for ( const auto &rule : alertConfiguration.getRules() ) {
                     if ( !rule->isTopicInteresting (m.generateTopic())) {
                         // metric is not interesting for the rule
@@ -915,9 +943,9 @@ int main (int argc, char** argv)
 
                     PureAlert *pureAlert = NULL;
                     // TODO memory leak
-                    // TODO return value
-                    rule->evaluate (cache, &pureAlert);
-                    if ( pureAlert == NULL ) {
+                    int rv = rule->evaluate (cache, &pureAlert);
+                    if ( rv != 0 ) {
+                        zsys_info ("cannot evaluate the rule '%s'", rule->_rule_name.c_str());
                         continue;
                     }
 
