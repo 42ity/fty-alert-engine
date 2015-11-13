@@ -96,6 +96,7 @@ void printPureAlert(const PureAlert &pureAlert){
     zsys_info ("element = %s", pureAlert.element.c_str());
 }
 
+// this is an abstract class for all rules
 class Rule {
 public:
 
@@ -152,10 +153,18 @@ public:
         return;
     };
 
+    std::string getType(void) {
+        return _type_name;
+    };
+
 protected:
+
+    // every type of the rule should have a string representation of its name
+    std::string _type_name;
 
     std::string _json_representation;
 
+    // TODO rework this, as it is not required to all rules use lua for evaluation
     virtual lua_State* setContext (const MetricList &metricList) const = 0;
 };
 
@@ -254,9 +263,12 @@ protected:
     };
 
 private:
+
     std::set<std::string> _in;
 
 };
+
+
 class ThresholdRule : public Rule
 {
     // TODO Why do we need to generate lua? We can easily do it in c++ !!!
@@ -590,7 +602,10 @@ Rule* readRule (std::istream &f)
 
 class AlertConfiguration{
 public:
-    AlertConfiguration(){};
+    AlertConfiguration (const std::string &path)
+        : _path (path)
+    {};
+
     ~AlertConfiguration(){};
 
     // returns list of topics to be consumed
@@ -598,7 +613,7 @@ public:
     {
         std::set <std::string> result;
 
-        cxxtools::Directory d(".");
+        cxxtools::Directory d(_path);
         std::vector<PureAlert> emptyAlerts{};
         for ( const auto &fn : d)
         {
@@ -777,6 +792,9 @@ private:
     // TODO it is bad implementation, any improvements are welcome
     std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
     std::vector <Rule*> _configs;
+
+    // directory, where rules are stored
+    std::string _path;
 };
 
 
@@ -794,6 +812,7 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
 };
 
 #define THIS_AGENT_NAME "alert_generator"
+#define PATH "."
 
 int main (int argc, char** argv)
 {
@@ -806,7 +825,7 @@ int main (int argc, char** argv)
     mlm_client_set_producer (client, "ALERTS");
 
     // Read initial configuration
-    AlertConfiguration alertConfiguration;
+    AlertConfiguration alertConfiguration(PATH);
     std::set <std::string> subjectsToConsume = alertConfiguration.readConfiguration();
     zsys_info ("subjectsToConsume count: %d\n", subjectsToConsume.size());
 
