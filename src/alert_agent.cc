@@ -34,6 +34,7 @@ extern "C" {
 #include <iostream>
 #include <fstream>
 #include <cxxtools/jsondeserializer.h>
+#include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
 #include <malamute.h>
 #include <bios_proto.h>
@@ -97,6 +98,7 @@ void printPureAlert(const PureAlert &pureAlert){
 
 class Rule {
 public:
+
     std::string _lua_code;
     std::string _rule_name;
     std::string _element;
@@ -132,8 +134,27 @@ public:
         }
     };
 
+    // TODO rule_name comparrission should be done in the function!
+    std::string getJsonRule (void) const {
+        return _json_representation;
+    };
+
+    void save (void) {
+        // ASSUMPTION: file name is the same as rule name
+        // rule name and file name are CASE SENSITIVE.
+
+        std::string path = _rule_name + ".rule";
+        std::ofstream ofs (path, std::ofstream::out);
+        zsys_info ("here must be json: '%s'", _json_representation.c_str());
+        zsys_info ("here must be file name: '%s'", path.c_str());
+        ofs << _json_representation;
+        ofs.close();
+        return;
+    };
 
 protected:
+
+    std::string _json_representation;
 
     virtual lua_State* setContext (const MetricList &metricList) const = 0;
 };
@@ -238,6 +259,7 @@ private:
 };
 class ThresholdRule : public Rule
 {
+    // TODO Why do we need to generate lua? We can easily do it in c++ !!!
 public:
     ThresholdRule(){};
 
@@ -482,7 +504,9 @@ private:
 Rule* readRule (std::istream &f)
 {
     try {
-        cxxtools::JsonDeserializer json(f);
+        std::string json_string(std::istreambuf_iterator<char>(f), {});
+        std::stringstream s(json_string);
+        cxxtools::JsonDeserializer json(s);
         json.deserialize();
         const cxxtools::SerializationInfo *si = json.si();
         // TODO too complex method, need to split it
@@ -494,6 +518,7 @@ Rule* readRule (std::istream &f)
                 si->getMember("evaluation") >>= rule->_lua_code;
                 si->getMember("rule_name") >>= rule->_rule_name;
                 si->getMember("severity") >>= rule->_severity;
+                rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
                 zsys_warning ("NORMAL rule doesn't have all required fields, ignore it. %s", e.what());
@@ -516,6 +541,7 @@ Rule* readRule (std::istream &f)
                 si->getMember("rule_name") >>= rule->_rule_name;
                 si->getMember("severity") >>= rule->_severity;
                 zsys_info ("lua = %s", rule->_lua_code.c_str());
+                rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
                 zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
@@ -536,6 +562,7 @@ Rule* readRule (std::istream &f)
                 si->getMember("severity") >>= rule->_severity;
                 si->getMember("type") >>= rule->_type;
                 si->getMember("value") >>= rule->_value;
+                rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
                 zsys_warning ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
@@ -582,6 +609,7 @@ public:
                 continue;
             }
             zsys_info ("json to parse: %s", fn.c_str());
+            // TODO check, that rule_name and file have the same names
             std::ifstream f(fn);
             // TODO memory leak
             Rule *rule = readRule (f);
@@ -590,7 +618,7 @@ public:
                 continue;
             }
             // TODO check, that rule name is unique
-            // TODO check, that rule actions are valie
+            // TODO check, that rule actions are value
             for ( const auto &interestedTopic : rule->getNeededTopics() ) {
                 result.insert (interestedTopic);
             }
@@ -660,8 +688,7 @@ public:
         for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
                 newSubjectsToSubscribe.insert (interestedTopic);
         }
-
-        // TODO save new rule to persistence
+        (*newRule)->save();
         // CURRENT: wait until new measurements arrive
         // TODO: reevaluate immidiately ( new Method )
         // reevaluate rule for every known metric
@@ -673,8 +700,7 @@ public:
     {
         for ( auto &oneRuleAlerts : _alerts ) // this object can be changed -> no const
         {
-            bool isSameRule = ( oneRuleAlerts.first->_rule_name == rule->_rule_name );
-            if ( !isSameRule ) {
+            if ( !oneRuleAlerts.first->isSameAs (rule) ) {
                 continue;
             }
             // we found the rule
@@ -862,7 +888,6 @@ int main (int argc, char** argv)
                         continue;
                     }
                     // TODO here add ACTIONs in the message and optional information
-                    // alert_send (client, rule->_rule_name.c_str(), toSend->element.c_str(), toSend->timestamp, get_status_string(toSend->status), rule->_severity.c_str(), toSend->description.c_str());
                     zmsg_t *alert = bios_proto_encode_alert(
                         NULL,
                         rule->_rule_name.c_str(),
@@ -870,7 +895,7 @@ int main (int argc, char** argv)
                         get_status_string(toSend->status),
                         rule->_severity.c_str(),
                         toSend->description.c_str(),
-                        time(NULL),
+                        toSend->timestamp,
                         NULL);
                     if( alert ) {
                         std::string atopic = rule->_rule_name + "/"
@@ -885,6 +910,15 @@ int main (int argc, char** argv)
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
+            // According RFC we expect here a message with the topic "rfc-thresholds"
+            if ( !streq (mlm_client_subject (client), "rfc-thresholds") ) {
+                zsys_info ("Ignore it. Unexpected topic of MAILBOX message: '%s'", mlm_client_subject (client) );
+                continue;
+            }
+            // Here we can have:
+            //  * new rule
+            //  * request for list of rules
+            //  * unexpected message
             // process as rule message
             std::string rule_json;
             int rv = rule_decode (&zmessage, rule_json);
@@ -913,6 +947,7 @@ int main (int argc, char** argv)
             // TODO send alertsToSend
         }
     }
+    // TODO save info to persistence before I die
     mlm_client_destroy(&client);
     return 0;
 }
