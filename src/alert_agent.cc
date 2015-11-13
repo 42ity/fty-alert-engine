@@ -117,17 +117,16 @@ public:
 
     virtual std::set<std::string> getNeededTopics(void) const = 0;
 
-    bool isSameAs (const Rule &rule) const {
-        if ( this->_rule_name == rule._rule_name ) {
-            return true;
-        }
-        else {
-            return false;
-        }
+    bool hasSameNameAs (const Rule &rule) const {
+        return hasSameNameAs (rule._rule_name);
     };
 
-    bool isSameAs (const Rule *rule) const {
-        if ( this->_rule_name == rule->_rule_name ) {
+    bool hasSameNameAs (const Rule *rule) const {
+        return hasSameNameAs (rule->_rule_name);
+    };
+
+    bool hasSameNameAs (const std::string &name) const {
+        if ( this->_rule_name == name ) {
             return true;
         }
         else {
@@ -515,6 +514,7 @@ private:
 // It tries to simply parse and read JSON
 Rule* readRule (std::istream &f)
 {
+    // TODO check, that rule actions are value
     try {
         std::string json_string(std::istreambuf_iterator<char>(f), {});
         std::stringstream s(json_string);
@@ -609,47 +609,67 @@ public:
     ~AlertConfiguration(){};
 
     // returns list of topics to be consumed
+    // Reads rules from persistence
     std::set <std::string> readConfiguration(void)
     {
         std::set <std::string> result;
 
         cxxtools::Directory d(_path);
+        // every rule at the beggining has empty set of alerts
         std::vector<PureAlert> emptyAlerts{};
         for ( const auto &fn : d)
         {
+            // we are interested only in files with names "*.rule"
             if ( fn.length() < 5 ) {
                 continue;
             }
             if ( fn.compare(fn.length() - 5, 5, ".rule") != 0 ) {
                 continue;
             }
-            zsys_info ("json to parse: %s", fn.c_str());
-            // TODO check, that rule_name and file have the same names
+
+            // read rule from the file
             std::ifstream f(fn);
-            // TODO memory leak
             Rule *rule = readRule (f);
             if ( rule == NULL ) {
+                // rule can't be read correctly from the file
                 zsys_info ("nothing to do");
                 continue;
             }
-            // TODO check, that rule name is unique
-            // TODO check, that rule actions are value
+
+            // ASSUMPTION: name of the file is the same as name of the rule
+            // If they are different ignore this rule
+            if ( !rule->hasSameNameAs (fn) ) {
+                zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->_rule_name.c_str());
+                delete rule;
+                continue;
+            }
+
+            // ASSUMPTION: rules have unique names
+            if ( haveRule (rule) ) {
+                zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->_rule_name.c_str(), fn.c_str());
+                delete rule;
+                continue;
+            }
+
+            // record topics we are interested in
             for ( const auto &interestedTopic : rule->getNeededTopics() ) {
                 result.insert (interestedTopic);
             }
+            // add rule to the configuration
             _alerts.push_back (std::make_pair(rule, emptyAlerts));
             _configs.push_back (rule);
+            zsys_info ("file '%s' readed correctly", fn.c_str());
         }
         return result;
     };
 
-    std::vector<Rule*> getRules(void)
+    std::vector<Rule*> getRules (void)
     {
         return _configs;
     };
 
     // alertsToSend must be send in the order from first element to last element!!!
-    int updateConfiguration(std::istream &newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
+    int updateConfiguration (std::istream &newRuleString, std::set <std::string> &newSubjectsToSubscribe, std::vector <PureAlert> &alertsToSend, Rule** newRule)
     {
         // ASSUMPTION: function should be used as intended to be used
         assert (newRule);
@@ -672,7 +692,7 @@ public:
         {
             // find alerts, that should be resolved
             for ( auto &oneRuleAlerts: _alerts ) {
-                if ( ! oneRuleAlerts.first->isSameAs (*newRule) ) {
+                if ( ! oneRuleAlerts.first->hasSameNameAs (*newRule) ) {
                     continue;
                 }
                 // so we finally found a list of alerts
@@ -687,7 +707,7 @@ public:
                 // update rule
                 // This part is ugly, as there are duplicate pointers
                 for ( auto &oneRule: _configs ) {
-                    if ( oneRule->isSameAs (*newRule) ) {
+                    if ( oneRule->hasSameNameAs (*newRule) ) {
                         // -- free memory used by oldone
                         delete oneRule;
                         oneRule = *newRule;
@@ -715,7 +735,7 @@ public:
     {
         for ( auto &oneRuleAlerts : _alerts ) // this object can be changed -> no const
         {
-            if ( !oneRuleAlerts.first->isSameAs (rule) ) {
+            if ( !oneRuleAlerts.first->hasSameNameAs (rule) ) {
                 continue;
             }
             // we found the rule
@@ -781,8 +801,8 @@ public:
     };
 
     bool haveRule (const Rule *rule) const {
-        for ( const auto &oneRule: _configs ) {
-            if ( oneRule->isSameAs(rule) )
+        for ( const auto &oneKnownRule: _configs ) {
+            if ( rule->hasSameNameAs(oneKnownRule) )
                 return true;
         }
         return false;
