@@ -788,6 +788,25 @@ public:
         return false;
     };
 
+    /**
+     * \brief get list of rules by type
+     * \return vector of Rule*
+     *
+     * Use getRulesByType( typeid(ThresholdRule) ) for getting all thresholds.
+     * Use getRulesByType( typeid(Rule) ) for getting all rules.
+     */
+    std::vector<Rule*> getRulesByType ( std::type_info type_id ) {
+        ThresholdRule T; // need this for getting mangled class name
+        std::vector<Rule *> result;
+        for (auto rule : _configs) {
+            zsys_info("T type %s", typeid(rule).name() );
+            if( type_id == typeid(Rule) || type_id == typeid(rule) ) {
+                result.push_back(rule);
+            }
+        }
+        return result;
+    }
+
 private:
     // TODO it is bad implementation, any improvements are welcome
     std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
