@@ -125,6 +125,7 @@ Rule* readRule (std::istream &f)
             rule->generateNeededTopic();
             return rule;
         } else if ( si->findMember("threshold") != NULL ){
+            zsys_info ("it is threshold rule");
             Rule *rule;
             try {
                 auto threshold = si->getMember("threshold");
@@ -135,8 +136,9 @@ Rule* readRule (std::istream &f)
                 }
 
                 try {
-                    // metric
-                    auto metric = threshold.getMember("metric");
+                    // target
+                    auto metric = threshold.getMember("target");
+                    zsys_info ("field \"target\" found ");
                     if ( metric.category () == cxxtools::SerializationInfo::Value ) {
                         ThresholdRuleSimple *tmp_rule = new ThresholdRuleSimple();
                         metric >>= tmp_rule->_metric;
@@ -265,7 +267,8 @@ public:
             }
 
             // read rule from the file
-            std::ifstream f(fn);
+            std::ifstream f(d.path() + "/" + fn);
+            zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
             Rule *rule = readRule (f);
             if ( rule == NULL ) {
                 // rule can't be read correctly from the file
