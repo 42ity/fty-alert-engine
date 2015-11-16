@@ -57,7 +57,11 @@ public:
     std::string getElementName (void) {
         return _element_name;
     };
-    
+
+    int64_t getTimestamp (void) const {
+        return _timestamp;
+    };
+
     bool isUnknown() const {
         if ( _element_name.empty() ||
              _source.empty() ||
