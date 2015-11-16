@@ -16,10 +16,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file metricinfo.cc
+/*! \file metricinfo.h
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
  *  \brief Very simple class to store information about one metric
  */
+#ifndef SRC_METRICINFO_H
+#define SRC_METRICINFO_H
 
 #include <string>
 
@@ -57,7 +59,11 @@ public:
     std::string getElementName (void) {
         return _element_name;
     };
-    
+
+    int64_t getTimestamp (void) const {
+        return _timestamp;
+    };
+
     bool isUnknown() const {
         if ( _element_name.empty() ||
              _source.empty() ||
@@ -80,3 +86,5 @@ private:
     std::string _element_destination_name;
 
 };
+
+#endif // SRC_METRICINFO_H_

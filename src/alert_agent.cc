@@ -41,475 +41,11 @@ extern "C" {
 #include <math.h>
 
 #include "metriclist.h"
+#include "normalrule.h"
+#include "thresholdrulesimple.h"
+#include "thresholdrule.h"
+#include "regexrule.h"
 
-#define ALERT_UNKNOWN  0
-#define ALERT_START    1
-#define ALERT_ACK1     2
-#define ALERT_ACK2     3
-#define ALERT_ACK3     4
-#define ALERT_ACK4     5
-#define ALERT_RESOLVED 6
-
-const char* get_status_string(int status)
-{
-    switch (status) {
-        case ALERT_START:
-            return "ACTIVE";
-        case ALERT_ACK1:
-            return "ACK-WIP";
-        case ALERT_ACK2:
-            return "ACK-PAUSE";
-        case ALERT_ACK3:
-            return "ACK-IGNORE";
-        case ALERT_ACK4:
-            return "ACK-SILENCE";
-        case ALERT_RESOLVED:
-            return "RESOLVED";
-    }
-    return "UNKNOWN";
-}
-
-
-struct PureAlert{
-    int status; // on Off ack
-    int64_t timestamp;
-    std::string description;
-    std::string element;
-
-    PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name)
-    {
-        status = s;
-        timestamp = tm;
-        description = descr;
-        element = element_name;
-    };
-
-    PureAlert()
-    {
-    };
-};
-
-void printPureAlert(const PureAlert &pureAlert){
-    zsys_info ("status = %d", pureAlert.status);
-    zsys_info ("timestamp = %d", pureAlert.timestamp);
-    zsys_info ("description = %s", pureAlert.description.c_str());
-    zsys_info ("element = %s", pureAlert.element.c_str());
-}
-
-// this is an abstract class for all rules
-class Rule {
-public:
-
-    std::string _lua_code;
-    std::string _rule_name;
-    std::string _element;
-    std::string _severity;
-    // this field doesn't have any impact on alert evaluation
-    // but this information should be propagated to GATEWAY components
-    // So, need to have it here
-    std::set < std::string> _actions;
-
-    Rule(){};
-
-    virtual int evaluate (const MetricList &metricList, PureAlert **pureAlert) const = 0;
-
-    virtual bool isTopicInteresting(const std::string &topic) const = 0;
-
-    virtual std::set<std::string> getNeededTopics(void) const = 0;
-
-    bool hasSameNameAs (const Rule &rule) const {
-        return hasSameNameAs (rule._rule_name);
-    };
-
-    bool hasSameNameAs (const Rule *rule) const {
-        return hasSameNameAs (rule->_rule_name);
-    };
-
-    bool hasSameNameAs (const std::string &name) const {
-        if ( this->_rule_name == name ) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    };
-
-    // TODO rule_name comparrission should be done in the function!
-    std::string getJsonRule (void) const {
-        return _json_representation;
-    };
-
-    void save (void) {
-        // ASSUMPTION: file name is the same as rule name
-        // rule name and file name are CASE SENSITIVE.
-
-        std::string path = _rule_name + ".rule";
-        std::ofstream ofs (path, std::ofstream::out);
-        zsys_info ("here must be json: '%s'", _json_representation.c_str());
-        zsys_info ("here must be file name: '%s'", path.c_str());
-        ofs << _json_representation;
-        ofs.close();
-        return;
-    };
-
-    std::string getType(void) {
-        return _type_name;
-    };
-
-protected:
-
-    // every type of the rule should have a string representation of its name
-    std::string _type_name;
-
-    std::string _json_representation;
-
-    // TODO rework this, as it is not required to all rules use lua for evaluation
-    virtual lua_State* setContext (const MetricList &metricList) const = 0;
-};
-
-
-class NormalRule : public Rule
-{
-public:
-    NormalRule(){};
-
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
-    {
-        lua_State *lua_context = setContext (metricList);
-        if ( lua_context == NULL ) {
-            // not possible to evaluate metric with current known Metrics
-            return 2;
-        }
-
-        zsys_info ("lua_code = %s", _lua_code.c_str() );
-        int error = luaL_loadbuffer (lua_context, _lua_code.c_str(), _lua_code.length(), "line") ||
-            lua_pcall (lua_context, 0, 3, 0);
-
-        if ( error ) {
-            // syntax error in evaluate
-            zsys_info ("Syntax error: %s\n", lua_tostring(lua_context, -1));
-            lua_close (lua_context);
-            return 1;
-        }
-        // if we are going to use the same context repeatedly -> use lua_pop(lua_context, 1)
-        // to pop error message from the stack
-
-        // evaluation was successful, need to read the result
-        if ( !lua_isstring (lua_context, -1) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -1;
-        }
-        // ok, in the lua stack we got, what we expected
-        const char *status_ = lua_tostring(lua_context, -1); // IS / ISNT
-        zsys_info ("status = %s", status_ );
-        int s = ALERT_UNKNOWN;
-        if ( strcmp (status_, "IS") == 0 ) {
-            s = ALERT_START;
-        }
-        else if ( strcmp (status_, "ISNT") == 0 ) {
-            s = ALERT_RESOLVED;
-        }
-        if ( s == ALERT_UNKNOWN ) {
-            zsys_info ("unexcpected returned value, expected IS/ISNT\n");
-            lua_close (lua_context);
-            return -5;
-        }
-        if ( !lua_isstring(lua_context, -3) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -3;
-        }
-        const char *description = lua_tostring(lua_context, -3);
-        *pureAlert = new PureAlert(s, ::time(NULL), description, _element);
-        printPureAlert (**pureAlert);
-        lua_close (lua_context);
-        return 0;
-    };
-
-    bool isTopicInteresting(const std::string &topic) const
-    {
-        return ( _in.count(topic) != 0 ? true : false );
-    };
-
-    std::set<std::string> getNeededTopics(void) const {
-        return _in;
-    };
-
-    friend Rule* readRule (std::istream &f);
-
-protected:
-
-    lua_State* setContext (const MetricList &metricList) const
-    {
-        lua_State *lua_context = lua_open();
-        for ( const auto &neededTopic : _in)
-        {
-            double neededValue = metricList.find (neededTopic);
-            if ( isnan (neededValue) ) {
-                zsys_info("Do not have everything for '%s' yet\n", _rule_name.c_str());
-                lua_close (lua_context);
-                return NULL;
-            }
-            std::string var = neededTopic;
-            var[var.find('@')] = '_';
-            zsys_info("Setting variable '%s' to %lf\n", var.c_str(), neededValue);
-            lua_pushnumber (lua_context, neededValue);
-            lua_setglobal (lua_context, var.c_str());
-        }
-        // we are here -> all variables were found
-        return lua_context;
-    };
-
-private:
-
-    std::set<std::string> _in;
-
-};
-
-
-class ThresholdRule : public Rule
-{
-    // TODO Why do we need to generate lua? We can easily do it in c++ !!!
-public:
-    ThresholdRule(){};
-
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
-    {
-        lua_State *lua_context = setContext (metricList);
-        if ( lua_context == NULL ) {
-            // not possible to evaluate metric with current known Metrics
-            return 2;
-        }
-
-        zsys_info ("lua_code = %s", _lua_code.c_str() );
-        int error = luaL_loadbuffer (lua_context, _lua_code.c_str(), _lua_code.length(), "line") ||
-            lua_pcall (lua_context, 0, 3, 0);
-
-        if ( error ) {
-            // syntax error in evaluate
-            zsys_info ("Syntax error: %s\n", lua_tostring(lua_context, -1));
-            lua_close (lua_context);
-            return 1;
-        }
-        // if we are going to use the same context repeatedly -> use lua_pop(lua_context, 1)
-        // to pop error message from the stack
-
-        // evaluation was successful, need to read the result
-        if ( !lua_isstring (lua_context, -1) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -1;
-        }
-        // ok, in the lua stack we got, what we expected
-        const char *status_ = lua_tostring(lua_context, -1); // IS / ISNT
-        zsys_info ("status = %s", status_ );
-        int s = ALERT_UNKNOWN;
-        if ( strcmp (status_, "IS") == 0 ) {
-            s = ALERT_START;
-        }
-        else if ( strcmp (status_, "ISNT") == 0 ) {
-            s = ALERT_RESOLVED;
-        }
-        if ( s == ALERT_UNKNOWN ) {
-            zsys_info ("unexcpected returned value, expected IS/ISNT\n");
-            lua_close (lua_context);
-            return -5;
-        }
-        if ( !lua_isstring(lua_context, -3) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -3;
-        }
-        const char *description = lua_tostring(lua_context, -3);
-        *pureAlert = new PureAlert(s, ::time(NULL), description, _element);
-        printPureAlert (**pureAlert);
-        lua_close (lua_context);
-        return 0;
-    };
-
-    bool isTopicInteresting(const std::string &topic) const
-    {
-        return ( _in == topic ? true : false );
-    };
-
-    std::set<std::string> getNeededTopics(void) const {
-        return {_in};
-    };
-
-    friend Rule* readRule (std::istream &f);
-
-protected:
-
-    void generateLua (void)
-    {
-        // assumption: at this point type can have only two values
-        if ( _type == "low" )
-        {
-            _lua_code = "if ( ";
-            _lua_code += _metric;
-            _lua_code += "_";
-            _lua_code += _element;
-            _lua_code += " <  ";
-            _lua_code += std::to_string(_value);
-            _lua_code += " ) then return \"Element ";
-            _lua_code += _element;
-            _lua_code += " is lower than threshold";
-            _lua_code += "\", ";
-            _lua_code += std::to_string(_value);
-            _lua_code += ", \"IS\" else return \"\", ";
-            _lua_code += std::to_string(_value);
-            _lua_code += " , \"ISNT\" end";
-        }
-        else
-        {
-            _lua_code = "if ( ";
-            _lua_code += _metric;
-            _lua_code += "_";
-            _lua_code += _element;
-            _lua_code += " >  ";
-            _lua_code += std::to_string(_value);
-            _lua_code += " ) then return \"Element ";
-            _lua_code += _element;
-            _lua_code += " is higher than threshold";
-            _lua_code += "\", ";
-            _lua_code += std::to_string(_value);
-            _lua_code += ", \"IS\" else return \"\", ";
-            _lua_code += std::to_string(_value);
-            _lua_code += " , \"ISNT\" end";
-        }
-        zsys_info ("generated_lua = %s", _lua_code.c_str());
-    };
-
-    void generateNeededTopic (void)
-    {
-        // it is bad to open the notion, how topic is formed, but for now there is now better place
-        _in = _metric + "@" + _element;
-    };
-
-    lua_State* setContext (const MetricList &metricList) const
-    {
-        lua_State *lua_context = lua_open();
-        double neededValue = metricList.find (_in);
-        if ( isnan (neededValue) ) {
-            zsys_info("Do not have everything for '%s' yet\n", _rule_name.c_str());
-            lua_close (lua_context);
-            return NULL;
-        }
-        std::string var = _metric + "_" + _element;
-        zsys_info("Setting variable '%s' to %lf\n", var.c_str(), neededValue);
-        lua_pushnumber (lua_context, neededValue);
-        lua_setglobal (lua_context, var.c_str());
-        return lua_context;
-    };
-
-private:
-    std::string _metric;
-    std::string _type;
-    double _value;
-    // this field is generated field
-    std::string _in;
-};
-
-class RegexRule : public Rule {
-public:
-
-    RegexRule()
-    {
-        _rex = NULL;
-    };
-
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
-    {
-        lua_State *lua_context = setContext (metricList);
-        if ( lua_context == NULL ) {
-            // not possible to evaluate metric with current known Metrics
-            return 2;
-        }
-
-        zsys_info ("lua_code = %s", _lua_code.c_str() );
-        int error = luaL_loadbuffer (lua_context, _lua_code.c_str(), _lua_code.length(), "line") ||
-            lua_pcall (lua_context, 0, 4, 0);
-
-        if ( error ) {
-            // syntax error in evaluate
-            zsys_info ("Syntax error: %s\n", lua_tostring(lua_context, -1));
-            lua_close (lua_context);
-            return 1;
-        }
-        // if we are going to use the same context repeatedly -> use lua_pop(lua_context, 1)
-        // to pop error message from the stack
-
-        // evaluation was successful, need to read the result
-        if ( !lua_isstring (lua_context, -1) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -1;
-        }
-        // ok, in the lua stack we got, what we expected
-        const char *status_ = lua_tostring(lua_context, -1); // IS / ISNT
-        zsys_info ("status = %s", status_ );
-        int s = ALERT_UNKNOWN;
-        if ( strcmp (status_, "IS") == 0 ) {
-            s = ALERT_START;
-        }
-        else if ( strcmp (status_, "ISNT") == 0 ) {
-            s = ALERT_RESOLVED;
-        }
-        if ( s == ALERT_UNKNOWN ) {
-            zsys_info ("unexcpected returned value, expected IS/ISNT\n");
-            lua_close (lua_context);
-            return -5;
-        }
-        if ( !lua_isstring(lua_context, -3) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -3;
-        }
-        if ( !lua_isstring(lua_context, -4) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -4;
-        }
-        const char *description = lua_tostring(lua_context, -3);
-        const char *element_a = lua_tostring(lua_context, -4);
-        *pureAlert = new PureAlert(s, ::time(NULL), description, element_a);
-        printPureAlert (**pureAlert);
-        lua_close (lua_context);
-        return 0;
-    };
-
-    bool isTopicInteresting(const std::string &topic) const
-    {
-        return zrex_matches (_rex, topic.c_str());
-    };
-
-    std::set<std::string> getNeededTopics(void) const
-    {
-        return std::set<std::string>{_rex_str};
-    };
-
-    friend Rule* readRule (std::istream &f);
-
-protected:
-
-    lua_State* setContext (const MetricList &metricList) const
-    {
-        MetricInfo metricInfo = metricList.getLastMetric();
-        lua_State *lua_context = lua_open();
-        lua_pushnumber(lua_context, metricInfo.getValue());
-        lua_setglobal(lua_context, "value");
-        zsys_info("Setting value to %lf\n", metricInfo.getValue());
-        lua_pushstring(lua_context, metricInfo.getElementName().c_str());
-        lua_setglobal(lua_context, "element");
-        zsys_info("Setting element to %s\n", metricInfo.getElementName().c_str());
-        return lua_context;
-    };
-
-private:
-    zrex_t *_rex;
-    std::string _rex_str;
-};
 
 // It tries to simply parse and read JSON
 Rule* readRule (std::istream &f)
@@ -587,6 +123,82 @@ Rule* readRule (std::istream &f)
             }
             rule->generateLua();
             rule->generateNeededTopic();
+            return rule;
+        } else if ( si->findMember("threshold") != NULL ){
+            Rule *rule;
+            try {
+                auto threshold = si->getMember("threshold");
+                if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
+                    zsys_info ("Root of json must be an object with property 'threshold'.");
+                    // TODO
+                    return NULL;
+                }
+
+                try {
+                    // metric
+                    auto metric = threshold.getMember("metric");
+                    if ( metric.category () == cxxtools::SerializationInfo::Value ) {
+                        ThresholdRuleSimple *tmp_rule = new ThresholdRuleSimple();
+                        metric >>= tmp_rule->_metric;
+                        rule = tmp_rule;
+                    }
+                    else if ( metric.category () == cxxtools::SerializationInfo::Array ) {
+                        rule = new RegexRule;
+                        // TODO change to complex rule
+                    }
+                }
+                catch ( const std::exception &e) {
+                    // TODO
+                    return NULL;
+                }
+                threshold.getMember("rule_name") >>= rule->_rule_name;
+                threshold.getMember("element") >>= rule->_element;
+                // values
+                auto values = threshold.getMember("values");
+                if ( values.category () != cxxtools::SerializationInfo::Array ) {
+                    zsys_info ("parameter 'values' in json must be an array.");
+                    // TODO
+                    throw "eee";
+                }
+                values >>= rule->_values;
+                // outcomes
+                auto outcomes = threshold.getMember("results");
+                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+                    zsys_info ("parameter 'results' in json must be an array.");
+                    // TODO
+                    throw "eee";
+                }
+                outcomes >>= rule->_outcomes;
+
+/*
+{
+    "threshold" : {
+        "rule_name"     :   "<rule_name>",
+        "element"       :   "<element_name>",
+        "values"        :   [ "low_critical"  : "<value>",
+                              "low_warning"   : "<value>",
+                              "high_warning"  : "<value>",
+                              "high_critical" : "<value>"
+                            ],
+        "results"       :   [ "low_critical"  : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
+                              "low_warning"   : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
+                              "high_warning"  : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
+                              "high_critical" : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" }
+                            ],
+        "metric"        :   <metric_specification>,
+        "evaluation"    :   "<lua_function>"
+    }
+}
+*/
+
+
+                rule->_json_representation = json_string;
+            }
+            catch ( const std::exception &e ) {
+                zsys_warning ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
+                delete rule;
+                return NULL;
+            }
             return rule;
         }
         else {
