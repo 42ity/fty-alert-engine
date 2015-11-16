@@ -517,7 +517,7 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
         rules = ac.getRulesByType (typeid (RegexRule));
     }
     else {
-        //invalid type, TODO send message
+        //invalid type
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "requested set of rules is invalid");
@@ -539,7 +539,7 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
 void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
     Rule *rule = ac.getRuleByName(name);
     if(!rule) {
-        //invalid type, TODO send message
+        // rule doesn't exists
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "requested rule doesn't exist");
