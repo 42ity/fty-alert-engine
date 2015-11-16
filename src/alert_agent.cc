@@ -453,7 +453,7 @@ public:
      * Use getRulesByType( typeid(ThresholdRule) ) for getting all thresholds.
      * Use getRulesByType( typeid(Rule) ) for getting all rules.
      */
-    std::vector<Rule*> getRulesByType ( std::type_info type_id ) {
+    std::vector<Rule*> getRulesByType ( const std::type_info &type_id ) {
         ThresholdRule T; // need this for getting mangled class name
         std::vector<Rule *> result;
         for (auto rule : _configs) {
@@ -463,6 +463,15 @@ public:
             }
         }
         return result;
+    }
+
+    Rule* getRuleByName ( const std::string &name ) {
+        // TODO: make some map of names to avoid o(n)?
+        // Return iterator rather than pointer?
+        for (auto rule : _configs) {
+            if( rule->hasSameNameAs( name ) ) return rule;
+        }
+        return NULL;
     }
 
 private:
@@ -491,6 +500,60 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
 
 #define THIS_AGENT_NAME "alert_generator"
 #define PATH "."
+
+void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) {
+    std::vector<Rule*> rules;
+
+    if (streq (type,"all")) {
+        rules = ac.getRulesByType ( typeid(Rule) );
+    }
+    else if (streq (type,"threshold")) {
+        rules = ac.getRulesByType (typeid (ThresholdRule));
+    }
+    else if (streq (type,"single")) {
+        rules = ac.getRulesByType (typeid (NormalRule));
+    }
+    else if (streq (type,"pattern")) {
+        rules = ac.getRulesByType (typeid (RegexRule));
+    }
+    else {
+        //invalid type, TODO send message
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "requested set of rules is invalid");
+        mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    }
+    zmsg_t *reply = zmsg_new ();
+    assert (reply);
+    zmsg_addstr (reply, "LIST");
+    zmsg_addstr (reply, type);
+    for (auto rule: rules) {
+        zmsg_addstr (reply, rule->getJsonRule().c_str());
+    }
+    mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy( &reply );
+}
+
+void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
+    Rule *rule = ac.getRuleByName(name);
+    if(!rule) {
+        //invalid type, TODO send message
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "requested rule doesn't exist");
+        mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    }
+    zmsg_t *reply = zmsg_new ();
+    assert (reply);
+    zmsg_addstr (reply, "OK");
+    zmsg_addstr (reply, rule->getJsonRule().c_str());
+    mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy( &reply );
+}
 
 int main (int argc, char** argv)
 {
@@ -618,31 +681,46 @@ int main (int argc, char** argv)
             //  * request for list of rules
             //  * unexpected message
             // process as rule message
-            std::string rule_json;
-            int rv = rule_decode (&zmessage, rule_json);
-            zsys_info ("new_json: %s", rule_json.c_str());
-            if ( rv != 0 ) {
-                zsys_info ("cannot decode rule information, ignore message\n");
-                continue;
-            }
-            std::string topic = mlm_client_subject(client);
-            zsys_info("Got message '%s'", topic.c_str());
-            // TODO memory leak
+            char *command = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            if (command && param) {
+                if (streq (command, "LIST")) {
+                    list_rules (client, param, alertConfiguration);
+                }
+                else if (streq (command, "GET")) {
+                    get_rule (client, param, alertConfiguration);
+                }
+                else if (streq (command, "ADD") ) {
+                    std::string rule_json;
+                    int rv = rule_decode (&zmessage, rule_json);
+                    zsys_info ("new_json: %s", rule_json.c_str());
+                    if ( rv != 0 ) {
+                        zsys_info ("cannot decode rule information, ignore message\n");
+                        continue;
+                    }
+                    std::string topic = mlm_client_subject(client);
+                    zsys_info("Got message '%s'", topic.c_str());
+                    // TODO memory leak
 
-            std::istringstream f(rule_json);
-            std::set <std::string> newSubjectsToSubscribe;
-            std::vector <PureAlert> alertsToSend;
-            Rule* newRule = NULL;
-            rv = alertConfiguration.updateConfiguration (f, newSubjectsToSubscribe, alertsToSend, &newRule);
-            zsys_info ("rv = %d", rv);
-            zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-            zsys_info ("alertsToSend count = %d", alertsToSend.size() );
-            for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
-                zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+                    std::istringstream f(rule_json);
+                    std::set <std::string> newSubjectsToSubscribe;
+                    std::vector <PureAlert> alertsToSend;
+                    Rule* newRule = NULL;
+                    rv = alertConfiguration.updateConfiguration (f, newSubjectsToSubscribe, alertsToSend, &newRule);
+                    zsys_info ("rv = %d", rv);
+                    zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+                    zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+                    for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+                        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+                        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+                    }
+                    // TODO send a reply back
+                    // TODO send alertsToSend
+                    
+                }
             }
-            // TODO send a reply back
-            // TODO send alertsToSend
+            if (command) free (command);
+            if (param) free (param);
         }
     }
     // TODO save info to persistence before I die
