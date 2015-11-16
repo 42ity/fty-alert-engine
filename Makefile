@@ -4,6 +4,7 @@ SRC= \
   src/alert_agent.cc \
   src/metricinfo.h \
   src/metriclist.cc \
+  src/metriclist.h \
   src/rule.h \
   src/purealert.h \
   src/normalrule.h \
