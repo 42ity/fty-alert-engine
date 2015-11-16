@@ -75,6 +75,8 @@ struct PureAlert{
     int64_t timestamp;
     std::string description;
     std::string element;
+    std::string severity;
+    std::vector <std::string> actions;
 
     PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name)
     {
@@ -96,6 +98,27 @@ void printPureAlert(const PureAlert &pureAlert){
     zsys_info ("element = %s", pureAlert.element.c_str());
 }
 
+
+struct Outcome {
+    std::vector <std::string> _actions;
+    std::string _severity;
+    std::string _description;
+};
+
+void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
+{
+    si.addMember("actions") <<= outcome._actions;
+    si.addMember("severity") <<= outcome._severity;
+    si.addMember("description") <<= outcome._description;
+};
+
+void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
+{
+    si.getMember("actions") >>= outcome._actions;
+    si.getMember("severity") >>= outcome._severity;
+    si.getMember("description") >>= outcome._description;
+}
+
 // this is an abstract class for all rules
 class Rule {
 public:
@@ -107,7 +130,15 @@ public:
     // this field doesn't have any impact on alert evaluation
     // but this information should be propagated to GATEWAY components
     // So, need to have it here
-    std::set < std::string> _actions;
+    // TODO: remove  it. it is legacy already
+    std::set <std::string> _actions;
+
+    // user is able to define his own constants, that should be used in evaluation
+    std::map <std::string, double> _values;
+
+    // user is able to define his own set of results, that should be used in evaluation
+    std::map <std::string, Outcome> _outcomes;
+
 
     Rule(){};
 
@@ -156,15 +187,16 @@ public:
         return _type_name;
     };
 
+    virtual ~Rule () {};
+
+    friend Rule* readRule (std::istream &f);
+
 protected:
 
     // every type of the rule should have a string representation of its name
     std::string _type_name;
 
     std::string _json_representation;
-
-    // TODO rework this, as it is not required to all rules use lua for evaluation
-    virtual lua_State* setContext (const MetricList &metricList) const = 0;
 };
 
 
@@ -268,10 +300,85 @@ private:
 };
 
 
+class ThresholdRuleSimple : public Rule
+{
+public:
+
+    ThresholdRuleSimple(){};
+
+    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
+        // ASSUMPTION: constants are in values
+        //  high_critical
+        //  high_warning
+        //  low_warning
+        //  low_critical
+
+        auto valueToCheck = _values.find ("high_critical");
+        if ( valueToCheck != _values.cend() ) {
+            if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
+                auto outcome = _outcomes.find ("high_critical");
+                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                (*pureAlert)->severity = outcome->second._severity;
+                (*pureAlert)->actions = outcome->second._actions;
+                return 0;
+            }
+        }
+        valueToCheck = _values.find ("high_warning");
+        if ( valueToCheck != _values.cend() ) {
+            if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
+                auto outcome = _outcomes.find ("high_warning");
+                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                (*pureAlert)->severity = outcome->second._severity;
+                (*pureAlert)->actions = outcome->second._actions;
+                return 0;
+            }
+        }
+        valueToCheck = _values.find ("low_warning");
+        if ( valueToCheck != _values.cend() ) {
+            if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
+                auto outcome = _outcomes.find ("low_warning");
+                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                (*pureAlert)->severity = outcome->second._severity;
+                (*pureAlert)->actions = outcome->second._actions;
+                return 0;
+            }
+        }
+        valueToCheck = _values.find ("low_critical");
+        if ( valueToCheck != _values.cend() ) {
+            if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
+                auto outcome = _outcomes.find ("low_critical");
+                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                (*pureAlert)->severity = outcome->second._severity;
+                (*pureAlert)->actions = outcome->second._actions;
+                return 0;
+            }
+        }
+        // if we are here -> no alert was detected
+        *pureAlert = new PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
+        printPureAlert (**pureAlert);
+        return 0;
+    };
+
+    bool isTopicInteresting(const std::string &topic) const {
+        return ( _metric == topic ? true : false );
+    };
+
+    std::set<std::string> getNeededTopics(void) const {
+        return {_metric};
+    };
+
+    friend Rule* readRule (std::istream &f);
+
+private:
+    // needed metric topic
+    std::string _metric;
+};
+
+// have 2 different classes??? for simple threshold and complex threshold?
 class ThresholdRule : public Rule
 {
-    // TODO Why do we need to generate lua? We can easily do it in c++ !!!
 public:
+
     ThresholdRule(){};
 
     int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
@@ -410,6 +517,7 @@ private:
     // this field is generated field
     std::string _in;
 };
+
 
 class RegexRule : public Rule {
 public:
@@ -587,6 +695,82 @@ Rule* readRule (std::istream &f)
             }
             rule->generateLua();
             rule->generateNeededTopic();
+            return rule;
+        } else if ( si->findMember("threshold") != NULL ){
+            Rule *rule;
+            try {
+                auto threshold = si->getMember("threshold");
+                if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
+                    zsys_info ("Root of json must be an object with property 'threshold'.");
+                    // TODO
+                    return NULL;
+                }
+
+                try {
+                    // metric
+                    auto metric = threshold.getMember("metric");
+                    if ( metric.category () == cxxtools::SerializationInfo::Value ) {
+                        ThresholdRuleSimple *tmp_rule = new ThresholdRuleSimple();
+                        metric >>= tmp_rule->_metric;
+                        rule = tmp_rule;
+                    }
+                    else if ( metric.category () == cxxtools::SerializationInfo::Array ) {
+                        rule = new RegexRule;
+                        // TODO change to complex rule
+                    }
+                }
+                catch ( const std::exception &e) {
+                    // TODO
+                    return NULL;
+                }
+                threshold.getMember("rule_name") >>= rule->_rule_name;
+                threshold.getMember("element") >>= rule->_element;
+                // values
+                auto values = threshold.getMember("values");
+                if ( values.category () != cxxtools::SerializationInfo::Array ) {
+                    zsys_info ("parameter 'values' in json must be an array.");
+                    // TODO
+                    throw "eee";
+                }
+                values >>= rule->_values;
+                // outcomes
+                auto outcomes = threshold.getMember("results");
+                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+                    zsys_info ("parameter 'results' in json must be an array.");
+                    // TODO
+                    throw "eee";
+                }
+                outcomes >>= rule->_outcomes;
+
+/*
+{
+    "threshold" : {
+        "rule_name"     :   "<rule_name>",
+        "element"       :   "<element_name>",
+        "values"        :   [ "low_critical"  : "<value>",
+                              "low_warning"   : "<value>",
+                              "high_warning"  : "<value>",
+                              "high_critical" : "<value>"
+                            ],
+        "results"       :   [ "low_critical"  : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
+                              "low_warning"   : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
+                              "high_warning"  : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
+                              "high_critical" : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" }
+                            ],
+        "metric"        :   <metric_specification>,
+        "evaluation"    :   "<lua_function>"
+    }
+}
+*/
+
+
+                rule->_json_representation = json_string;
+            }
+            catch ( const std::exception &e ) {
+                zsys_warning ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
+                delete rule;
+                return NULL;
+            }
             return rule;
         }
         else {
