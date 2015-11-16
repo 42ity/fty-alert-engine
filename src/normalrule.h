@@ -24,7 +24,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define SRC_NORMALRULE_H
 
 #include "rule.h"
-
+extern "C" {
+#include <lua.h>
+#include <lauxlib.h>
+}
+// because of zsys
+#include <czmq.h>
 class NormalRule : public Rule
 {
 public:
