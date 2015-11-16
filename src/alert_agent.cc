@@ -571,6 +571,7 @@ int main (int argc, char** argv)
     if ( rv == -1 )
     {
         zsys_error ("client cannot be connected");
+        mlm_client_destroy(&client);
         return EXIT_FAILURE;
     }
     zsys_info ("Agent '%s' started", THIS_AGENT_NAME);
@@ -579,6 +580,7 @@ int main (int argc, char** argv)
     if ( rv == -1 )
     {
         zsys_error ("set_producer() failed");
+        mlm_client_destroy(&client);
         return EXIT_FAILURE;
     }
 
