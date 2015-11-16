@@ -30,6 +30,8 @@ extern "C" {
 #include <lauxlib.h>
 }
 
+// because of zsys
+#include <czmq.h>
 class ThresholdRule : public Rule
 {
 public:
