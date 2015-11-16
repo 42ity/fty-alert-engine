@@ -156,12 +156,8 @@ public:
      * \return true/false
      */
     bool hasSameNameAs (const std::string &name) const {
-        if ( this->_rule_name == name ) {
-            return true;
-        }
-        else {
-            return false;
-        }
+        // works until we use ASCII names
+        return strcasecmp( this->_rule_name.c_str(), name.c_str() ) == 0;
     };
 
     /*
