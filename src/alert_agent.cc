@@ -42,81 +42,8 @@ extern "C" {
 
 #include "metriclist.h"
 #include "normalrule.h"
-
-class ThresholdRuleSimple : public Rule
-{
-public:
-
-    ThresholdRuleSimple(){};
-
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
-        // ASSUMPTION: constants are in values
-        //  high_critical
-        //  high_warning
-        //  low_warning
-        //  low_critical
-
-        auto valueToCheck = _values.find ("high_critical");
-        if ( valueToCheck != _values.cend() ) {
-            if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("high_critical");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        valueToCheck = _values.find ("high_warning");
-        if ( valueToCheck != _values.cend() ) {
-            if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("high_warning");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        valueToCheck = _values.find ("low_warning");
-        if ( valueToCheck != _values.cend() ) {
-            if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("low_warning");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        valueToCheck = _values.find ("low_critical");
-        if ( valueToCheck != _values.cend() ) {
-            if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("low_critical");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        // if we are here -> no alert was detected
-        *pureAlert = new PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
-        printPureAlert (**pureAlert);
-        return 0;
-    };
-
-    bool isTopicInteresting(const std::string &topic) const {
-        return ( _metric == topic ? true : false );
-    };
-
-    std::set<std::string> getNeededTopics(void) const {
-        return {_metric};
-    };
-
-    friend Rule* readRule (std::istream &f);
-
-private:
-    // needed metric topic
-    std::string _metric;
-};
-
+#include "thresholdrulesimple.h"
+///
 // have 2 different classes??? for simple threshold and complex threshold?
 class ThresholdRule : public Rule
 {

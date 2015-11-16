@@ -21,6 +21,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief General representation of rule
  */
 
+#ifndef SRC_RULE_H
+#define SRC_RULE_H
+
 #include <cxxtools/jsonserializer.h>
 #include <string>
 #include <vector>
@@ -206,3 +209,5 @@ protected:
      */
     Rule(){};
 };
+
+#endif // SRC_RULE_H
