@@ -18,11 +18,41 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 /*! \file purealert.h
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief General representation of rule
+ *  \brief General representation of alert
  */
- 
+#ifndef SRC_PUREALERT_H
+#define SRC_PUREALERT_H
+
 #include <string>
 #include <vector>
+
+#define ALERT_UNKNOWN  0
+#define ALERT_START    1
+#define ALERT_ACK1     2
+#define ALERT_ACK2     3
+#define ALERT_ACK3     4
+#define ALERT_ACK4     5
+#define ALERT_RESOLVED 6
+
+const char* get_status_string(int status)
+{
+    switch (status) {
+        case ALERT_START:
+            return "ACTIVE";
+        case ALERT_ACK1:
+            return "ACK-WIP";
+        case ALERT_ACK2:
+            return "ACK-PAUSE";
+        case ALERT_ACK3:
+            return "ACK-IGNORE";
+        case ALERT_ACK4:
+            return "ACK-SILENCE";
+        case ALERT_RESOLVED:
+            return "RESOLVED";
+    }
+    return "UNKNOWN";
+}
+
 
 struct PureAlert{
     int status; // on Off ack
@@ -50,4 +80,6 @@ void printPureAlert(const PureAlert &pureAlert){
 //    zsys_info ("timestamp = %d", pureAlert.timestamp);
 //    zsys_info ("description = %s", pureAlert.description.c_str());
 //    zsys_info ("element = %s", pureAlert.element.c_str());
-}
+};
+
+#endif // SRC_PURE_ALERT_H_

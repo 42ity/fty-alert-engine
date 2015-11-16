@@ -96,7 +96,7 @@ public:
     // TODO: remove  it. it is legacy already
     std::set <std::string> _actions;
 
-    /* 
+    /*
      * \brief Evaluates the rule
      *
      * \param[in] metricList - a list of known metrics
@@ -123,7 +123,7 @@ public:
      */
     virtual std::set<std::string> getNeededTopics(void) const = 0;
 
-    /* 
+    /*
      * \brief Checks if rules have same names
      *
      * \param[in] rule - rule to check
@@ -134,7 +134,7 @@ public:
         return hasSameNameAs (rule._rule_name);
     };
 
-    /* 
+    /*
      * \brief Checks if rules have same names
      *
      * \param[in] rule - pointer to the rule to check
@@ -145,7 +145,7 @@ public:
         return hasSameNameAs (rule->_rule_name);
     };
 
-    /* 
+    /*
      * \brief Checks if rule has this name
      *
      * \param[in] name - name to check
@@ -161,7 +161,7 @@ public:
         }
     };
 
-    /* 
+    /*
      * \brief Gets a json representation of the rule
      *
      * \return json representation of the rule as string
@@ -170,7 +170,7 @@ public:
         return _json_representation;
     };
 
-    /* 
+    /*
      * \brief Save rule to the persistance
      */
     void save (void) {
