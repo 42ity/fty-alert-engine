@@ -465,6 +465,15 @@ public:
         return result;
     }
 
+    Rule* getRuleByName ( const std::string &name ) {
+        // TODO: make some map of names to avoid o(n)?
+        // Return iterator rather than pointer?
+        for (auto rule : _configs) {
+            if( rule->hasSameNameAs( name ) ) return rule;
+        }
+        return NULL;
+    }
+
 private:
     // TODO it is bad implementation, any improvements are welcome
     std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
@@ -519,6 +528,7 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
     zmsg_t *reply = zmsg_new ();
     assert (reply);
     zmsg_addstr (reply, "LIST");
+    zmsg_addstr (reply, type);
     for (auto rule: rules) {
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
@@ -526,8 +536,23 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
     zmsg_destroy( &reply );
 }
 
-void get_rule(mlm_client_t *client, const char *type, AlertConfiguration &ac) {
-    
+void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
+    Rule *rule = ac.getRuleByName(name);
+    if(!rule) {
+        //invalid type, TODO send message
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "requested rule doesn't exist");
+        mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    }
+    zmsg_t *reply = zmsg_new ();
+    assert (reply);
+    zmsg_addstr (reply, "OK");
+    zmsg_addstr (reply, rule->getJsonRule().c_str());
+    mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy( &reply );
 }
 
 int main (int argc, char** argv)
