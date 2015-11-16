@@ -33,6 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <iostream>
 
 #include "purealert.h"
+#include "metriclist.h"
 
 /*
  * \brief Helper structure to store a possible outcome of rule evaluation

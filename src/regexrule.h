@@ -27,7 +27,8 @@ extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
-
+// because of regex and zsysinfo
+#include <czmq.h>
 #include "rule.h"
 
 class RegexRule : public Rule {

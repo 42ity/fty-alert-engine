@@ -154,6 +154,7 @@ Rule* readRule (std::istream &f)
                 threshold.getMember("rule_name") >>= rule->_rule_name;
                 threshold.getMember("element") >>= rule->_element;
                 // values
+                // TODO check low_critical < low_warnong < high_warning < hign crtical
                 auto values = threshold.getMember("values");
                 if ( values.category () != cxxtools::SerializationInfo::Array ) {
                     zsys_info ("parameter 'values' in json must be an array.");
@@ -559,11 +560,29 @@ int main (int argc, char** argv)
 {
     // create a malamute client
     mlm_client_t *client = mlm_client_new();
+    if ( client == NULL )
+    {
+        zsys_error ("client cannot be created");
+        return EXIT_FAILURE;
+    }
+
     // ASSUMPTION : only one instance can be in the system
-    mlm_client_connect (client, "ipc://@/malamute", 1000, THIS_AGENT_NAME);
+    int rv = mlm_client_connect (client, "ipc://@/malamute", 1000, THIS_AGENT_NAME);
+    if ( rv == -1 )
+    {
+        zsys_error ("client cannot be connected");
+        mlm_client_destroy(&client);
+        return EXIT_FAILURE;
+    }
     zsys_info ("Agent '%s' started", THIS_AGENT_NAME);
     // The goal of this agent is to produce alerts
-    mlm_client_set_producer (client, "ALERTS");
+    rv = mlm_client_set_producer (client, "ALERTS");
+    if ( rv == -1 )
+    {
+        zsys_error ("set_producer() failed");
+        mlm_client_destroy(&client);
+        return EXIT_FAILURE;
+    }
 
     // Read initial configuration
     AlertConfiguration alertConfiguration(PATH);
