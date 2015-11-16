@@ -41,6 +41,7 @@ extern "C" {
 #include <math.h>
 
 #include "metriclist.h"
+#include "rule.h"
 
 #define ALERT_UNKNOWN  0
 #define ALERT_START    1
@@ -68,136 +69,6 @@ const char* get_status_string(int status)
     }
     return "UNKNOWN";
 }
-
-
-struct PureAlert{
-    int status; // on Off ack
-    int64_t timestamp;
-    std::string description;
-    std::string element;
-    std::string severity;
-    std::vector <std::string> actions;
-
-    PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name)
-    {
-        status = s;
-        timestamp = tm;
-        description = descr;
-        element = element_name;
-    };
-
-    PureAlert()
-    {
-    };
-};
-
-void printPureAlert(const PureAlert &pureAlert){
-    zsys_info ("status = %d", pureAlert.status);
-    zsys_info ("timestamp = %d", pureAlert.timestamp);
-    zsys_info ("description = %s", pureAlert.description.c_str());
-    zsys_info ("element = %s", pureAlert.element.c_str());
-}
-
-
-struct Outcome {
-    std::vector <std::string> _actions;
-    std::string _severity;
-    std::string _description;
-};
-
-void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
-{
-    si.addMember("actions") <<= outcome._actions;
-    si.addMember("severity") <<= outcome._severity;
-    si.addMember("description") <<= outcome._description;
-};
-
-void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
-{
-    si.getMember("actions") >>= outcome._actions;
-    si.getMember("severity") >>= outcome._severity;
-    si.getMember("description") >>= outcome._description;
-}
-
-// this is an abstract class for all rules
-class Rule {
-public:
-
-    std::string _lua_code;
-    std::string _rule_name;
-    std::string _element;
-    std::string _severity;
-    // this field doesn't have any impact on alert evaluation
-    // but this information should be propagated to GATEWAY components
-    // So, need to have it here
-    // TODO: remove  it. it is legacy already
-    std::set <std::string> _actions;
-
-    // user is able to define his own constants, that should be used in evaluation
-    std::map <std::string, double> _values;
-
-    // user is able to define his own set of results, that should be used in evaluation
-    std::map <std::string, Outcome> _outcomes;
-
-
-    Rule(){};
-
-    virtual int evaluate (const MetricList &metricList, PureAlert **pureAlert) const = 0;
-
-    virtual bool isTopicInteresting(const std::string &topic) const = 0;
-
-    virtual std::set<std::string> getNeededTopics(void) const = 0;
-
-    bool hasSameNameAs (const Rule &rule) const {
-        return hasSameNameAs (rule._rule_name);
-    };
-
-    bool hasSameNameAs (const Rule *rule) const {
-        return hasSameNameAs (rule->_rule_name);
-    };
-
-    bool hasSameNameAs (const std::string &name) const {
-        if ( this->_rule_name == name ) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    };
-
-    // TODO rule_name comparrission should be done in the function!
-    std::string getJsonRule (void) const {
-        return _json_representation;
-    };
-
-    void save (void) {
-        // ASSUMPTION: file name is the same as rule name
-        // rule name and file name are CASE SENSITIVE.
-
-        std::string path = _rule_name + ".rule";
-        std::ofstream ofs (path, std::ofstream::out);
-        zsys_info ("here must be json: '%s'", _json_representation.c_str());
-        zsys_info ("here must be file name: '%s'", path.c_str());
-        ofs << _json_representation;
-        ofs.close();
-        return;
-    };
-
-    std::string getType(void) {
-        return _type_name;
-    };
-
-    virtual ~Rule () {};
-
-    friend Rule* readRule (std::istream &f);
-
-protected:
-
-    // every type of the rule should have a string representation of its name
-    std::string _type_name;
-
-    std::string _json_representation;
-};
 
 
 class NormalRule : public Rule
