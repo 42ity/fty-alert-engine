@@ -33,6 +33,7 @@ public:
     ThresholdRuleComplex(){};
 
     int evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
+        return -1; //make compiler happy
     };
 
     bool isTopicInteresting(const std::string &topic) const {

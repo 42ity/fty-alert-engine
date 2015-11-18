@@ -127,7 +127,7 @@ Rule* readRule (std::istream &f)
             return rule;
         } else if ( si->findMember("threshold") != NULL ){
             zsys_info ("it is threshold rule");
-            Rule *rule;
+            Rule *rule = NULL;
             try {
                 auto threshold = si->getMember("threshold");
                 if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
@@ -190,7 +190,7 @@ Rule* readRule (std::istream &f)
         zsys_error ("Cannot parse JSON, ignore it");
         return NULL;
     }
-};
+}
 
 // Alert configuration is class that manage rules and evaruted alerts
 //
@@ -425,6 +425,7 @@ public:
                 }
             }
         } // end of processing one rule
+        return NULL; //make compiler happy - why this finctions returns smthng?
     };
 
     bool haveRule (const Rule *rule) const {
@@ -485,7 +486,7 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
         "  \"action\" : [\"EMAIL\", \"SMS\"]}";
     zmsg_destroy (msg);
     return 0;
-};
+}
 
 #define THIS_AGENT_NAME "alert_generator"
 #define PATH "."

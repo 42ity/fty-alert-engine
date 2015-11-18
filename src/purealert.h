@@ -80,6 +80,6 @@ void printPureAlert(const PureAlert &pureAlert){
 //    zsys_info ("timestamp = %d", pureAlert.timestamp);
 //    zsys_info ("description = %s", pureAlert.description.c_str());
 //    zsys_info ("element = %s", pureAlert.element.c_str());
-};
+}
 
 #endif // SRC_PURE_ALERT_H_

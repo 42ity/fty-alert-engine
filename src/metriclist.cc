@@ -36,7 +36,7 @@ void MetricList::
         _knownMetrics.emplace (metricInfo.generateTopic(), metricInfo);
     }
     _lastInsertedMetric = metricInfo;
-};
+}
 
 
 double MetricList::
@@ -55,7 +55,7 @@ double MetricList::
             return it->second._value;
         }
     }
-};
+}
 
 
 double MetricList::
@@ -68,7 +68,7 @@ double MetricList::
     else {
         return it->second._value;
     }
-};
+}
 
 
 MetricInfo MetricList::
@@ -81,7 +81,7 @@ MetricInfo MetricList::
     else {
         return it->second;
     }
-};
+}
 
 
 void MetricList::removeOldMetrics()
@@ -97,4 +97,4 @@ void MetricList::removeOldMetrics()
             ++iter;
         }
     }
-};
+}
