@@ -319,8 +319,8 @@ public:
                 // so we finally found a list of alerts
                 // resolve found alerts
                 for ( auto &oneAlert : oneRuleAlerts.second ) {
-                    oneAlert.status = ALERT_RESOLVED;
-                    oneAlert.description = "Rule changed";
+                    oneAlert._status = ALERT_RESOLVED;
+                    oneAlert._description = "Rule changed";
                     // put them into the list of alerts that changed
                     alertsToSend.push_back (oneAlert);
                 }
@@ -361,44 +361,44 @@ public:
             bool isAlertFound = false;
             for ( auto &oneAlert : oneRuleAlerts.second ) // this object can be changed -> no const
             {
-                bool isSameAlert = ( pureAlert.element == oneAlert.element );
+                bool isSameAlert = ( pureAlert._element == oneAlert._element );
                 if ( !isSameAlert ) {
                     continue;
                 }
                 // we found the alert
                 isAlertFound = true;
-                if ( pureAlert.status == ALERT_START ) {
-                    if ( oneAlert.status == ALERT_RESOLVED ) {
+                if ( pureAlert._status == ALERT_START ) {
+                    if ( oneAlert._status == ALERT_RESOLVED ) {
                         // Found alert is old. This is new one
-                        oneAlert.status = pureAlert.status;
-                        oneAlert.timestamp = pureAlert.timestamp;
-                        oneAlert.description = pureAlert.description;
-                        oneAlert.severity = pureAlert.severity;
-                        oneAlert.actions = pureAlert.actions;
+                        oneAlert._status = pureAlert._status;
+                        oneAlert._timestamp = pureAlert._timestamp;
+                        oneAlert._description = pureAlert._description;
+                        oneAlert._severity = pureAlert._severity;
+                        oneAlert._actions = pureAlert._actions;
                         // element is the same -> no need to update the field
-                        zsys_info("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
+                        zsys_info("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                     }
                     else {
                         // Found alert is still active -> it is the same alert
                         // If alert is still ongoing, it doesn't mean, that every attribute of alert stayed the same
-                        oneAlert.description = pureAlert.description;
-                        oneAlert.severity = pureAlert.severity;
-                        oneAlert.actions = pureAlert.actions;
-                        zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
+                        oneAlert._description = pureAlert._description;
+                        oneAlert._severity = pureAlert._severity;
+                        oneAlert._actions = pureAlert._actions;
+                        zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                     }
                     // in both cases we need to send an alert
                     PureAlert *toSend = new PureAlert(oneAlert);
                     return toSend;
                 }
-                if ( pureAlert.status == ALERT_RESOLVED ) {
-                    if ( oneAlert.status != ALERT_RESOLVED ) {
+                if ( pureAlert._status == ALERT_RESOLVED ) {
+                    if ( oneAlert._status != ALERT_RESOLVED ) {
                         // Found alert is not resolved. -> resolve it
-                        oneAlert.status = pureAlert.status;
-                        oneAlert.timestamp = pureAlert.timestamp;
-                        oneAlert.description = pureAlert.description;
-                        oneAlert.severity = pureAlert.severity;
-                        oneAlert.actions = pureAlert.actions;
-                        zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
+                        oneAlert._status = pureAlert._status;
+                        oneAlert._timestamp = pureAlert._timestamp;
+                        oneAlert._description = pureAlert._description;
+                        oneAlert._severity = pureAlert._severity;
+                        oneAlert._actions = pureAlert._actions;
+                        zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                         PureAlert *toSend = new PureAlert(oneAlert);
                         return toSend;
                     }
@@ -412,10 +412,10 @@ public:
             {
                 // this is completly new alert -> need to add it to the list
                 // but  only if alert is not resolved
-                if ( pureAlert.status != ALERT_RESOLVED )
+                if ( pureAlert._status != ALERT_RESOLVED )
                 {
                     oneRuleAlerts.second.push_back(pureAlert);
-                    zsys_info("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), pureAlert.element.c_str(), pureAlert.description.c_str());
+                    zsys_info("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
                     PureAlert *toSend = new PureAlert(pureAlert);
                     return toSend;
                 }
@@ -488,7 +488,7 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
 };
 
 #define THIS_AGENT_NAME "alert_generator"
-#define PATH "."
+#define PATH "./testrules"
 
 // TODO if diectory doesn't exists agent crashed
 void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) {
@@ -664,10 +664,10 @@ int main (int argc, char** argv)
                         NULL,
                         rule->_rule_name.c_str(),
                         element_src,
-                        get_status_string(toSend->status),
+                        get_status_string(toSend->_status),
                         rule->_severity.c_str(),
-                        toSend->description.c_str(),
-                        toSend->timestamp,
+                        toSend->_description.c_str(),
+                        toSend->_timestamp,
                         NULL);
                     if( alert ) {
                         std::string atopic = rule->_rule_name + "/"

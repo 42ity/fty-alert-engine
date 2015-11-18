@@ -117,6 +117,7 @@ public:
     std::map <std::string, double> _values;
 
     // user is able to define his own set of results, that should be used in evaluation
+    // TODO "ok" name for outcome reserved!!!!! case insensitive
     std::map <std::string, Outcome> _outcomes;
 
 

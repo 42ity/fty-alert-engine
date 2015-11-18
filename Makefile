@@ -10,6 +10,7 @@ SRC= \
   src/normalrule.h \
   src/thresholdrule.h \
   src/thresholdrulesimple.h \
+  src/thresholdrulecomplex.h \
   src/regexrule.h
 
 alert-generator: $(SRC)

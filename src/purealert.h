@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include <string>
 #include <vector>
+#include <czmq.h>
 
 #define ALERT_UNKNOWN  0
 #define ALERT_START    1
@@ -55,19 +56,29 @@ const char* get_status_string(int status)
 
 
 struct PureAlert{
-    int status; // on Off ack
-    int64_t timestamp;
-    std::string description;
-    std::string element;
-    std::string severity;
-    std::vector <std::string> actions;
+    int _status; // on Off ack
+    int64_t _timestamp;
+    std::string _description;
+    std::string _element;
+    std::string _severity;
+    std::vector <std::string> _actions;
 
     PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name)
     {
-        status = s;
-        timestamp = tm;
-        description = descr;
-        element = element_name;
+        _status = s;
+        _timestamp = tm;
+        _description = descr;
+        _element = element_name;
+    };
+    
+    PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name, const std::string &severity, const std::vector<std::string> &actions)
+    {
+        _status = s;
+        _timestamp = tm;
+        _description = descr;
+        _element = element_name;
+        _severity = severity;
+        _actions = actions;
     };
 
     PureAlert()
@@ -76,10 +87,11 @@ struct PureAlert{
 };
 
 void printPureAlert(const PureAlert &pureAlert){
-//    zsys_info ("status = %d", pureAlert.status);
-//    zsys_info ("timestamp = %d", pureAlert.timestamp);
-//    zsys_info ("description = %s", pureAlert.description.c_str());
-//    zsys_info ("element = %s", pureAlert.element.c_str());
+    zsys_info ("status = %d", pureAlert._status);
+    zsys_info ("timestamp = %d", pureAlert._timestamp);
+    zsys_info ("description = %s", pureAlert._description.c_str());
+    zsys_info ("element = %s", pureAlert._element.c_str());
+    zsys_info ("severity = %s", pureAlert._severity.c_str());
 };
 
 #endif // SRC_PURE_ALERT_H_
