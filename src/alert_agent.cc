@@ -169,13 +169,13 @@ Rule* readRule (std::istream &f)
                 if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
                     zsys_info ("parameter 'results' in json must be an array.");
                     // TODO
-                    throw "eee";
+                    throw "eee"; // TODO throw
                 }
                 outcomes >>= rule->_outcomes;
                 rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
-                zsys_error ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
+                zsys_error ("THRESHOLD rule has a wrong representation, ignore it. %s", e.what());
                 delete rule;
                 return NULL;
             }
