@@ -394,6 +394,7 @@ public:
                         oneAlert.timestamp = pureAlert.timestamp;
                         oneAlert.description = pureAlert.description;
                         oneAlert.severity = pureAlert.severity;
+                        oneAlert.actions = pureAlert.actions;
                         zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
                         PureAlert *toSend = new PureAlert(oneAlert);
                         return toSend;
