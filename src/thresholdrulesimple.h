@@ -44,8 +44,8 @@ public:
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_critical");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
+                (*pureAlert)->_severity = outcome->second._severity;
+                (*pureAlert)->_actions = outcome->second._actions;
                 return 0;
             }
         }
@@ -54,8 +54,8 @@ public:
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_warning");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
+                (*pureAlert)->_severity = outcome->second._severity;
+                (*pureAlert)->_actions = outcome->second._actions;
                 return 0;
             }
         }
@@ -64,8 +64,8 @@ public:
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_critical");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
+                (*pureAlert)->_severity = outcome->second._severity;
+                (*pureAlert)->_actions = outcome->second._actions;
                 return 0;
             }
         }
@@ -74,12 +74,13 @@ public:
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_warning");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->severity = outcome->second._severity;
-                (*pureAlert)->actions = outcome->second._actions;
+                (*pureAlert)->_severity = outcome->second._severity;
+                (*pureAlert)->_actions = outcome->second._actions;
                 return 0;
             }
         }
         // if we are here -> no alert was detected
+        // TODO actions
         *pureAlert = new PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
         printPureAlert (**pureAlert);
         return 0;
