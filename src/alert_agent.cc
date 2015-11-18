@@ -43,6 +43,7 @@ extern "C" {
 #include "metriclist.h"
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
+#include "thresholdrulecomplex.h"
 #include "thresholdrule.h"
 #include "regexrule.h"
 
@@ -136,15 +137,17 @@ Rule* readRule (std::istream &f)
 
                 try {
                     // target
-                    auto metric = threshold.getMember("target");
-                    if ( metric.category () == cxxtools::SerializationInfo::Value ) {
+                    auto target = threshold.getMember("target");
+                    if ( target.category () == cxxtools::SerializationInfo::Value ) {
                         ThresholdRuleSimple *tmp_rule = new ThresholdRuleSimple();
-                        metric >>= tmp_rule->_metric;
+                        target >>= tmp_rule->_metric;
                         rule = tmp_rule;
                     }
-                    else if ( metric.category () == cxxtools::SerializationInfo::Array ) {
-                        rule = new RegexRule;
-                        // TODO change to complex rule
+                    else if ( target.category () == cxxtools::SerializationInfo::Array ) {
+                        ThresholdRuleComplex *tmp_rule = new ThresholdRuleComplex();
+                        target >>= tmp_rule->_metrics;
+                        rule = tmp_rule;
+                        threshold.getMember("evaluation") >>= rule->_lua_code;
                     }
                 }
                 catch ( const std::exception &e) {
@@ -172,14 +175,14 @@ Rule* readRule (std::istream &f)
                 rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
-                zsys_warning ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
+                zsys_error ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
                 delete rule;
                 return NULL;
             }
             return rule;
         }
         else {
-            zsys_warning ("Cannot detect type of the rule, ignore it");
+            zsys_error ("Cannot detect type of the rule, ignore it");
             return NULL;
         }
     }
