@@ -54,7 +54,7 @@ struct Outcome {
  */
 void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
 {
-    si.addMember("actions") <<= outcome._actions;
+    si.addMember("action") <<= outcome._actions;
     si.addMember("severity") <<= outcome._severity;
     si.addMember("description") <<= outcome._description;
 };
@@ -64,9 +64,43 @@ void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 {
-    si.getMember("actions") >>= outcome._actions;
+    si.getMember("action") >>= outcome._actions;
     si.getMember("severity") >>= outcome._severity;
     si.getMember("description") >>= outcome._description;
+};
+
+// TODO error handling mistakes can be hidden here
+void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, double> &values)
+{
+    /*
+       "values":[ {"low_critical"  : "30"},
+                  {"low_warning"   : "40"},
+                  {"high_warning"  : "50"},
+                  {"high_critical" : "60"} ]
+    */
+    for ( const auto &oneElement : si ) { // iterate through the array
+        auto variableName = oneElement.getMember(0).name();
+        std::string valueString;
+        oneElement.getMember(0) >>= valueString;
+        double valueDouble = std::stod (valueString);
+        values.emplace (variableName, valueDouble);
+    }
+};
+// TODO error handling mistakes can be hidden here
+void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes)
+{
+    /*
+        "results":[ {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW low critical description" }},
+                    {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow LOW warning description"}},
+                    {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow high WARNING description" }},
+                    {"high_critical" : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "wow high critical DESCTIPRION" } } ]
+    */
+    for ( const auto &oneElement : si ) { // iterate through the array
+        auto outcomeName = oneElement.getMember(0).name();
+        Outcome outcome;
+        oneElement.getMember(0) >>= outcome;
+        outcomes.emplace (outcomeName, outcome);
+    }
 };
 
 /*

@@ -131,14 +131,12 @@ Rule* readRule (std::istream &f)
                 auto threshold = si->getMember("threshold");
                 if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
                     zsys_info ("Root of json must be an object with property 'threshold'.");
-                    // TODO
-                    return NULL;
+                    return NULL; // TODO throw
                 }
 
                 try {
                     // target
                     auto metric = threshold.getMember("target");
-                    zsys_info ("field \"target\" found ");
                     if ( metric.category () == cxxtools::SerializationInfo::Value ) {
                         ThresholdRuleSimple *tmp_rule = new ThresholdRuleSimple();
                         metric >>= tmp_rule->_metric;
@@ -150,8 +148,8 @@ Rule* readRule (std::istream &f)
                     }
                 }
                 catch ( const std::exception &e) {
-                    // TODO
-                    return NULL;
+                    zsys_info ("Can't handle property 'target' in a propper way");
+                    return NULL; // TODO throw
                 }
                 threshold.getMember("rule_name") >>= rule->_rule_name;
                 threshold.getMember("element") >>= rule->_element;
@@ -160,8 +158,7 @@ Rule* readRule (std::istream &f)
                 auto values = threshold.getMember("values");
                 if ( values.category () != cxxtools::SerializationInfo::Array ) {
                     zsys_info ("parameter 'values' in json must be an array.");
-                    // TODO
-                    throw "eee";
+                    throw std::runtime_error("parameter 'values' in json must be an array");
                 }
                 values >>= rule->_values;
                 // outcomes
@@ -172,29 +169,6 @@ Rule* readRule (std::istream &f)
                     throw "eee";
                 }
                 outcomes >>= rule->_outcomes;
-
-/*
-{
-    "threshold" : {
-        "rule_name"     :   "<rule_name>",
-        "element"       :   "<element_name>",
-        "values"        :   [ "low_critical"  : "<value>",
-                              "low_warning"   : "<value>",
-                              "high_warning"  : "<value>",
-                              "high_critical" : "<value>"
-                            ],
-        "results"       :   [ "low_critical"  : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
-                              "low_warning"   : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
-                              "high_warning"  : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" },
-                              "high_critical" : { "action" : ["<action_1>", ..., "<action_N>"], "severity" : "<severity>", "description" : "<description>" }
-                            ],
-        "metric"        :   <metric_specification>,
-        "evaluation"    :   "<lua_function>"
-    }
-}
-*/
-
-
                 rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
@@ -278,7 +252,7 @@ public:
 
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule
-            if ( !rule->hasSameNameAs (fn) ) {
+            if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
                 zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->_rule_name.c_str());
                 delete rule;
                 continue;
