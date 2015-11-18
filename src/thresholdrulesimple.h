@@ -59,20 +59,20 @@ public:
                 return 0;
             }
         }
-        valueToCheck = _values.find ("low_warning");
+        valueToCheck = _values.find ("low_critical");
         if ( valueToCheck != _values.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("low_warning");
+                auto outcome = _outcomes.find ("low_critical");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
                 (*pureAlert)->severity = outcome->second._severity;
                 (*pureAlert)->actions = outcome->second._actions;
                 return 0;
             }
         }
-        valueToCheck = _values.find ("low_critical");
+        valueToCheck = _values.find ("low_warning");
         if ( valueToCheck != _values.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("low_critical");
+                auto outcome = _outcomes.find ("low_warning");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
                 (*pureAlert)->severity = outcome->second._severity;
                 (*pureAlert)->actions = outcome->second._actions;

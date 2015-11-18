@@ -370,11 +370,17 @@ public:
                         oneAlert.status = pureAlert.status;
                         oneAlert.timestamp = pureAlert.timestamp;
                         oneAlert.description = pureAlert.description;
+                        oneAlert.severity = pureAlert.severity;
+                        oneAlert.actions = pureAlert.actions;
                         // element is the same -> no need to update the field
                         zsys_info("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
                     }
                     else {
                         // Found alert is still active -> it is the same alert
+                        // If alert is still ongoing, it doesn't mean, that every attribute of alert stayed the same
+                        oneAlert.description = pureAlert.description;
+                        oneAlert.severity = pureAlert.severity;
+                        oneAlert.actions = pureAlert.actions;
                         zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
                     }
                     // in both cases we need to send an alert
@@ -387,6 +393,7 @@ public:
                         oneAlert.status = pureAlert.status;
                         oneAlert.timestamp = pureAlert.timestamp;
                         oneAlert.description = pureAlert.description;
+                        oneAlert.severity = pureAlert.severity;
                         zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert.element.c_str(), oneAlert.description.c_str());
                         PureAlert *toSend = new PureAlert(oneAlert);
                         return toSend;
@@ -479,6 +486,7 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
 #define THIS_AGENT_NAME "alert_generator"
 #define PATH "."
 
+// TODO if diectory doesn't exists agent crashed
 void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) {
     std::vector<Rule*> rules;
 
@@ -626,7 +634,9 @@ int main (int argc, char** argv)
 
                 // Go through all known rules, and try to evaluate them
                 for ( const auto &rule : alertConfiguration.getRules() ) {
+                    zsys_info("Check rule '%s'\n", rule->_rule_name.c_str());
                     if ( !rule->isTopicInteresting (m.generateTopic())) {
+                        zsys_info ("Metric is not interesting for this rule");
                         // metric is not interesting for the rule
                         continue;
                     }
@@ -641,6 +651,7 @@ int main (int argc, char** argv)
 
                     auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
                     if ( toSend == NULL ) {
+                        zsys_info("alert updated, nothing to send");
                         // nothing to send
                         continue;
                     }
@@ -712,7 +723,6 @@ int main (int argc, char** argv)
                     }
                     // TODO send a reply back
                     // TODO send alertsToSend
-                    
                 }
             }
             if (command) free (command);
