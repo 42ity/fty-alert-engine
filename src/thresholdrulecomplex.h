@@ -75,7 +75,6 @@ public:
             lua_close (lua_context);
             return 0;
         }
-        // TODO make ok case insensitive
         if ( streq (status, "ok") )
         {
             // When alert is resolved, it doesn't have new severity!!!!

@@ -45,7 +45,7 @@ public:
 
         zsys_info ("lua_code = %s", _lua_code.c_str() );
         int error = luaL_loadbuffer (lua_context, _lua_code.c_str(), _lua_code.length(), "line") ||
-            lua_pcall (lua_context, 0, 3, 0);
+            lua_pcall (lua_context, 0, 1, 0);
 
         if ( error ) {
             // syntax error in evaluate
@@ -63,39 +63,36 @@ public:
             return -1;
         }
         // ok, in the lua stack we got, what we expected
-        const char *status_ = lua_tostring(lua_context, -1); // IS / ISNT
-        zsys_info ("status = %s", status_ );
-        int s = ALERT_UNKNOWN;
-        if ( strcmp (status_, "IS") == 0 ) {
-            s = ALERT_START;
-        }
-        else if ( strcmp (status_, "ISNT") == 0 ) {
-            s = ALERT_RESOLVED;
-        }
-        if ( s == ALERT_UNKNOWN ) {
-            zsys_info ("unexcpected returned value, expected IS/ISNT\n");
+        const char *status = lua_tostring(lua_context, -1); // "ok" or result name
+        auto outcome = _outcomes.find (status);
+        if ( outcome != _outcomes.cend() )
+        {
+            // some known outcome was found
+            *pureAlert = new PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
+            printPureAlert (**pureAlert);
             lua_close (lua_context);
-            return -5;
+            return 0;
         }
-        if ( !lua_isstring(lua_context, -3) ) {
-            zsys_info ("unexcpected returned value\n");
+        if ( streq (status, "ok") )
+        {
+            // When alert is resolved, it doesn't have new severity!!!!
+            *pureAlert = new PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", _element, "DOESN'T MATTER", {""});
+            printPureAlert (**pureAlert);
             lua_close (lua_context);
-            return -3;
+            return 0;
         }
-        const char *description = lua_tostring(lua_context, -3);
-        *pureAlert = new PureAlert(s, ::time(NULL), description, _element);
-        printPureAlert (**pureAlert);
+        zsys_error ("unknown result received from lua function");
         lua_close (lua_context);
-        return 0;
+        return -1;
     };
 
     bool isTopicInteresting(const std::string &topic) const
     {
-        return ( _in.count(topic) != 0 ? true : false );
+        return ( _metrics.count(topic) != 0 ? true : false );
     };
 
     std::set<std::string> getNeededTopics(void) const {
-        return _in;
+        return _metrics;
     };
 
     friend Rule* readRule (std::istream &f);
@@ -105,27 +102,34 @@ protected:
     lua_State* setContext (const MetricList &metricList) const
     {
         lua_State *lua_context = lua_open();
-        for ( const auto &neededTopic : _in)
-        {
-            double neededValue = metricList.find (neededTopic);
+        // 1 ) set up all necessary metrics
+        for ( const auto &aNeededMetric : _metrics ) {
+            double neededValue = metricList.find (aNeededMetric);
             if ( isnan (neededValue) ) {
                 zsys_info("Do not have everything for '%s' yet\n", _rule_name.c_str());
                 lua_close (lua_context);
                 return NULL;
             }
-            std::string var = neededTopic;
+            std::string var = aNeededMetric;
             var[var.find('@')] = '_';
             zsys_info("Setting variable '%s' to %lf\n", var.c_str(), neededValue);
             lua_pushnumber (lua_context, neededValue);
             lua_setglobal (lua_context, var.c_str());
         }
-        // we are here -> all variables were found
+        // we are here -> all metrics were found
+
+        //  2 ) set up variables
+        for ( const auto &aConstantValue : _values ) {
+            lua_pushnumber (lua_context, aConstantValue.second);
+            lua_setglobal (lua_context, aConstantValue.first.c_str());
+        }
+        // we are here -> all constants are set
         return lua_context;
     };
 
 private:
 
-    std::set<std::string> _in;
+    std::set<std::string> _metrics;
 
 };
 
