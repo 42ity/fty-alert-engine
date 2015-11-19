@@ -59,29 +59,7 @@ Rule* readRule (std::istream &f)
         json.deserialize();
         const cxxtools::SerializationInfo *si = json.si();
         // TODO too complex method, need to split it
-        if ( si->findMember("in") ) {
-            NormalRule *rule = new NormalRule();
-            try {
-                si->getMember("in") >>= rule->_in;
-                si->getMember("element") >>= rule->_element;
-                si->getMember("evaluation") >>= rule->_lua_code;
-                si->getMember("rule_name") >>= rule->_rule_name;
-                si->getMember("severity") >>= rule->_severity;
-                rule->_json_representation = json_string;
-            }
-            catch ( const std::exception &e ) {
-                zsys_warning ("NORMAL rule doesn't have all required fields, ignore it. %s", e.what());
-                delete rule;
-                return NULL;
-            }
-            // this field is optional
-            if ( si->findMember("action") ) {
-                si->getMember("action") >>= rule->_actions;
-            }
-            zsys_info ("lua = %s", rule->_lua_code.c_str());
-            return rule;
-        }
-        else if ( si->findMember("in_rex") ) {
+        if ( si->findMember("in_rex") ) {
             RegexRule *rule = new RegexRule();
             try {
                 si->getMember("in_rex") >>= rule->_rex_str;
@@ -102,32 +80,10 @@ Rule* readRule (std::istream &f)
                 si->getMember("action") >>= rule->_actions;
             }
             return rule;
-        } else if ( si->findMember("metric") ){
-            ThresholdRule *rule = new ThresholdRule();
-            try {
-                si->getMember("metric") >>= rule->_metric;
-                si->getMember("element") >>= rule->_element;
-                si->getMember("rule_name") >>= rule->_rule_name;
-                si->getMember("severity") >>= rule->_severity;
-                si->getMember("type") >>= rule->_type;
-                si->getMember("value") >>= rule->_value;
-                rule->_json_representation = json_string;
-            }
-            catch ( const std::exception &e ) {
-                zsys_warning ("THRESHOLD rule doesn't have all required fields, ignore it. %s", e.what());
-                delete rule;
-                return NULL;
-            }
-            // this field is optional
-            if ( si->findMember("action") ) {
-                si->getMember("action") >>= rule->_actions;
-            }
-            rule->generateLua();
-            rule->generateNeededTopic();
-            return rule;
         } else if ( si->findMember("threshold") != NULL ){
             zsys_info ("it is threshold rule");
             Rule *rule = NULL;
+
             try {
                 auto threshold = si->getMember("threshold");
                 if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
@@ -176,6 +132,45 @@ Rule* readRule (std::istream &f)
             }
             catch ( const std::exception &e ) {
                 zsys_error ("THRESHOLD rule has a wrong representation, ignore it. %s", e.what());
+                delete rule;
+                return NULL;
+            }
+            return rule;
+        } else if ( si->findMember("single") != NULL ){
+            zsys_info ("it is single rule");
+            auto single = si->getMember("single");
+            if ( single.category () != cxxtools::SerializationInfo::Object ) {
+                zsys_info ("Root of json must be an object with property 'single'.");
+                return NULL;
+            }
+
+            NormalRule *rule =  new NormalRule();
+            try {
+                single.getMember("evaluation") >>= rule->_lua_code;
+                single.getMember("rule_name") >>= rule->_rule_name;
+                single.getMember("element") >>= rule->_element;
+                // target
+                auto target = single.getMember("target");
+                if ( target.category () != cxxtools::SerializationInfo::Array ) {
+                    throw std::runtime_error ("property 'target' in json must be an Array");
+                }
+                target >>= rule->_metrics;
+                // values
+                auto values = single.getMember("values");
+                if ( values.category () != cxxtools::SerializationInfo::Array ) {
+                    throw std::runtime_error ("parameter 'values' in json must be an array.");
+                }
+                values >>= rule->_values;
+                // outcomes
+                auto outcomes = single.getMember("results");
+                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+                    throw std::runtime_error ("parameter 'results' in json must be an array.");
+                }
+                outcomes >>= rule->_outcomes;
+                rule->_json_representation = json_string;
+            }
+            catch ( const std::exception &e ) {
+                zsys_error ("SINGLE rule has a wrong representation, ignore it. %s", e.what());
                 delete rule;
                 return NULL;
             }

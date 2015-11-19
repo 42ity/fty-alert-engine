@@ -1,0 +1,14 @@
+{
+    "single" : {
+        "rule_name"     :   "single",
+        "target"        :   ["abc@sss1", "abc@sss2"],
+        "element"       :   "aaa",
+        "values"        :   [ {"a1": "2"},
+                              {"a2": "-3"}
+                            ],
+        "results"       :   [ {"r1"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "RES r1" }},
+                              {"r2"  : { "action" : ["EMAIL"],       "severity" : "WARNING" , "description" : "RES r2"}}
+                            ],
+        "evaluation"    : " local new_value = abc_sss1*a1 + abc_sss2*a2 if  ( new_value > 0 ) then return \"r1\" end if ( new_value < -10 ) then return \"r2\" end return \"ok\""
+    }
+}
