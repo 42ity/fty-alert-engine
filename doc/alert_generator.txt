@@ -1,0 +1,25 @@
+Name(7)
+=======
+
+
+NAME
+----
+alert_generator - Evaluates rules written in Lua and produce alerts
+
+
+SYNOPSIS
+--------
+----
+#include <alert_generator.h>
+
+cc ['flags'] 'files' -lalert-generator ['libraries']
+----
+
+
+DESCRIPTION
+-----------
+
+Classes
+~~~~~~~
+
+Something.
