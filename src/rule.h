@@ -57,7 +57,7 @@ void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
     si.addMember("action") <<= outcome._actions;
     si.addMember("severity") <<= outcome._severity;
     si.addMember("description") <<= outcome._description;
-};
+}
 
 /*
  * \brief Deserialzation of outcome
@@ -67,7 +67,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
     si.getMember("action") >>= outcome._actions;
     si.getMember("severity") >>= outcome._severity;
     si.getMember("description") >>= outcome._description;
-};
+}
 
 // TODO error handling mistakes can be hidden here
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, double> &values)
@@ -85,7 +85,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
         double valueDouble = std::stod (valueString);
         values.emplace (variableName, valueDouble);
     }
-};
+}
 // TODO error handling mistakes can be hidden here
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes)
 {
@@ -103,7 +103,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
         oneElement.getMember(0) >>= outcome;
         outcomes.emplace (outcomeName, outcome);
     }
-};
+}
 
 /*
  * \brief General representation for rules
@@ -112,7 +112,7 @@ class Rule {
 
 public:
 
-    /* 
+    /*
      * \brief Every rule should have a rule name
      *
      * ASSUMPTION: rule name has only ascii characters.
@@ -125,7 +125,7 @@ public:
     std::string _rule_name;
 
     /*
-     * \brief User is able to define his own constants, 
+     * \brief User is able to define his own constants,
      *          that can be used in evaluation function
      *
      * TODO make it private

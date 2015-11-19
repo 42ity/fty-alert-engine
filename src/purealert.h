@@ -70,7 +70,7 @@ struct PureAlert{
         _description = descr;
         _element = element_name;
     };
-    
+
     PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name, const std::string &severity, const std::vector<std::string> &actions)
     {
         _status = s;
@@ -92,6 +92,6 @@ void printPureAlert(const PureAlert &pureAlert){
     zsys_info ("description = %s", pureAlert._description.c_str());
     zsys_info ("element = %s", pureAlert._element.c_str());
     zsys_info ("severity = %s", pureAlert._severity.c_str());
-};
+}
 
 #endif // SRC_PURE_ALERT_H_

@@ -1,0 +1,6 @@
+
+AM_CXXFLAGS = \
+	-std=c++11
+
+project_libs += -lcxxtools
+
