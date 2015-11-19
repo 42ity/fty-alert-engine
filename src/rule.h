@@ -97,6 +97,8 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
     */
     for ( const auto &oneElement : si ) { // iterate through the array
         auto outcomeName = oneElement.getMember(0).name();
+        if ( outcomeName == "ok" )
+            throw std::runtime_error ("Result name 'ok' is reserved, chose another name");
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
         outcomes.emplace (outcomeName, outcome);
@@ -110,13 +112,38 @@ class Rule {
 
 public:
 
-    /* Every rule should have a rule name */
+    /*
+     * \brief Every rule should have a rule name
+     *
+     * ASSUMPTION: rule name has only ascii characters.
+     * TODO This assumtion is not check anywhere.
+     *
+     * TODO make it private
+     *
+     * Rule name threated as case insensitive string
+     */
     std::string _rule_name;
 
-    // user is able to define his own constants, that should be used in evaluation
+    /*
+     * \brief User is able to define his own constants,
+     *          that can be used in evaluation function
+     *
+     * TODO make it private
+     *
+     * Maps name of the constant to the value.
+     */
     std::map <std::string, double> _values;
 
-    // user is able to define his own set of results, that should be used in evaluation
+    /*
+     * \brief User is able to define his own set of result,
+     *          that should be used in evaluation
+     *
+     * Maps result name into the definition of possible outcome.
+     * Outcome name "ok" (case sensitive) for outcome is reserved
+     * and cannot be redefined by user.
+     *
+     * TODO make it private
+     */
     std::map <std::string, Outcome> _outcomes;
 
 
