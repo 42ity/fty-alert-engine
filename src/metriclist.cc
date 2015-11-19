@@ -19,8 +19,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "metriclist.h"
 
 // NAN is here
-#include <math.h>
+#include <cmath>
 
+#include <cassert>
 
 void MetricList::
     addMetric (const MetricInfo &metricInfo)
@@ -97,4 +98,11 @@ void MetricList::removeOldMetrics()
             ++iter;
         }
     }
+}
+
+void
+metriclist_test (bool verbose)
+{
+    printf ("* metriclist: ");
+    assert (false); //not implemented
 }

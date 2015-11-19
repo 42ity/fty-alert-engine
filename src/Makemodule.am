@@ -21,6 +21,7 @@ src_libalert_generator_la_SOURCES = \
     src/platform.h
 
 src_libalert_generator_la_CPPFLAGS = ${AM_CPPFLAGS}
+src_libalert_generator_la_CXXFLAGS = ${AM_CXXFLAGS}
 
 src_libalert_generator_la_LDFLAGS = \
     -version-info @LTVER@ \
@@ -42,9 +43,10 @@ endif
 src_libalert_generator_la_LIBADD = ${project_libs}
 
 check_PROGRAMS += src/alert-generator_selftest
-src_alert_generator_selftest_CPPFLAGS = ${src_libalert-generator_la_CPPFLAGS}
+src_alert_generator_selftest_CPPFLAGS = ${src_libalert_generator_la_CPPFLAGS}
+src_alert_generator_selftest_CXXFLAGS = ${src_libalert_generator_la_CXXFLAGS}
 src_alert_generator_selftest_LDADD = ${program_libs}
-src_alert_generator_selftest_SOURCES = src/alert-generator_selftest.c
+src_alert_generator_selftest_SOURCES = src/alert-generator_selftest.cc
 
 if WITH_ALERT_AGENT
 bin_PROGRAMS += src/alert-agent

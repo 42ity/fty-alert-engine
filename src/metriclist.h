@@ -124,4 +124,6 @@ private:
     MetricInfo _lastInsertedMetric;
 };
 
+void
+metriclist_test (bool verbose);
 #endif // SRC_METRICLIST_H_
