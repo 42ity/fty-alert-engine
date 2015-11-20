@@ -49,7 +49,7 @@ public:
 
         zsys_info ("lua_code = %s", _lua_code.c_str() );
         int error = luaL_loadbuffer (lua_context, _lua_code.c_str(), _lua_code.length(), "line") ||
-            lua_pcall (lua_context, 0, 4, 0);
+            lua_pcall (lua_context, 0, 1, 0);
 
         if ( error ) {
             // syntax error in evaluate
@@ -66,37 +66,29 @@ public:
             lua_close (lua_context);
             return -1;
         }
+        std::string element = metricList.getLastMetric().getElementName();
         // ok, in the lua stack we got, what we expected
-        const char *status_ = lua_tostring(lua_context, -1); // IS / ISNT
-        zsys_info ("status = %s", status_ );
-        int s = ALERT_UNKNOWN;
-        if ( strcmp (status_, "IS") == 0 ) {
-            s = ALERT_START;
-        }
-        else if ( strcmp (status_, "ISNT") == 0 ) {
-            s = ALERT_RESOLVED;
-        }
-        if ( s == ALERT_UNKNOWN ) {
-            zsys_info ("unexcpected returned value, expected IS/ISNT\n");
+        const char *status = lua_tostring(lua_context, -1); // "ok" or result name
+        auto outcome = _outcomes.find (status);
+        if ( outcome != _outcomes.cend() )
+        {
+            // some known outcome was found
+            *pureAlert = new PureAlert(ALERT_START, ::time(NULL), outcome->second._description, element, outcome->second._severity, outcome->second._actions);
+            printPureAlert (**pureAlert);
             lua_close (lua_context);
-            return -5;
+            return 0;
         }
-        if ( !lua_isstring(lua_context, -3) ) {
-            zsys_info ("unexcpected returned value\n");
+        if ( streq (status, "ok") )
+        {
+            // When alert is resolved, it doesn't have new severity!!!!
+            *pureAlert = new PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", element, "DOESN'T MATTER", {""});
+            printPureAlert (**pureAlert);
             lua_close (lua_context);
-            return -3;
+            return 0;
         }
-        if ( !lua_isstring(lua_context, -4) ) {
-            zsys_info ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -4;
-        }
-        const char *description = lua_tostring(lua_context, -3);
-        const char *element_a = lua_tostring(lua_context, -4);
-        *pureAlert = new PureAlert(s, ::time(NULL), description, element_a);
-        printPureAlert (**pureAlert);
+        zsys_error ("unknown result '%s' received from lua function", status);
         lua_close (lua_context);
-        return 0;
+        return -1;
     };
 
     bool isTopicInteresting(const std::string &topic) const
@@ -115,14 +107,17 @@ protected:
 
     lua_State* setContext (const MetricList &metricList) const
     {
-        MetricInfo metricInfo = metricList.getLastMetric();
         lua_State *lua_context = lua_open();
-        lua_pushnumber(lua_context, metricInfo.getValue());
+        // 1 ) set up metric
+        lua_pushnumber(lua_context, metricList.getLastMetric().getValue());
         lua_setglobal(lua_context, "value");
-        zsys_info("Setting value to %lf\n", metricInfo.getValue());
-        lua_pushstring(lua_context, metricInfo.getElementName().c_str());
-        lua_setglobal(lua_context, "element");
-        zsys_info("Setting element to %s\n", metricInfo.getElementName().c_str());
+
+        //  2 ) set up variables
+        for ( const auto &aConstantValue : _values ) {
+            lua_pushnumber (lua_context, aConstantValue.second);
+            lua_setglobal (lua_context, aConstantValue.first.c_str());
+        }
+        // we are here -> all constants are set
         return lua_context;
     };
 

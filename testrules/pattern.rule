@@ -1,0 +1,15 @@
+{
+    "pattern" : {
+        "rule_name"     :   "pattern",
+        "target"        :   "ddd@.*",
+        "values"        :   [
+                                {"a1"  : "30"},
+                                {"a2"  : "40"}
+                            ],
+        "results"       :   [
+                                {"p1"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW P1" }},
+                                {"p2"  : { "action" : ["EMAIL"],       "severity" : "WARNING",  "description" : "wow p2"}}
+                            ],
+        "evaluation"    : " local new_value = value * a1 - a2 if  ( new_value < 100 ) then return \"p1\" end if ( new_value > 150 ) then return \"p2\" end return \"ok\""
+    }
+}
