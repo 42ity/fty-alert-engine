@@ -58,6 +58,7 @@ Rule* readRule (std::istream &f)
     // TODO check, that values have unique name (in the rule)
     // TODO check, that lua function is correct
     try {
+        // TODO this appoach can cause, that "Json" repsesentation is HUGE file because of witespaces
         std::string json_string(std::istreambuf_iterator<char>(f), {});
         std::stringstream s(json_string);
         cxxtools::JsonDeserializer json(s);
@@ -108,7 +109,7 @@ Rule* readRule (std::istream &f)
                 auto threshold = si->getMember("threshold");
                 if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
                     zsys_info ("Root of json must be an object with property 'threshold'.");
-                    return NULL; // TODO throw
+                    return NULL;
                 }
 
                 try {
@@ -128,7 +129,7 @@ Rule* readRule (std::istream &f)
                 }
                 catch ( const std::exception &e) {
                     zsys_info ("Can't handle property 'target' in a propper way");
-                    return NULL; // TODO throw
+                    throw std::runtime_error("parameter 'values' in json must be an array");
                 }
                 rule->_json_representation = json_string;
                 threshold.getMember("rule_name") >>= rule->_rule_name;
@@ -300,7 +301,7 @@ public:
     };
 
     // alertsToSend must be send in the order from first element to last element!!!
-    int updateConfiguration (
+    int addRule (
         std::istream &newRuleString,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
@@ -315,48 +316,85 @@ public:
             zsys_info ("nothing to update");
             return -1;
         }
-        // need to find out if rule exists already or not
-        if ( !haveRule (*newRule) )
-        {
-            // add new rule
-            std::vector<PureAlert> emptyAlerts{};
-            _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
-            _configs.push_back (*newRule);
+        if ( haveRule (*newRule) ) {
+            zsys_info ("rule already exists");
+            return -2;
         }
-        else
+        std::vector<PureAlert> emptyAlerts{};
+        _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
+        _configs.push_back (*newRule);
+        (*newRule)->save(getPersistencePath());
+        // CURRENT: wait until new measurements arrive
+        // TODO: reevaluate immidiately ( new Method )
+        // reevaluate rule for every known metric
+        //  ( requires more sophisticated approach: need to refactor evaluate back for 2 params + some logic here )
+        return 0;
+    };
+    
+    // alertsToSend must be send in the order from first element to last element!!!
+    int updateRule (
+        std::istream &newRuleString,
+        const std::string &rule_name,
+        std::set <std::string> &newSubjectsToSubscribe,
+        std::vector <PureAlert> &alertsToSend,
+        Rule** newRule)
+    {
+        // ASSUMPTION: function should be used as intended to be used
+        assert (newRule);
+        // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
+        // TODO memory leak
+        *newRule = readRule (newRuleString);
+        if ( *newRule == NULL ) {
+            zsys_info ("nothing to update");
+            return -1;
+        }
+        // need to find out if rule exists already or not
+        if ( !haveRule (rule_name) )
         {
-            // find alerts, that should be resolved
-            for ( auto &oneRuleAlerts: _alerts ) {
-                if ( ! oneRuleAlerts.first->hasSameNameAs (*newRule) ) {
-                    continue;
-                }
-                // so we finally found a list of alerts
-                // resolve found alerts
-                for ( auto &oneAlert : oneRuleAlerts.second ) {
-                    oneAlert._status = ALERT_RESOLVED;
-                    oneAlert._description = "Rule changed";
-                    // put them into the list of alerts that changed
-                    alertsToSend.push_back (oneAlert);
-                }
-                oneRuleAlerts.second.clear();
-                // update rule
-                // This part is ugly, as there are duplicate pointers
-                for ( auto &oneRule: _configs ) {
-                    if ( oneRule->hasSameNameAs (*newRule) ) {
-                        // -- free memory used by oldone
-                        delete oneRule;
-                        oneRule = *newRule;
-                    }
-                }
-                // -- use new rule
-                oneRuleAlerts.first = *newRule;
+            zsys_info ("rule doesn't exist");
+            return -2;
+        }
+        // need to find out if rule exists already or not
+        if ( haveRule ((*newRule)->_rule_name) )
+        {
+            // rule with new rule_name
+            zsys_info ("Rule with such name already exists");
+            return -3;
+        }
+        // find alerts, that should be resolved
+        for ( auto &oneRuleAlerts: _alerts ) {
+            if ( ! oneRuleAlerts.first->hasSameNameAs (rule_name) ) {
+                continue;
             }
+            // so we finally found a list of alerts
+            // resolve found alerts
+            for ( auto &oneAlert : oneRuleAlerts.second ) {
+                oneAlert._status = ALERT_RESOLVED;
+                oneAlert._description = "Rule changed";
+                // put them into the list of alerts that changed
+                alertsToSend.push_back (oneAlert);
+            }
+            oneRuleAlerts.second.clear();
+            // update rule
+            // This part is ugly, as there are duplicate pointers
+            for ( auto &oneRule: _configs ) {
+                if ( oneRule->hasSameNameAs (rule_name) ) {
+                    // -- free memory used by oldone
+                    int rv = oneRule->remove(getPersistencePath());
+                    zsys_info ("remove rv = %d", rv);
+                    delete oneRule;
+                    oneRule = *newRule;
+                    break; // rule_name is unique
+                }
+            }
+            // -- use new rule
+            oneRuleAlerts.first = *newRule;
         }
         // in any case we need to check new subjects
         for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
             newSubjectsToSubscribe.insert (interestedTopic);
         }
-        (*newRule)->save();
+        (*newRule)->save(getPersistencePath());
         // CURRENT: wait until new measurements arrive
         // TODO: reevaluate immidiately ( new Method )
         // reevaluate rule for every known metric
@@ -443,8 +481,12 @@ public:
     };
 
     bool haveRule (const Rule *rule) const {
+        return haveRule (rule->_rule_name);
+    };
+
+    bool haveRule (const std::string &rule_name) const {
         for ( const auto &oneKnownRule: _configs ) {
-            if ( rule->hasSameNameAs(oneKnownRule) )
+            if ( oneKnownRule->hasSameNameAs(rule_name) )
                 return true;
         }
         return false;
@@ -484,6 +526,10 @@ public:
         }
         return NULL;
     }
+    
+    std::string getPersistencePath(void) {
+        return _path + '/';
+    }
 
 private:
     // TODO it is bad implementation, any improvements are welcome
@@ -513,8 +559,12 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
 #define RULES_SUBJECT "rfc-evaluator-rules"
 #define PATH "./testrules"
 
-// TODO if diectory doesn't exists agent crashed
-void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) {
+// TODO TODO TODO TODO if diectory doesn't exist agent crashed
+void list_rules(
+    mlm_client_t *client,
+    const char *type,
+    AlertConfiguration &ac)
+{
     zsys_info ("Give me the list of rules with type = '%s'", type);
     std::vector<Rule*> rules;
 
@@ -553,10 +603,15 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
     zmsg_destroy( &reply );
 }
 
-void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
+void get_rule(
+    mlm_client_t *client,
+    const char *name,
+    AlertConfiguration &ac)
+{
+    zsys_info ("Give me the detailes about rule with rule_name = '%s'", name);
     Rule *rule = ac.getRuleByName(name);
     if(!rule) {
-        // rule doesn't exists
+        // rule doesn't exist
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "requested rule doesn't exist");
@@ -572,6 +627,108 @@ void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
     zmsg_destroy( &reply );
 }
 
+void add_rule(
+    mlm_client_t *client,
+    const char *json_representation,
+    AlertConfiguration &ac)
+{
+    std::istringstream f(json_representation);
+    std::set <std::string> newSubjectsToSubscribe;
+    std::vector <PureAlert> alertsToSend;
+    Rule* newRule = NULL;
+    int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, &newRule);
+    if ( rv != 0 )
+    {
+        // ERROR during the rule creation
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "NEW_RULE_HAS_ERRORS");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+
+    }
+    // rule was created succesfully
+    zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+    zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+    for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+    }
+    
+    // send a reply back
+    zmsg_t *reply = zmsg_new ();
+    zmsg_addstr (reply, "OK");
+    zmsg_addstr (reply, json_representation);
+    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    zmsg_destroy (&reply);
+    
+    // send alertsToSend
+    /*
+    for ( const auto &alert : alertsToSend )
+    {
+        // TODO
+    }
+    */
+}
+
+
+void update_rule(
+    mlm_client_t *client,
+    const char *json_representation,
+    const char *rule_name,
+    AlertConfiguration &ac)
+{
+    std::istringstream f(json_representation);
+    std::set <std::string> newSubjectsToSubscribe;
+    std::vector <PureAlert> alertsToSend;
+    Rule* newRule = NULL;
+    if ( ! ac.haveRule (rule_name) )
+    {
+        // ERROR rule doesn't exist
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "NOT_FOUND");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    }
+
+    int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, &newRule);
+    if ( rv != 0 )
+    {
+        // ERROR during the rule updating
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "RULE_HAS_ERRORS");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+
+    }
+    // rule was updated succesfully
+    zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+    zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+    for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+    }
+    
+    // send a reply back
+    zmsg_t *reply = zmsg_new ();
+    zmsg_addstr (reply, "OK");
+    zmsg_addstr (reply, json_representation);
+    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    zmsg_destroy (&reply);
+    
+    // send alertsToSend
+    /*
+    for ( const auto &alert : alertsToSend )
+    {
+        // TODO
+    }
+    */
+}
 int main (int argc, char** argv)
 {
     // create a malamute client
@@ -730,31 +887,16 @@ int main (int argc, char** argv)
                     get_rule (client, param, alertConfiguration);
                 }
                 else if (streq (command, "ADD") ) {
-                    std::string rule_json;
-                    int rv = rule_decode (&zmessage, rule_json);
-                    zsys_info ("new_json: %s", rule_json.c_str());
-                    if ( rv != 0 ) {
-                        zsys_info ("cannot decode rule information, ignore message\n");
-                        continue;
+                    if ( zmsg_size(zmessage) == 0 ) {
+                        // ADD/json 
+                        add_rule (client, param, alertConfiguration);
                     }
-                    std::string topic = mlm_client_subject(client);
-                    zsys_info("Got message '%s'", topic.c_str());
-                    // TODO memory leak
-
-                    std::istringstream f(rule_json);
-                    std::set <std::string> newSubjectsToSubscribe;
-                    std::vector <PureAlert> alertsToSend;
-                    Rule* newRule = NULL;
-                    rv = alertConfiguration.updateConfiguration (f, newSubjectsToSubscribe, alertsToSend, &newRule);
-                    zsys_info ("rv = %d", rv);
-                    zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-                    zsys_info ("alertsToSend count = %d", alertsToSend.size() );
-                    for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
-                        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+                    else
+                    {
+                        // ADD/json/old_name 
+                        char *param1 = zmsg_popstr (zmessage);
+                        update_rule (client, param, param1, alertConfiguration);
                     }
-                    // TODO send a reply back
-                    // TODO send alertsToSend
                 }
             }
             if (command) free (command);
