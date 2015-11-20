@@ -47,11 +47,16 @@ extern "C" {
 #include "thresholdrule.h"
 #include "regexrule.h"
 
+//http://en.cppreference.com/w/cpp/language/typeid
+//The header <typeinfo> must be included before using typeid 
+#include <typeinfo>
 
 // It tries to simply parse and read JSON
 Rule* readRule (std::istream &f)
 {
-    // TODO check, that rule actions are value
+    // TODO check, that rule actions have unique names (in the rule)
+    // TODO check, that values have unique name (in the rule)
+    // TODO check, that lua function is correct
     try {
         std::string json_string(std::istreambuf_iterator<char>(f), {});
         std::stringstream s(json_string);
@@ -453,11 +458,18 @@ public:
      * Use getRulesByType( typeid(Rule) ) for getting all rules.
      */
     std::vector<Rule*> getRulesByType ( const std::type_info &type_id ) {
-        ThresholdRule T; // need this for getting mangled class name
+    /* How this works: https://msdn.microsoft.com/ru-ru/library/fyf39xec.aspx
+        Derived* pd = new Derived;
+        Base* pb = pd;
+        cout << typeid( pb ).name()  << endl;   //prints "class Base *"
+        cout << typeid( *pb ).name() << endl;   //prints "class Derived"
+        cout << typeid( pd ).name()  << endl;   //prints "class Derived *"
+        cout << typeid( *pd ).name() << endl;   //prints "class Derived"
+    */
         std::vector<Rule *> result;
-        for (auto rule : _configs) {
-            zsys_info("T type %s", typeid(rule).name() );
-            if( type_id == typeid(Rule) || type_id == typeid(rule) ) {
+        for ( auto rule : _configs) {
+            //zsys_info("T type '%s'", typeid(*rule).name() );
+            if( type_id == typeid(Rule) || type_id == typeid(*rule) ) {
                 result.push_back(rule);
             }
         }
@@ -497,18 +509,23 @@ int  rule_decode (zmsg_t **msg, std::string &rule_json)
     return 0;
 }
 
-#define THIS_AGENT_NAME "alert_generator"
+#define THIS_AGENT_NAME "alert_agent"
+#define RULES_SUBJECT "rfc-evaluator-rules"
 #define PATH "./testrules"
 
 // TODO if diectory doesn't exists agent crashed
 void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) {
+    zsys_info ("Give me the list of rules with type = '%s'", type);
     std::vector<Rule*> rules;
 
     if (streq (type,"all")) {
-        rules = ac.getRulesByType ( typeid(Rule) );
+        rules = ac.getRules();
     }
     else if (streq (type,"threshold")) {
-        rules = ac.getRulesByType (typeid (ThresholdRule));
+        // actually we have 2 slightly different threshold rules
+        rules = ac.getRulesByType (typeid (ThresholdRuleSimple));
+        auto rules1 = ac.getRulesByType (typeid (ThresholdRuleComplex));
+        rules.insert (rules.begin(), rules1.begin(), rules1.end());
     }
     else if (streq (type,"single")) {
         rules = ac.getRulesByType (typeid (NormalRule));
@@ -520,8 +537,8 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
         //invalid type
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "requested set of rules is invalid");
-        mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker (client), 1000, &reply);
+        zmsg_addstr (reply, "INVALID_TYPE");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
     }
@@ -532,7 +549,7 @@ void list_rules(mlm_client_t *client, const char *type, AlertConfiguration &ac) 
     for (auto rule: rules) {
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
-    mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker(client), 1000, &reply);
+    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy( &reply );
 }
 
@@ -543,7 +560,7 @@ void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "requested rule doesn't exist");
-        mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker (client), 1000, &reply);
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
     }
@@ -551,7 +568,7 @@ void get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
     assert (reply);
     zmsg_addstr (reply, "OK");
     zmsg_addstr (reply, rule->getJsonRule().c_str());
-    mlm_client_sendto (client, mlm_client_sender(client), "rfc-thresholds", mlm_client_tracker(client), 1000, &reply);
+    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy( &reply );
 }
 
@@ -692,8 +709,9 @@ int main (int argc, char** argv)
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
-            // According RFC we expect here a message with the topic "rfc-thresholds"
-            if ( !streq (mlm_client_subject (client), "rfc-thresholds") ) {
+            // TODO: According RFC we expect here a message with the topic "rfc-evaluator-rules"
+            // choose better name
+            if ( !streq (mlm_client_subject (client), RULES_SUBJECT) ) {
                 zsys_info ("Ignore it. Unexpected topic of MAILBOX message: '%s'", mlm_client_subject (client) );
                 continue;
             }
