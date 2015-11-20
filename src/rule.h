@@ -234,17 +234,26 @@ public:
     /*
      * \brief Save rule to the persistance
      */
-    void save (void) {
+    void save (const std::string &path) {
         // ASSUMPTION: file name is the same as rule name
         // rule name and file name are CASE SENSITIVE.
 
-        std::string path = _rule_name + ".rule";
-        std::ofstream ofs (path, std::ofstream::out);
-        //zsys_info ("here must be json: '%s'", _json_representation.c_str());
-        //zsys_info ("here must be file name: '%s'", path.c_str());
+        std::string full_name = path + _rule_name + ".rule";
+        zsys_info ("trying to save file : '%s'", full_name.c_str());
+        std::ofstream ofs (full_name, std::ofstream::out);
         ofs << _json_representation;
         ofs.close();
         return;
+    };
+
+    /*
+     * \brief Delete rule from the persistance
+     */
+    int remove (const std::string &path) {
+
+        std::string full_name = path + _rule_name + ".rule";
+        zsys_info ("trying to remove file : '%s'", full_name.c_str());
+        return std::remove (full_name.c_str());
     };
 
     std::string getType(void) {
