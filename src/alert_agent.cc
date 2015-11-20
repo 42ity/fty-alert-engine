@@ -59,25 +59,40 @@ Rule* readRule (std::istream &f)
         json.deserialize();
         const cxxtools::SerializationInfo *si = json.si();
         // TODO too complex method, need to split it
-        if ( si->findMember("in_rex") ) {
+        if ( si->findMember("pattern") != NULL ) {
+            zsys_info ("it is PATTERN rule");
+            auto pattern = si->getMember("pattern");
+            if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
+                zsys_info ("Root of json must be an object with property 'pattern'.");
+                return NULL;
+            }
+
             RegexRule *rule = new RegexRule();
             try {
-                si->getMember("in_rex") >>= rule->_rex_str;
+                pattern.getMember("rule_name") >>= rule->_rule_name;
+                pattern.getMember("evaluation") >>= rule->_lua_code;
+                pattern.getMember("target") >>= rule->_rex_str;
                 rule->_rex = zrex_new(rule->_rex_str.c_str());
-                si->getMember("evaluation") >>= rule->_lua_code;
-                si->getMember("rule_name") >>= rule->_rule_name;
-                si->getMember("severity") >>= rule->_severity;
-                zsys_info ("lua = %s", rule->_lua_code.c_str());
                 rule->_json_representation = json_string;
+                // values
+                auto values = pattern.getMember("values");
+                if ( values.category () != cxxtools::SerializationInfo::Array ) {
+                    zsys_info ("parameter 'values' in json must be an array.");
+                    throw std::runtime_error("parameter 'values' in json must be an array");
+                }
+                values >>= rule->_values;
+                // outcomes
+                auto outcomes = pattern.getMember("results");
+                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+                    zsys_info ("parameter 'results' in json must be an array.");
+                    throw std::runtime_error ("parameter 'results' in json must be an array.");
+                }
+                outcomes >>= rule->_outcomes;
             }
             catch ( const std::exception &e ) {
                 zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
                 delete rule;
                 return NULL;
-            }
-            // this field is optional
-            if ( si->findMember("action") ) {
-                si->getMember("action") >>= rule->_actions;
             }
             return rule;
         } else if ( si->findMember("threshold") != NULL ){
@@ -110,6 +125,7 @@ Rule* readRule (std::istream &f)
                     zsys_info ("Can't handle property 'target' in a propper way");
                     return NULL; // TODO throw
                 }
+                rule->_json_representation = json_string;
                 threshold.getMember("rule_name") >>= rule->_rule_name;
                 threshold.getMember("element") >>= rule->_element;
                 // values
@@ -124,11 +140,9 @@ Rule* readRule (std::istream &f)
                 auto outcomes = threshold.getMember("results");
                 if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
                     zsys_info ("parameter 'results' in json must be an array.");
-                    // TODO
-                    throw "eee"; // TODO throw
+                    throw std::runtime_error ("parameter 'results' in json must be an array.");
                 }
                 outcomes >>= rule->_outcomes;
-                rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
                 zsys_error ("THRESHOLD rule has a wrong representation, ignore it. %s", e.what());
@@ -146,8 +160,9 @@ Rule* readRule (std::istream &f)
 
             NormalRule *rule =  new NormalRule();
             try {
-                single.getMember("evaluation") >>= rule->_lua_code;
+                rule->_json_representation = json_string;
                 single.getMember("rule_name") >>= rule->_rule_name;
+                single.getMember("evaluation") >>= rule->_lua_code;
                 single.getMember("element") >>= rule->_element;
                 // target
                 auto target = single.getMember("target");
@@ -167,7 +182,6 @@ Rule* readRule (std::istream &f)
                     throw std::runtime_error ("parameter 'results' in json must be an array.");
                 }
                 outcomes >>= rule->_outcomes;
-                rule->_json_representation = json_string;
             }
             catch ( const std::exception &e ) {
                 zsys_error ("SINGLE rule has a wrong representation, ignore it. %s", e.what());
@@ -634,9 +648,9 @@ int main (int argc, char** argv)
 
                 // Go through all known rules, and try to evaluate them
                 for ( const auto &rule : alertConfiguration.getRules() ) {
-                    zsys_info("Check rule '%s'\n", rule->_rule_name.c_str());
+                    zsys_info(" # Check rule '%s'", rule->_rule_name.c_str());
                     if ( !rule->isTopicInteresting (m.generateTopic())) {
-                        zsys_info ("Metric is not interesting for this rule");
+                        zsys_info (" ### Metric is not interesting for this rule");
                         // metric is not interesting for the rule
                         continue;
                     }
@@ -645,13 +659,13 @@ int main (int argc, char** argv)
                     // TODO memory leak
                     int rv = rule->evaluate (cache, &pureAlert);
                     if ( rv != 0 ) {
-                        zsys_info ("cannot evaluate the rule '%s'", rule->_rule_name.c_str());
+                        zsys_info (" ### Cannot evaluate the rule '%s'", rule->_rule_name.c_str());
                         continue;
                     }
 
                     auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
                     if ( toSend == NULL ) {
-                        zsys_info("alert updated, nothing to send");
+                        zsys_info(" ### alert updated, nothing to send");
                         // nothing to send
                         continue;
                     }
