@@ -10,6 +10,9 @@
     <ClCompile Include="..\..\..\..\src\metriclist.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\alertconfiguration.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\alert_generator_library.h">

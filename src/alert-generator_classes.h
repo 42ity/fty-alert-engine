@@ -23,13 +23,14 @@
     =========================================================================
 */
 
-#ifndef ALERT_GENERATOR_CLASSES_H_INCLUDED
-#define ALERT_GENERATOR_CLASSES_H_INCLUDED
+#ifndef ALERT-GENERATOR_CLASSES_H_INCLUDED
+#define ALERT-GENERATOR_CLASSES_H_INCLUDED
 
 //  External API
-#include "../include/alert_generator.h"
+#include "../include/alert-generator.h"
 
 //  Internal API
 #include "metriclist.h"
+#include "alerctconfiguration.h"
 
 #endif

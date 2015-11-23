@@ -10,7 +10,7 @@ INCDIR=-I$(PREFIX)/include -I.
 LIBDIR=-L$(PREFIX)/lib
 CFLAGS=-Wall -Os -g -DLIBALERT_GENERATOR_EXPORTS $(INCDIR)
 
-OBJS = metriclist.o
+OBJS = metriclist.o alertconfiguration.o
 %.o: ../../src/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 

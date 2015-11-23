@@ -33,7 +33,8 @@ TESTS =
 
 EXTRA_DIST = \
     src/metriclist.h \
-    src/alert-generator_classes.h \
+    src/alertconfiguration.h \
+    src/alert_generator_classes.h \
     version.sh
 
 include $(srcdir)/src/Makemodule.am

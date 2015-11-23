@@ -14,7 +14,7 @@ Build-Depends: bison, debhelper (>= 8),
     libczmq-dev,
     libmlm-dev,
     libbiosproto-dev,
-    lua-dev,
+    liblua-dev,
     dh-autoreconf
 
 Package-List:

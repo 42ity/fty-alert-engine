@@ -7,11 +7,11 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
 #
-# The version number is extracted from include/alert-generator.h using
+# The version number is extracted from include/alert_generator.h using
 # the version.sh script. Hence, it should be updated there.
 # The version in git should reflect the *next* version planned.
 #
-AC_INIT([alert-generator],[m4_esyscmd([./version.sh alert-generator])],[bios@eaton.com])
+AC_INIT([alert_generator],[m4_esyscmd([./version.sh alert_generator])],[bios@eaton.com])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
@@ -39,7 +39,7 @@ AC_SUBST(PACKAGE_VERSION)
 # know exactly what you're doing and have read and understand
 # http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 #
-# libalert-generator -version-info
+# libalert_generator -version-info
 LTVER="0:1:0"
 AC_SUBST(LTVER)
 
@@ -231,9 +231,9 @@ AC_CHECK_PROG(alert_generator_have_xmlto, xmlto, yes, no)
 if test "x$alert_generator_have_asciidoc" = "xno" -o "x$alert_generator_have_xmlto" = "xno"; then
     alert_generator_build_doc="no"
     # Tarballs built with 'make dist' ship with prebuilt documentation.
-    if ! test -f doc/alert-generator.7; then
+    if ! test -f doc/alert_generator.7; then
         alert_generator_install_man="no"
-        AC_MSG_WARN([You are building an unreleased version of ALERT-GENERATOR and asciidoc or xmlto are not installed.])
+        AC_MSG_WARN([You are building an unreleased version of ALERT_GENERATOR and asciidoc or xmlto are not installed.])
         AC_MSG_WARN([Documentation will not be built and manual pages will not be installed.])
     fi
 fi
@@ -242,7 +242,7 @@ AC_MSG_RESULT([$alert_generator_build_doc])
 AC_MSG_CHECKING([whether to install manpages])
 AC_MSG_RESULT([$alert_generator_install_man])
 
-# Set some default features required by libalert-generator code.
+# Set some default features required by libalert_generator code.
 CPPFLAGS="-D_REENTRANT -D_THREAD_SAFE $CPPFLAGS"
 
 # OS-specific tests
@@ -375,7 +375,7 @@ AC_SUBST([pkgconfigdir])
 # Specify output files
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
-                 src/libalert-generator.pc
+                 src/libalert_generator.pc
                  src/alert-agent.service
                  ])
 AC_OUTPUT
