@@ -1,5 +1,5 @@
 <project
-    name = "alert-generator"
+    name = "alert_generator"
     description = "Evaluates rules written in Lua and produce alerts"
     script = "zproject.gsl"
     email = "bios@eaton.com"
@@ -24,6 +24,7 @@
         test = "lua_close" />
 
     <class name = "metriclist" private="1">MetricList</class>
+    <class name = "alertconfiguration" private="1">alertconfiguration</class>
     <main name = "alert-agent" service="1">Daemon evaluating rules and producing alerts</main>
 
 </project>

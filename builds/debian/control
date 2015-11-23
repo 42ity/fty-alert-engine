@@ -1,10 +1,24 @@
 #
-#    alert-generator - Evaluates rules written in Lua and produce alerts
+#    alert_generator - Evaluates rules written in Lua and produce alerts
 #
-#    Copyright (c) the Authors
+#    Copyright (C) 2014 - 2015 Eaton                                        
+#                                                                           
+#    This program is free software; you can redistribute it and/or modify   
+#    it under the terms of the GNU General Public License as published by   
+#    the Free Software Foundation; either version 2 of the License, or      
+#    (at your option) any later version.                                    
+#                                                                           
+#    This program is distributed in the hope that it will be useful,        
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+#    GNU General Public License for more details.                           
+#                                                                           
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 #
 
-Source:         alert-generator
+Source:         alert_generator
 Section:        net
 Priority:       optional
 Maintainer:     John Doe <John.Doe@example.com>
@@ -19,23 +33,23 @@ Build-Depends: bison, debhelper (>= 8),
     libczmq-dev,
     libmlm-dev,
     libbiosproto-dev,
-    lua-dev,
+    liblua-dev,
     dh-autoreconf
 
 
-Package: alert-generator
+Package: alert_generator
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: evaluates rules written in lua and produce alerts
- Main package for alert-generator: evaluates rules written in lua and produce alerts
+ Main package for alert_generator: evaluates rules written in lua and produce alerts
 
-Package: alert-generator-dbg
+Package: alert_generator-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    alert-generator (= ${binary:Version}),
+    alert_generator (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for alert-generator
- This package contains the debugging symbols for alert-generator : evaluates rules written in lua and produce alerts.
+Description: debugging symbols for alert_generator
+ This package contains the debugging symbols for alert_generator : evaluates rules written in lua and produce alerts.
 
