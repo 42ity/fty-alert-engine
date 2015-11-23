@@ -1,0 +1,41 @@
+#
+#    alert-generator - Evaluates rules written in Lua and produce alerts
+#
+#    Copyright (c) the Authors
+#
+
+Source:         alert-generator
+Section:        net
+Priority:       optional
+Maintainer:     John Doe <John.Doe@example.com>
+Uploaders:      John Doe <John.Doe@example.com>
+Standards-Version: 3.9.5
+Build-Depends: bison, debhelper (>= 8),
+    pkg-config,
+    automake,
+    autoconf,
+    libtool,
+    libzmq4-dev,
+    libczmq-dev,
+    libmlm-dev,
+    libbiosproto-dev,
+    lua-dev,
+    dh-autoreconf
+
+
+Package: alert-generator
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: evaluates rules written in lua and produce alerts
+ Main package for alert-generator: evaluates rules written in lua and produce alerts
+
+Package: alert-generator-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    alert-generator (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for alert-generator
+ This package contains the debugging symbols for alert-generator : evaluates rules written in lua and produce alerts.
+
