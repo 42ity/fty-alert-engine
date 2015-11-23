@@ -32,6 +32,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <math.h>
 
 #include "rule.h"
+#include "normalrule.h"
+#include "thresholdrulesimple.h"
+#include "thresholdrulecomplex.h"
+#include "thresholdrule.h"
+#include "regexrule.h"
+
 #include "alertconfiguration.h"
 
 //http://en.cppreference.com/w/cpp/language/typeid

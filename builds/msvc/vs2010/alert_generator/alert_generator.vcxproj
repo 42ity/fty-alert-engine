@@ -84,6 +84,9 @@
     <ClCompile Include="..\..\..\..\src\metriclist.c">
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\alertconfiguration.c">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\alert_generator.rc" />

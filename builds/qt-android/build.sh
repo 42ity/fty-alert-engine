@@ -84,17 +84,17 @@ fi
 }
 
 ##
-# Build alert-generator from local source
+# Build alert_generator from local source
 
 (android_build_verify_so "libalert_generator.so" "libmlm.so" "libbiosproto.so" "lua.so" &> /dev/null) || {
-    rm -rf "${cache}/alert-generator"
-    (cp -r ../.. "${cache}/alert-generator" && cd "${cache}/alert-generator" \
+    rm -rf "${cache}/alert_generator"
+    (cp -r ../.. "${cache}/alert_generator" && cd "${cache}/alert_generator" \
         && make clean && rm configure config.status)
     rm
 
     export LIBTOOL_EXTRA_LDFLAGS='-avoid-version'
 
-    (cd "${cache}/alert-generator" && ./autogen.sh \
+    (cd "${cache}/alert_generator" && ./autogen.sh \
         && ./configure "${ANDROID_BUILD_OPTS[@]}" \
         && make \
         && make install) || exit 1
