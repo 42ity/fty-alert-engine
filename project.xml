@@ -25,6 +25,10 @@
 
     <class name = "metriclist" private="1">MetricList</class>
     <class name = "alertconfiguration" private="1">alertconfiguration</class>
+    <class name = "luarule" private="1">luaRule</class>
+    <class name = "purealert" private="1">PureAlert</class>
+    <class name = "rule" private="1">Rule</class>
+    <class name = "thresholdrulecomplex" private="1">ThresholdRuleComplex</class>
     <main name = "alert-agent" service="1">Daemon evaluating rules and producing alerts</main>
 
 </project>
