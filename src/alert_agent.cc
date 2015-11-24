@@ -135,14 +135,14 @@ std::string makeActionList(
 
 void send_alerts(
     mlm_client_t *client,
-    std::vector <PureAlert> alertsToSend,
-    Rule *rule)
+    const std::vector <PureAlert> &alertsToSend,
+    const std::string &rule_name)
 {
     for ( const auto &alert : alertsToSend )
     {
         zmsg_t *msg = bios_proto_encode_alert (
             NULL,
-            rule->_rule_name.c_str(),
+            rule_name.c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
             alert._severity.c_str(),
@@ -151,13 +151,21 @@ void send_alerts(
             makeActionList(alert._actions).c_str()
         );
         if( msg ) {
-            std::string atopic = rule->_rule_name + "/"
+            std::string atopic = rule_name + "/"
                 + alert._severity + "@"
                 + alert._element;
             mlm_client_send (client, atopic.c_str(), &msg);
             zmsg_destroy(&msg);
         }
     }
+}
+
+void send_alerts(
+    mlm_client_t *client,
+    const std::vector <PureAlert> &alertsToSend,
+    const Rule *rule)
+{
+    send_alerts (client, alertsToSend, rule->_rule_name);
 }
 
 void add_rule(
@@ -198,26 +206,6 @@ void add_rule(
     
     // send alertsToSend
     send_alerts (client, alertsToSend, newRule); 
-    for ( const auto &alert : alertsToSend )
-    {
-        zmsg_t *msg = bios_proto_encode_alert (
-            NULL,
-            newRule->_rule_name.c_str(),
-            alert._element.c_str(),
-            alert._status.c_str(),
-            alert._severity.c_str(),
-            alert._description.c_str(),
-            -1,
-            makeActionList(alert._actions).c_str()
-        );
-        if( msg ) {
-            std::string atopic = newRule->_rule_name + "/"
-                + alert._severity + "@"
-                + alert._element;
-            mlm_client_send (client, atopic.c_str(), &msg);
-            zmsg_destroy(&msg);
-        }
-    }
 }
 
 
@@ -268,14 +256,7 @@ void update_rule(
     zmsg_addstr (reply, json_representation);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
-    
-    // send alertsToSend
-    /*
-    for ( const auto &alert : alertsToSend )
-    {
-        // TODO
-    }
-    */
+    send_alerts (client, alertsToSend, newRule); 
 }
 
 
@@ -318,14 +299,7 @@ void change_state(
     zmsg_addstr (reply, new_state);
     mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
-    
-    // send alertsToSend
-    /*
-    for ( const auto &alert : alertsToSend )
-    {
-        // TODO
-    }
-    */
+    send_alerts (client, {alertToSend}, rule_name); 
 }
 
 
@@ -443,23 +417,7 @@ int main (int argc, char** argv)
                         // nothing to send
                         continue;
                     }
-                    // TODO here add ACTIONs in the message and optional information
-                    zmsg_t *alert = bios_proto_encode_alert(
-                        NULL,
-                        rule->_rule_name.c_str(),
-                        element_src,
-                        toSend->_status.c_str(),
-                        rule->_severity.c_str(),
-                        toSend->_description.c_str(),
-                        toSend->_timestamp,
-                        NULL);
-                    if( alert ) {
-                        std::string atopic = rule->_rule_name + "/"
-                            + rule->_severity + "@"
-                            + element_src;
-                        mlm_client_send(client, atopic.c_str(), &alert);
-                        zmsg_destroy(&alert);
-                    }
+                    send_alerts (client, {*toSend}, rule); 
                 }
                 bios_proto_destroy(&bmessage);
             }
