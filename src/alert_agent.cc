@@ -66,7 +66,7 @@ void list_rules(
     else if (streq (type,"threshold")) {
         // actually we have 2 slightly different threshold rules
         rules = ac.getRulesByType (typeid (ThresholdRuleSimple));
-        auto rules1 = ac.getRulesByType (typeid (ThresholdRuleComplex));
+        std::vector<Rule *> rules1 = ac.getRulesByType (typeid (ThresholdRuleComplex));
         rules.insert (rules.begin(), rules1.begin(), rules1.end());
     }
     else if (streq (type,"single")) {
@@ -142,7 +142,7 @@ void send_alerts(
     {
         zmsg_t *msg = bios_proto_encode_alert (
             NULL,
-            rule->_rule_name.c_str(),
+            rule->name().c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
             alert._severity.c_str(),
@@ -151,7 +151,7 @@ void send_alerts(
             makeActionList(alert._actions).c_str()
         );
         if( msg ) {
-            std::string atopic = rule->_rule_name + "/"
+            std::string atopic = rule->name() + "/"
                 + alert._severity + "@"
                 + alert._element;
             mlm_client_send (client, atopic.c_str(), &msg);
@@ -202,7 +202,7 @@ void add_rule(
     {
         zmsg_t *msg = bios_proto_encode_alert (
             NULL,
-            newRule->_rule_name.c_str(),
+            newRule->name().c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
             alert._severity.c_str(),
@@ -211,7 +211,7 @@ void add_rule(
             makeActionList(alert._actions).c_str()
         );
         if( msg ) {
-            std::string atopic = newRule->_rule_name + "/"
+            std::string atopic = newRule->name() + "/"
                 + alert._severity + "@"
                 + alert._element;
             mlm_client_send (client, atopic.c_str(), &msg);
@@ -309,7 +309,7 @@ void change_state(
         zmsg_destroy (&reply);
         return;
     }
-    printPureAlert(alertToSend);
+    alertToSend.print ();
     // send a reply back
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "OK");
@@ -422,7 +422,7 @@ int main (int argc, char** argv)
 
                 // Go through all known rules, and try to evaluate them
                 for ( const auto &rule : alertConfiguration.getRules() ) {
-                    zsys_info(" # Check rule '%s'", rule->_rule_name.c_str());
+                    zsys_info(" # Check rule '%s'", rule->name().c_str());
                     if ( !rule->isTopicInteresting (m.generateTopic())) {
                         zsys_info (" ### Metric is not interesting for this rule");
                         // metric is not interesting for the rule
@@ -433,7 +433,7 @@ int main (int argc, char** argv)
                     // TODO memory leak
                     int rv = rule->evaluate (cache, &pureAlert);
                     if ( rv != 0 ) {
-                        zsys_info (" ### Cannot evaluate the rule '%s'", rule->_rule_name.c_str());
+                        zsys_info (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
                         continue;
                     }
 
@@ -446,7 +446,7 @@ int main (int argc, char** argv)
                     // TODO here add ACTIONs in the message and optional information
                     zmsg_t *alert = bios_proto_encode_alert(
                         NULL,
-                        rule->_rule_name.c_str(),
+                        rule->name().c_str(),
                         element_src,
                         toSend->_status.c_str(),
                         rule->_severity.c_str(),
@@ -454,7 +454,7 @@ int main (int argc, char** argv)
                         toSend->_timestamp,
                         NULL);
                     if( alert ) {
-                        std::string atopic = rule->_rule_name + "/"
+                        std::string atopic = rule->name() + "/"
                             + rule->_severity + "@"
                             + element_src;
                         mlm_client_send(client, atopic.c_str(), &alert);

@@ -29,6 +29,14 @@ extern "C" {
 #include<lua.h>
 }
 
+enum RULE_RESULT {
+    RULE_RESULT_TO_LOW_CRITICAL = -2,
+    RULE_RESULT_TO_LOW_WARNING  = -1,
+    RULE_RESULT_OK              =  0,
+    RULE_RESULT_TO_HI_WARNING   =  1,
+    RULE_RESULT_TO_HI_CRITICAL  =  2,
+};
+
 class luaRule : public Rule {
  public:
     /**
@@ -36,12 +44,12 @@ class luaRule : public Rule {
      */
     luaRule () {};
     luaRule (const luaRule &r);
-    virtual void code (const std::string &newCode);
+    void code (const std::string &newCode);
     std::string code () { return _code; };
     void globalVariables (const std::map<std::string,double> &vars);
-    virtual int evaluate (const MetricList &metricList, PureAlert **pureAlert);
+    int evaluate (const MetricList &metricList, PureAlert **pureAlert);
     double evaluate(const std::vector<double> &metrics);
-    virtual ~luaRule () { if (_lstate) lua_close (_lstate); }
+    ~luaRule () { if (_lstate) lua_close (_lstate); }
  protected:
     void _setGlobalVariablesToLUA();
     

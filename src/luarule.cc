@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Class implementing Lua rule evaluation
  */
 
-#include "luaRule.h"
+#include "luarule.h"
 
 extern "C" {
 #include<lualib.h>
@@ -30,16 +30,17 @@ extern "C" {
 
 luaRule::luaRule (const luaRule &r)
 {
-    _rule_name = r._rule_name;
-    globalVariables (r._values);
+    _name = r._name;
+    globalVariables (r._variables);
     code (r._code);
 }
 
 
 void luaRule::globalVariables (const std::map<std::string,double> &vars)
 {
-    _values.clear ();
-    _values.insert (vars.cbegin (), vars.cend ());
+    //_variables.clear ();
+    //_variables.insert (vars.cbegin (), vars.cend ());
+    Rule::globalVariables(vars);
     _setGlobalVariablesToLUA();
 }
 
@@ -105,7 +106,7 @@ double luaRule::evaluate(const std::vector<double> &metrics)
 void luaRule::_setGlobalVariablesToLUA()
 {
     if (_lstate == NULL) return;
-    for (const auto &it : _values) {
+    for (const auto &it : _variables) {
         lua_pushnumber (_lstate, it.second);
         lua_setglobal (_lstate, it.first.c_str ());
     }

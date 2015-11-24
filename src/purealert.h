@@ -25,7 +25,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include <string>
 #include <vector>
-#include <czmq.h>
 
 #define ALERT_UNKNOWN  "UNKNOWN"
 #define ALERT_START    "ACTIVE"
@@ -35,22 +34,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define ALERT_ACK4     "ACK-SILENCE"
 #define ALERT_RESOLVED "RESOLVED"
 
-bool isStatusKnown (const char *status)
-{
-    if ( strcmp (status, ALERT_START) == 0 )
-        return true;
-    if ( strcmp (status, ALERT_ACK1) == 0 )
-        return true;
-    if ( strcmp (status, ALERT_ACK2) == 0 )
-        return true;
-    if ( strcmp (status, ALERT_ACK3) == 0 )
-        return true;
-    if ( strcmp (status, ALERT_RESOLVED) == 0 )
-        return true;
-    return false;
-}
 
-struct PureAlert{
+class PureAlert{
+ public:
     std::string _status;
     int64_t _timestamp;
     std::string _description;
@@ -58,6 +44,7 @@ struct PureAlert{
     std::string _severity;
     std::vector <std::string> _actions;
 
+    PureAlert() { _timestamp = 0; };
     PureAlert(const std::string &s, int64_t tm, const std::string &descr, const std::string &element_name)
     {
         _status = s;
@@ -76,17 +63,8 @@ struct PureAlert{
         _actions = actions;
     };
 
-    PureAlert()
-    {
-    };
+    static bool isStatusKnown (const char *status);
+    void print(void) const;
 };
-
-void printPureAlert(const PureAlert &pureAlert){
-    zsys_info ("status = %s", pureAlert._status.c_str());
-    zsys_info ("timestamp = %d", pureAlert._timestamp);
-    zsys_info ("description = %s", pureAlert._description.c_str());
-    zsys_info ("element = %s", pureAlert._element.c_str());
-    zsys_info ("severity = %s", pureAlert._severity.c_str());
-}
 
 #endif // SRC_PURE_ALERT_H_
