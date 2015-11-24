@@ -1,7 +1,7 @@
 Format:         1.0
-Source:         alert-generator
+Source:         alert_generator
 Version:        0.1.0-1
-Binary:         alert-generator
+Binary:         alert_generator
 Architecture:   any all
 Maintainer:     John Doe <John.Doe@example.com>
 Standards-Version: 3.9.5
@@ -18,5 +18,5 @@ Build-Depends: bison, debhelper (>= 8),
     dh-autoreconf
 
 Package-List:
- alert-generator dev net optional arch-any
+ alert_generator dev net optional arch-any
 
