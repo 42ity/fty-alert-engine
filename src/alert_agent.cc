@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <malamute.h>
 #include <bios_proto.h>
@@ -47,6 +48,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #define THIS_AGENT_NAME "alert_agent"
 #define RULES_SUBJECT "rfc-evaluator-rules"
+#define ACK_SUBJECT "AAABBB"
 #define PATH "./testrules"
 
 // TODO TODO TODO TODO if diectory doesn't exist agent crashed
@@ -117,6 +119,47 @@ void get_rule(
     zmsg_destroy( &reply );
 }
 
+
+std::string makeActionList(
+    const std::vector <std::string> &actions)
+{
+    std::ostringstream s;
+    for (const auto& oneAction : actions) {
+        if (&oneAction != &actions[0]) {
+            s << "/";
+        }
+        s << oneAction;
+    }
+    return s.str();
+}
+
+void send_alerts(
+    mlm_client_t *client,
+    std::vector <PureAlert> alertsToSend,
+    Rule *rule)
+{
+    for ( const auto &alert : alertsToSend )
+    {
+        zmsg_t *msg = bios_proto_encode_alert (
+            NULL,
+            rule->_rule_name.c_str(),
+            alert._element.c_str(),
+            alert._status.c_str(),
+            alert._severity.c_str(),
+            alert._description.c_str(),
+            -1,
+            makeActionList(alert._actions).c_str()
+        );
+        if( msg ) {
+            std::string atopic = rule->_rule_name + "/"
+                + alert._severity + "@"
+                + alert._element;
+            mlm_client_send (client, atopic.c_str(), &msg);
+            zmsg_destroy(&msg);
+        }
+    }
+}
+
 void add_rule(
     mlm_client_t *client,
     const char *json_representation,
@@ -154,12 +197,27 @@ void add_rule(
     zmsg_destroy (&reply);
     
     // send alertsToSend
-    /*
+    send_alerts (client, alertsToSend, newRule); 
     for ( const auto &alert : alertsToSend )
     {
-        // TODO
+        zmsg_t *msg = bios_proto_encode_alert (
+            NULL,
+            newRule->_rule_name.c_str(),
+            alert._element.c_str(),
+            alert._status.c_str(),
+            alert._severity.c_str(),
+            alert._description.c_str(),
+            -1,
+            makeActionList(alert._actions).c_str()
+        );
+        if( msg ) {
+            std::string atopic = newRule->_rule_name + "/"
+                + alert._severity + "@"
+                + alert._element;
+            mlm_client_send (client, atopic.c_str(), &msg);
+            zmsg_destroy(&msg);
+        }
     }
-    */
 }
 
 
@@ -219,6 +277,58 @@ void update_rule(
     }
     */
 }
+
+
+void change_state(
+    mlm_client_t *client,
+    const char *rule_name,
+    const char *element_name,
+    const char *new_state,
+    AlertConfiguration &ac)
+{
+    if ( !ac.haveRule (rule_name) )
+    {
+        // ERROR rule doesn't exist
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "RULE_NOT_FOUND");
+        mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    }
+
+    PureAlert alertToSend;
+    int rv = ac.updateAlertState (rule_name, element_name, new_state, alertToSend);
+    if ( rv != 0 )
+    {
+        // ERROR during the rule updating
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
+        mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    }
+    printPureAlert(alertToSend);
+    // send a reply back
+    zmsg_t *reply = zmsg_new ();
+    zmsg_addstr (reply, "OK");
+    zmsg_addstr (reply, rule_name);
+    zmsg_addstr (reply, element_name);
+    zmsg_addstr (reply, new_state);
+    mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    zmsg_destroy (&reply);
+    
+    // send alertsToSend
+    /*
+    for ( const auto &alert : alertsToSend )
+    {
+        // TODO
+    }
+    */
+}
+
+
 int main (int argc, char** argv)
 {
     // create a malamute client
@@ -338,7 +448,7 @@ int main (int argc, char** argv)
                         NULL,
                         rule->_rule_name.c_str(),
                         element_src,
-                        get_status_string(toSend->_status),
+                        toSend->_status.c_str(),
                         rule->_severity.c_str(),
                         toSend->_description.c_str(),
                         toSend->_timestamp,
@@ -356,41 +466,67 @@ int main (int argc, char** argv)
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
-            // TODO: According RFC we expect here a message with the topic "rfc-evaluator-rules"
-            // choose better name
-            if ( !streq (mlm_client_subject (client), RULES_SUBJECT) ) {
-                zsys_info ("Ignore it. Unexpected topic of MAILBOX message: '%s'", mlm_client_subject (client) );
+            // According RFC we expect here a messages
+            // with the topics ACK_SUBJECT and RULE_SUBJECT
+            if ( streq (mlm_client_subject (client), RULES_SUBJECT) )
+            {
+                // Here we can have:
+                //  * new rule
+                //  * request for list of rules
+                //  * get detailed info about the rule
+                char *command = zmsg_popstr (zmessage);
+                char *param = zmsg_popstr (zmessage);
+                if (command && param) {
+                    if (streq (command, "LIST")) {
+                        list_rules (client, param, alertConfiguration);
+                    }
+                    else if (streq (command, "GET")) {
+                        get_rule (client, param, alertConfiguration);
+                    }
+                    else if (streq (command, "ADD") ) {
+                        if ( zmsg_size(zmessage) == 0 ) {
+                            // ADD/json 
+                            add_rule (client, param, alertConfiguration);
+                        }
+                        else
+                        {
+                            // ADD/json/old_name 
+                            char *param1 = zmsg_popstr (zmessage);
+                            update_rule (client, param, param1, alertConfiguration);
+                            if (param1) free (param1);
+                        }
+                    }
+                }
+                if (command) free (command);
+                if (param) free (param);
                 continue;
             }
-            // Here we can have:
-            //  * new rule
-            //  * request for list of rules
-            //  * unexpected message
-            // process as rule message
-            char *command = zmsg_popstr (zmessage);
-            char *param = zmsg_popstr (zmessage);
-            if (command && param) {
-                if (streq (command, "LIST")) {
-                    list_rules (client, param, alertConfiguration);
+            if ( streq (mlm_client_subject (client), ACK_SUBJECT) )
+            {
+                // Here we can have:
+                //  * change acknowlegment state of the alert
+                char *command = zmsg_popstr (zmessage);
+                char *param1 = zmsg_popstr (zmessage); // rule name
+                char *param2 = zmsg_popstr (zmessage); // element name
+                char *param3 = zmsg_popstr (zmessage); // state
+                if ( !command || !param1 || !param2 || !param3 ) {
+                    zsys_info ("Ignore it. Unexpected message format");
+                    if (command) free (command);
+                    if (param1) free (param1);
+                    if (param2) free (param2);
+                    if (param3) free (param3);
                 }
-                else if (streq (command, "GET")) {
-                    get_rule (client, param, alertConfiguration);
+
+                if (streq (command, "ACK")) {
+                    change_state (client, param1, param2, param3, alertConfiguration);
                 }
-                else if (streq (command, "ADD") ) {
-                    if ( zmsg_size(zmessage) == 0 ) {
-                        // ADD/json 
-                        add_rule (client, param, alertConfiguration);
-                    }
-                    else
-                    {
-                        // ADD/json/old_name 
-                        char *param1 = zmsg_popstr (zmessage);
-                        update_rule (client, param, param1, alertConfiguration);
-                    }
-                }
+                if (command) free (command);
+                if (param1) free (param1);
+                if (param2) free (param2);
+                if (param3) free (param3);
+                continue;
             }
-            if (command) free (command);
-            if (param) free (param);
+            zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
         }
     }
     // TODO save info to persistence before I die
