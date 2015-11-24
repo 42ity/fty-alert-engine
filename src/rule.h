@@ -73,7 +73,9 @@ class Rule {
 
 public:
     std::string name () const { return _name; }
-    void name (const std::string name) { _name = name; }
+
+    void name (const std::string &name) { _name = name; }
+
     virtual void globalVariables (const std::map<std::string,double> &vars) {
         _variables.clear ();
         _variables.insert (vars.cbegin (), vars.cend ());
@@ -82,8 +84,13 @@ public:
     /**
      * \brief get/set code
      */
-    virtual void code(const std::string code) { throw std::runtime_error("Method not supported by this type of rule"); };
-    virtual std::string code() { throw std::runtime_error("Method not supported by this type of rule"); };
+    virtual void code(const std::string &code) {
+        throw std::runtime_error("Method not supported by this type of rule");
+    };
+    
+    virtual std::string code(void) const{
+        throw std::runtime_error("Method not supported by this type of rule");
+    };
  
     /*
      * \brief User is able to define his own set of result,
@@ -205,10 +212,6 @@ public:
         return std::remove (full_name.c_str());
     };
 
-    std::string getType(void) {
-        return _type_name;
-    };
-
     virtual ~Rule () {};
 
     friend Rule* readRule (std::istream &f);
@@ -229,14 +232,9 @@ protected:
      * ASSUMPTION: rule name has only ascii characters.
      * TODO This assumtion is not check anywhere.
      *
-     * TODO make it private
-     *
      * Rule name threated as case insensitive string
      */
     std::string _name;
-
-    // every type of the rule should have a string representation of its name
-    std::string _type_name;
 
     std::string _json_representation;
 

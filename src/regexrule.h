@@ -31,7 +31,7 @@ extern "C" {
 #include <czmq.h>
 #include "luarule.h"
 
-class RegexRule : public luaRule {
+class RegexRule : public LuaRule {
 public:
 
     RegexRule()

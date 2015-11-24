@@ -28,7 +28,7 @@ extern "C" {
 #include<lauxlib.h>
 }
 
-luaRule::luaRule (const luaRule &r)
+LuaRule::LuaRule (const LuaRule &r)
 {
     _name = r._name;
     globalVariables (r._variables);
@@ -36,7 +36,7 @@ luaRule::luaRule (const luaRule &r)
 }
 
 
-void luaRule::globalVariables (const std::map<std::string,double> &vars)
+void LuaRule::globalVariables (const std::map<std::string,double> &vars)
 {
     //_variables.clear ();
     //_variables.insert (vars.cbegin (), vars.cend ());
@@ -44,18 +44,18 @@ void luaRule::globalVariables (const std::map<std::string,double> &vars)
     _setGlobalVariablesToLUA();
 }
 
-void luaRule::code (const std::string &newCode)
+void LuaRule::code (const std::string &newCode)
 {
     if (_lstate) lua_close (_lstate);
     _valid = false;
     _code.clear();
-    
+
     _lstate = lua_open();
     if (! _lstate) {
         throw std::runtime_error("Can't initiate LUA context!");
     }
     luaL_openlibs(_lstate); // get functions like print();
-    
+
     // set global variables
     _setGlobalVariablesToLUA();
 
@@ -76,18 +76,18 @@ void luaRule::code (const std::string &newCode)
     }
 }
 
-int luaRule::evaluate (const MetricList &metricList, PureAlert **pureAlert)
+int LuaRule::evaluate (const MetricList &metricList, PureAlert **pureAlert)
 {
     return 0;
 }
 
-double luaRule::evaluate(const std::vector<double> &metrics)
+double LuaRule::evaluate(const std::vector<double> &metrics)
 {
     double result;
-    
+
     if (! _valid) { throw std::runtime_error("Rule is not valid!"); }
     lua_settop (_lstate, 0);
-        
+
     lua_getglobal (_lstate, "main");
     for (const auto x: metrics) {
         lua_pushnumber (_lstate, x);
@@ -103,7 +103,7 @@ double luaRule::evaluate(const std::vector<double> &metrics)
     return result;
 }
 
-void luaRule::_setGlobalVariablesToLUA()
+void LuaRule::_setGlobalVariablesToLUA()
 {
     if (_lstate == NULL) return;
     for (const auto &it : _variables) {

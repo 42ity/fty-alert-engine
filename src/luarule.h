@@ -37,23 +37,22 @@ enum RULE_RESULT {
     RULE_RESULT_TO_HI_CRITICAL  =  2,
 };
 
-class luaRule : public Rule {
+class LuaRule : public Rule {
  public:
     /**
      * \brief set the evaluation code
      */
-    luaRule () {};
-    luaRule (const luaRule &r);
+    LuaRule () {};
+    LuaRule (const LuaRule &r);
     void code (const std::string &newCode);
     std::string code () { return _code; };
     void globalVariables (const std::map<std::string,double> &vars);
     int evaluate (const MetricList &metricList, PureAlert **pureAlert);
     double evaluate(const std::vector<double> &metrics);
-    ~luaRule () { if (_lstate) lua_close (_lstate); }
+    ~LuaRule () { if (_lstate) lua_close (_lstate); }
  protected:
     void _setGlobalVariablesToLUA();
     
-    //TODO: remove _lua_code from parent
     std::string _code;
     bool _valid = false;
     lua_State *_lstate = NULL;
