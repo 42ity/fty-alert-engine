@@ -29,9 +29,9 @@ extern "C" {
 }
 // because of regex and zsysinfo
 #include <czmq.h>
-#include "rule.h"
+#include "luarule.h"
 
-class RegexRule : public Rule {
+class RegexRule : public luaRule {
 public:
 
     RegexRule()
@@ -47,8 +47,8 @@ public:
             return 2;
         }
 
-        zsys_info ("lua_code = %s", _lua_code.c_str() );
-        int error = luaL_loadbuffer (lua_context, _lua_code.c_str(), _lua_code.length(), "line") ||
+        zsys_info ("lua_code = %s", _code.c_str() );
+        int error = luaL_loadbuffer (lua_context, _code.c_str(), _code.length(), "line") ||
             lua_pcall (lua_context, 0, 1, 0);
 
         if ( error ) {
@@ -74,7 +74,7 @@ public:
         {
             // some known outcome was found
             *pureAlert = new PureAlert(ALERT_START, ::time(NULL), outcome->second._description, element, outcome->second._severity, outcome->second._actions);
-            printPureAlert (**pureAlert);
+            (**pureAlert).print();
             lua_close (lua_context);
             return 0;
         }
@@ -82,7 +82,7 @@ public:
         {
             // When alert is resolved, it doesn't have new severity!!!!
             *pureAlert = new PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", element, "DOESN'T MATTER", {""});
-            printPureAlert (**pureAlert);
+            (**pureAlert).print();
             lua_close (lua_context);
             return 0;
         }
@@ -113,7 +113,7 @@ protected:
         lua_setglobal(lua_context, "value");
 
         //  2 ) set up variables
-        for ( const auto &aConstantValue : _values ) {
+        for ( const auto &aConstantValue : _variables ) {
             lua_pushnumber (lua_context, aConstantValue.second);
             lua_setglobal (lua_context, aConstantValue.first.c_str());
         }

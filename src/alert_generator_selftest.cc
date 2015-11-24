@@ -54,6 +54,10 @@ typedef struct
 test_item_t all_tests [] = {
     DECLARE_TEST(metriclist_test),
     DECLARE_TEST(alertconfiguration_test),
+    DECLARE_TEST(luarule_test),
+    DECLARE_TEST(purealert_test),
+    DECLARE_TEST(rule_test),
+    DECLARE_TEST(thresholdrulecomplex_test),
     {0, 0} // Null terminator
 };
 

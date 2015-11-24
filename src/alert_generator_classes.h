@@ -32,5 +32,9 @@
 //  Internal API
 #include "metriclist.h"
 #include "alertconfiguration.h"
+#include "luarule.h"
+#include "purealert.h"
+#include "rule.h"
+#include "thresholdrulecomplex.h"
 
 #endif

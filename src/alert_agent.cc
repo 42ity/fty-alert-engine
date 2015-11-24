@@ -36,7 +36,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
 #include "thresholdrulecomplex.h"
-#include "thresholdrule.h"
 #include "regexrule.h"
 
 #include "alertconfiguration.h"
@@ -66,7 +65,7 @@ void list_rules(
     else if (streq (type,"threshold")) {
         // actually we have 2 slightly different threshold rules
         rules = ac.getRulesByType (typeid (ThresholdRuleSimple));
-        auto rules1 = ac.getRulesByType (typeid (ThresholdRuleComplex));
+        std::vector<Rule *> rules1 = ac.getRulesByType (typeid (ThresholdRuleComplex));
         rules.insert (rules.begin(), rules1.begin(), rules1.end());
     }
     else if (streq (type,"single")) {
@@ -165,7 +164,7 @@ void send_alerts(
     const std::vector <PureAlert> &alertsToSend,
     const Rule *rule)
 {
-    send_alerts (client, alertsToSend, rule->_rule_name);
+    send_alerts (client, alertsToSend, rule->name());
 }
 
 void add_rule(
@@ -196,16 +195,16 @@ void add_rule(
         mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
-    
+
     // send a reply back
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "OK");
     zmsg_addstr (reply, json_representation);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
-    
+
     // send alertsToSend
-    send_alerts (client, alertsToSend, newRule); 
+    send_alerts (client, alertsToSend, newRule);
 }
 
 
@@ -249,14 +248,14 @@ void update_rule(
         mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
-    
+
     // send a reply back
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "OK");
     zmsg_addstr (reply, json_representation);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
-    send_alerts (client, alertsToSend, newRule); 
+    send_alerts (client, alertsToSend, newRule);
 }
 
 
@@ -290,7 +289,7 @@ void change_state(
         zmsg_destroy (&reply);
         return;
     }
-    printPureAlert(alertToSend);
+    alertToSend.print ();
     // send a reply back
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "OK");
@@ -299,7 +298,7 @@ void change_state(
     zmsg_addstr (reply, new_state);
     mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
-    send_alerts (client, {alertToSend}, rule_name); 
+    send_alerts (client, {alertToSend}, rule_name);
 }
 
 
@@ -396,7 +395,7 @@ int main (int argc, char** argv)
 
                 // Go through all known rules, and try to evaluate them
                 for ( const auto &rule : alertConfiguration.getRules() ) {
-                    zsys_info(" # Check rule '%s'", rule->_rule_name.c_str());
+                    zsys_info(" # Check rule '%s'", rule->name().c_str());
                     if ( !rule->isTopicInteresting (m.generateTopic())) {
                         zsys_info (" ### Metric is not interesting for this rule");
                         // metric is not interesting for the rule
@@ -407,7 +406,7 @@ int main (int argc, char** argv)
                     // TODO memory leak
                     int rv = rule->evaluate (cache, &pureAlert);
                     if ( rv != 0 ) {
-                        zsys_info (" ### Cannot evaluate the rule '%s'", rule->_rule_name.c_str());
+                        zsys_info (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
                         continue;
                     }
 
@@ -417,7 +416,7 @@ int main (int argc, char** argv)
                         // nothing to send
                         continue;
                     }
-                    send_alerts (client, {*toSend}, rule); 
+                    send_alerts (client, {*toSend}, rule);
                 }
                 bios_proto_destroy(&bmessage);
             }
@@ -443,12 +442,12 @@ int main (int argc, char** argv)
                     }
                     else if (streq (command, "ADD") ) {
                         if ( zmsg_size(zmessage) == 0 ) {
-                            // ADD/json 
+                            // ADD/json
                             add_rule (client, param, alertConfiguration);
                         }
                         else
                         {
-                            // ADD/json/old_name 
+                            // ADD/json/old_name
                             char *param1 = zmsg_popstr (zmessage);
                             update_rule (client, param, param1, alertConfiguration);
                             if (param1) free (param1);
