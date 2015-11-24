@@ -34,6 +34,10 @@ TESTS =
 EXTRA_DIST = \
     src/metriclist.h \
     src/alertconfiguration.h \
+    src/luarule.h \
+    src/purealert.h \
+    src/rule.h \
+    src/thresholdrulecomplex.h \
     src/alert_generator_classes.h \
     version.sh
 

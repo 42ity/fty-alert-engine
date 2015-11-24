@@ -23,7 +23,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
 #include "thresholdrulecomplex.h"
-#include "thresholdrule.h"
 #include "regexrule.h"
 
 #include "alertconfiguration.h"
