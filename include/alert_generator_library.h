@@ -1,5 +1,5 @@
 /*  =========================================================================
-    alert-generator - ALERT-GENERATOR wrapper
+    alert_generator - ALERT_GENERATOR wrapper
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -24,8 +24,8 @@
     =========================================================================
 */
 
-#ifndef alert-generator_library_H_INCLUDED
-#define alert-generator_library_H_INCLUDED
+#ifndef alert_generator_library_H_INCLUDED
+#define alert_generator_library_H_INCLUDED
 
 //  Set up environment for the application
 
@@ -34,27 +34,27 @@
 #include <biosproto.h>
 #include <lua.h>
 
-//  ALERT-GENERATOR version macros for compile-time API detection
+//  ALERT_GENERATOR version macros for compile-time API detection
 
-#define ALERT-GENERATOR_VERSION_MAJOR 0
-#define ALERT-GENERATOR_VERSION_MINOR 1
-#define ALERT-GENERATOR_VERSION_PATCH 0
+#define ALERT_GENERATOR_VERSION_MAJOR 0
+#define ALERT_GENERATOR_VERSION_MINOR 1
+#define ALERT_GENERATOR_VERSION_PATCH 0
 
-#define ALERT-GENERATOR_MAKE_VERSION(major, minor, patch) \
+#define ALERT_GENERATOR_MAKE_VERSION(major, minor, patch) \
     ((major) * 10000 + (minor) * 100 + (patch))
-#define ALERT-GENERATOR_VERSION \
-    ALERT-GENERATOR_MAKE_VERSION(ALERT-GENERATOR_VERSION_MAJOR, ALERT-GENERATOR_VERSION_MINOR, ALERT-GENERATOR_VERSION_PATCH)
+#define ALERT_GENERATOR_VERSION \
+    ALERT_GENERATOR_MAKE_VERSION(ALERT_GENERATOR_VERSION_MAJOR, ALERT_GENERATOR_VERSION_MINOR, ALERT_GENERATOR_VERSION_PATCH)
 
 #if defined (__WINDOWS__)
-#   if defined LIBALERT-GENERATOR_STATIC
-#       define ALERT-GENERATOR_EXPORT
-#   elif defined LIBALERT-GENERATOR_EXPORTS
-#       define ALERT-GENERATOR_EXPORT __declspec(dllexport)
+#   if defined LIBALERT_GENERATOR_STATIC
+#       define ALERT_GENERATOR_EXPORT
+#   elif defined LIBALERT_GENERATOR_EXPORTS
+#       define ALERT_GENERATOR_EXPORT __declspec(dllexport)
 #   else
-#       define ALERT-GENERATOR_EXPORT __declspec(dllimport)
+#       define ALERT_GENERATOR_EXPORT __declspec(dllimport)
 #   endif
 #else
-#   define ALERT-GENERATOR_EXPORT
+#   define ALERT_GENERATOR_EXPORT
 #endif
 
 //  Opaque class structures to allow forward references
