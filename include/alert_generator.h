@@ -23,7 +23,7 @@
 #define ALERT_GENERATOR_H_INCLUDED
 
 //  Include the project library file
-#include "alert-generator_library.h"
+#include "alert_generator_library.h"
 
 //  Add your own public definitions here, if you need them
 
