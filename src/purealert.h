@@ -27,43 +27,38 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 #include <czmq.h>
 
-#define ALERT_UNKNOWN  0
-#define ALERT_START    1
-#define ALERT_ACK1     2
-#define ALERT_ACK2     3
-#define ALERT_ACK3     4
-#define ALERT_ACK4     5
-#define ALERT_RESOLVED 6
+#define ALERT_UNKNOWN  "UNKNOWN"
+#define ALERT_START    "ACTIVE"
+#define ALERT_ACK1     "ACK-WIP"
+#define ALERT_ACK2     "ACK-PAUSE"
+#define ALERT_ACK3     "ACK-IGNORE"
+#define ALERT_ACK4     "ACK-SILENCE"
+#define ALERT_RESOLVED "RESOLVED"
 
-const char* get_status_string(int status)
+bool isStatusKnown (const char *status)
 {
-    switch (status) {
-        case ALERT_START:
-            return "ACTIVE";
-        case ALERT_ACK1:
-            return "ACK-WIP";
-        case ALERT_ACK2:
-            return "ACK-PAUSE";
-        case ALERT_ACK3:
-            return "ACK-IGNORE";
-        case ALERT_ACK4:
-            return "ACK-SILENCE";
-        case ALERT_RESOLVED:
-            return "RESOLVED";
-    }
-    return "UNKNOWN";
+    if ( strcmp (status, ALERT_START) == 0 )
+        return true;
+    if ( strcmp (status, ALERT_ACK1) == 0 )
+        return true;
+    if ( strcmp (status, ALERT_ACK2) == 0 )
+        return true;
+    if ( strcmp (status, ALERT_ACK3) == 0 )
+        return true;
+    if ( strcmp (status, ALERT_RESOLVED) == 0 )
+        return true;
+    return false;
 }
 
-
 struct PureAlert{
-    int _status; // on Off ack
+    std::string _status;
     int64_t _timestamp;
     std::string _description;
     std::string _element;
     std::string _severity;
     std::vector <std::string> _actions;
 
-    PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name)
+    PureAlert(const std::string &s, int64_t tm, const std::string &descr, const std::string &element_name)
     {
         _status = s;
         _timestamp = tm;
@@ -71,7 +66,7 @@ struct PureAlert{
         _element = element_name;
     };
 
-    PureAlert(int s, int64_t tm, const std::string &descr, const std::string &element_name, const std::string &severity, const std::vector<std::string> &actions)
+    PureAlert(const std::string &s, int64_t tm, const std::string &descr, const std::string &element_name, const std::string &severity, const std::vector<std::string> &actions)
     {
         _status = s;
         _timestamp = tm;
@@ -87,7 +82,7 @@ struct PureAlert{
 };
 
 void printPureAlert(const PureAlert &pureAlert){
-    zsys_info ("status = %d", pureAlert._status);
+    zsys_info ("status = %s", pureAlert._status.c_str());
     zsys_info ("timestamp = %d", pureAlert._timestamp);
     zsys_info ("description = %s", pureAlert._description.c_str());
     zsys_info ("element = %s", pureAlert._element.c_str());

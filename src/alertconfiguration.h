@@ -108,6 +108,13 @@ public:
         return false;
     };
 
+    int
+        updateAlertState (
+                const char *rule_name,
+                const char *element_name,
+                const char *new_state,
+                PureAlert &pureAlert);
+
     /**
      * \brief get list of rules by type
      * \return vector of Rule*
