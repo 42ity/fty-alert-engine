@@ -1,5 +1,5 @@
 #
-#    alert-generator - Evaluates rules written in Lua and produce alerts
+#    alert_generator - Evaluates rules written in Lua and produce alerts
 #
 #    Copyright (C) 2014 - 2015 Eaton                                        
 #                                                                           
@@ -18,7 +18,7 @@
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 #
 
-Name:           alert-generator
+Name:           alert_generator
 Version:        0.1.0
 Release:        1
 Summary:        evaluates rules written in lua and produce alerts
@@ -38,7 +38,7 @@ BuildRequires:  lua-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
-alert-generator evaluates rules written in lua and produce alerts.
+alert_generator evaluates rules written in lua and produce alerts.
 
 
 %prep
@@ -60,7 +60,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %defattr(-,root,root)
 %doc README.md COPYING
 %{_bindir}/alert-agent
-%config(noreplace) %{_systemconfdir}/alert-generator/alert-agent.cfg
+%config(noreplace) %{_systemconfdir}/alert_generator/alert-agent.cfg
 %{_prefix}/lib/systemd/system/alert-agent.service
 
 %changelog
