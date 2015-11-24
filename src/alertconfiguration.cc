@@ -424,6 +424,48 @@ PureAlert* AlertConfiguration::
     return NULL; //make compiler happy - why this finctions returns smthng?
 }
 
+
+int AlertConfiguration::
+    updateAlertState (
+        const char *rule_name,
+        const char *element_name,
+        const char *new_state,
+        PureAlert &pureAlert)
+{
+    if ( !isStatusKnown(new_state) ) {
+        zsys_info ("Unknown new status, ignore it");
+        return -5;
+    }
+    if ( strcmp(new_state, ALERT_RESOLVED) == 0 ) {
+        zsys_info ("User can't resolve alert manually");
+        return -2;
+    }
+    for ( auto &oneRuleAlerts : _alerts )
+    {
+        if ( !oneRuleAlerts.first->hasSameNameAs (rule_name) ) {
+            continue;
+        }
+        // we found the rule
+        for ( auto &oneAlert : oneRuleAlerts.second )
+        {
+            bool isSameAlert = ( oneAlert._element == element_name );
+            if ( !isSameAlert ) {
+                continue;
+            }
+            // we found the alert
+            if ( oneAlert._status == ALERT_RESOLVED ) {
+                zsys_info ("state of RESOLVED alert cannot be chaged manually");
+                return -1;
+            }
+            oneAlert._status = new_state;
+            pureAlert = oneAlert;
+            return 0;
+        }
+    }
+    zsys_info ("Cannot acknowledge alert, because it doesn't exist");
+    return -4;
+}
+
 std::vector<Rule*> AlertConfiguration::
     getRulesByType (
         const std::type_info &type_id)

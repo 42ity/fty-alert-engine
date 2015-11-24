@@ -68,7 +68,7 @@ public:
         // ok, in the lua stack we got, what we expected
         const char *status_ = lua_tostring(lua_context, -1); // IS / ISNT
         zsys_info ("status = %s", status_ );
-        int s = ALERT_UNKNOWN;
+        std::string s = ALERT_UNKNOWN;
         if ( strcmp (status_, "IS") == 0 ) {
             s = ALERT_START;
         }
