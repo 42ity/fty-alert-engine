@@ -97,7 +97,7 @@ public:
     PureAlert* updateAlert (const Rule *rule, const PureAlert &pureAlert);
 
     bool haveRule (const Rule *rule) const {
-        return haveRule (rule->_rule_name);
+        return haveRule (rule->name ());
     };
 
     bool haveRule (const std::string &rule_name) const {

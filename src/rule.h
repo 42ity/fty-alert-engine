@@ -31,6 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <set>
 #include <fstream>
 #include <iostream>
+#include <czmq.h>
 
 #include "purealert.h"
 #include "metriclist.h"
@@ -52,58 +53,18 @@ struct Outcome {
 /*
  * \brief Serialzation of outcome
  */
-void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
-{
-    si.addMember("action") <<= outcome._actions;
-    si.addMember("severity") <<= outcome._severity;
-    si.addMember("description") <<= outcome._description;
-}
+void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome);
 
 /*
  * \brief Deserialzation of outcome
  */
-void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
-{
-    si.getMember("action") >>= outcome._actions;
-    si.getMember("severity") >>= outcome._severity;
-    si.getMember("description") >>= outcome._description;
-}
+void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome);
 
-// TODO error handling mistakes can be hidden here
-void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, double> &values)
-{
-    /*
-       "values":[ {"low_critical"  : "30"},
-                  {"low_warning"   : "40"},
-                  {"high_warning"  : "50"},
-                  {"high_critical" : "60"} ]
-    */
-    for ( const auto &oneElement : si ) { // iterate through the array
-        auto variableName = oneElement.getMember(0).name();
-        std::string valueString;
-        oneElement.getMember(0) >>= valueString;
-        double valueDouble = std::stod (valueString);
-        values.emplace (variableName, valueDouble);
-    }
-}
-// TODO error handling mistakes can be hidden here
-void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes)
-{
-    /*
-        "results":[ {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW low critical description" }},
-                    {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow LOW warning description"}},
-                    {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow high WARNING description" }},
-                    {"high_critical" : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "wow high critical DESCTIPRION" } } ]
-    */
-    for ( const auto &oneElement : si ) { // iterate through the array
-        auto outcomeName = oneElement.getMember(0).name();
-        if ( outcomeName == "ok" )
-            throw std::runtime_error ("Result name 'ok' is reserved, chose another name");
-        Outcome outcome;
-        oneElement.getMember(0) >>= outcome;
-        outcomes.emplace (outcomeName, outcome);
-    }
-}
+
+void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, double> &values);
+
+
+void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes);
 
 /*
  * \brief General representation for rules
@@ -111,29 +72,19 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 class Rule {
 
 public:
+    std::string name () const { return _name; }
+    void name (const std::string name) { _name = name; }
+    virtual void globalVariables (const std::map<std::string,double> &vars) {
+        _variables.clear ();
+        _variables.insert (vars.cbegin (), vars.cend ());
+    }
 
-    /*
-     * \brief Every rule should have a rule name
-     *
-     * ASSUMPTION: rule name has only ascii characters.
-     * TODO This assumtion is not check anywhere.
-     *
-     * TODO make it private
-     *
-     * Rule name threated as case insensitive string
+    /**
+     * \brief get/set code
      */
-    std::string _rule_name;
-
-    /*
-     * \brief User is able to define his own constants,
-     *          that can be used in evaluation function
-     *
-     * TODO make it private
-     *
-     * Maps name of the constant to the value.
-     */
-    std::map <std::string, double> _values;
-
+    virtual void code(const std::string code) { throw std::runtime_error("Method not supported by this type of rule"); };
+    virtual std::string code() { throw std::runtime_error("Method not supported by this type of rule"); };
+ 
     /*
      * \brief User is able to define his own set of result,
      *          that should be used in evaluation
@@ -151,8 +102,6 @@ public:
     /* Every rule produces alerts for element */ // TODO check this assumption
     std::string _element;
 
-    /* lua_code evaluation function */ // TODO move to derived clases 
-    std::string _lua_code;
     /* Every rule has its severity */ // TODO remove it
     std::string _severity;
     // this field doesn't have any impact on alert evaluation
@@ -196,7 +145,7 @@ public:
      * \return true/false
      */
     bool hasSameNameAs (const Rule &rule) const {
-        return hasSameNameAs (rule._rule_name);
+        return hasSameNameAs (rule._name);
     };
 
     /*
@@ -207,7 +156,7 @@ public:
      * \return true/false
      */
     bool hasSameNameAs (const Rule *rule) const {
-        return hasSameNameAs (rule->_rule_name);
+        return hasSameNameAs (rule->_name);
     };
 
     /*
@@ -219,7 +168,7 @@ public:
      */
     bool hasSameNameAs (const std::string &name) const {
         // works until we use ASCII names
-        return strcasecmp( this->_rule_name.c_str(), name.c_str() ) == 0;
+        return strcasecmp( this->_name.c_str(), name.c_str() ) == 0;
     };
 
     /*
@@ -238,7 +187,7 @@ public:
         // ASSUMPTION: file name is the same as rule name
         // rule name and file name are CASE SENSITIVE.
 
-        std::string full_name = path + _rule_name + ".rule";
+        std::string full_name = path + _name + ".rule";
         zsys_info ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
         ofs << _json_representation;
@@ -251,7 +200,7 @@ public:
      */
     int remove (const std::string &path) {
 
-        std::string full_name = path + _rule_name + ".rule";
+        std::string full_name = path + _name + ".rule";
         zsys_info ("trying to remove file : '%s'", full_name.c_str());
         return std::remove (full_name.c_str());
     };
@@ -265,6 +214,26 @@ public:
     friend Rule* readRule (std::istream &f);
 
 protected:
+
+    /*
+     * \brief User is able to define his own constants,
+     *          that can be used in evaluation function
+     *
+     * Maps name of the variable to the value.
+     */
+    std::map <std::string, double> _variables;
+
+    /*
+     * \brief Every rule should have a rule name
+     *
+     * ASSUMPTION: rule name has only ascii characters.
+     * TODO This assumtion is not check anywhere.
+     *
+     * TODO make it private
+     *
+     * Rule name threated as case insensitive string
+     */
+    std::string _name;
 
     // every type of the rule should have a string representation of its name
     std::string _type_name;

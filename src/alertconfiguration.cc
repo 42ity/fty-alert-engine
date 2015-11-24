@@ -35,6 +35,7 @@ Rule* readRule (std::istream &f)
     // TODO check, that lua function is correct
     try {
         // TODO this appoach can cause, that "Json" repsesentation is HUGE file because of witespaces
+        std::string tmp;
         std::string json_string(std::istreambuf_iterator<char>(f), {});
         std::stringstream s(json_string);
         cxxtools::JsonDeserializer json(s);
@@ -51,8 +52,11 @@ Rule* readRule (std::istream &f)
 
             RegexRule *rule = new RegexRule();
             try {
-                pattern.getMember("rule_name") >>= rule->_rule_name;
-                pattern.getMember("evaluation") >>= rule->_lua_code;
+                std::string tmp;
+                pattern.getMember("rule_name") >>= tmp;
+                rule->name(tmp);
+                pattern.getMember("evaluation") >>= tmp;
+                rule->code(tmp);
                 pattern.getMember("target") >>= rule->_rex_str;
                 rule->_rex = zrex_new(rule->_rex_str.c_str());
                 rule->_json_representation = json_string;
@@ -62,7 +66,7 @@ Rule* readRule (std::istream &f)
                     zsys_info ("parameter 'values' in json must be an array.");
                     throw std::runtime_error("parameter 'values' in json must be an array");
                 }
-                values >>= rule->_values;
+                values >>= rule->_variables;
                 // outcomes
                 auto outcomes = pattern.getMember("results");
                 if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
@@ -100,7 +104,8 @@ Rule* readRule (std::istream &f)
                         ThresholdRuleComplex *tmp_rule = new ThresholdRuleComplex();
                         target >>= tmp_rule->_metrics;
                         rule = tmp_rule;
-                        threshold.getMember("evaluation") >>= rule->_lua_code;
+                        threshold.getMember("evaluation") >>= tmp;
+                        rule->code(tmp);
                     }
                 }
                 catch ( const std::exception &e) {
@@ -108,7 +113,8 @@ Rule* readRule (std::istream &f)
                     throw std::runtime_error("parameter 'values' in json must be an array");
                 }
                 rule->_json_representation = json_string;
-                threshold.getMember("rule_name") >>= rule->_rule_name;
+                threshold.getMember("rule_name") >>= tmp;
+                rule->name(tmp);
                 threshold.getMember("element") >>= rule->_element;
                 // values
                 // TODO check low_critical < low_warnong < high_warning < hign crtical
@@ -117,7 +123,11 @@ Rule* readRule (std::istream &f)
                     zsys_info ("parameter 'values' in json must be an array.");
                     throw std::runtime_error("parameter 'values' in json must be an array");
                 }
-                values >>= rule->_values;
+                {
+                    std::map<std::string,double> tmpmap;
+                    values >>= tmp;
+                    rule->globalVariables(tmpmap);
+                }
                 // outcomes
                 auto outcomes = threshold.getMember("results");
                 if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
@@ -143,8 +153,10 @@ Rule* readRule (std::istream &f)
             NormalRule *rule =  new NormalRule();
             try {
                 rule->_json_representation = json_string;
-                single.getMember("rule_name") >>= rule->_rule_name;
-                single.getMember("evaluation") >>= rule->_lua_code;
+                single.getMember("rule_name") >>= tmp;
+                rule->name(tmp);
+                single.getMember("evaluation") >>= tmp;
+                rule->code(tmp);
                 single.getMember("element") >>= rule->_element;
                 // target
                 auto target = single.getMember("target");
@@ -157,7 +169,7 @@ Rule* readRule (std::istream &f)
                 if ( values.category () != cxxtools::SerializationInfo::Array ) {
                     throw std::runtime_error ("parameter 'values' in json must be an array.");
                 }
-                values >>= rule->_values;
+                values >>= rule->_variables;
                 // outcomes
                 auto outcomes = single.getMember("results");
                 if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
@@ -217,14 +229,14 @@ std::set <std::string> AlertConfiguration::
         // ASSUMPTION: name of the file is the same as name of the rule
         // If they are different ignore this rule
         if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
-            zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->_rule_name.c_str());
+            zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
             delete rule;
             continue;
         }
 
         // ASSUMPTION: rules have unique names
         if ( haveRule (rule) ) {
-            zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->_rule_name.c_str(), fn.c_str());
+            zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
             delete rule;
             continue;
         }
@@ -296,7 +308,7 @@ int AlertConfiguration::
         return -2;
     }
     // need to find out if rule exists already or not
-    if ( haveRule ((*newRule)->_rule_name) )
+    if ( haveRule ((*newRule)->name()) )
     {
         // rule with new rule_name
         zsys_info ("Rule with such name already exists");
@@ -372,7 +384,7 @@ PureAlert* AlertConfiguration::
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
                     // element is the same -> no need to update the field
-                    zsys_info("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    zsys_info("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 else {
                     // Found alert is still active -> it is the same alert
@@ -380,7 +392,7 @@ PureAlert* AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 // in both cases we need to send an alert
                 PureAlert *toSend = new PureAlert(oneAlert);
@@ -394,7 +406,7 @@ PureAlert* AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                     PureAlert *toSend = new PureAlert(oneAlert);
                     return toSend;
                 }
@@ -411,7 +423,7 @@ PureAlert* AlertConfiguration::
             if ( pureAlert._status != ALERT_RESOLVED )
             {
                 oneRuleAlerts.second.push_back(pureAlert);
-                zsys_info("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->_rule_name.c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
+                zsys_info("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
                 PureAlert *toSend = new PureAlert(pureAlert);
                 return toSend;
             }
@@ -432,7 +444,7 @@ int AlertConfiguration::
         const char *new_state,
         PureAlert &pureAlert)
 {
-    if ( !isStatusKnown(new_state) ) {
+    if ( !PureAlert::isStatusKnown(new_state) ) {
         zsys_info ("Unknown new status, ignore it");
         return -5;
     }
