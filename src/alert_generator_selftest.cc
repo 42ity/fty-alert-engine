@@ -1,5 +1,5 @@
 /*  =========================================================================
-    alert-generator_selftest.c - run selftests
+    alert_generator_selftest.c - run selftests
 
     Runs all selftests.
 
@@ -27,7 +27,7 @@
     =========================================================================
 */
 
-#include "alert-generator_classes.h"
+#include "alert_generator_classes.h"
 
 //  -------------------------------------------------------------------------
 //  Prototype of test function
@@ -53,7 +53,7 @@ typedef struct
 
 test_item_t all_tests [] = {
     DECLARE_TEST(metriclist_test),
-    DECLARE_TEST(alerctconfiguration_test),
+    DECLARE_TEST(alertconfiguration_test),
     {0, 0} // Null terminator
 };
 
@@ -109,7 +109,7 @@ test_available (const char *testname)
 static inline void
 test_runall (bool verbose)
 {
-    printf ("Running alert-generator selftests...\n");
+    printf ("Running alert_generator selftests...\n");
     test_item_t *item;
     for (item = all_tests; item->test; item++)
         item->test (verbose);
@@ -162,7 +162,7 @@ main (int argc, char **argv)
         }
     }
     if (test) {
-        printf ("Running alert-generator selftest '%s'...\n", test->testname);
+        printf ("Running alert_generator selftest '%s'...\n", test->testname);
         test->test (verbose);
     }
     else

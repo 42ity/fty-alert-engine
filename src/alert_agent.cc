@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <malamute.h>
 #include <bios_proto.h>
@@ -118,6 +119,47 @@ void get_rule(
     zmsg_destroy( &reply );
 }
 
+
+std::string makeActionList(
+    const std::vector <std::string> &actions)
+{
+    std::ostringstream s;
+    for (const auto& oneAction : actions) {
+        if (&oneAction != &actions[0]) {
+            s << "/";
+        }
+        s << oneAction;
+    }
+    return s.str();
+}
+
+void send_alerts(
+    mlm_client_t *client,
+    std::vector <PureAlert> alertsToSend,
+    Rule *rule)
+{
+    for ( const auto &alert : alertsToSend )
+    {
+        zmsg_t *msg = bios_proto_encode_alert (
+            NULL,
+            rule->_rule_name.c_str(),
+            alert._element.c_str(),
+            alert._status.c_str(),
+            alert._severity.c_str(),
+            alert._description.c_str(),
+            -1,
+            makeActionList(alert._actions).c_str()
+        );
+        if( msg ) {
+            std::string atopic = rule->_rule_name + "/"
+                + alert._severity + "@"
+                + alert._element;
+            mlm_client_send (client, atopic.c_str(), &msg);
+            zmsg_destroy(&msg);
+        }
+    }
+}
+
 void add_rule(
     mlm_client_t *client,
     const char *json_representation,
@@ -155,12 +197,27 @@ void add_rule(
     zmsg_destroy (&reply);
     
     // send alertsToSend
-    /*
+    send_alerts (client, alertsToSend, newRule); 
     for ( const auto &alert : alertsToSend )
     {
-        // TODO
+        zmsg_t *msg = bios_proto_encode_alert (
+            NULL,
+            newRule->_rule_name.c_str(),
+            alert._element.c_str(),
+            alert._status.c_str(),
+            alert._severity.c_str(),
+            alert._description.c_str(),
+            -1,
+            makeActionList(alert._actions).c_str()
+        );
+        if( msg ) {
+            std::string atopic = newRule->_rule_name + "/"
+                + alert._severity + "@"
+                + alert._element;
+            mlm_client_send (client, atopic.c_str(), &msg);
+            zmsg_destroy(&msg);
+        }
     }
-    */
 }
 
 
