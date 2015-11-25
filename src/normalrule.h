@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef SRC_NORMALRULE_H
 #define SRC_NORMALRULE_H
 
+#include <cxxtools/jsondeserializer.h>
 #include "luarule.h"
 extern "C" {
 #include <lua.h>
@@ -34,6 +35,55 @@ class NormalRule : public LuaRule
 {
 public:
     NormalRule(){};
+
+    int fill(cxxtools::JsonDeserializer &json, const std::string &json_string)
+    {
+        const cxxtools::SerializationInfo *si = json.si();
+        if ( si->findMember("single") == NULL ) {
+            return 1;
+        }
+        zsys_info ("it is SINGLE rule");
+        auto single = si->getMember("single");
+        if ( single.category () != cxxtools::SerializationInfo::Object ) {
+            zsys_info ("Root of json must be an object with property 'single'.");
+            throw std::runtime_error("Root of json must be an object with property 'single'.");
+        }
+
+        // target
+        auto target = single.getMember("target");
+        if ( target.category () != cxxtools::SerializationInfo::Array ) {
+            zsys_info ("property 'target' in json must be an Array");
+            throw std::runtime_error ("property 'target' in json must be an Array");
+        }
+        target >>= _metrics;
+        _json_representation = json_string;
+        single.getMember("rule_name") >>= _name;
+        single.getMember("element") >>= _element;
+        // values
+        // TODO check low_critical < low_warnong < high_warning < hign crtical
+        std::map<std::string,double> tmp_values;
+        auto values = single.getMember("values");
+        if ( values.category () != cxxtools::SerializationInfo::Array ) {
+            zsys_info ("parameter 'values' in json must be an array.");
+            throw std::runtime_error("parameter 'values' in json must be an array");
+        }
+        values >>= tmp_values;
+        globalVariables(tmp_values);
+
+        // outcomes
+        auto outcomes = single.getMember("results");
+        if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+            zsys_info ("parameter 'results' in json must be an array.");
+            throw std::runtime_error ("parameter 'results' in json must be an array.");
+        }
+        outcomes >>= _outcomes;
+
+        std::string tmp;
+        single.getMember("evaluation") >>= tmp;
+        code(tmp);
+
+        return 0;
+    }
 
     int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
     {

@@ -57,7 +57,6 @@ public:
         zsys_info ("it is simple threshold rule");
 
         target >>= _metric;
-        zsys_info (_metric.c_str());
         _json_representation = json_string;
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
