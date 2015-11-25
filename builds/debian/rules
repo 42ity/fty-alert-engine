@@ -1,6 +1,10 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+override_dh_autoreconf:
+	sed -i 's|PKG_CHECK_MODULES([lua], [lua |PKG_CHECK_MODULES([lua], [lua5.1 |' configure.ac
+	dh_autoreconf
+
 override_dh_strip:
 	dh_strip --dbg-package=alert-agent-dbg
 
