@@ -32,7 +32,7 @@ extern "C" {
 LuaRule::LuaRule (const LuaRule &r)
 {
     _name = r._name;
-    globalVariables (r._variables);
+    globalVariables (r.getGlobalVariables());
     code (r._code);
 }
 
@@ -111,7 +111,7 @@ void LuaRule::_setGlobalVariablesToLUA()
         lua_pushnumber (_lstate, i);
         lua_setglobal (_lstate, upper.c_str ());
     }
-    for (const auto &it : _variables) {
+    for (const auto &it : getGlobalVariables() ) {
         lua_pushnumber (_lstate, it.second);
         lua_setglobal (_lstate, it.first.c_str ());
     }

@@ -91,17 +91,21 @@ public:
         _variables.insert (vars.cbegin (), vars.cend ());
     }
 
+   virtual std::map<std::string,double> getGlobalVariables (void) const {
+        return _variables;
+    }
+
     /**
      * \brief get/set code
      */
     virtual void code(const std::string &code) {
         throw std::runtime_error("Method not supported by this type of rule");
     };
-    
+
     virtual std::string code(void) const{
         throw std::runtime_error("Method not supported by this type of rule");
     };
- 
+
     /*
      * \brief User is able to define his own set of result,
      *          that should be used in evaluation
@@ -244,13 +248,6 @@ public:
 
 protected:
 
-    /*
-     * \brief User is able to define his own constants,
-     *          that can be used in evaluation function
-     *
-     * Maps name of the variable to the value.
-     */
-    std::map <std::string, double> _variables;
 
     /*
      * \brief Every rule should have a rule name
@@ -268,6 +265,15 @@ protected:
      * \brief User cannot construct object of abstract entity
      */
     Rule(){};
+
+private:
+    /*
+     * \brief User is able to define his own constants,
+     *          that can be used in evaluation function
+     *
+     * Maps name of the variable to the value.
+     */
+    std::map <std::string, double> _variables;
 
 };
 

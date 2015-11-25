@@ -43,8 +43,8 @@ public:
             return 2;
         }
 
-        zsys_info ("lua_code = %s", _code.c_str() );
-        int error = luaL_loadbuffer (lua_context, _code.c_str(), _code.length(), "line") ||
+        zsys_info ("lua_code = %s", code().c_str() );
+        int error = luaL_loadbuffer (lua_context, code().c_str(), code().length(), "line") ||
             lua_pcall (lua_context, 0, 1, 0);
 
         if ( error ) {
@@ -119,7 +119,7 @@ protected:
         // we are here -> all metrics were found
 
         //  2 ) set up variables
-        for ( const auto &aConstantValue : _variables ) {
+        for ( const auto &aConstantValue : getGlobalVariables() ) {
             lua_pushnumber (lua_context, aConstantValue.second);
             lua_setglobal (lua_context, aConstantValue.first.c_str());
         }

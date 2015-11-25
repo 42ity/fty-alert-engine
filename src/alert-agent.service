@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/alert-agent ${prefix}/etc/alert_generator/alert-agent.cfg
+ExecStart=/usr/local/bin/alert-agent ${prefix}/etc/alert-agent/alert-agent.cfg
 
 [Install]
 WantedBy=multi-user.target
