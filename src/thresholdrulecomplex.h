@@ -27,6 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // used for zsys
 
 #include <czmq.h>
+#include <cxxtools/jsondeserializer.h>
 #include "luarule.h"
 extern "C" {
 #include <lua.h>
@@ -37,6 +38,7 @@ class ThresholdRuleComplex : public LuaRule
 public:
 
     ThresholdRuleComplex(){};
+    int fill(cxxtools::JsonDeserializer &json, const std::string &json_string);
 
     int evaluate (const MetricList &metricList, PureAlert **pureAlert) const;
     bool isTopicInteresting(const std::string &topic) const ;

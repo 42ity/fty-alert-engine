@@ -25,12 +25,62 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define SRC_THRESHOLDRULESIMPLE_H
 
 #include "rule.h"
+#include <cxxtools/jsondeserializer.h>
 
 class ThresholdRuleSimple : public Rule
 {
 public:
 
     ThresholdRuleSimple(){};
+
+    // throws -> it is pattern but with errors
+    // 0 - ok
+    // 1 - it is not pattern rule
+    // TODO json string is bad idea, redo to serialization in future
+    int fill(cxxtools::JsonDeserializer &json, const std::string &json_string)
+    {
+        const cxxtools::SerializationInfo *si = json.si();
+        if ( si->findMember("threshold") == NULL ) {
+            return 1;
+        }
+        auto threshold = si->getMember("threshold");
+        if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
+            zsys_info ("Root of json must be an object with property 'threshold'.");
+            throw std::runtime_error("Root of json must be an object with property 'threshold'.");
+        }
+
+        // target
+        auto target = threshold.getMember("target");
+        if ( target.category () != cxxtools::SerializationInfo::Value ) {
+            return 1;
+        }
+        zsys_info ("it is simple threshold rule");
+
+        target >>= _metric;
+        zsys_info (_metric.c_str());
+        _json_representation = json_string;
+        threshold.getMember("rule_name") >>= _name;
+        threshold.getMember("element") >>= _element;
+        // values
+        // TODO check low_critical < low_warnong < high_warning < hign crtical
+        std::map<std::string,double> tmp_values;
+        auto values = threshold.getMember("values");
+        if ( values.category () != cxxtools::SerializationInfo::Array ) {
+            zsys_info ("parameter 'values' in json must be an array.");
+            throw std::runtime_error("parameter 'values' in json must be an array");
+        }
+        values >>= tmp_values;
+        globalVariables(tmp_values);
+
+        // outcomes
+        auto outcomes = threshold.getMember("results");
+        if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+            zsys_info ("parameter 'results' in json must be an array.");
+            throw std::runtime_error ("parameter 'results' in json must be an array.");
+        }
+        outcomes >>= _outcomes;
+        return 0;
+    }
 
     int evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
         // ASSUMPTION: constants are in values
