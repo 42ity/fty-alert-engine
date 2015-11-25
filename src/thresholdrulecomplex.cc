@@ -29,7 +29,60 @@ extern "C" {
 #include <lauxlib.h>
 }
 
+int ThresholdRuleComplex::
+    fill(
+        cxxtools::JsonDeserializer &json,
+        const std::string &json_string)
+{
+    const cxxtools::SerializationInfo *si = json.si();
+    if ( si->findMember("threshold") == NULL ) {
+        return 1;
+    }
+    auto threshold = si->getMember("threshold");
+    if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
+        zsys_info ("Root of json must be an object with property 'threshold'.");
+        throw std::runtime_error("Root of json must be an object with property 'threshold'.");
+    }
+
+    // target
+    auto target = threshold.getMember("target");
+    if ( target.category () != cxxtools::SerializationInfo::Array ) {
+        return 1;
+    }
+    zsys_info ("it is complex threshold rule");
+
+    target >>= _metrics;
+    _json_representation = json_string;
+    threshold.getMember("rule_name") >>= _name;
+    threshold.getMember("element") >>= _element;
+    // values
+    // TODO check low_critical < low_warnong < high_warning < hign crtical
+    std::map<std::string,double> tmp_values;
+    auto values = threshold.getMember("values");
+    if ( values.category () != cxxtools::SerializationInfo::Array ) {
+        zsys_info ("parameter 'values' in json must be an array.");
+        throw std::runtime_error("parameter 'values' in json must be an array");
+    }
+    values >>= tmp_values;
+    globalVariables(tmp_values);
+
+    // outcomes
+    auto outcomes = threshold.getMember("results");
+    if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
+        zsys_info ("parameter 'results' in json must be an array.");
+        throw std::runtime_error ("parameter 'results' in json must be an array.");
+    }
+    outcomes >>= _outcomes;
+
+    std::string tmp;
+    threshold.getMember("evaluation") >>= tmp;
+    code(tmp);
+
+    return 0;
+}
+
 /*
+
 int ThresholdRuleComplex::evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
         lua_State *lua_context = setContext (metricList);
         if ( lua_context == NULL ) {
@@ -37,8 +90,8 @@ int ThresholdRuleComplex::evaluate (const MetricList &metricList, PureAlert **pu
             return 2;
         }
 
-        zsys_info ("lua_code = %s", _code.c_str() );
-        int error = luaL_loadbuffer (lua_context, _code.c_str(), _code.length(), "line") ||
+        zsys_info ("lua_code = %s", code().c_str() );
+        int error = luaL_loadbuffer (lua_context, code().c_str(), code().length(), "line") ||
             lua_pcall (lua_context, 0, 1, 0);
 
         if ( error ) {
@@ -115,7 +168,7 @@ lua_State* ThresholdRuleComplex::setContext (const MetricList &metricList) const
     // we are here -> all metrics were found
 
     //  2 ) set up variables
-    for ( const auto &aConstantValue : _variables ) {
+    for ( const auto &aConstantValue : getGlobalVariables() ) {
         lua_pushnumber (lua_context, aConstantValue.second);
         lua_setglobal (lua_context, aConstantValue.first.c_str());
     }
