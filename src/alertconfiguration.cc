@@ -32,6 +32,7 @@ Rule* readRule (std::istream &f)
     // TODO check, that rule actions have unique names (in the rule)
     // TODO check, that values have unique name (in the rule)
     // TODO check, that lua function is correct
+    Rule *rule = NULL;
     try {
         // TODO this appoach can cause, that "Json" repsesentation is HUGE file because of witespaces
         std::string json_string(std::istreambuf_iterator<char>(f), {});
@@ -42,62 +43,35 @@ Rule* readRule (std::istream &f)
         // TODO not very good use of fill function. work in progress
 
         Rule *rule = new RegexRule();
-        try {
-            int rv = rule->fill (json, json_string);
-            if ( rv == 0 )
-                return rule;
-        }
-        catch ( const std::exception &e ) {
-            zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
-            delete rule;
-            return NULL;
-        }
+        int rv = rule->fill (json, json_string);
+        if ( rv == 0 )
+            return rule;
         delete rule;
         
         rule = new ThresholdRuleSimple();
-        try {
-            int rv = rule->fill (json, json_string);
-            if ( rv == 0 )
-                return rule;
-        }
-        catch ( const std::exception &e ) {
-            zsys_warning ("THRESHOLD simple rule doesn't have all required fields, ignore it. %s", e.what());
-            delete rule;
-            return NULL;
-        }
+        rv = rule->fill (json, json_string);
+        if ( rv == 0 )
+            return rule;
         delete rule; 
-        
+
         rule = new ThresholdRuleComplex();
-        try {
-            int rv = rule->fill (json, json_string);
-            if ( rv == 0 )
-                return rule;
-        }
-        catch ( const std::exception &e ) {
-            zsys_warning ("THRESHOLD complex rule doesn't have all required fields, ignore it. %s", e.what());
-            delete rule;
-            return NULL;
-        }
+        rv = rule->fill (json, json_string);
+        if ( rv == 0 )
+            return rule;
         delete rule; 
 
         rule = new NormalRule();
-        try {
-            int rv = rule->fill (json, json_string);
-            if ( rv == 0 )
-                return rule;
-        }
-        catch ( const std::exception &e ) {
-            zsys_warning ("SINGLE rule doesn't have all required fields, ignore it. %s", e.what());
-            delete rule;
-            return NULL;
-        }
+        rv = rule->fill (json, json_string);
+        if ( rv == 0 )
+            return rule;
         delete rule; 
 
         zsys_error ("Cannot detect type of the rule, ignore it");
         return NULL;
     }
     catch ( const std::exception &e) {
-        zsys_error ("Cannot parse JSON, ignore it");
+        zsys_error ("Cannot parse JSON, ignore it. %s", e.what());
+        delete rule;
         return NULL;
     }
 }
