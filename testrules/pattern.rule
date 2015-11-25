@@ -10,6 +10,6 @@
                                 {"high_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW P1" }},
                                 {"low_warning"  : { "action" : ["EMAIL"],       "severity" : "WARNING",  "description" : "wow p2"}}
                             ],
-        "evaluation"    : "function main(value) local new_value = value * a1 - a2 if  ( new_value < 100 ) then return LOW_WARNING end if ( new_value > 150 ) then return HI_WARNING end return OK end"
+        "evaluation"    : "function main(value) local new_value = value * a1 - a2 if  ( new_value < 100 ) then return LOW_WARNING end if ( new_value > 150 ) then return HIGH_WARNING end return OK end"
     }
 }
