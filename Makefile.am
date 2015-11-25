@@ -18,9 +18,10 @@ AM_CPPFLAGS = \
     ${malamute_CFLAGS} \
     ${biosproto_CFLAGS} \
     ${lua_CFLAGS} \
+    ${cxxtools_CFLAGS} \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${biosproto_LIBS} ${lua_LIBS}
+project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${biosproto_LIBS} ${lua_LIBS} ${cxxtools_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc

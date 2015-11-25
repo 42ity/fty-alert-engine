@@ -12,7 +12,7 @@ Name: libalert_agent
 Description: Evaluates rules written in Lua and produce alerts
 Version: @VERSION@
 
-Requires:libzmq >= 4.2.0 libczmq >= 3.0.1 libmlm libbiosproto lua >= 5.1.0
+Requires:libzmq >= 4.2.0 libczmq >= 3.0.1 libmlm libbiosproto lua >= 5.1.0 cxxtools
 
 Libs: -L${libdir} -lalert_agent
 Cflags: -I${includedir}

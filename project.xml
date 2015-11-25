@@ -22,6 +22,7 @@
         repository = "https://github.com/lua/lua"
         includename = "lua" debian_name="liblua5.1-0-dev"
         test = "lua_close" />
+    <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
 
     <class name = "metriclist" private="1">MetricList</class>
     <class name = "alertconfiguration" private="1">alertconfiguration</class>
