@@ -5,7 +5,7 @@
 #  Please refer to the README for information about making permanent changes.  #
 ################################################################################
 -->
-<VisualStudioProject ProjectType="Visual C++" Version="9.00" Name="alert_generator" ProjectGUID="{0C4A2E28-8C9E-4B27-85D9-BB679AD84AC7}" RootNamespace="alert_generator" TargetFrameworkVersion="0">
+<VisualStudioProject ProjectType="Visual C++" Version="9.00" Name="alert_agent" ProjectGUID="{0C4A2E28-8C9E-4B27-85D9-BB679AD84AC7}" RootNamespace="alert_agent" TargetFrameworkVersion="0">
   <Platforms>
     <Platform Name="Win32" />
     <Platform Name="x64" />
@@ -18,14 +18,14 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" />
-      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="0" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
+      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="0" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
-      <Tool Name="VCLibrarianTool" OutputFile=".\alert_generator.lib" SuppressStartupBanner="true" />
+      <Tool Name="VCLibrarianTool" OutputFile=".\alert_agent.lib" SuppressStartupBanner="true" />
       <Tool Name="VCALinkTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCPostBuildEventTool" />
     </Configuration>
@@ -35,14 +35,14 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" TargetEnvironment="3" />
-      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="0" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
+      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="0" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
-      <Tool Name="VCLibrarianTool" OutputFile=".\alert_generator.lib" SuppressStartupBanner="true" />
+      <Tool Name="VCLibrarianTool" OutputFile=".\alert_agent.lib" SuppressStartupBanner="true" />
       <Tool Name="VCALinkTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCPostBuildEventTool" />
     </Configuration>
@@ -52,14 +52,14 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" />
-      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="1" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
+      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="1" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
-      <Tool Name="VCLibrarianTool" OutputFile=".\alert_generator.lib" SuppressStartupBanner="true" />
+      <Tool Name="VCLibrarianTool" OutputFile=".\alert_agent.lib" SuppressStartupBanner="true" />
       <Tool Name="VCALinkTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCPostBuildEventTool" />
     </Configuration>
@@ -69,14 +69,14 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" TargetEnvironment="3" />
-      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="1" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
+      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="1" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
-      <Tool Name="VCLibrarianTool" OutputFile=".\alert_generator.lib" SuppressStartupBanner="true" />
+      <Tool Name="VCLibrarianTool" OutputFile=".\alert_agent.lib" SuppressStartupBanner="true" />
       <Tool Name="VCALinkTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCPostBuildEventTool" />
     </Configuration>
@@ -86,7 +86,7 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" />
-      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_GENERATOR_EXPORTS;_WIN32;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="3" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
+      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_AGENT_EXPORTS;_WIN32;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="3" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
@@ -94,7 +94,7 @@
       <Tool Name="VCALinkTool" />
       <Tool Name="VCManifestTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCAppVerifierTool" />
       <Tool Name="VCPostBuildEventTool" />
@@ -105,7 +105,7 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" TargetEnvironment="3" />
-      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_GENERATOR_EXPORTS;_WIN32;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="3" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
+      <Tool Name="VCCLCompilerTool" Optimization="0" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_AGENT_EXPORTS;_WIN32;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" MinimalRebuild="false" BasicRuntimeChecks="3" RuntimeLibrary="3" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" DebugInformationFormat="1" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
@@ -113,7 +113,7 @@
       <Tool Name="VCALinkTool" />
       <Tool Name="VCManifestTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCAppVerifierTool" />
       <Tool Name="VCPostBuildEventTool" />
@@ -124,7 +124,7 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" />
-      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_GENERATOR_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
+      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_AGENT_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
@@ -132,7 +132,7 @@
       <Tool Name="VCALinkTool" />
       <Tool Name="VCManifestTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCAppVerifierTool" />
       <Tool Name="VCPostBuildEventTool" />
@@ -143,7 +143,7 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" TargetEnvironment="3" />
-      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_GENERATOR_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
+      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_AGENT_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
@@ -151,7 +151,7 @@
       <Tool Name="VCALinkTool" />
       <Tool Name="VCManifestTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCAppVerifierTool" />
       <Tool Name="VCPostBuildEventTool" />
@@ -162,7 +162,7 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" />
-      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_GENERATOR_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
+      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_AGENT_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
@@ -170,7 +170,7 @@
       <Tool Name="VCALinkTool" />
       <Tool Name="VCManifestTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCAppVerifierTool" />
       <Tool Name="VCPostBuildEventTool" />
@@ -181,7 +181,7 @@
       <Tool Name="VCXMLDataGeneratorTool" />
       <Tool Name="VCWebServiceProxyGeneratorTool" />
       <Tool Name="VCMIDLTool" TargetEnvironment="3" />
-      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_GENERATOR_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_generator.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
+      <Tool Name="VCCLCompilerTool" Optimization="2" InlineFunctionExpansion="1" AdditionalIncludeDirectories="..\..\..\..\include;..\..\..\..\..\libzmq\include" PreprocessorDefinitions="LIBALERT_AGENT_EXPORTS;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;BASE_THREADSAFE" StringPooling="true" RuntimeLibrary="2" EnableFunctionLevelLinking="true" PrecompiledHeaderFile="./alert_agent.pch" AssemblerListingLocation="./" ObjectFile="./" ProgramDataBaseFileName="./" WarningLevel="3" SuppressStartupBanner="true" />
       <Tool Name="VCManagedResourceCompilerTool" />
       <Tool Name="VCResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="2060" />
       <Tool Name="VCPreLinkEventTool" />
@@ -189,7 +189,7 @@
       <Tool Name="VCALinkTool" />
       <Tool Name="VCManifestTool" />
       <Tool Name="VCXDCMakeTool" />
-      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_generator.bsc" />
+      <Tool Name="VCBscMakeTool" SuppressStartupBanner="true" OutputFile="./alert_agent.bsc" />
       <Tool Name="VCFxCopTool" />
       <Tool Name="VCAppVerifierTool" />
       <Tool Name="VCPostBuildEventTool" />
@@ -399,8 +399,8 @@
       <File RelativePath="..\..\..\..\src\purealert.h" />
       <File RelativePath="..\..\..\..\src\rule.h" />
       <File RelativePath="..\..\..\..\src\thresholdrulecomplex.h" />
-      <File RelativePath="..\..\..\..\include\alert_generator_library.h" />
-      <File RelativePath="..\..\..\..\include\alert_generator.h" />
+      <File RelativePath="..\..\..\..\include\alert_agent_library.h" />
+      <File RelativePath="..\..\..\..\include\alert_agent.h" />
     </Filter>
   </Files>
   <Globals />

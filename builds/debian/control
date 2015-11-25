@@ -1,5 +1,5 @@
 #
-#    alert_generator - Evaluates rules written in Lua and produce alerts
+#    alert-agent - Evaluates rules written in Lua and produce alerts
 #
 #    Copyright (C) 2014 - 2015 Eaton                                        
 #                                                                           
@@ -18,7 +18,7 @@
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 #
 
-Source:         alert_generator
+Source:         alert-agent
 Section:        net
 Priority:       optional
 Maintainer:     John Doe <John.Doe@example.com>
@@ -37,19 +37,19 @@ Build-Depends: bison, debhelper (>= 8),
     dh-autoreconf
 
 
-Package: alert_generator
+Package: alert-agent
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: evaluates rules written in lua and produce alerts
- Main package for alert_generator: evaluates rules written in lua and produce alerts
+ Main package for alert-agent: evaluates rules written in lua and produce alerts
 
-Package: alert_generator-dbg
+Package: alert-agent-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    alert_generator (= ${binary:Version}),
+    alert-agent (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for alert_generator
- This package contains the debugging symbols for alert_generator : evaluates rules written in lua and produce alerts.
+Description: debugging symbols for alert-agent
+ This package contains the debugging symbols for alert-agent : evaluates rules written in lua and produce alerts.
 

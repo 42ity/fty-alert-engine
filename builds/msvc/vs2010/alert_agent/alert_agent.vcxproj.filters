@@ -27,10 +27,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\include\alert_generator_library.h">
+    <ClInclude Include="..\..\..\..\include\alert_agent_library.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\alert_generator.h">
+    <ClInclude Include="..\..\..\..\include\alert_agent.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
@@ -45,7 +45,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\alert_generator.rc">
+    <ResourceCompile Include="..\..\alert_agent.rc">
       <Filter>resource</Filter>
     </ResourceCompile>
   </ItemGroup>

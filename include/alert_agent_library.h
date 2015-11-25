@@ -1,5 +1,5 @@
 /*  =========================================================================
-    alert_generator - ALERT_GENERATOR wrapper
+    alert-agent - ALERT-AGENT wrapper
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -24,8 +24,8 @@
     =========================================================================
 */
 
-#ifndef alert_generator_library_H_INCLUDED
-#define alert_generator_library_H_INCLUDED
+#ifndef alert_agent_library_H_INCLUDED
+#define alert_agent_library_H_INCLUDED
 
 //  Set up environment for the application
 
@@ -34,27 +34,27 @@
 #include <biosproto.h>
 #include <lua.h>
 
-//  ALERT_GENERATOR version macros for compile-time API detection
+//  ALERT-AGENT version macros for compile-time API detection
 
-#define ALERT_GENERATOR_VERSION_MAJOR 0
-#define ALERT_GENERATOR_VERSION_MINOR 1
-#define ALERT_GENERATOR_VERSION_PATCH 0
+#define ALERT_AGENT_VERSION_MAJOR 0
+#define ALERT_AGENT_VERSION_MINOR 1
+#define ALERT_AGENT_VERSION_PATCH 0
 
-#define ALERT_GENERATOR_MAKE_VERSION(major, minor, patch) \
+#define ALERT_AGENT_MAKE_VERSION(major, minor, patch) \
     ((major) * 10000 + (minor) * 100 + (patch))
-#define ALERT_GENERATOR_VERSION \
-    ALERT_GENERATOR_MAKE_VERSION(ALERT_GENERATOR_VERSION_MAJOR, ALERT_GENERATOR_VERSION_MINOR, ALERT_GENERATOR_VERSION_PATCH)
+#define ALERT_AGENT_VERSION \
+    ALERT_AGENT_MAKE_VERSION(ALERT_AGENT_VERSION_MAJOR, ALERT_AGENT_VERSION_MINOR, ALERT_AGENT_VERSION_PATCH)
 
 #if defined (__WINDOWS__)
-#   if defined LIBALERT_GENERATOR_STATIC
-#       define ALERT_GENERATOR_EXPORT
-#   elif defined LIBALERT_GENERATOR_EXPORTS
-#       define ALERT_GENERATOR_EXPORT __declspec(dllexport)
+#   if defined LIBALERT_AGENT_STATIC
+#       define ALERT_AGENT_EXPORT
+#   elif defined LIBALERT_AGENT_EXPORTS
+#       define ALERT_AGENT_EXPORT __declspec(dllexport)
 #   else
-#       define ALERT_GENERATOR_EXPORT __declspec(dllimport)
+#       define ALERT_AGENT_EXPORT __declspec(dllimport)
 #   endif
 #else
-#   define ALERT_GENERATOR_EXPORT
+#   define ALERT_AGENT_EXPORT
 #endif
 
 //  Opaque class structures to allow forward references

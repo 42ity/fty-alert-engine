@@ -1,5 +1,5 @@
 /*  =========================================================================
-    alert_generator_classes - private header file
+    alert_agent_classes - private header file
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -23,11 +23,11 @@
     =========================================================================
 */
 
-#ifndef ALERT_GENERATOR_CLASSES_H_INCLUDED
-#define ALERT_GENERATOR_CLASSES_H_INCLUDED
+#ifndef ALERT_AGENT_CLASSES_H_INCLUDED
+#define ALERT_AGENT_CLASSES_H_INCLUDED
 
 //  External API
-#include "../include/alert_generator.h"
+#include "../include/alert_agent.h"
 
 //  Internal API
 #include "metriclist.h"

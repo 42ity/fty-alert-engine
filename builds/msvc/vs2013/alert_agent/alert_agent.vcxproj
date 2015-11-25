@@ -8,8 +8,8 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0C4A2E28-8C9E-4B27-85D9-BB679AD84AC7}</ProjectGuid>
-    <ProjectName>alert_generator</ProjectName>
-    <PlatformToolset>v110</PlatformToolset>
+    <ProjectName>alert_agent</ProjectName>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="DebugDLL|Win32">
@@ -77,8 +77,8 @@
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\include\alert_generator_library.h" />
-    <ClInclude Include="..\..\..\..\include\alert_generator.h" />
+    <ClInclude Include="..\..\..\..\include\alert_agent_library.h" />
+    <ClInclude Include="..\..\..\..\include\alert_agent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\metriclist.c">
@@ -101,7 +101,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\alert_generator.rc" />
+    <ResourceCompile Include="..\..\alert_agent.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\packaging\nuget\package.bat" />

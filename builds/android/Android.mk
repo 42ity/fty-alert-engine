@@ -15,12 +15,12 @@ LOCAL_MODULE := zmq
 LOCAL_SRC_FILES := libzmq.so
 include $(PREBUILT_SHARED_LIBRARY)
 
-#   Build alert_generator
+#   Build alert-agent
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := alert_generator
+LOCAL_MODULE := alert_agent
 LOCAL_C_INCLUDES := ../../include $(LIBZMQ)/include
-LOCAL_SRC_FILES := metriclist.c alertconfiguration.c
+LOCAL_SRC_FILES := metriclist.c alertconfiguration.c luarule.c purealert.c rule.c thresholdrulecomplex.c
 LOCAL_SHARED_LIBRARIES := zmq
 include $(BUILD_SHARED_LIBRARY)
 
