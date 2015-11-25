@@ -7,10 +7,10 @@
                               {"low_warning"   : "40"},
                               {"high_warning"  : "50"},
                               {"high_critical" : "60"} ],
-        "results"       :   [ {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW low critical description" }},
-                              {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow LOW warning description"}},
-                              {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow high WARNING description" }},
-                              {"high_critical" : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "wow high critical DESCTIPRION" } } ],
+        "results"       :   [ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
+                              {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
+                              {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
+                              {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ],
         "evaluation"    : "function main(abc_fff1,abc_fff2) local new_value = abc_fff1 + abc_fff2 if  ( new_value < low_critical ) then return LOW_CRITICAL end if ( new_value < low_warning ) then return LOW_WARNING end  if ( high_critical < new_value ) then return HIGH_CRITICAL end if ( high_warning < new_value ) then return HIGH_WARNING  end return OK end"
     }
 }
