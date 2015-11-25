@@ -50,7 +50,7 @@ struct Outcome {
     std::string _description;
 };
 
-static const char *text_results[] = {"invalid result","hi_critical", "hi_warning", "ok", "low_warning", "low_critical"};
+static const char *text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown" };
 
 /*
  * \brief Serialzation of outcome
@@ -69,11 +69,12 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes);
 
 enum RULE_RESULT {
-    RULE_RESULT_TO_LOW_CRITICAL = -2,
-    RULE_RESULT_TO_LOW_WARNING  = -1,
-    RULE_RESULT_OK              =  0,
-    RULE_RESULT_TO_HI_WARNING   =  1,
-    RULE_RESULT_TO_HI_CRITICAL  =  2,
+    RULE_RESULT_TO_LOW_CRITICAL  = -2,
+    RULE_RESULT_TO_LOW_WARNING   = -1,
+    RULE_RESULT_OK               =  0,
+    RULE_RESULT_TO_HIGH_WARNING  =  1,
+    RULE_RESULT_TO_HIGH_CRITICAL =  2,
+    RULE_RESULT_UNKNOWN          =  3,
 };
 
 /*
@@ -227,20 +228,20 @@ public:
     };
 
     static const char * resultToString(int result) {
-        if(result > RULE_RESULT_TO_HI_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
-            return text_results[0];
+        if(result > RULE_RESULT_TO_HIGH_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
+            return text_results[ RULE_RESULT_UNKNOWN - RULE_RESULT_TO_LOW_CRITICAL ];
         }
-        return text_results[result - RULE_RESULT_TO_LOW_CRITICAL + 1];
+        return text_results [result - RULE_RESULT_TO_LOW_CRITICAL];
     }
     static int resultToInt(const char *result) {
-        if( result == NULL ) return RULE_RESULT_OK; // TODO: unknown?
-        for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HI_CRITICAL; i++) {
-            if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL + 1], result ) == 0 ) {
+        if( result == NULL ) return RULE_RESULT_UNKNOWN;
+        for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HIGH_CRITICAL; i++) {
+            if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL ], result ) == 0 ) {
                 return i;
             }
 
         }
-        return RULE_RESULT_OK; //TODO: unknown
+        return RULE_RESULT_UNKNOWN;
     }
     virtual ~Rule () {};
 
