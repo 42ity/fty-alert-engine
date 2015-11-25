@@ -1,6 +1,7 @@
 [Unit]
 Description=alert-agent service
-After=network.target
+After=network.target malamute.service
+Requires=malamute.service
 
 [Service]
 Type=simple
