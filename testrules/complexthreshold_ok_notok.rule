@@ -7,11 +7,11 @@
                               {"low_warning"   : "40"},
                               {"high_warning"  : "50"},
                               {"high_critical" : "60"} ],
-        "results"       :   [ {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW low critical description" }},
-                              {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow LOW warning description"}},
-                              {"ok"   : { "action" : ["WOW"], "severity" : "YAHOO", "description" : "INCREDIBLE"}},
-                              {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow high WARNING description" }},
-                              {"high_critical" : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "wow high critical DESCTIPRION" } } ],
+        "results"       :   [ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
+                              {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
+                              {"ok"   : { "action" : ["WOW"], "description" : "INCREDIBLE"}},
+                              {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
+                              {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ],
         "evaluation"    : " local new_value = abc_fff1 + abc_fff2 if  ( new_value < low_critical ) then return \"low_critical\" end if ( new_value < low_warning ) then return \"low_warning\" end  if ( high_critical < new_value ) then return \"high_critical\" end if ( high_warning < new_value ) then return \"high_warning\"  end return \"ok\""
     }
 }

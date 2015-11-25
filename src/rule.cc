@@ -58,22 +58,23 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes)
 {
     /*
-        "results":[ {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "WOW low critical description" }},
-                    {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow LOW warning description"}},
-                    {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow high WARNING description" }},
-                    {"high_critical" : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "wow high critical DESCTIPRION" } } ]
+        "results":[ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
+                    {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
+                    {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
+                    {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ]
     */
     for ( const auto &oneElement : si ) { // iterate through the array
         auto outcomeName = oneElement.getMember(0).name();
         std::string severity;
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
-        if ( outcomeName == "low_critical" || outcomeName == "high_critical" )
+        if ( outcomeName == "low_critical" || outcomeName == "high_critical" ) {
             outcome._severity = "CRITICAL";
-        if ( outcomeName == "low_warning" || outcomeName == "high_warning" )
+        }
+        if ( outcomeName == "low_warning" || outcomeName == "high_warning" ) {
             outcome._severity = "WARNING";
-        if ( outcome._severity.empty() )
-        {
+        }
+        if ( outcome._severity.empty() ) {
             throw std::runtime_error ("unsupported result");
         }
         outcomes.emplace (outcomeName, outcome);

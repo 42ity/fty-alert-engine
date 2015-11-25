@@ -41,7 +41,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *
  * Rule evaluation outcome has three values:
  * - actions
- * - severity
+ * - severity // severity is detected automatically !!!! user cannot change it
  * - description
  */
 struct Outcome {
@@ -83,7 +83,7 @@ enum RULE_RESULT {
 class Rule {
 
 public:
-    std::string name () const { return _name; }
+    std::string name (void) const { return _name; }
 
     void name (const std::string &name) { _name = name; }
 
@@ -127,14 +127,6 @@ public:
     /* TODO rework this part, as it it legacy already*/
     /* Every rule produces alerts for element */ // TODO check this assumption
     std::string _element;
-
-    /* Every rule has its severity */ // TODO remove it
-    std::string _severity;
-    // this field doesn't have any impact on alert evaluation
-    // but this information should be propagated to GATEWAY components
-    // So, need to have it here
-    // TODO: remove  it. it is legacy already
-    std::set <std::string> _actions;
 
     /*
      * \brief Evaluates the rule
@@ -237,6 +229,7 @@ public:
         }
         return text_results [result - RULE_RESULT_TO_LOW_CRITICAL];
     }
+
     static int resultToInt(const char *result) {
         if( result == NULL ) return RULE_RESULT_UNKNOWN;
         for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HIGH_CRITICAL; i++) {
@@ -246,6 +239,7 @@ public:
         }
         return RULE_RESULT_UNKNOWN;
     }
+
     virtual ~Rule () {};
 
     friend Rule* readRule (std::istream &f);
