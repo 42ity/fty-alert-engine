@@ -38,93 +38,63 @@ Rule* readRule (std::istream &f)
         std::stringstream s(json_string);
         cxxtools::JsonDeserializer json(s);
         json.deserialize();
-        const cxxtools::SerializationInfo *si = json.si();
         // TODO too complex method, need to split it
         // TODO not very good use of fill function. work in progress
 
-        RegexRule *rrule = new RegexRule();
+        Rule *rule = new RegexRule();
         try {
-            int rv = rrule->fill (json, json_string);
+            int rv = rule->fill (json, json_string);
             if ( rv == 0 )
-                return rrule;
+                return rule;
         }
         catch ( const std::exception &e ) {
             zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
-            delete rrule;
+            delete rule;
             return NULL;
         }
-        delete rrule;
+        delete rule;
         
-        ThresholdRuleSimple *srule = new ThresholdRuleSimple();
+        rule = new ThresholdRuleSimple();
         try {
-            int rv = srule->fill (json, json_string);
+            int rv = rule->fill (json, json_string);
             if ( rv == 0 )
-                return srule;
+                return rule;
         }
         catch ( const std::exception &e ) {
             zsys_warning ("THRESHOLD simple rule doesn't have all required fields, ignore it. %s", e.what());
-            delete srule;
+            delete rule;
             return NULL;
         }
-        delete srule; 
+        delete rule; 
         
-        ThresholdRuleComplex *ssrule = new ThresholdRuleComplex();
+        rule = new ThresholdRuleComplex();
         try {
-            int rv = ssrule->fill (json, json_string);
+            int rv = rule->fill (json, json_string);
             if ( rv == 0 )
-                return ssrule;
+                return rule;
         }
         catch ( const std::exception &e ) {
             zsys_warning ("THRESHOLD complex rule doesn't have all required fields, ignore it. %s", e.what());
-            delete ssrule;
+            delete rule;
             return NULL;
         }
-        delete ssrule; 
+        delete rule; 
 
-        if ( si->findMember("single") != NULL ){
-            zsys_info ("it is single rule");
-            auto single = si->getMember("single");
-            if ( single.category () != cxxtools::SerializationInfo::Object ) {
-                zsys_info ("Root of json must be an object with property 'single'.");
-                return NULL;
-            }
-
-            NormalRule *rule =  new NormalRule();
-            try {
-                rule->_json_representation = json_string;
-                single.getMember("rule_name") >>= rule->_name;
-                single.getMember("evaluation") >>= rule->_code;
-                single.getMember("element") >>= rule->_element;
-                // target
-                auto target = single.getMember("target");
-                if ( target.category () != cxxtools::SerializationInfo::Array ) {
-                    throw std::runtime_error ("property 'target' in json must be an Array");
-                }
-                target >>= rule->_metrics;
-                // values
-                auto values = single.getMember("values");
-                if ( values.category () != cxxtools::SerializationInfo::Array ) {
-                    throw std::runtime_error ("parameter 'values' in json must be an array.");
-                }
-                values >>= rule->_variables;
-                // outcomes
-                auto outcomes = single.getMember("results");
-                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-                    throw std::runtime_error ("parameter 'results' in json must be an array.");
-                }
-                outcomes >>= rule->_outcomes;
-            }
-            catch ( const std::exception &e ) {
-                zsys_error ("SINGLE rule has a wrong representation, ignore it. %s", e.what());
-                delete rule;
-                return NULL;
-            }
-            return rule;
+        rule = new NormalRule();
+        try {
+            int rv = rule->fill (json, json_string);
+            if ( rv == 0 )
+                return rule;
         }
-        else {
-            zsys_error ("Cannot detect type of the rule, ignore it");
+        catch ( const std::exception &e ) {
+            zsys_warning ("SINGLE rule doesn't have all required fields, ignore it. %s", e.what());
+            delete rule;
             return NULL;
         }
+        delete rule; 
+
+        zsys_error ("Cannot detect type of the rule, ignore it");
+        return NULL;
     }
     catch ( const std::exception &e) {
         zsys_error ("Cannot parse JSON, ignore it");

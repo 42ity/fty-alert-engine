@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #ifndef SRC_RULE_H
 #define SRC_RULE_H
-
+#include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <string>
 #include <vector>
@@ -86,6 +86,10 @@ public:
     std::string name () const { return _name; }
 
     void name (const std::string &name) { _name = name; }
+
+    virtual int fill(cxxtools::JsonDeserializer &json, const std::string &json_string) {
+        throw std::runtime_error("Method not supported by this type of rule");
+    }
 
     virtual void globalVariables (const std::map<std::string,double> &vars) {
         _variables.clear ();
@@ -239,7 +243,6 @@ public:
             if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL ], result ) == 0 ) {
                 return i;
             }
-
         }
         return RULE_RESULT_UNKNOWN;
     }
@@ -260,7 +263,7 @@ protected:
      * ASSUMPTION: rule name has only ascii characters.
      * TODO This assumtion is not check anywhere.
      *
-     * Rule name threated as case insensitive string
+     * Rule name treated as case INSENSITIVE string
      */
     std::string _name;
 
