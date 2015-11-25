@@ -8,13 +8,13 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libalert_generator
+Name: libalert_agent
 Description: Evaluates rules written in Lua and produce alerts
 Version: @VERSION@
 
 Requires:libzmq >= 4.2.0 libczmq >= 3.0.1 libmlm libbiosproto lua >= 5.1.0
 
-Libs: -L${libdir} -lalert_generator
+Libs: -L${libdir} -lalert_agent
 Cflags: -I${includedir}
 
 ################################################################################

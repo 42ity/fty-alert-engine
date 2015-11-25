@@ -38,7 +38,7 @@ EXTRA_DIST = \
     src/purealert.h \
     src/rule.h \
     src/thresholdrulecomplex.h \
-    src/alert_generator_classes.h \
+    src/alert_agent_classes.h \
     version.sh
 
 include $(srcdir)/src/Makemodule.am

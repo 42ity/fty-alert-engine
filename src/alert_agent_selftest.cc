@@ -1,5 +1,5 @@
 /*  =========================================================================
-    alert_generator_selftest.c - run selftests
+    alert_agent_selftest.c - run selftests
 
     Runs all selftests.
 
@@ -27,7 +27,7 @@
     =========================================================================
 */
 
-#include "alert_generator_classes.h"
+#include "alert_agent_classes.h"
 
 //  -------------------------------------------------------------------------
 //  Prototype of test function
@@ -113,7 +113,7 @@ test_available (const char *testname)
 static inline void
 test_runall (bool verbose)
 {
-    printf ("Running alert_generator selftests...\n");
+    printf ("Running alert-agent selftests...\n");
     test_item_t *item;
     for (item = all_tests; item->test; item++)
         item->test (verbose);
@@ -166,7 +166,7 @@ main (int argc, char **argv)
         }
     }
     if (test) {
-        printf ("Running alert_generator selftest '%s'...\n", test->testname);
+        printf ("Running alert-agent selftest '%s'...\n", test->testname);
         test->test (verbose);
     }
     else

@@ -8,19 +8,19 @@ CC=gcc
 PREFIX=/usr/local
 INCDIR=-I$(PREFIX)/include -I.
 LIBDIR=-L$(PREFIX)/lib
-CFLAGS=-Wall -Os -g -DLIBALERT_GENERATOR_EXPORTS $(INCDIR)
+CFLAGS=-Wall -Os -g -DLIBALERT_AGENT_EXPORTS $(INCDIR)
 
-OBJS = metriclist.o alertconfiguration.o
+OBJS = metriclist.o alertconfiguration.o luarule.o purealert.o rule.o thresholdrulecomplex.o
 %.o: ../../src/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-all: libalert_generator.dll alert_generator_selftest.exe
+all: libalert_agent.dll alert_agent_selftest.exe
 
-libalert_generator.dll: $(OBJS)
+libalert_agent.dll: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS) -Wl,--out-implib,$@.a $(LIBDIR) -lzmq -luuid
 
 # the test functions are not exported into the DLL
-alert_generator_selftest.exe: alert_generator_selftest.o $(OBJS)
+alert_agent_selftest.exe: alert_agent_selftest.o $(OBJS)
 	$(CC) -o $@ $^ $(LIBDIR) -lzmq -luuid
 clean:
 	del *.o *.a *.dll *.exe

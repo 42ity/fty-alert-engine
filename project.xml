@@ -1,5 +1,5 @@
 <project
-    name = "alert_generator"
+    name = "alert-agent"
     description = "Evaluates rules written in Lua and produce alerts"
     script = "zproject.gsl"
     email = "bios@eaton.com"

@@ -4,7 +4,7 @@
 ################################################################################
 MAN1 = alert_agent.1
 MAN3 =
-MAN7 = alert_generator.7
+MAN7 = 
 MAN_DOC = $(MAN1) $(MAN3) $(MAN7)
 
 MAN_TXT = $(MAN1:%.1=%.txt)
@@ -26,7 +26,7 @@ SUFFIXES=.txt .xml .1 .3 .7
 
 .txt.xml:
 	asciidoc -d manpage -b docbook -f $(srcdir)/asciidoc.conf \
-        -aalert_generator_version=@PACKAGE_VERSION@ -o$@ $<
+        -aalert_agent_version=@PACKAGE_VERSION@ -o$@ $<
 .xml.1:
 	xmlto man $<
 .xml.3:

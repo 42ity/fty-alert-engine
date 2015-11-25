@@ -1,13 +1,8 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-override_dh_autoreconf:
-	sed -i -e 's|AC_CHECK_LIB(\[lua\]|AC_CHECK_LIB(\[lua5.1\]|g' -e 's|-llua|-llua5.1|g' configure.ac
-	sed -i 's|<\(l[ua][ua][^>]*\)>|<lua5.1/\1>|' src/composite_metrics.cc
-	dh_autoreconf
-
 override_dh_strip:
-	dh_strip --dbg-package=alert_generator-dbg
+	dh_strip --dbg-package=alert-agent-dbg
 
 override_dh_auto_test:
 	echo "Skipped for now"
