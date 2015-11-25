@@ -40,6 +40,7 @@ Rule* readRule (std::istream &f)
         json.deserialize();
         const cxxtools::SerializationInfo *si = json.si();
         // TODO too complex method, need to split it
+        // TODO not very good use of fill function. work in progress
 
         RegexRule *rrule = new RegexRule();
         try {
@@ -54,62 +55,33 @@ Rule* readRule (std::istream &f)
         }
         delete rrule;
         
-        if ( si->findMember("threshold") != NULL ){
-            zsys_info ("it is threshold rule");
-            Rule *rule = NULL;
+        ThresholdRuleSimple *srule = new ThresholdRuleSimple();
+        try {
+            int rv = srule->fill (json, json_string);
+            if ( rv == 0 )
+                return srule;
+        }
+        catch ( const std::exception &e ) {
+            zsys_warning ("THRESHOLD simple rule doesn't have all required fields, ignore it. %s", e.what());
+            delete srule;
+            return NULL;
+        }
+        delete srule; 
+        
+        ThresholdRuleComplex *ssrule = new ThresholdRuleComplex();
+        try {
+            int rv = ssrule->fill (json, json_string);
+            if ( rv == 0 )
+                return ssrule;
+        }
+        catch ( const std::exception &e ) {
+            zsys_warning ("THRESHOLD complex rule doesn't have all required fields, ignore it. %s", e.what());
+            delete ssrule;
+            return NULL;
+        }
+        delete ssrule; 
 
-            try {
-                auto threshold = si->getMember("threshold");
-                if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-                    zsys_info ("Root of json must be an object with property 'threshold'.");
-                    return NULL;
-                }
-
-                try {
-                    // target
-                    auto target = threshold.getMember("target");
-                    if ( target.category () == cxxtools::SerializationInfo::Value ) {
-                        ThresholdRuleSimple *tmp_rule = new ThresholdRuleSimple();
-                        target >>= tmp_rule->_metric;
-                        rule = tmp_rule;
-                    }
-                    else if ( target.category () == cxxtools::SerializationInfo::Array ) {
-                        ThresholdRuleComplex *tmp_rule = new ThresholdRuleComplex();
-                        target >>= tmp_rule->_metrics;
-                        threshold.getMember("evaluation") >>= tmp_rule->_code;
-                        rule = tmp_rule;
-                    }
-                }
-                catch ( const std::exception &e) {
-                    zsys_info ("Can't handle property 'target' in a propper way. %s", e.what());
-                    throw std::runtime_error("Can't handle property 'target' in a propper way");
-                }
-                rule->_json_representation = json_string;
-                threshold.getMember("rule_name") >>= rule->_name;
-                threshold.getMember("element") >>= rule->_element;
-                // values
-                // TODO check low_critical < low_warnong < high_warning < hign crtical
-                auto values = threshold.getMember("values");
-                if ( values.category () != cxxtools::SerializationInfo::Array ) {
-                    zsys_info ("parameter 'values' in json must be an array.");
-                    throw std::runtime_error("parameter 'values' in json must be an array");
-                }
-                values >>= rule->_variables;
-                // outcomes
-                auto outcomes = threshold.getMember("results");
-                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-                    zsys_info ("parameter 'results' in json must be an array.");
-                    throw std::runtime_error ("parameter 'results' in json must be an array.");
-                }
-                outcomes >>= rule->_outcomes;
-            }
-            catch ( const std::exception &e ) {
-                zsys_error ("THRESHOLD rule has a wrong representation, ignore it. %s", e.what());
-                delete rule;
-                return NULL;
-            }
-            return rule;
-        } else if ( si->findMember("single") != NULL ){
+        if ( si->findMember("single") != NULL ){
             zsys_info ("it is single rule");
             auto single = si->getMember("single");
             if ( single.category () != cxxtools::SerializationInfo::Object ) {

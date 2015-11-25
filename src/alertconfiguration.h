@@ -32,7 +32,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 
 //http://en.cppreference.com/w/cpp/language/typeid
-//The header <typeinfo> must be included before using typeid 
+//The header <typeinfo> must be included before using typeid
 #include <typeinfo>
 
 // It tries to simply parse and read JSON
