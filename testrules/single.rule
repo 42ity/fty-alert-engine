@@ -6,8 +6,8 @@
         "values"        :   [ {"a1": "2"},
                               {"a2": "-3"}
                             ],
-        "results"       :   [ {"hi_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "RES r1" }},
-                              {"hi_warning"  : { "action" : ["EMAIL"],       "severity" : "WARNING" , "description" : "RES r2"}}
+        "results"       :   [ {"high_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "RES r1" }},
+                              {"high_warning"  : { "action" : ["EMAIL"],       "severity" : "WARNING" , "description" : "RES r2"}}
                             ],
         "evaluation"    : "function main(abc_sss1, abc_sss2) local new_value = abc_sss1*a1 + abc_sss2*a2 if  ( new_value > 0 ) then return HI_WARNING end if ( new_value < -10 ) then return HI_CRITICAL end return OK end"
     }
