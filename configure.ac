@@ -210,6 +210,51 @@ if test "x$was_lua_check_lib_detected" = "xno"; then
 fi
 
 
+was_cxxtools_check_lib_detected=no
+
+PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
+    [
+    ],
+    [
+        AC_ARG_WITH([cxxtools],
+            [
+                AS_HELP_STRING([--with-cxxtools],
+                [Specify cxxtools prefix])
+            ],
+            [search_cxxtools="yes"],
+            [])
+
+        cxxtools_synthetic_cflags=""
+        cxxtools_synthetic_libs="-lcxxtools"
+
+        if test "x$search_cxxtools" = "xyes"; then
+            if test -r "${with_cxxtools}/include/cxxtools.h"; then
+                cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
+                cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
+            else
+                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools.h not found. Please check cxxtools prefix])
+            fi
+        fi
+
+        AC_CHECK_LIB([cxxtools], [cxxtools::Utf8Codec::Utf8Codec],
+            [
+                CFLAGS="${cxxtools_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${cxxtools_synthetic_libs} ${LDFLAGS}"
+                LIBS="${cxxtools_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([cxxtools_CFLAGS],[${cxxtools_synthetic_cflags}])
+                AC_SUBST([cxxtools_LIBS],[${cxxtools_synthetic_libs}])
+                was_cxxtools_check_lib_detected=yes
+            ],
+            [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools.])])
+    ])
+
+if test "x$was_cxxtools_check_lib_detected" = "xno"; then
+    CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
+    LIBS="${cxxtools_LIBS} ${LIBS}"
+fi
+
+
 CFLAGS="${PREVIOUS_CFLAGS}"
 LIBS="${PREVIOUS_LIBS}"
 
