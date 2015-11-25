@@ -33,6 +33,7 @@
 #include <malamute.h>
 #include <biosproto.h>
 #include <lua.h>
+#include <cxxtools.h>
 
 //  ALERT-AGENT version macros for compile-time API detection
 
