@@ -105,7 +105,7 @@ double LuaRule::evaluate(const std::vector<double> &metrics)
 void LuaRule::_setGlobalVariablesToLUA()
 {
     if (_lstate == NULL) return;
-    for (int i = RULE_RESULT_TO_LOW_CRITICAL; i <=RULE_RESULT_UNKNOWN; i++) {
+    for (int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_UNKNOWN; i++) {
         std::string upper = Rule::resultToString(i);
         transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
         lua_pushnumber (_lstate, i);
