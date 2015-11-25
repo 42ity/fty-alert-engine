@@ -50,6 +50,8 @@ struct Outcome {
     std::string _description;
 };
 
+static const char *text_results[] = {"invalid result","hi_critical", "hi_warning", "ok", "low_warning", "low_critical"};
+
 /*
  * \brief Serialzation of outcome
  */
@@ -65,6 +67,14 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 
 
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes);
+
+enum RULE_RESULT {
+    RULE_RESULT_TO_LOW_CRITICAL = -2,
+    RULE_RESULT_TO_LOW_WARNING  = -1,
+    RULE_RESULT_OK              =  0,
+    RULE_RESULT_TO_HI_WARNING   =  1,
+    RULE_RESULT_TO_HI_CRITICAL  =  2,
+};
 
 /*
  * \brief General representation for rules
@@ -212,6 +222,22 @@ public:
         return std::remove (full_name.c_str());
     };
 
+    static const char * resultToString(int result) {
+        if(result > RULE_RESULT_TO_HI_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
+            return text_results[0];
+        }
+        return text_results[result - RULE_RESULT_TO_LOW_CRITICAL + 1];
+    }
+    static int resultToInt(const char *result) {
+        if( result == NULL ) return RULE_RESULT_OK; // TODO: unknown?
+        for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HI_CRITICAL; i++) {
+            if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL + 1], result ) == 0 ) {
+                return i;
+            }
+
+        }
+        return RULE_RESULT_OK; //TODO: unknown
+    }
     virtual ~Rule () {};
 
     friend Rule* readRule (std::istream &f);
@@ -242,6 +268,7 @@ protected:
      * \brief User cannot construct object of abstract entity
      */
     Rule(){};
+
 };
 
 #endif // SRC_RULE_H

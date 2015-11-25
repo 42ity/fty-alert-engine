@@ -29,14 +29,6 @@ extern "C" {
 #include<lua.h>
 }
 
-enum RULE_RESULT {
-    RULE_RESULT_TO_LOW_CRITICAL = -2,
-    RULE_RESULT_TO_LOW_WARNING  = -1,
-    RULE_RESULT_OK              =  0,
-    RULE_RESULT_TO_HI_WARNING   =  1,
-    RULE_RESULT_TO_HI_CRITICAL  =  2,
-};
-
 class LuaRule : public Rule {
  public:
     /**

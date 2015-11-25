@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "luarule.h"
 
+#include<algorithm>
 extern "C" {
 #include<lualib.h>
 #include<lauxlib.h>
@@ -38,8 +39,6 @@ LuaRule::LuaRule (const LuaRule &r)
 
 void LuaRule::globalVariables (const std::map<std::string,double> &vars)
 {
-    //_variables.clear ();
-    //_variables.insert (vars.cbegin (), vars.cend ());
     Rule::globalVariables(vars);
     _setGlobalVariablesToLUA();
 }
@@ -106,6 +105,12 @@ double LuaRule::evaluate(const std::vector<double> &metrics)
 void LuaRule::_setGlobalVariablesToLUA()
 {
     if (_lstate == NULL) return;
+    for (int i = RULE_RESULT_TO_LOW_CRITICAL; i <=RULE_RESULT_TO_HI_CRITICAL; i++) {
+        std::string upper = Rule::resultToString(i);
+        transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+        lua_pushnumber (_lstate, i);
+        lua_setglobal (_lstate, upper.c_str ());
+    }
     for (const auto &it : _variables) {
         lua_pushnumber (_lstate, it.second);
         lua_setglobal (_lstate, it.first.c_str ());
