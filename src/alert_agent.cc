@@ -41,13 +41,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "alertconfiguration.h"
 
 //http://en.cppreference.com/w/cpp/language/typeid
-//The header <typeinfo> must be included before using typeid 
+//The header <typeinfo> must be included before using typeid
 #include <typeinfo>
 
 
 #define THIS_AGENT_NAME "alert_agent"
 #define RULES_SUBJECT "rfc-evaluator-rules"
-#define ACK_SUBJECT "AAABBB"
+#define ACK_SUBJECT "rfc-alerts-acknowledge"
 #define PATH "./testrules"
 
 // TODO TODO TODO TODO if diectory doesn't exist agent crashed
@@ -202,8 +202,7 @@ void add_rule(
     zmsg_addstr (reply, json_representation);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
-
-    // send alertsToSend
+    // send updated alert
     send_alerts (client, alertsToSend, newRule);
 }
 
@@ -255,6 +254,7 @@ void update_rule(
     zmsg_addstr (reply, json_representation);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
+    // send updated alert
     send_alerts (client, alertsToSend, newRule);
 }
 
@@ -271,7 +271,7 @@ void change_state(
         // ERROR rule doesn't exist
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "RULE_NOT_FOUND");
+        zmsg_addstr (reply, "NOT_FOUND");
         mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
@@ -284,7 +284,15 @@ void change_state(
         // ERROR during the rule updating
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
+        if ( rv == -5 || rv == -2 || rv == -1 ) {
+            zmsg_addstr (reply, "BAD_STATE");
+        }
+        if ( rv == -4 ) {
+            zmsg_addstr (reply, "NOT_FOUND");
+        }
+        else {
+            zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
+        }
         mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
@@ -298,6 +306,7 @@ void change_state(
     zmsg_addstr (reply, new_state);
     mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
     zmsg_destroy (&reply);
+    // send updated alert
     send_alerts (client, {alertToSend}, rule_name);
 }
 
@@ -462,22 +471,17 @@ int main (int argc, char** argv)
             {
                 // Here we can have:
                 //  * change acknowlegment state of the alert
-                char *command = zmsg_popstr (zmessage);
                 char *param1 = zmsg_popstr (zmessage); // rule name
                 char *param2 = zmsg_popstr (zmessage); // element name
                 char *param3 = zmsg_popstr (zmessage); // state
-                if ( !command || !param1 || !param2 || !param3 ) {
+                if ( !param1 || !param2 || !param3 ) {
                     zsys_info ("Ignore it. Unexpected message format");
-                    if (command) free (command);
                     if (param1) free (param1);
                     if (param2) free (param2);
                     if (param3) free (param3);
                 }
 
-                if (streq (command, "ACK")) {
-                    change_state (client, param1, param2, param3, alertConfiguration);
-                }
-                if (command) free (command);
+                change_state (client, param1, param2, param3, alertConfiguration);
                 if (param1) free (param1);
                 if (param2) free (param2);
                 if (param3) free (param3);

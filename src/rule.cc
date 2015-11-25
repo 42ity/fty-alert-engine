@@ -25,7 +25,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
 {
     si.addMember("action") <<= outcome._actions;
-    si.addMember("severity") <<= outcome._severity;
     si.addMember("description") <<= outcome._description;
 }
 
@@ -35,7 +34,6 @@ void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 {
     si.getMember("action") >>= outcome._actions;
-    si.getMember("severity") >>= outcome._severity;
     si.getMember("description") >>= outcome._description;
 }
 
@@ -67,10 +65,17 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
     */
     for ( const auto &oneElement : si ) { // iterate through the array
         auto outcomeName = oneElement.getMember(0).name();
-        if ( outcomeName == "ok" )
-            throw std::runtime_error ("Result name 'ok' is reserved, chose another name");
+        std::string severity;
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
+        if ( outcomeName == "low_critical" || outcomeName == "high_critical" )
+            outcome._severity = "CRITICAL";
+        if ( outcomeName == "low_warning" || outcomeName == "high_warning" )
+            outcome._severity = "WARNING";
+        if ( outcome._severity.empty() )
+        {
+            throw std::runtime_error ("unsupported result");
+        }
         outcomes.emplace (outcomeName, outcome);
     }
 }
