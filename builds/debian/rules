@@ -2,7 +2,7 @@
 # -*- makefile -*-
 
 override_dh_autoreconf:
-	sed -i 's|PKG_CHECK_MODULES([lua], [lua |PKG_CHECK_MODULES([lua], [lua5.1 |' configure.ac
+	sed -i 's|PKG_CHECK_MODULES(\[lua\],\ \[lua\ |PKG_CHECK_MODULES([lua],\ [lua5.1\ |' configure.ac
 	dh_autoreconf
 
 override_dh_strip:
