@@ -40,7 +40,7 @@ class LuaRule : public Rule {
     std::string code () { return _code; };
     void globalVariables (const std::map<std::string,double> &vars);
     int evaluate (const MetricList &metricList, PureAlert **pureAlert);
-    double evaluate(const std::vector<double> &metrics);
+    double luaEvaluate(const std::vector<double> &metrics);
     ~LuaRule () { if (_lstate) lua_close (_lstate); }
  protected:
     void _setGlobalVariablesToLUA();

@@ -77,10 +77,35 @@ void LuaRule::code (const std::string &newCode)
 
 int LuaRule::evaluate (const MetricList &metricList, PureAlert **pureAlert)
 {
-    return 0;
+    std::vector<double> values;
+    for ( const auto &metric : _metrics ) {
+        double value = metricList.find (metric);
+        if ( isnan (value) ) {
+            zsys_info("Don't have everything for '%s' yet\n", _name.c_str());
+            return RULE_RESULT_UNKNOWN;
+        }
+        values.push_back(value);
+    }
+    int status = luaEvaluate(values);
+    const char *statusText = resultToString (status);
+    auto outcome = _outcomes.find (statusText);
+    if ( outcome != _outcomes.cend() ) {
+        // some known outcome was found
+        *pureAlert = new PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
+        (**pureAlert).print();
+        return status;
+    }
+    if ( status == RULE_RESULT_OK ) {
+        // When alert is resolved, it doesn't have new severity!!!!
+        *pureAlert = new PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", _element, "DOESN'T MATTER", {""});
+        (**pureAlert).print();
+        return status;
+    }
+    zsys_error ("unknown result received from lua function");
+    return RULE_RESULT_UNKNOWN;
 }
 
-double LuaRule::evaluate(const std::vector<double> &metrics)
+double LuaRule::luaEvaluate(const std::vector<double> &metrics)
 {
     double result;
 
@@ -116,3 +141,4 @@ void LuaRule::_setGlobalVariablesToLUA()
         lua_setglobal (_lstate, it.first.c_str ());
     }
 }
+

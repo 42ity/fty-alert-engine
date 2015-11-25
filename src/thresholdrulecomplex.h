@@ -38,16 +38,15 @@ public:
 
     ThresholdRuleComplex(){};
 
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const;
-    bool isTopicInteresting(const std::string &topic) const ;
-    std::set<std::string> getNeededTopics(void) const;
+    // bool isTopicInteresting(const std::string &topic) const ;
+    // std::set<std::string> getNeededTopics(void) const;
     friend Rule* readRule (std::istream &f);
 protected:
-    lua_State* setContext (const MetricList &metricList) const;
+    // lua_State* setContext (const MetricList &metricList) const;
 
 private:
     // needed metric topic
-    std::set<std::string> _metrics;
+    // std::set<std::string> _metrics;
 };
 
 

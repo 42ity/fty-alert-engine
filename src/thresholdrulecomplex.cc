@@ -29,7 +29,7 @@ extern "C" {
 #include <lauxlib.h>
 }
 
-
+/*
 int ThresholdRuleComplex::evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
         lua_State *lua_context = setContext (metricList);
         if ( lua_context == NULL ) {
@@ -79,17 +79,22 @@ int ThresholdRuleComplex::evaluate (const MetricList &metricList, PureAlert **pu
         lua_close (lua_context);
         return -1;
 }
+*/
 
+/*
 bool ThresholdRuleComplex::isTopicInteresting(const std::string &topic) const {
     return ( _metrics.count (topic) == 1 );
 }
+*/
 
+/*
 std::set<std::string> ThresholdRuleComplex::getNeededTopics(void) const {
     return _metrics;
 }
+*/
 
 // Rule* ThresholdRuleComplex::readRule (std::istream &f);
-
+/*
 lua_State* ThresholdRuleComplex::setContext (const MetricList &metricList) const
 {
     lua_State *lua_context = lua_open();
@@ -117,4 +122,6 @@ lua_State* ThresholdRuleComplex::setContext (const MetricList &metricList) const
     // we are here -> all constants are set
     return lua_context;
 }
+*/
+
 
