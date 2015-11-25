@@ -25,6 +25,7 @@ alert-agent
 *.out
 *.app
 core
+src/alert-agent.service
 
 # Man pages
 doc/*.1
