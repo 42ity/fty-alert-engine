@@ -32,7 +32,7 @@ extern "C" {
 #include <lua.h>
 }
 
-class ThresholdRuleComplex : public luaRule
+class ThresholdRuleComplex : public LuaRule
 {
 public:
 

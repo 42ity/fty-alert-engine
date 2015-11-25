@@ -30,7 +30,7 @@ extern "C" {
 }
 // because of zsys
 #include <czmq.h>
-class NormalRule : public luaRule
+class NormalRule : public LuaRule
 {
 public:
     NormalRule(){};
