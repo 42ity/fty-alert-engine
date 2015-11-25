@@ -144,9 +144,9 @@ public:
         return zrex_matches (_rex, topic.c_str());
     };
 
-    std::set<std::string> getNeededTopics(void) const
+    std::vector<std::string> getNeededTopics(void) const
     {
-        return std::set<std::string>{_rex_str};
+        return std::vector<std::string>{_rex_str};
     };
 
     friend Rule* readRule (std::istream &f);

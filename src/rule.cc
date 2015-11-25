@@ -74,3 +74,16 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
         outcomes.emplace (outcomeName, outcome);
     }
 }
+
+bool Rule::isTopicInteresting(const std::string &topic) const {
+    // ok this is o(n) but we will have up to 3 topics in vector
+    // TODO: find other model
+    for ( const auto &item : _metrics ) {
+        if (item == topic) return true;
+    }
+    return false;
+}
+
+std::vector<std::string> Rule::getNeededTopics(void) const {
+    return _metrics;
+}

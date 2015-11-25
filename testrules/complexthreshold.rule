@@ -11,6 +11,6 @@
                               {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow LOW warning description"}},
                               {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "wow high WARNING description" }},
                               {"high_critical" : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "wow high critical DESCTIPRION" } } ],
-        "evaluation"    : "function main(abc_fff1,abc_fff2) local new_value = abc_fff1 + abc_fff2 if  ( new_value < low_critical ) then return LOW_CRITICAL end if ( new_value < low_warning ) then return LOW_WARNING end  if ( high_critical < new_value ) then return HI_CRITICAL end if ( high_warning < new_value ) then return HI_WARNING  end return OK end"
+        "evaluation"    : "function main(abc_fff1,abc_fff2) local new_value = abc_fff1 + abc_fff2 if  ( new_value < low_critical ) then return LOW_CRITICAL end if ( new_value < low_warning ) then return LOW_WARNING end  if ( high_critical < new_value ) then return HIGH_CRITICAL end if ( high_warning < new_value ) then return HIGH_WARNING  end return OK end"
     }
 }

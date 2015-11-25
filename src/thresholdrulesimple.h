@@ -82,7 +82,7 @@ public:
         return 0;
     }
 
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const {
+    int evaluate (const MetricList &metricList, PureAlert **pureAlert) {
         // ASSUMPTION: constants are in values
         //  high_critical
         //  high_warning
@@ -138,10 +138,6 @@ public:
 
     bool isTopicInteresting(const std::string &topic) const {
         return ( _metric == topic ? true : false );
-    };
-
-    std::set<std::string> getNeededTopics(void) const {
-        return {_metric};
     };
 
     friend Rule* readRule (std::istream &f);

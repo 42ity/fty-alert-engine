@@ -141,7 +141,7 @@ public:
      * \return 0 if evaluation was correct
      *         non 0 if there were some errors during the evaluation
      */
-    virtual int evaluate (const MetricList &metricList, PureAlert **pureAlert) const = 0;
+    virtual int evaluate (const MetricList &metricList, PureAlert **pureAlert) = 0;
 
     /*
      * \brief Checks if topic is necessary for rule evaluation
@@ -150,14 +150,14 @@ public:
      *
      * \return true/false
      */
-    virtual bool isTopicInteresting(const std::string &topic) const = 0;
+    virtual bool isTopicInteresting(const std::string &topic) const;
 
     /*
      * \brief Returns a set of topics, that are necessary for rule evaluation
      *
      * \return a set of topics
      */
-    virtual std::set<std::string> getNeededTopics(void) const = 0;
+    virtual std::vector<std::string> getNeededTopics(void) const;
 
     /*
      * \brief Checks if rules have same names
@@ -248,6 +248,10 @@ public:
     friend Rule* readRule (std::istream &f);
 
 protected:
+    /*
+     * \brief Vector of metrics to be evaluated
+     */
+    std::vector<std::string> _metrics;
 
 
     /*

@@ -86,15 +86,6 @@ public:
         return -1;
     };
 
-    bool isTopicInteresting(const std::string &topic) const
-    {
-        return ( _metrics.count(topic) != 0 ? true : false );
-    };
-
-    std::set<std::string> getNeededTopics(void) const {
-        return _metrics;
-    };
-
     friend Rule* readRule (std::istream &f);
 
 protected:
@@ -127,9 +118,6 @@ protected:
         return lua_context;
     };
 
-private:
-
-    std::set<std::string> _metrics;
 
 };
 
