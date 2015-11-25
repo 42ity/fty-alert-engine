@@ -50,7 +50,7 @@ struct Outcome {
     std::string _description;
 };
 
-static const char *text_results[] = {"invalid result","hi_critical", "hi_warning", "ok", "low_warning", "low_critical"};
+static const char *text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown" };
 
 /*
  * \brief Serialzation of outcome
@@ -69,11 +69,12 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes);
 
 enum RULE_RESULT {
-    RULE_RESULT_TO_LOW_CRITICAL = -2,
-    RULE_RESULT_TO_LOW_WARNING  = -1,
-    RULE_RESULT_OK              =  0,
-    RULE_RESULT_TO_HI_WARNING   =  1,
-    RULE_RESULT_TO_HI_CRITICAL  =  2,
+    RULE_RESULT_TO_LOW_CRITICAL  = -2,
+    RULE_RESULT_TO_LOW_WARNING   = -1,
+    RULE_RESULT_OK               =  0,
+    RULE_RESULT_TO_HIGH_WARNING  =  1,
+    RULE_RESULT_TO_HIGH_CRITICAL =  2,
+    RULE_RESULT_UNKNOWN          =  3,
 };
 
 /*
@@ -91,17 +92,21 @@ public:
         _variables.insert (vars.cbegin (), vars.cend ());
     }
 
+   virtual std::map<std::string,double> getGlobalVariables (void) const {
+        return _variables;
+    }
+
     /**
      * \brief get/set code
      */
     virtual void code(const std::string &code) {
         throw std::runtime_error("Method not supported by this type of rule");
     };
-    
+
     virtual std::string code(void) const{
         throw std::runtime_error("Method not supported by this type of rule");
     };
- 
+
     /*
      * \brief User is able to define his own set of result,
      *          that should be used in evaluation
@@ -223,20 +228,20 @@ public:
     };
 
     static const char * resultToString(int result) {
-        if(result > RULE_RESULT_TO_HI_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
-            return text_results[0];
+        if(result > RULE_RESULT_TO_HIGH_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
+            return text_results[ RULE_RESULT_UNKNOWN - RULE_RESULT_TO_LOW_CRITICAL ];
         }
-        return text_results[result - RULE_RESULT_TO_LOW_CRITICAL + 1];
+        return text_results [result - RULE_RESULT_TO_LOW_CRITICAL];
     }
     static int resultToInt(const char *result) {
-        if( result == NULL ) return RULE_RESULT_OK; // TODO: unknown?
-        for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HI_CRITICAL; i++) {
-            if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL + 1], result ) == 0 ) {
+        if( result == NULL ) return RULE_RESULT_UNKNOWN;
+        for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HIGH_CRITICAL; i++) {
+            if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL ], result ) == 0 ) {
                 return i;
             }
 
         }
-        return RULE_RESULT_OK; //TODO: unknown
+        return RULE_RESULT_UNKNOWN;
     }
     virtual ~Rule () {};
 
@@ -244,13 +249,6 @@ public:
 
 protected:
 
-    /*
-     * \brief User is able to define his own constants,
-     *          that can be used in evaluation function
-     *
-     * Maps name of the variable to the value.
-     */
-    std::map <std::string, double> _variables;
 
     /*
      * \brief Every rule should have a rule name
@@ -268,6 +266,15 @@ protected:
      * \brief User cannot construct object of abstract entity
      */
     Rule(){};
+
+private:
+    /*
+     * \brief User is able to define his own constants,
+     *          that can be used in evaluation function
+     *
+     * Maps name of the variable to the value.
+     */
+    std::map <std::string, double> _variables;
 
 };
 
