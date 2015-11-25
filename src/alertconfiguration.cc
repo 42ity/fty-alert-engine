@@ -34,53 +34,27 @@ Rule* readRule (std::istream &f)
     // TODO check, that lua function is correct
     try {
         // TODO this appoach can cause, that "Json" repsesentation is HUGE file because of witespaces
-        std::string tmp;
         std::string json_string(std::istreambuf_iterator<char>(f), {});
         std::stringstream s(json_string);
         cxxtools::JsonDeserializer json(s);
         json.deserialize();
         const cxxtools::SerializationInfo *si = json.si();
         // TODO too complex method, need to split it
-        if ( si->findMember("pattern") != NULL ) {
-            zsys_info ("it is PATTERN rule");
-            auto pattern = si->getMember("pattern");
-            if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
-                zsys_info ("Root of json must be an object with property 'pattern'.");
-                return NULL;
-            }
 
-            RegexRule *rule = new RegexRule();
-            try {
-                std::string tmp;
-                pattern.getMember("rule_name") >>= tmp;
-                rule->name(tmp);
-                pattern.getMember("evaluation") >>= tmp;
-                rule->code(tmp);
-                pattern.getMember("target") >>= rule->_rex_str;
-                rule->_rex = zrex_new(rule->_rex_str.c_str());
-                rule->_json_representation = json_string;
-                // values
-                auto values = pattern.getMember("values");
-                if ( values.category () != cxxtools::SerializationInfo::Array ) {
-                    zsys_info ("parameter 'values' in json must be an array.");
-                    throw std::runtime_error("parameter 'values' in json must be an array");
-                }
-                values >>= rule->_variables;
-                // outcomes
-                auto outcomes = pattern.getMember("results");
-                if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-                    zsys_info ("parameter 'results' in json must be an array.");
-                    throw std::runtime_error ("parameter 'results' in json must be an array.");
-                }
-                outcomes >>= rule->_outcomes;
-            }
-            catch ( const std::exception &e ) {
-                zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
-                delete rule;
-                return NULL;
-            }
-            return rule;
-        } else if ( si->findMember("threshold") != NULL ){
+        RegexRule *rrule = new RegexRule();
+        try {
+            int rv = rrule->fill (json, json_string);
+            if ( rv == 0 )
+                return rrule;
+        }
+        catch ( const std::exception &e ) {
+            zsys_warning ("REGEX rule doesn't have all required fields, ignore it. %s", e.what());
+            delete rrule;
+            return NULL;
+        }
+        delete rrule;
+        
+        if ( si->findMember("threshold") != NULL ){
             zsys_info ("it is threshold rule");
             Rule *rule = NULL;
 
@@ -102,18 +76,16 @@ Rule* readRule (std::istream &f)
                     else if ( target.category () == cxxtools::SerializationInfo::Array ) {
                         ThresholdRuleComplex *tmp_rule = new ThresholdRuleComplex();
                         target >>= tmp_rule->_metrics;
+                        threshold.getMember("evaluation") >>= tmp_rule->_code;
                         rule = tmp_rule;
-                        threshold.getMember("evaluation") >>= tmp;
-                        rule->code(tmp);
                     }
                 }
                 catch ( const std::exception &e) {
-                    zsys_info ("Can't handle property 'target' in a propper way");
-                    throw std::runtime_error("parameter 'values' in json must be an array");
+                    zsys_info ("Can't handle property 'target' in a propper way. %s", e.what());
+                    throw std::runtime_error("Can't handle property 'target' in a propper way");
                 }
                 rule->_json_representation = json_string;
-                threshold.getMember("rule_name") >>= tmp;
-                rule->name(tmp);
+                threshold.getMember("rule_name") >>= rule->_name;
                 threshold.getMember("element") >>= rule->_element;
                 // values
                 // TODO check low_critical < low_warnong < high_warning < hign crtical
@@ -122,11 +94,7 @@ Rule* readRule (std::istream &f)
                     zsys_info ("parameter 'values' in json must be an array.");
                     throw std::runtime_error("parameter 'values' in json must be an array");
                 }
-                {
-                    std::map<std::string,double> tmpmap;
-                    values >>= tmp;
-                    rule->globalVariables(tmpmap);
-                }
+                values >>= rule->_variables;
                 // outcomes
                 auto outcomes = threshold.getMember("results");
                 if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
@@ -152,10 +120,8 @@ Rule* readRule (std::istream &f)
             NormalRule *rule =  new NormalRule();
             try {
                 rule->_json_representation = json_string;
-                single.getMember("rule_name") >>= tmp;
-                rule->name(tmp);
-                single.getMember("evaluation") >>= tmp;
-                rule->code(tmp);
+                single.getMember("rule_name") >>= rule->_name;
+                single.getMember("evaluation") >>= rule->_code;
                 single.getMember("element") >>= rule->_element;
                 // target
                 auto target = single.getMember("target");
