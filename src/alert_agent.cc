@@ -48,7 +48,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define THIS_AGENT_NAME "alert_agent"
 #define RULES_SUBJECT "rfc-evaluator-rules"
 #define ACK_SUBJECT "rfc-alerts-acknowledge"
-#define PATH "./testrules"
+#define PATH "/var/lib/alert_agent"
 
 // TODO TODO TODO TODO if diectory doesn't exist agent crashed
 void list_rules(
