@@ -311,6 +311,38 @@ void change_state(
 }
 
 
+void evaluate_metric(
+    mlm_client_t *client,
+    const MetricInfo &triggeringMetric,
+    const MetricList &knownMetricValues,
+    AlertConfiguration &ac)
+{
+    // Go through all known rules, and try to evaluate them
+    for ( const auto &rule : ac.getRules() ) {
+        zsys_info(" # Check rule '%s'", rule->name().c_str());
+        if ( !rule->isTopicInteresting (triggeringMetric.generateTopic())) {
+            zsys_info (" ### Metric is not interesting for this rule");
+            continue;
+        }
+
+        PureAlert *pureAlert = NULL;
+        // TODO memory leak
+        int rv = rule->evaluate (knownMetricValues, &pureAlert);
+        if ( rv != 0 ) {
+            zsys_info (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
+            continue;
+        }
+
+        auto alertToSend = ac.updateAlert (rule, *pureAlert);
+        if ( alertToSend == NULL ) {
+            zsys_info(" ### alert updated, nothing to send");
+            // nothing to send
+            continue;
+        }
+        send_alerts (client, {*alertToSend}, rule);
+    }
+}
+
 int main (int argc, char** argv)
 {
     // create a malamute client
@@ -329,7 +361,6 @@ int main (int argc, char** argv)
         mlm_client_destroy(&client);
         return EXIT_FAILURE;
     }
-    zsys_info ("Agent '%s' started", THIS_AGENT_NAME);
     // The goal of this agent is to produce alerts
     rv = mlm_client_set_producer (client, "ALERTS");
     if ( rv == -1 )
@@ -350,6 +381,7 @@ int main (int argc, char** argv)
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
 
+    zsys_info ("Agent '%s' started", THIS_AGENT_NAME);
     // need to track incoming measurements
     MetricList cache;
 
@@ -399,35 +431,10 @@ int main (int argc, char** argv)
 
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
+                bios_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
-
-                // Go through all known rules, and try to evaluate them
-                for ( const auto &rule : alertConfiguration.getRules() ) {
-                    zsys_info(" # Check rule '%s'", rule->name().c_str());
-                    if ( !rule->isTopicInteresting (m.generateTopic())) {
-                        zsys_info (" ### Metric is not interesting for this rule");
-                        // metric is not interesting for the rule
-                        continue;
-                    }
-
-                    PureAlert *pureAlert = NULL;
-                    // TODO memory leak
-                    int rv = rule->evaluate (cache, &pureAlert);
-                    if ( rv != 0 ) {
-                        zsys_info (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
-                        continue;
-                    }
-
-                    auto toSend = alertConfiguration.updateAlert (rule, *pureAlert);
-                    if ( toSend == NULL ) {
-                        zsys_info(" ### alert updated, nothing to send");
-                        // nothing to send
-                        continue;
-                    }
-                    send_alerts (client, {*toSend}, rule);
-                }
-                bios_proto_destroy(&bmessage);
+                evaluate_metric(client, m, cache, alertConfiguration);
             }
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
@@ -476,16 +483,14 @@ int main (int argc, char** argv)
                 char *param3 = zmsg_popstr (zmessage); // state
                 if ( !param1 || !param2 || !param3 ) {
                     zsys_info ("Ignore it. Unexpected message format");
-                    if (param1) free (param1);
-                    if (param2) free (param2);
-                    if (param3) free (param3);
+                }
+                else {
+                    change_state (client, param1, param2, param3, alertConfiguration);
                 }
 
-                change_state (client, param1, param2, param3, alertConfiguration);
                 if (param1) free (param1);
                 if (param2) free (param2);
                 if (param3) free (param3);
-                continue;
             }
             zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
         }
