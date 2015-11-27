@@ -60,14 +60,17 @@ public:
         single.getMember("rule_name") >>= _name;
         single.getMember("element") >>= _element;
         // values
-        std::map<std::string,double> tmp_values;
-        auto values = single.getMember("values");
-        if ( values.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("parameter 'values' in json must be an array.");
-            throw std::runtime_error("parameter 'values' in json must be an array");
+        // values are not required for single rule
+        if ( single.findMember("values") != NULL ) {
+            std::map<std::string,double> tmp_values;
+            auto values = single.getMember("values");
+            if ( values.category () != cxxtools::SerializationInfo::Array ) {
+                zsys_info ("parameter 'values' in json must be an array.");
+                throw std::runtime_error("parameter 'values' in json must be an array");
+            }
+            values >>= tmp_values;
+            globalVariables(tmp_values);
         }
-        values >>= tmp_values;
-        globalVariables(tmp_values);
 
         // outcomes
         auto outcomes = single.getMember("results");
