@@ -89,50 +89,50 @@ std::set <std::string> AlertConfiguration::
         cxxtools::Directory d(_path);
         // every rule at the beggining has empty set of alerts
         std::vector<PureAlert> emptyAlerts{};
-        for ( const auto &fn : d)
-            {
-                // we are interested only in files with names "*.rule"
-                if ( fn.length() < 5 ) {
-                    continue;
-                }
-                if ( fn.compare(fn.length() - 5, 5, ".rule") != 0 ) {
-                    continue;
-                }
-
-                // read rule from the file
-                std::ifstream f(d.path() + "/" + fn);
-                zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
-                Rule *rule = readRule (f);
-                if ( rule == NULL ) {
-                    // rule can't be read correctly from the file
-                    zsys_info ("nothing to do");
-                    continue;
-                }
-
-                // ASSUMPTION: name of the file is the same as name of the rule
-                // If they are different ignore this rule
-                if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
-                    zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
-                    delete rule;
-                    continue;
-                }
-
-                // ASSUMPTION: rules have unique names
-                if ( haveRule (rule) ) {
-                    zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
-                    delete rule;
-                    continue;
-                }
-
-                // record topics we are interested in
-                for ( const auto &interestedTopic : rule->getNeededTopics() ) {
-                    result.insert (interestedTopic);
-                }
-                // add rule to the configuration
-                _alerts.push_back (std::make_pair(rule, emptyAlerts));
-                _configs.push_back (rule);
-                zsys_info ("file '%s' readed correctly", fn.c_str());
+        for ( const auto &fn : d) {
+            
+            // we are interested only in files with names "*.rule"
+            if ( fn.length() < 5 ) {
+                continue;
             }
+            if ( fn.compare(fn.length() - 5, 5, ".rule") != 0 ) {
+                continue;
+            }
+
+            // read rule from the file
+            std::ifstream f(d.path() + "/" + fn);
+            zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
+            Rule *rule = readRule (f);
+            if ( rule == NULL ) {
+                // rule can't be read correctly from the file
+                zsys_info ("nothing to do");
+                continue;
+            }
+
+            // ASSUMPTION: name of the file is the same as name of the rule
+            // If they are different ignore this rule
+            if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
+                zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
+                delete rule;
+                continue;
+            }
+
+            // ASSUMPTION: rules have unique names
+            if ( haveRule (rule) ) {
+                zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
+                delete rule;
+                continue;
+            }
+
+            // record topics we are interested in
+            for ( const auto &interestedTopic : rule->getNeededTopics() ) {
+                result.insert (interestedTopic);
+            }
+            // add rule to the configuration
+            _alerts.push_back (std::make_pair(rule, emptyAlerts));
+            _configs.push_back (rule);
+            zsys_info ("file '%s' readed correctly", fn.c_str());
+        }
     } catch( std::exception &e ){
         zsys_error("Can't read configuration: %s", e.what());
         exit(1);
