@@ -158,6 +158,10 @@ int AlertConfiguration::
     _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
     _configs.push_back (*newRule);
     (*newRule)->save(getPersistencePath());
+    // in any case we need to check new subjects
+    for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
+        newSubjectsToSubscribe.insert (interestedTopic);
+    }
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
