@@ -93,13 +93,13 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert **pureAlert)
         // some known outcome was found
         *pureAlert = new PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
         (**pureAlert).print();
-        return status;
+        return 0;
     }
     if ( status == RULE_RESULT_OK ) {
         // When alert is resolved, it doesn't have new severity!!!!
         *pureAlert = new PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", _element, "DOESN'T MATTER", {""});
         (**pureAlert).print();
-        return status;
+        return 0;
     }
     zsys_error ("unknown result received from lua function");
     return RULE_RESULT_UNKNOWN;
