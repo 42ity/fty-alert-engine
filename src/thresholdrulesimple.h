@@ -141,6 +141,10 @@ public:
 
     friend Rule* readRule (std::istream &f);
 
+    std::vector<std::string> getNeededTopics(void) const {
+        return {_metric};
+    };
+
 private:
     // needed metric topic
     std::string _metric;
