@@ -30,6 +30,8 @@ bool PureAlert::isStatusKnown (const char *status)
         return true;
     if ( strcmp (status, ALERT_ACK3) == 0 )
         return true;
+    if ( strcmp (status, ALERT_ACK4) == 0 )
+        return true;
     if ( strcmp (status, ALERT_RESOLVED) == 0 )
         return true;
     return false;
