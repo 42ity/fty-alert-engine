@@ -30,7 +30,6 @@ BuildRequires:  automake
 BuildRequires:  autoconf
 BuildRequires:  libtool
 BuildRequires:  pkg-config
-BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
@@ -61,8 +60,8 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %doc README.md COPYING
-%{_bindir}/alert-agent
-%config(noreplace) %{_systemconfdir}/alert-agent/alert-agent.cfg
-%{_prefix}/lib/systemd/system/alert-agent.service
+%{_bindir}/bios-agent-alert-generator
+%config(noreplace) %{_systemconfdir}/alert-agent/bios-agent-alert-generator.cfg
+%{_prefix}/lib/systemd/system/bios-agent-alert-generator.service
 
 %changelog

@@ -1,0 +1,10 @@
+[Unit]
+Description=bios-agent-alert-generator service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=@prefix@/bin/bios-agent-alert-generator @sysconfdir@/@PACKAGE@/bios-agent-alert-generator.cfg
+
+[Install]
+WantedBy=multi-user.target

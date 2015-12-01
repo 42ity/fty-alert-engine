@@ -30,6 +30,6 @@
     <class name = "purealert" private="1">PureAlert</class>
     <class name = "rule" private="1">Rule</class>
     <class name = "thresholdrulecomplex" private="1">ThresholdRuleComplex</class>
-    <main name = "alert-agent" service="1">Daemon evaluating rules and producing alerts</main>
+    <main name = "bios-agent-alert-generator" service="1">Daemon evaluating rules and producing alerts</main>
 
 </project>
