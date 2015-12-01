@@ -46,6 +46,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 
 #define THIS_AGENT_NAME "alert_agent"
+#define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
 #define ACK_SUBJECT "rfc-alerts-acknowledge"
 #define PATH "/var/lib/alert_agent"
@@ -192,7 +193,7 @@ void add_rule(
     zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
     zsys_info ("alertsToSend count = %d", alertsToSend.size() );
     for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+        mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
 
@@ -244,7 +245,7 @@ void update_rule(
     zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
     zsys_info ("alertsToSend count = %d", alertsToSend.size() );
     for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+        mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
 
@@ -377,7 +378,7 @@ int main (int argc, char** argv)
 
     // Subscribe to all subjects
     for ( const auto &interestedSubject : subjectsToConsume ) {
-        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+        mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
 
