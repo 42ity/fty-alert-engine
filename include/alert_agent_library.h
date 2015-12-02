@@ -24,8 +24,8 @@
     =========================================================================
 */
 
-#ifndef alert_agent_library_H_INCLUDED
-#define alert_agent_library_H_INCLUDED
+#ifndef ALERT_AGENT_LIBRARY_H_INCLUDED
+#define ALERT_AGENT_LIBRARY_H_INCLUDED
 
 //  Set up environment for the application
 

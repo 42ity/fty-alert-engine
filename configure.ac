@@ -7,11 +7,11 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
 #
-# The version number is extracted from include/alert-agent.h using
+# The version number is extracted from include/alert_agent.h using
 # the version.sh script. Hence, it should be updated there.
 # The version in git should reflect the *next* version planned.
 #
-AC_INIT([alert-agent],[m4_esyscmd([./version.sh alert-agent])],[bios@eaton.com])
+AC_INIT([alert-agent],[m4_esyscmd([./version.sh alert_agent.h])],[bios@eaton.com])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
@@ -276,7 +276,7 @@ AC_CHECK_PROG(alert_agent_have_xmlto, xmlto, yes, no)
 if test "x$alert_agent_have_asciidoc" = "xno" -o "x$alert_agent_have_xmlto" = "xno"; then
     alert_agent_build_doc="no"
     # Tarballs built with 'make dist' ship with prebuilt documentation.
-    if ! test -f doc/alert-agent.7; then
+    if ! test -f doc/alert_agent.7; then
         alert_agent_install_man="no"
         AC_MSG_WARN([You are building an unreleased version of ALERT-AGENT and asciidoc or xmlto are not installed.])
         AC_MSG_WARN([Documentation will not be built and manual pages will not be installed.])
@@ -395,15 +395,15 @@ AM_CONDITIONAL(ON_ANDROID, test "x$alert_agent_on_android" = "xyes")
 AM_CONDITIONAL(INSTALL_MAN, test "x$alert_agent_install_man" = "xyes")
 AM_CONDITIONAL(BUILD_DOC, test "x$alert_agent_build_doc" = "xyes")
 
-# Check for alert-agent intent
-AC_ARG_WITH([alert-agent],
-    AS_HELP_STRING([--with-alert-agent],
-        [Compile and install the alert-agent program [default=yes].]),
-    [with_alert_agent=$withval],
-    [with_alert_agent=yes])
+# Check for bios-agent-alert-generator intent
+AC_ARG_WITH([bios-agent-alert-generator],
+    AS_HELP_STRING([--with-bios-agent-alert-generator],
+        [Compile and install the bios-agent-alert-generator program [default=yes].]),
+    [with_bios_agent_alert_generator=$withval],
+    [with_bios_agent_alert_generator=yes])
 
-AM_CONDITIONAL([WITH_ALERT_AGENT], [test x$with_alert_agent != xno])
-AM_COND_IF([WITH_ALERT_AGENT], [AC_MSG_NOTICE([WITH_ALERT_AGENT defined])])
+AM_CONDITIONAL([WITH_BIOS_AGENT_ALERT_GENERATOR], [test x$with_bios_agent_alert_generator != xno])
+AM_COND_IF([WITH_BIOS_AGENT_ALERT_GENERATOR], [AC_MSG_NOTICE([WITH_BIOS_AGENT_ALERT_GENERATOR defined])])
 
 # Checks for library functions.
 AC_TYPE_SIGNAL
@@ -421,7 +421,7 @@ AC_SUBST([pkgconfigdir])
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  src/libalert_agent.pc
-                 src/alert-agent.service
+                 src/bios-agent-alert-generator.service
                  ])
 AC_OUTPUT
 
