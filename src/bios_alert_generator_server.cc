@@ -1,26 +1,30 @@
-/*
-Copyright (C) 2014 - 2015 Eaton
+/*  =========================================================================
+    bios_alert_generator_server - Actor evaluating rules
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    Copyright (C) 2014 - 2015 Eaton                                        
+                                                                           
+    This program is free software; you can redistribute it and/or modify   
+    it under the terms of the GNU General Public License as published by   
+    the Free Software Foundation; either version 2 of the License, or      
+    (at your option) any later version.                                    
+                                                                           
+    This program is distributed in the hope that it will be useful,        
+    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+    GNU General Public License for more details.                           
+                                                                           
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    =========================================================================
 */
 
-/*! \file alert_agent.cc
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Alert agent based on rules processing
- */
-
+/*
+@header
+    bios_alert_generator_server - Actor evaluating rules
+@discuss
+@end
+*/
 #include <string.h>
 #include <stdio.h>
 #include <string>
@@ -45,13 +49,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <typeinfo>
 
 
-#define THIS_AGENT_NAME "alert_agent"
+#define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
 #define ACK_SUBJECT "rfc-alerts-acknowledge"
-#define PATH "/var/lib/alert_agent"
+
+#include "../include/alert_agent.h"
+#include "alert_agent_classes.h"
 
 // TODO TODO TODO TODO if diectory doesn't exist agent crashed
-void list_rules(
+static void
+list_rules(
     mlm_client_t *client,
     const char *type,
     AlertConfiguration &ac)
@@ -94,7 +101,8 @@ void list_rules(
     zmsg_destroy( &reply );
 }
 
-void get_rule(
+static void
+get_rule(
     mlm_client_t *client,
     const char *name,
     AlertConfiguration &ac)
@@ -119,7 +127,8 @@ void get_rule(
 }
 
 
-std::string makeActionList(
+static std::string
+makeActionList(
     const std::vector <std::string> &actions)
 {
     std::ostringstream s;
@@ -132,7 +141,8 @@ std::string makeActionList(
     return s.str();
 }
 
-void send_alerts(
+static void
+send_alerts(
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
     const std::string &rule_name)
@@ -159,7 +169,8 @@ void send_alerts(
     }
 }
 
-void send_alerts(
+static void
+send_alerts(
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
     const Rule *rule)
@@ -167,7 +178,8 @@ void send_alerts(
     send_alerts (client, alertsToSend, rule->name());
 }
 
-void add_rule(
+static void
+add_rule(
     mlm_client_t *client,
     const char *json_representation,
     AlertConfiguration &ac)
@@ -214,7 +226,8 @@ void add_rule(
 }
 
 
-void update_rule(
+static void
+update_rule(
     mlm_client_t *client,
     const char *json_representation,
     const char *rule_name,
@@ -251,7 +264,7 @@ void update_rule(
     zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
     zsys_info ("alertsToSend count = %d", alertsToSend.size() );
     for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+        mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
         zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
     }
 
@@ -266,7 +279,8 @@ void update_rule(
 }
 
 
-void change_state(
+static void
+change_state(
     mlm_client_t *client,
     const char *rule_name,
     const char *element_name,
@@ -318,7 +332,8 @@ void change_state(
 }
 
 
-void evaluate_metric(
+static void
+evaluate_metric(
     mlm_client_t *client,
     const MetricInfo &triggeringMetric,
     const MetricList &knownMetricValues,
@@ -350,49 +365,81 @@ void evaluate_metric(
     }
 }
 
-int main (int argc, char** argv)
+
+void
+bios_alert_generator_server (zsock_t *pipe, void* args)
 {
-    // create a malamute client
-    mlm_client_t *client = mlm_client_new();
-    if ( client == NULL )
-    {
-        zsys_error ("client cannot be created");
-        return EXIT_FAILURE;
-    }
-
-    // ASSUMPTION : only one instance can be in the system
-    int rv = mlm_client_connect (client, "ipc://@/malamute", 1000, THIS_AGENT_NAME);
-    if ( rv == -1 )
-    {
-        zsys_error ("client cannot be connected");
-        mlm_client_destroy(&client);
-        return EXIT_FAILURE;
-    }
-    // The goal of this agent is to produce alerts
-    rv = mlm_client_set_producer (client, "ALERTS");
-    if ( rv == -1 )
-    {
-        zsys_error ("set_producer() failed");
-        mlm_client_destroy(&client);
-        return EXIT_FAILURE;
-    }
-
-    // Read initial configuration
-    AlertConfiguration alertConfiguration(PATH);
-    std::set <std::string> subjectsToConsume = alertConfiguration.readConfiguration();
-    zsys_info ("subjectsToConsume count: %d\n", subjectsToConsume.size());
-
-    // Subscribe to all subjects
-    for ( const auto &interestedSubject : subjectsToConsume ) {
-        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
-        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
-    }
-
-    zsys_info ("Agent '%s' started", THIS_AGENT_NAME);
     // need to track incoming measurements
     MetricList cache;
+    AlertConfiguration alertConfiguration;
+    bool verbose = false;
 
-    while ( !zsys_interrupted ) {
+    char *name = (char*) args;
+
+    mlm_client_t *client = mlm_client_new ();
+
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
+
+    zsock_signal (pipe, 0);
+
+    while (!zsys_interrupted) {
+
+        void *which = zpoller_wait (poller, -1);
+        if (which == pipe) {
+            zmsg_t *msg = zmsg_recv (pipe);
+            char *cmd = zmsg_popstr (msg);
+
+            if (streq (cmd, "$TERM")) {
+                zstr_free (&cmd);
+                zmsg_destroy (&msg);
+                goto exit;
+            }
+            else
+            if (streq (cmd, "VERBOSE")) {
+                verbose = true;
+                zmsg_destroy (&msg);
+            }
+            else
+            if (streq (cmd, "CONNECT")) {
+                char* endpoint = zmsg_popstr (msg);
+                mlm_client_connect (client, endpoint, 1000, name);
+                zstr_free (&endpoint);
+            }
+            else
+            if (streq (cmd, "PRODUCER")) {
+                char* stream = zmsg_popstr (msg);
+                mlm_client_set_producer (client, stream);
+                zstr_free (&stream);
+            }
+            else
+            if (streq (cmd, "CONSUMER")) {
+                char* stream = zmsg_popstr (msg);
+                char* pattern = zmsg_popstr (msg);
+                mlm_client_set_consumer (client, stream, pattern);
+                zstr_free (&pattern);
+                zstr_free (&stream);
+            }
+            if (streq (cmd, "CONFIG")) {
+                char* filename = zmsg_popstr (msg);
+
+                // Read initial configuration
+                alertConfiguration.setPath(filename);
+                std::set <std::string> subjectsToConsume = alertConfiguration.readConfiguration();
+                zsys_info ("subjectsToConsume count: %d\n", subjectsToConsume.size());
+
+                // Subscribe to all subjects
+                for ( const auto &interestedSubject : subjectsToConsume ) {
+                    mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
+                    if (verbose)
+                        zsys_info("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
+                }
+                zstr_free (&filename);
+            }
+            zstr_free (&cmd);
+            zmsg_destroy (&msg);
+            continue;
+        }
+
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there is no messages
         zmsg_t *zmessage = mlm_client_recv (client);
@@ -501,8 +548,52 @@ int main (int argc, char** argv)
             }
             zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
         }
+
     }
-    // TODO save info to persistence before I die
-    mlm_client_destroy(&client);
-    return 0;
+exit:
+    zpoller_destroy (&poller);
+    mlm_client_destroy (&client);
+}
+
+//  --------------------------------------------------------------------------
+//  Self test of this class.
+
+void
+bios_alert_generator_server_test (bool verbose)
+{
+    printf (" * bios_alert_generator_server: ");
+    if (verbose)
+        printf ("\n");
+
+    //  @selftest
+    static const char* endpoint = "inproc://bios-ag-server-test";
+
+    zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
+    zstr_sendx (server, "BIND", endpoint, NULL);
+    if (verbose)
+        zstr_send (server, "VERBOSE");
+
+    mlm_client_t *producer = mlm_client_new ();
+    mlm_client_connect (producer, endpoint, 1000, "producer");
+    mlm_client_set_producer (producer, "METRICS");
+
+    mlm_client_t *consumer = mlm_client_new ();
+    mlm_client_connect (consumer, endpoint, 1000, "consumer");
+    mlm_client_set_consumer (consumer, "METRICS", "temperature@world");
+
+    zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) "alert-agent");
+    if (verbose)
+        zstr_send (ag_server, "VERBOSE");
+    zstr_sendx (ag_server, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
+    zstr_sendx (ag_server, "CONFIG", "src/", NULL);
+    zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
+
+    zactor_destroy (&ag_server);
+    mlm_client_destroy (&consumer);
+    mlm_client_destroy (&producer);
+    zactor_destroy (&server);
+    //  @end
+
+    printf ("OK\n");
 }
