@@ -178,7 +178,7 @@ int AlertConfiguration::
 int AlertConfiguration::
     updateRule (
         std::istream &newRuleString,
-        const std::string &rule_name,
+        const std::string &old_name,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
         Rule** newRule)
@@ -193,21 +193,21 @@ int AlertConfiguration::
         return -1;
     }
     // need to find out if rule exists already or not
-    if ( !haveRule (rule_name) )
+    if ( !haveRule (old_name) )
     {
         zsys_info ("rule doesn't exist");
         return -2;
     }
     // need to find out if rule exists already or not
-    if ( haveRule ((*newRule)->name()) )
+    if ( ! (*newRule)->hasSameNameAs(old_name) && haveRule ((*newRule)->name()) )
     {
-        // rule with new rule_name
+        // rule with new old_name
         zsys_info ("Rule with such name already exists");
         return -3;
     }
     // find alerts, that should be resolved
     for ( auto &oneRuleAlerts: _alerts ) {
-        if ( ! oneRuleAlerts.first->hasSameNameAs (rule_name) ) {
+        if ( ! oneRuleAlerts.first->hasSameNameAs (old_name) ) {
             continue;
         }
         // so we finally found a list of alerts
@@ -222,13 +222,13 @@ int AlertConfiguration::
         // update rule
         // This part is ugly, as there are duplicate pointers
         for ( auto &oneRule: _configs ) {
-            if ( oneRule->hasSameNameAs (rule_name) ) {
+            if ( oneRule->hasSameNameAs (old_name) ) {
                 // -- free memory used by oldone
                 int rv = oneRule->remove(getPersistencePath());
                 zsys_info ("remove rv = %d", rv);
                 delete oneRule;
                 oneRule = *newRule;
-                break; // rule_name is unique
+                break; // old_name is unique
             }
         }
         // -- use new rule
