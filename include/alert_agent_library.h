@@ -33,7 +33,6 @@
 #include <malamute.h>
 #include <biosproto.h>
 #include <lua.h>
-#include <cxxtools.h>
 
 //  ALERT-AGENT version macros for compile-time API detection
 
@@ -59,9 +58,12 @@
 #endif
 
 //  Opaque class structures to allow forward references
+typedef struct _bios_alert_generator_server_t bios_alert_generator_server_t;
+#define BIOS_ALERT_GENERATOR_SERVER_T_DEFINED
 
 
 //  Public API classes
+#include "bios_alert_generator_server.h"
 
 #endif
 /*

@@ -54,6 +54,14 @@ class AlertConfiguration{
 public:
 
     /*
+     * \brief Creates an empty rule-alert configuration
+     *
+     */
+    AlertConfiguration ()
+        : _path{}
+    {};
+
+    /*
      * \brief Creates an enpty rule-alert configuration
      *
      * \param[in] @path - a directory where rules are stored
@@ -78,6 +86,10 @@ public:
     {
         return _configs;
     };
+
+    void setPath (const char* path) {
+        _path = path;
+    }
 
     // alertsToSend must be send in the order from first element to last element!!!
     int addRule (

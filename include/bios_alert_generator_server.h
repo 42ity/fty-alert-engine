@@ -1,5 +1,5 @@
 /*  =========================================================================
-    alert-generator - Evaluates rules written in Lua and produce alerts
+    bios_alert_generator_server - Actor evaluating rules
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -19,12 +19,25 @@
     =========================================================================
 */
 
-#ifndef ALERT_GENERATOR_H_INCLUDED
-#define ALERT_GENERATOR_H_INCLUDED
+#ifndef BIOS_ALERT_GENERATOR_SERVER_H_INCLUDED
+#define BIOS_ALERT_GENERATOR_SERVER_H_INCLUDED
 
-//  Include the project library file
-#include "alert_agent_library.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-//  Add your own public definitions here, if you need them
+
+//  @interface
+ALERT_AGENT_EXPORT void
+bios_alert_generator_server (zsock_t *pipe, void *args);
+
+//  Self test of this class
+ALERT_AGENT_EXPORT void
+    bios_alert_generator_server_test (bool verbose);
+//  @end
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
