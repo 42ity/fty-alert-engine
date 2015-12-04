@@ -56,7 +56,6 @@
 #include "../include/alert_agent.h"
 #include "alert_agent_classes.h"
 
-// TODO TODO TODO TODO if diectory doesn't exist agent crashed
 static void
 list_rules(
     mlm_client_t *client,
@@ -403,7 +402,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (client, endpoint, 1000, name);
-                if (rv != 0)
+                if (rv == -1)
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
             }
@@ -411,7 +410,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (client, stream);
-                if (rv != 0)
+                if (rv == -1)
                     zsys_error ("%s: can't set producer on stream '%s'", name, stream);
                 zstr_free (&stream);
             }
@@ -420,7 +419,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (client, stream, pattern);
-                if (rv != 0)
+                if (rv == -1)
                     zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -436,7 +435,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 // Subscribe to all subjects
                 for ( const auto &interestedSubject : subjectsToConsume ) {
                     int rv = mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-                    if (rv != 0)
+                    if (rv == -1)
                         zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, METRICS_STREAM, interestedSubject.c_str());
                     if (verbose)
                         zsys_info("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
