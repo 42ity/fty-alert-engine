@@ -105,7 +105,7 @@ void get_rule(
         // rule doesn't exist
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "requested rule doesn't exist");
+        zmsg_addstr (reply, "NOT_FOUND");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
@@ -177,33 +177,40 @@ void add_rule(
     std::vector <PureAlert> alertsToSend;
     Rule* newRule = NULL;
     int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, &newRule);
-    if ( rv != 0 )
-    {
-        // ERROR during the rule creation
-        zmsg_t *reply = zmsg_new ();
+    zmsg_t *reply = zmsg_new ();
+    switch (rv) {
+    case -2:
+        // rule exists
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "NEW_RULE_HAS_ERRORS");
+        zmsg_addstr (reply, "ALREADY_EXISTS");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
+    case 0:
+        // rule was created succesfully
+        zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+        zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+        for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+            mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+            zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+        }
 
+        // send a reply back
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, json_representation);
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        // send updated alert
+        send_alerts (client, alertsToSend, newRule);
+        return;
+    default:
+        // error during the rule creation
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_JSON");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
     }
-    // rule was created succesfully
-    zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-    zsys_info ("alertsToSend count = %d", alertsToSend.size() );
-    for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-        mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
-        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
-    }
-
-    // send a reply back
-    zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "OK");
-    zmsg_addstr (reply, json_representation);
-    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-    zmsg_destroy (&reply);
-    // send updated alert
-    send_alerts (client, alertsToSend, newRule);
 }
 
 
