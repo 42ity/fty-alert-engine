@@ -14,6 +14,7 @@ pkgconfig_DATA = src/libalert_agent.pc
 
 include_HEADERS = \
     include/alert_agent.h \
+    include/bios_alert_generator_server.h \
     include/alert_agent_library.h
 
 src_libalert_agent_la_SOURCES = \
@@ -23,6 +24,7 @@ src_libalert_agent_la_SOURCES = \
     src/purealert.cc \
     src/rule.cc \
     src/thresholdrulecomplex.cc \
+    src/bios_alert_generator_server.cc \
     src/platform.h
 
 src_libalert_agent_la_CPPFLAGS = ${AM_CPPFLAGS}
