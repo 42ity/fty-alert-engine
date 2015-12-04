@@ -402,20 +402,26 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                mlm_client_connect (client, endpoint, 1000, name);
+                int rv = mlm_client_connect (client, endpoint, 1000, name);
+                if (rv != 0)
+                    zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
             }
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                mlm_client_set_producer (client, stream);
+                int rv = mlm_client_set_producer (client, stream);
+                if (rv != 0)
+                    zsys_error ("%s: can't set producer on stream '%s'", name, stream);
                 zstr_free (&stream);
             }
             else
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                mlm_client_set_consumer (client, stream, pattern);
+                int rv = mlm_client_set_consumer (client, stream, pattern);
+                if (rv != 0)
+                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
                 zstr_free (&pattern);
                 zstr_free (&stream);
             }
@@ -429,7 +435,9 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 // Subscribe to all subjects
                 for ( const auto &interestedSubject : subjectsToConsume ) {
-                    mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
+                    int rv = mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
+                    if (rv != 0)
+                        zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, METRICS_STREAM, interestedSubject.c_str());
                     if (verbose)
                         zsys_info("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
                 }
@@ -584,7 +592,7 @@ bios_alert_generator_server_test (bool verbose)
     zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) "alert-agent");
     if (verbose)
         zstr_send (ag_server, "VERBOSE");
-    zstr_sendx (ag_server, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
