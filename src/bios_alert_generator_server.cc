@@ -162,6 +162,7 @@ send_alerts(
             std::string atopic = rule_name + "/"
                 + alert._severity + "@"
                 + alert._element;
+            zmsg_print (msg);
             mlm_client_send (client, atopic.c_str(), &msg);
             zmsg_destroy(&msg);
         }
@@ -202,7 +203,7 @@ add_rule(
         zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
         zsys_info ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-            mlm_client_set_consumer(client, "BIOS", interestedSubject.c_str());
+            mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
             zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
         }
 
@@ -565,12 +566,37 @@ exit:
 //  --------------------------------------------------------------------------
 //  Self test of this class.
 
+static char*
+s_readall (const char* filename) {
+    FILE *fp = fopen(filename, "rt");
+    if (!fp)
+        return NULL;
+
+    size_t fsize = 0;
+    fseek(fp, 0, SEEK_END);
+    fsize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    char *ret = (char*) calloc (1, fsize * sizeof (char));
+    if (!ret)
+        return NULL;
+
+    size_t r = fread((void*) ret, 1, fsize, fp);
+    if (r == fsize)
+        return ret;
+
+    free (ret);
+    return NULL;
+}
+
 void
 bios_alert_generator_server_test (bool verbose)
 {
     printf (" * bios_alert_generator_server: ");
     if (verbose)
         printf ("\n");
+
+    system ("rm -f src/*.rule");
 
     //  @selftest
     static const char* endpoint = "inproc://bios-ag-server-test";
@@ -586,7 +612,10 @@ bios_alert_generator_server_test (bool verbose)
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
-    mlm_client_set_consumer (consumer, "METRICS", "temperature@world");
+    mlm_client_set_consumer (consumer, "ALERTS", ".*");
+
+    mlm_client_t *ui = mlm_client_new ();
+    mlm_client_connect (ui, endpoint, 1000, "UI");
 
     zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) "alert-agent");
     if (verbose)
@@ -596,7 +625,109 @@ bios_alert_generator_server_test (bool verbose)
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
+    // Test case #1: list w/o rules
+    zmsg_t *command = zmsg_new ();
+    zmsg_addstrf (command, "%s", "LIST");
+    zmsg_addstrf (command, "%s", "all");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+
+    zmsg_t *recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    char * foo = zmsg_popstr (recv);
+    assert (streq (foo, "LIST"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "all"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+
+    // Test case #2: add new rule
+    zmsg_t *rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // Test case #3: list rules
+    command = zmsg_new ();
+    zmsg_addstrf (command, "%s", "LIST");
+    zmsg_addstrf (command, "%s", "all");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 3);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "LIST"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "all"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // Test case #4: list rules - not yet stored type
+    command = zmsg_new ();
+    zmsg_addstrf (command, "%s", "LIST");
+    zmsg_addstrf (command, "%s", "single");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "LIST"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "single"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+
+    //Test case #5: generate alert - below the treshold
+    zmsg_t *m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "20", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (is_bios_proto (recv));
+    bios_proto_t *brecv = bios_proto_decode (&recv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #6: generate alert - resolved
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "42", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    bios_proto_print (brecv);   //DEBUG PRINT
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    //TODO: this does not work!!
+    assert (streq (bios_proto_state (brecv), "RESOLVED"));
+    bios_proto_destroy (&brecv);
+
     zactor_destroy (&ag_server);
+    mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);
     mlm_client_destroy (&producer);
     zactor_destroy (&server);
