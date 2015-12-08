@@ -30,6 +30,7 @@ BuildRequires:  automake
 BuildRequires:  autoconf
 BuildRequires:  libtool
 BuildRequires:  pkg-config
+BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
@@ -41,6 +42,42 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %description
 alert-agent evaluates rules written in lua and produce alerts.
 
+%package -n libalert_agent0
+Group:          System/Libraries
+Summary:        evaluates rules written in lua and produce alerts
+
+%description -n libalert_agent0
+alert-agent evaluates rules written in lua and produce alerts.
+This package contains shared library.
+
+%post -n libalert_agent0 -p /sbin/ldconfig
+%postun -n libalert_agent0 -p /sbin/ldconfig
+
+%files -n libalert_agent0
+%defattr(-,root,root)
+%doc COPYING
+%{_libdir}/libalert_agent.so.*
+
+%package devel
+Summary:        evaluates rules written in lua and produce alerts
+Group:          System/Libraries
+Requires:       libalert_agent0 = %{version}
+Requires:       zeromq-devel
+Requires:       czmq-devel
+Requires:       malamute-devel
+Requires:       biosproto-devel
+Requires:       lua-devel
+Requires:       cxxtools-devel
+
+%description devel
+alert-agent evaluates rules written in lua and produce alerts.
+This package contains development files.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*
+%{_libdir}/libalert_agent.so
+%{_libdir}/pkgconfig/libalert_agent.pc
 
 %prep
 %setup -q
@@ -59,9 +96,8 @@ find %{buildroot} -name '*.la' | xargs rm -f
 
 %files
 %defattr(-,root,root)
-%doc README.md COPYING
+%doc COPYING
 %{_bindir}/bios-agent-alert-generator
-%config(noreplace) %{_systemconfdir}/alert-agent/bios-agent-alert-generator.cfg
-%{_prefix}/lib/systemd/system/bios-agent-alert-generator.service
+%{_prefix}/lib/systemd/system/bios-agent-alert-generator*.service
 
 %changelog
