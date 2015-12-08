@@ -1,10 +1,10 @@
 [Unit]
 Description=bios-agent-alert-generator service
-After=network.target
+After=network.target malamute.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/bios-agent-alert-generator ${prefix}/etc/alert-agent/bios-agent-alert-generator.cfg
+ExecStart=/usr/local/bin/bios-agent-alert-generator
 
 [Install]
 WantedBy=multi-user.target

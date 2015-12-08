@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
-#
+
 
 Source:         alert-agent
 Section:        net
@@ -37,6 +37,25 @@ Build-Depends: bison, debhelper (>= 8),
     libcxxtools-dev,
     dh-autoreconf
 
+Package: libalert-agent0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: alert-agent
+ This package contains shared library for alert-agent: evaluates rules written in lua and produce alerts
+
+Package: alert-agent-dev
+Architecture: all
+Section: libdevel
+Depends:
+    libzmq4-dev,
+    libczmq-dev,
+    libmlm-dev,
+    libbiosproto-dev,
+    liblua5.1-0-dev,
+    libcxxtools-dev,
+    libalert-agent0 (= ${binary:Version})
+Description: development files for alert-agent
+ This package contains development files for alert-agent: evaluates rules written in lua and produce alerts
 
 Package: alert-agent
 Architecture: any
