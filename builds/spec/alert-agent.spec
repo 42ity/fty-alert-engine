@@ -34,7 +34,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
-BuildRequires:  biosproto-devel
+BuildRequires:  libbiosproto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -97,6 +97,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %doc COPYING
+%dir %{_prefix}/lib/tmpfiles.d/
 %{_bindir}/bios-agent-alert-generator
 %{_prefix}/lib/systemd/system/bios-agent-alert-generator*.service
 %{_prefix}/lib/tmpfiles.d/alert_generator.conf
