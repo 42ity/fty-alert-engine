@@ -99,5 +99,6 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %doc COPYING
 %{_bindir}/bios-agent-alert-generator
 %{_prefix}/lib/systemd/system/bios-agent-alert-generator*.service
+%{_prefix}/lib/tmpfiles.d/alert_generator.conf
 
 %changelog

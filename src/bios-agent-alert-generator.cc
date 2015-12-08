@@ -22,7 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  */
 
 #include "../include/alert_agent.h"
-#define PATH "/var/lib/alert_agent"
+#define PATH "/var/lib/bios/alert_agent"
 
 int main (int argc, char** argv)
 {
