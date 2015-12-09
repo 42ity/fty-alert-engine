@@ -61,8 +61,6 @@ src_bios_agent_alert_generator_CPPFLAGS = ${AM_CPPFLAGS}
 src_bios_agent_alert_generator_LDADD = ${program_libs}
 src_bios_agent_alert_generator_SOURCES = src/bios-agent-alert-generator.cc
 src_bios_agent_alert_generator_servicedir = @prefix@/lib/systemd/system
-src_bios_agent_alert_generator_configdir = $(sysconfdir)/alert-agent
-src_bios_agent_alert_generator_config_DATA = src/bios-agent-alert-generator.cfg
 src_bios_agent_alert_generator_service_DATA = src/bios-agent-alert-generator.service
 endif
 

@@ -49,7 +49,11 @@ void LuaRule::code (const std::string &newCode)
     _valid = false;
     _code.clear();
 
-    _lstate = lua_open();
+#if LUA_VERSION_NUM > 501
+        lua_State *_lstate = luaL_newstate();
+#else
+        lua_State *_lstate = lua_open();
+#endif
     if (! _lstate) {
         throw std::runtime_error("Can't initiate LUA context!");
     }
