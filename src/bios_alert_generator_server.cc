@@ -596,7 +596,8 @@ bios_alert_generator_server_test (bool verbose)
     if (verbose)
         printf ("\n");
 
-    system ("rm -f src/*.rule");
+    int r = system ("rm -f src/*.rule");
+    assert (r == 0); // to make gcc @ CentOS 7 happy
 
     //  @selftest
     static const char* endpoint = "inproc://bios-ag-server-test";

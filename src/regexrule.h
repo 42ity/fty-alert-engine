@@ -155,7 +155,11 @@ protected:
 
     lua_State* setContext (const MetricList &metricList) const
     {
+#if LUA_VERSION_NUM > 501
+        lua_State *lua_context = luaL_newstate();
+#else
         lua_State *lua_context = lua_open();
+#endif
         // 1 ) set up metric
         lua_pushnumber(lua_context, metricList.getLastMetric().getValue());
         lua_setglobal(lua_context, "value");
