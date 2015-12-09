@@ -87,9 +87,9 @@ public:
         //  high_warning
         //  low_warning
         //  low_critical
-
-        auto valueToCheck = getGlobalVariables().find ("high_critical");
-        if ( valueToCheck != getGlobalVariables().cend() ) {
+        const auto GV = getGlobalVariables();
+        auto valueToCheck = GV.find ("high_critical");
+        if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_critical");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
@@ -98,8 +98,8 @@ public:
                 return 0;
             }
         }
-        valueToCheck = getGlobalVariables().find ("high_warning");
-        if ( valueToCheck != getGlobalVariables().cend() ) {
+        valueToCheck = GV.find ("high_warning");
+        if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_warning");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
@@ -108,8 +108,8 @@ public:
                 return 0;
             }
         }
-        valueToCheck = getGlobalVariables().find ("low_critical");
-        if ( valueToCheck != getGlobalVariables().cend() ) {
+        valueToCheck = GV.find ("low_critical");
+        if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_critical");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
@@ -118,8 +118,8 @@ public:
                 return 0;
             }
         }
-        valueToCheck = getGlobalVariables().find ("low_warning");
-        if ( valueToCheck != getGlobalVariables().cend() ) {
+        valueToCheck = GV.find ("low_warning");
+        if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_warning");
                 *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);

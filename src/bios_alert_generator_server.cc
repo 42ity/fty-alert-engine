@@ -723,8 +723,7 @@ bios_alert_generator_server_test (bool verbose)
     bios_proto_print (brecv);   //DEBUG PRINT
     assert (streq (bios_proto_rule (brecv), "simplethreshold"));
     assert (streq (bios_proto_element_src (brecv), "fff"));
-    //TODO: this does not work!!
-    //assert (streq (bios_proto_state (brecv), "RESOLVED"));
+    assert (streq (bios_proto_state (brecv), "RESOLVED"));
     bios_proto_destroy (&brecv);
 
     zactor_destroy (&ag_server);
