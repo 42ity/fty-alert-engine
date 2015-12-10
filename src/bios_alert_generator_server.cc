@@ -162,9 +162,7 @@ send_alerts(
             std::string atopic = rule_name + "/"
                 + alert._severity + "@"
                 + alert._element;
-            zmsg_print (msg);
             mlm_client_send (client, atopic.c_str(), &msg);
-            zmsg_destroy(&msg);
         }
     }
 }
@@ -318,7 +316,6 @@ change_state(
         zmsg_destroy (&reply);
         return;
     }
-    alertToSend.print ();
     // send a reply back
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "OK");
@@ -463,7 +460,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         // but even so we try to decide according what we got, not from where
         if( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
-            zmsg_destroy(&zmessage);
             if( ! bmessage ) {
                 zsys_info ("cannot decode message, ignoring\n");
                 continue;
@@ -532,10 +528,10 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                         }
                     }
                 }
-                if (command) free (command);
-                if (param) free (param);
-                continue;
+                zstr_free (&command);
+                zstr_free (&param);
             }
+            else
             if ( streq (mlm_client_subject (client), ACK_SUBJECT) )
             {
                 // Here we can have:
@@ -550,13 +546,14 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                     change_state (client, param1, param2, param3, alertConfiguration);
                 }
 
-                if (param1) free (param1);
-                if (param2) free (param2);
-                if (param3) free (param3);
+                zstr_free (&param1);
+                zstr_free (&param2);
+                zstr_free (&param2);
             }
-            zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
+            else
+                zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
         }
-
+        zmsg_destroy (&zmessage);
     }
 exit:
     zpoller_destroy (&poller);
@@ -773,6 +770,76 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_rule (brecv), "simplethreshold"));
     assert (streq (bios_proto_element_src (brecv), "fff"));
     assert (streq (bios_proto_state (brecv), "RESOLVED"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #9: generate alert - high again
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "62", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #10: test alert acknowledge
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "simplethreshold");
+    zmsg_addstrf (rule, "%s", "fff");
+    zmsg_addstrf (rule, "%s", "ACK-PAUSE");
+    mlm_client_sendto (ui, "alert-agent", "rfc-alerts-acknowledge", NULL, 1000, &rule);
+
+    char *subject, *status, *rule_name, *element_name, *new_state;
+    r = mlm_client_recvx (ui, &subject, &status, &rule_name, &element_name, &new_state, NULL);
+    assert (r != -1);
+    assert (streq (status, "OK"));
+    assert (streq (rule_name, "simplethreshold"));
+    assert (streq (element_name, "fff"));
+    assert (streq (new_state, "ACK-PAUSE"));
+    zstr_free (&subject);
+    zstr_free (&status);
+    zstr_free (&rule_name);
+    zstr_free (&element_name);
+    zstr_free (&new_state);
+
+    // Test case #11: generate alert - high again - after ACK-PAUSE
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "62", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACK-PAUSE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #12: generate alert - normal - after ACK-PAUSE
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "42", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACK-PAUSE")); //XXX: should not there be NEW?
     bios_proto_destroy (&brecv);
 
     zactor_destroy (&ag_server);
