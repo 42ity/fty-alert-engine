@@ -720,7 +720,56 @@ bios_alert_generator_server_test (bool verbose)
 
     assert (is_bios_proto (recv));
     brecv = bios_proto_decode (&recv);
-    bios_proto_print (brecv);   //DEBUG PRINT
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "RESOLVED"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #6: generate alert - high warning
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "52", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "WARNING"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #7: generate alert - high critical
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "62", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #8: generate alert - resolved again
+    m = bios_proto_encode_metric (
+            NULL, "abc", "fff", "42", "X", 0);
+    mlm_client_send (producer, "abc@fff", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
     assert (streq (bios_proto_rule (brecv), "simplethreshold"));
     assert (streq (bios_proto_element_src (brecv), "fff"));
     assert (streq (bios_proto_state (brecv), "RESOLVED"));
