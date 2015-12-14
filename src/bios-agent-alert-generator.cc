@@ -16,25 +16,35 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file alert_agent.cc
+/*! \file bios-agent-alert-generator.cc
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Alert agent based on rules processing
+ *  \brief Starts the alert agent
  */
 
 #include "../include/alert_agent.h"
+
+// path to the directory, where rules are stored. Attention: without last slash!
 #define PATH "/var/lib/bios/alert_agent"
+
+// agents name
+#define AGENT_NAME "alert-agent"
+
+// malamute endpoint
+#define ENDPOINT "ipc://@/malamute"
+
 
 int main (int argc, char** argv)
 {
-    if (argc > 2) {
-        zsys_error ("Usage: %s [config-path]", argv[0]);
+    if (argc > 3) {
+        zsys_error ("Usage: %s [malamute-endpiont] [config-path]", argv[0]);
         exit (EXIT_FAILURE);
     }
 
-    const char* path = (argc == 1)? PATH : argv[1];
+    const char* path = ( argc == 3 ) ? PATH : argv[2];
+    const char* end_point = ( argc > 1 )? ENDPOINT : argv[1];
 
-    zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) "alert-agent");
-    zstr_sendx (ag_server, "CONNECT", "ipc://@/malamute", NULL);
+    zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) AGENT_NAME);
+    zstr_sendx (ag_server, "CONNECT", end_point, NULL);
     zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
     zstr_sendx (ag_server, "CONFIG", path, NULL);
 
