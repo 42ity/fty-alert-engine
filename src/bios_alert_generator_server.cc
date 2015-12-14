@@ -815,6 +815,16 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&element_name);
     zstr_free (&new_state);
 
+    recv = mlm_client_recv (consumer);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
+    assert (streq (bios_proto_element_src (brecv), "fff"));
+    assert (streq (bios_proto_state (brecv), "ACK-PAUSE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
     // Test case #11: generate alert - high again - after ACK-PAUSE
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
@@ -832,7 +842,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
-    // Test case #12: generate alert - normal - after ACK-PAUSE
+    // Test case #12: generate alert - resolved - after ACK-PAUSE
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
@@ -845,8 +855,32 @@ bios_alert_generator_server_test (bool verbose)
     assert (brecv);
     assert (streq (bios_proto_rule (brecv), "simplethreshold"));
     assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACK-PAUSE")); //XXX: should not there be NEW?
+    assert (streq (bios_proto_state (brecv), "RESOLVED"));
     bios_proto_destroy (&brecv);
+
+    // Test case #13: segfault on onbattery
+    // #13.1 ADD new rule
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* onbattery_rule = s_readall ("testrules/onbattery-5PX1500-01.rule");
+    assert (onbattery_rule);
+    zmsg_addstrf (rule, "%s", onbattery_rule);
+    zstr_free (&onbattery_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+
+    // #13.2 evaluate metric
+    m = bios_proto_encode_metric (
+            NULL, "status.ups", "5PX1500-01", "1032.000", "", -1);
+    mlm_client_send (producer, "status.ups@5PX1500-01", &m);
+
+    // no new alert sent here
 
     zactor_destroy (&ag_server);
     mlm_client_destroy (&ui);
