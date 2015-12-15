@@ -889,6 +889,28 @@ bios_alert_generator_server_test (bool verbose)
             NULL, "status.ups", "5PX1500-01", "1032.000", "", -1);
     mlm_client_send (producer, "status.ups@5PX1500-01", &m);
 
+    // Test case #14: add new rule, but with lua syntax error
+    rule = zmsg_new();
+    assert(rule);
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* complexthreshold_rule_lua_error = s_readall ("testrules/complexthreshold_lua_error.rule");
+    assert (complexthreshold_rule_lua_error);
+    zmsg_addstrf (rule, "%s", complexthreshold_rule_lua_error);
+    zstr_free (&complexthreshold_rule_lua_error);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    auto foo2 = zmsg_popstr(recv);
+    assert (streq (foo2, "BAD_LUA"));
+    zstr_free (&foo);
+    zstr_free (&foo2);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
     // no new alert sent here
 
     zactor_destroy (&ag_server);
@@ -897,6 +919,6 @@ bios_alert_generator_server_test (bool verbose)
     mlm_client_destroy (&producer);
     zactor_destroy (&server);
     //  @end
-
     printf ("OK\n");
+
 }
