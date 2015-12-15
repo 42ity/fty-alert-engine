@@ -204,6 +204,13 @@ int AlertConfiguration::
     // ASSUMPTION: function should be used as intended to be used
     assert (newRule);
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
+    // need to find out if rule exists already or not
+    if ( !haveRule (old_name) )
+    {
+        zsys_info ("rule doesn't exist");
+        return -2;
+    }
+
     // TODO memory leak
     int rv = readRule (newRuleString, newRule);
     if ( rv == 1 ) {
@@ -213,12 +220,6 @@ int AlertConfiguration::
     if ( rv == 2 ) {
         zsys_info ("nothing to update, lua error");
         return -5;
-    }
-    // need to find out if rule exists already or not
-    if ( !haveRule (old_name) )
-    {
-        zsys_info ("rule doesn't exist");
-        return -2;
     }
     // need to find out if rule exists already or not
     if ( ! (*newRule)->hasSameNameAs(old_name) && haveRule ((*newRule)->name()) )
