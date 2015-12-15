@@ -981,6 +981,56 @@ bios_alert_generator_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 
+    // Test case #15.1: add Radek's testing rule
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* toohigh_rule = s_readall ("testrules/too_high-ROZ.ePDU13.rule");
+    assert (toohigh_rule);
+    zmsg_addstrf (rule, "%s", toohigh_rule);
+    zstr_free (&toohigh_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+
+    // Test case #15.2: evaluate it
+    m = bios_proto_encode_metric (
+            NULL, "status.ups", "ROZ.UPS33", "42.00", "", -1);
+    mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "too_high-ROZ.ePDU13"));
+    assert (streq (bios_proto_element_src (brecv), "ePDU13"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #15.3: evaluate it again
+    m = bios_proto_encode_metric (
+            NULL, "status.ups", "ROZ.UPS33", "42.00", "", -1);
+    mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
+
+    recv = mlm_client_recv (consumer);
+
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "too_high-ROZ.ePDU13"));
+    assert (streq (bios_proto_element_src (brecv), "ePDU13"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
     // no new alert sent here
 
     zactor_destroy (&ag_server);
