@@ -160,7 +160,7 @@ public:
         return std::vector<std::string>{_rex_str};
     };
 
-    friend Rule* readRule (std::istream &f);
+    friend int readRule (std::istream &f, Rule **rule);
 
 protected:
 

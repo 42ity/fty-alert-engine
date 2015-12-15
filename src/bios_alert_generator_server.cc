@@ -655,7 +655,7 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&foo);
     zmsg_destroy (&recv);
 
-    // Test case #2: add new rule
+    // Test case #2.1: add new rule
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
     char* simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
@@ -669,6 +669,27 @@ bios_alert_generator_server_test (bool verbose)
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // Test case #2.2: add new rule with existing name
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ALREADY_EXISTS"));
     zstr_free (&foo);
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
@@ -904,10 +925,10 @@ bios_alert_generator_server_test (bool verbose)
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "ERROR"));
-    auto foo2 = zmsg_popstr(recv);
-    assert (streq (foo2, "BAD_LUA"));
     zstr_free (&foo);
-    zstr_free (&foo2);
+    foo = zmsg_popstr(recv);
+    assert (streq (foo, "BAD_LUA"));
+    zstr_free (&foo);
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 
