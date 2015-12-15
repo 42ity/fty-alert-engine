@@ -117,7 +117,7 @@ std::set <std::string> AlertConfiguration::
             zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
             Rule *rule = NULL;
             int rv = readRule (f, &rule);
-            if ( rv == 0 ) {
+            if ( rv != 0 ) {
                 // rule can't be read correctly from the file
                 zsys_info ("nothing to do");
                 continue;
