@@ -24,29 +24,21 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "../include/alert_agent.h"
 
 // path to the directory, where rules are stored. Attention: without last slash!
-#define PATH "/var/lib/bios/alert_agent"
+static const char *PATH = "/var/lib/bios/alert_agent";
 
 // agents name
-#define AGENT_NAME "alert-agent"
+static const char *AGENT_NAME = "alert-agent";
 
 // malamute endpoint
-#define ENDPOINT "ipc://@/malamute"
+static const char *ENDPOINT = "ipc://@/malamute";
 
 
 int main (int argc, char** argv)
 {
-    if (argc > 3) {
-        zsys_error ("Usage: %s [malamute-endpiont] [config-path]", argv[0]);
-        exit (EXIT_FAILURE);
-    }
-
-    const char* path = ( argc == 3 ) ? PATH : argv[2];
-    const char* end_point = ( argc > 1 )? ENDPOINT : argv[1];
-
     zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) AGENT_NAME);
-    zstr_sendx (ag_server, "CONNECT", end_point, NULL);
+    zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
-    zstr_sendx (ag_server, "CONFIG", path, NULL);
+    zstr_sendx (ag_server, "CONFIG", PATH, NULL);
 
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license

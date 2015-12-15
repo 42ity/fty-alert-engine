@@ -139,7 +139,7 @@ public:
         return ( _metric == topic ? true : false );
     };
 
-    friend Rule* readRule (std::istream &f);
+    friend int readRule (std::istream &f, Rule **rule);
 
     std::vector<std::string> getNeededTopics(void) const {
         return {_metric};

@@ -38,9 +38,18 @@ class ThresholdRuleComplex : public LuaRule
 public:
 
     ThresholdRuleComplex(){};
+    /*
+     * \brief parse json and check lua and fill the object
+     *
+     * ATTENTION: throws, if bad JSON
+     *
+     * \return 1 if rule has other type
+     *         2 if lua function has errors
+     *         0 if everything is ok
+     */
     int fill(cxxtools::JsonDeserializer &json, const std::string &json_string);
 
-    friend Rule* readRule (std::istream &f);
+    friend int readRule (std::istream &f, Rule **rule);
 };
 
 

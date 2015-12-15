@@ -24,37 +24,36 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef SRC_ALERTCONFIGURATION_H
 #define SRC_ALERTCONFIGURATION_H
 
-#include "rule.h"
-#include "purealert.h"
 #include <istream>
 #include <string>
 #include <set>
 #include <vector>
 
-//http://en.cppreference.com/w/cpp/language/typeid
-//The header <typeinfo> must be included before using typeid
-#include <typeinfo>
+#include "rule.h"
+#include "purealert.h"
 
-// It tries to simply parse and read JSON
-Rule* readRule (std::istream &f);
+// It tries to parse and read JSON rules
+// \return 1 if rule has errors in json
+//         2 if lua function has errors
+//         0 if everything is ok
+int readRule (std::istream &f, Rule **rule);
 
 
-// Alert configuration is class that manage rules and evaruted alerts
+// Alert configuration is a class that manages rules and evaruted alerts
 //
 // ASSUMPTIONS:
 //  1. Rules are stored in files. One rule = one file
 //  2. File name is a rule name
-//  3. Files should have extention ".rule
+//  3. Files should have extention ".rule"
 //  4. Directory to the files is configurable. Cannot be changed without recompilation
-//  5. If rule has at least one mostake or broke any rule, it is ignored
-//  6. Rule name is unique string
-//
+//  5. If rule has at least one mistake or broke any other rule, it is ignored
+//  6. Rule name is unique
 //
 class AlertConfiguration{
 public:
 
     /*
-     * \brief Creates an empty rule-alert configuration
+     * \brief Creates an empty rule-alert configuration with empty path
      *
      */
     AlertConfiguration ()
@@ -62,7 +61,7 @@ public:
     {};
 
     /*
-     * \brief Creates an enpty rule-alert configuration
+     * \brief Creates an empty rule-alert configuration
      *
      * \param[in] @path - a directory where rules are stored
      */
@@ -78,8 +77,13 @@ public:
             delete oneRule;
     };
 
-    // returns list of topics to be consumed
-    // Reads rules from persistence
+    /*
+     * \brief Reads the configuration from persistence
+     *
+     * Set of topics is empty if there are no rules or there are some errors
+     *
+     * \return a set of topics to be consumed
+     */
     std::set <std::string> readConfiguration (void);
 
     std::vector<Rule*> getRules (void)
