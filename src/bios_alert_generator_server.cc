@@ -243,46 +243,54 @@ update_rule(
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
     Rule* newRule = NULL;
-    if ( ! ac.haveRule (rule_name) )
-    {
+    int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, &newRule);
+    zmsg_t *reply = zmsg_new ();
+    switch (rv) {
+    case -2:
         // ERROR rule doesn't exist
-        zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
-    }
-
-    int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, &newRule);
-    // TODO we are able to return more detailed info ( json or lua)!
-    if ( rv != 0 )
-    {
-        // ERROR during the rule updating
-        zmsg_t *reply = zmsg_new ();
+    case 0:
+        // rule was created succesfully
+        zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+        zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+        for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+            mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
+            zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+        }
+        // send a reply back
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, json_representation);
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        // send updated alert
+        send_alerts (client, alertsToSend, newRule);
+        return;
+    case -5:
+        // error during the rule creation (lua)
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "RULE_HAS_ERRORS");
+        zmsg_addstr (reply, "BAD_LUA");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         return;
-
+    case -3:
+        // rule with new rule name already exists
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ALREADY_EXISTS");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+    default:
+        // error during the rule creation
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_JSON");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
     }
-    // rule was updated succesfully
-    zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-    zsys_info ("alertsToSend count = %d", alertsToSend.size() );
-    for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-        mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-        zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
-    }
-
-    // send a reply back
-    zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "OK");
-    zmsg_addstr (reply, json_representation);
-    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-    zmsg_destroy (&reply);
-    // send updated alert
-    send_alerts (client, alertsToSend, newRule);
 }
 
 
@@ -708,6 +716,47 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&foo);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "all"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // Test case #2.3: existing rule: simplethreshold
+    //                 existing rule: simplethreshold2
+    //                 update simplethreshold2 with new name simplethreshold
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    simplethreshold_rule = s_readall ("testrules/simplethreshold2.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", "simplethreshold2");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ALREADY_EXISTS"));
     zstr_free (&foo);
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
