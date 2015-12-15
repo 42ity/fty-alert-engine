@@ -19,60 +19,73 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
+
+#include "alertconfiguration.h"
+
 #include "metriclist.h"
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
 #include "thresholdrulecomplex.h"
 #include "regexrule.h"
 
-#include "alertconfiguration.h"
-// It tries to simply parse and read JSON
-Rule* readRule (std::istream &f)
+int readRule (std::istream &f, Rule **rule)
 {
     // TODO check, that rule actions have unique names (in the rule)
     // TODO check, that values have unique name (in the rule)
-    // TODO check, that lua function is correct
-    Rule *rule = NULL;
     try {
         // TODO this appoach can cause, that "Json" repsesentation is HUGE file because of witespaces
         std::string json_string(std::istreambuf_iterator<char>(f), {});
         std::stringstream s(json_string);
         cxxtools::JsonDeserializer json(s);
         json.deserialize();
-        // TODO too complex method, need to split it
         // TODO not very good use of fill function. work in progress
 
-        Rule *rule = new RegexRule();
-        int rv = rule->fill (json, json_string);
+        *rule = new RegexRule();
+        int rv = (*rule)->fill (json, json_string);
         if ( rv == 0 )
-            return rule;
-        delete rule;
+            return 0;
+        if ( rv == 2 ) {
+            delete (*rule);
+            return 2;
+        }
+        delete (*rule);
         
-        rule = new ThresholdRuleSimple();
-        rv = rule->fill (json, json_string);
+        *rule = new ThresholdRuleSimple();
+        rv = (*rule)->fill (json, json_string);
         if ( rv == 0 )
-            return rule;
-        delete rule; 
+            return 0;
+        if ( rv == 2 ) {
+            delete (*rule);
+            return 2;
+        }
+        delete (*rule); 
 
-        rule = new ThresholdRuleComplex();
-        rv = rule->fill (json, json_string);
+        *rule = new ThresholdRuleComplex();
+        rv = (*rule)->fill (json, json_string);
         if ( rv == 0 )
-            return rule;
-        delete rule; 
+            return 0;
+        if ( rv == 2 ) {
+            delete (*rule);
+            return 2;
+        }
+        delete (*rule); 
 
-        rule = new NormalRule();
-        rv = rule->fill (json, json_string);
+        *rule = new NormalRule();
+        rv = (*rule)->fill (json, json_string);
         if ( rv == 0 )
-            return rule;
-        delete rule; 
+            return 0;
+        if ( rv == 2 ) {
+            delete (*rule);
+            return 2;
+        }
+        delete (*rule); 
 
-        zsys_error ("Cannot detect type of the rule, ignore it");
-        return NULL;
+        throw std::runtime_error("Cannot detect type of the rule");
     }
     catch ( const std::exception &e) {
         zsys_error ("Cannot parse JSON, ignore it. %s", e.what());
-        delete rule;
-        return NULL;
+        delete (*rule);
+        return 1;
     }
 }
 
@@ -102,8 +115,9 @@ std::set <std::string> AlertConfiguration::
             // read rule from the file
             std::ifstream f(d.path() + "/" + fn);
             zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
-            Rule *rule = readRule (f);
-            if ( rule == NULL ) {
+            Rule *rule = NULL;
+            int rv = readRule (f, &rule);
+            if ( rv == 0 ) {
                 // rule can't be read correctly from the file
                 zsys_info ("nothing to do");
                 continue;
@@ -151,10 +165,14 @@ int AlertConfiguration::
     assert (newRule);
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
     // TODO memory leak
-    *newRule = readRule (newRuleString);
-    if ( *newRule == NULL ) {
-        zsys_info ("nothing to update");
+    int rv = readRule (newRuleString, newRule);
+    if ( rv == 1 ) {
+        zsys_info ("nothing created, json error");
         return -1;
+    }
+    if ( rv == 2 ) {
+        zsys_info ("nothing created, lua error");
+        return -5;
     }
     if ( haveRule (*newRule) ) {
         zsys_info ("rule already exists");
@@ -187,10 +205,14 @@ int AlertConfiguration::
     assert (newRule);
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
     // TODO memory leak
-    *newRule = readRule (newRuleString);
-    if ( *newRule == NULL ) {
-        zsys_info ("nothing to update");
+    int rv = readRule (newRuleString, newRule);
+    if ( rv == 1 ) {
+        zsys_info ("nothing to update, json error");
         return -1;
+    }
+    if ( rv == 1 ) {
+        zsys_info ("nothing to update, lua error");
+        return -5;
     }
     // need to find out if rule exists already or not
     if ( !haveRule (old_name) )

@@ -40,10 +40,15 @@ public:
         _rex = NULL;
     };
 
-    // throws -> it is pattern but with errors
-    // 0 - ok
-    // 1 - it is not pattern rule
-    // TODO json string is bad idea, redo to serialization in future
+    /*
+     * \brief parse json and check lua and fill the object
+     *
+     * ATTENTION: throws, if bad JSON
+     *
+     * \return 1 if rule has other type
+     *         2 if lua function has errors
+     *         0 if everything is ok
+     */
     int fill(cxxtools::JsonDeserializer &json, const std::string &json_string)
     {
         const cxxtools::SerializationInfo *si = json.si();
@@ -77,10 +82,16 @@ public:
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
-        
+
         std::string tmp;
         pattern.getMember("evaluation") >>= tmp;
-        code(tmp);
+        try {
+            code(tmp);
+        }
+        catch ( const std::exception &e ) {
+            zsys_warning ("something with lua function: %s", e.what());
+            return 2;
+        }
         // TODO what if regexp is not correct?
         _rex = zrex_new(_rex_str.c_str());
         _json_representation = json_string;

@@ -36,6 +36,15 @@ class NormalRule : public LuaRule
 public:
     NormalRule(){};
 
+    /*
+     * \brief parse json and check lua and fill the object
+     *
+     * ATTENTION: throws, if bad JSON
+     *
+     * \return 1 if rule has other type
+     *         2 if lua function has errors
+     *         0 if everything is ok
+     */
     int fill(cxxtools::JsonDeserializer &json, const std::string &json_string)
     {
         const cxxtools::SerializationInfo *si = json.si();
@@ -82,12 +91,17 @@ public:
 
         std::string tmp;
         single.getMember("evaluation") >>= tmp;
-        code(tmp);
-
+        try {
+            code(tmp);
+        }
+        catch ( const std::exception &e ) {
+            zsys_warning ("something with lua function: %s", e.what());
+            return 2;
+        }
         return 0;
     }
 
-    friend Rule* readRule (std::istream &f);
+    friend int readRule (std::istream &f, Rule **rule);
 
 };
 

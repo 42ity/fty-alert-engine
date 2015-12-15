@@ -56,7 +56,7 @@ int ThresholdRuleComplex::
     threshold.getMember("rule_name") >>= _name;
     threshold.getMember("element") >>= _element;
     // values
-    // TODO check low_critical < low_warnong < high_warning < hign crtical
+    // TODO check low_critical < low_warning < high_warning < high_critical
     std::map<std::string,double> tmp_values;
     auto values = threshold.getMember("values");
     if ( values.category () != cxxtools::SerializationInfo::Array ) {
@@ -76,7 +76,13 @@ int ThresholdRuleComplex::
 
     std::string tmp;
     threshold.getMember("evaluation") >>= tmp;
-    code(tmp);
+    try {
+        code(tmp);
+    }
+    catch ( const std::exception &e ) {
+        zsys_warning ("something with lua function: %s", e.what());
+        return 2;
+    }
 
     return 0;
 }

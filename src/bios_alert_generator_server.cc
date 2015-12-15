@@ -213,6 +213,14 @@ add_rule(
         // send updated alert
         send_alerts (client, alertsToSend, newRule);
         return;
+    case -5:
+        // error during the rule creation (lua)
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_LUA");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zmsg_destroy (&reply);
+        return;
+
     default:
         // error during the rule creation
         zmsg_addstr (reply, "ERROR");
@@ -247,6 +255,7 @@ update_rule(
     }
 
     int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, &newRule);
+    // TODO we are able to return more detailed info ( json or lua)!
     if ( rv != 0 )
     {
         // ERROR during the rule updating
