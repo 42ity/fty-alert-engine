@@ -1,0 +1,11 @@
+{
+    "single" : {
+        "rule_name"     :   "too_high-ROZ.ePDU13",
+        "target"        :   ["status.ups@ROZ.UPS33"],
+        "element"       :   "ePDU13",
+        "results"       :   [ {"high_critical"  : { "action" : ["EMAIL"], "severity" : "CRITICAL", "description" : "RES HIGH CRITICAL ePDU13" }},
+                              {"high_warning"  : { "action" : ["EMAIL"],       "severity" : "WARNING" , "description" : "RES r2"}}
+                            ],
+        "evaluation"    : "function main(x) return HIGH_CRITICAL end"
+    }
+}
