@@ -889,7 +889,6 @@ bios_alert_generator_server_test (bool verbose)
             NULL, "status.ups", "5PX1500-01", "1032.000", "", -1);
     mlm_client_send (producer, "status.ups@5PX1500-01", &m);
 
- 
     // Test case #14: add new rule, but with lua syntax error
     rule = zmsg_new();
     assert(rule);
@@ -912,11 +911,7 @@ bios_alert_generator_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 
-    printf ("OK\n");
-
-
-
-       // no new alert sent here
+    // no new alert sent here
 
     zactor_destroy (&ag_server);
     mlm_client_destroy (&ui);
@@ -924,5 +919,6 @@ bios_alert_generator_server_test (bool verbose)
     mlm_client_destroy (&producer);
     zactor_destroy (&server);
     //  @end
+    printf ("OK\n");
 
 }
