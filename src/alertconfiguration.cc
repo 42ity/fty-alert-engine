@@ -210,7 +210,7 @@ int AlertConfiguration::
         zsys_info ("nothing to update, json error");
         return -1;
     }
-    if ( rv == 1 ) {
+    if ( rv == 2 ) {
         zsys_info ("nothing to update, lua error");
         return -5;
     }
