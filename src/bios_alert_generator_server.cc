@@ -254,7 +254,7 @@ update_rule(
         zmsg_destroy (&reply);
         return;
     case 0:
-        // rule was created succesfully
+        // rule was updated succesfully
         zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
         zsys_info ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
@@ -608,6 +608,7 @@ s_readall (const char* filename) {
     free (ret);
     return NULL;
 }
+
 
 void
 bios_alert_generator_server_test (bool verbose)
@@ -1067,8 +1068,6 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&foo);
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
-
-    
 
     // no new alert sent here
 
