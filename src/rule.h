@@ -87,7 +87,7 @@ public:
 
     void name (const std::string &name) { _name = name; }
 
-    virtual int fill(cxxtools::JsonDeserializer &json, const std::string &json_string) {
+    virtual int fill(cxxtools::JsonDeserializer &json) {
         throw std::runtime_error("Method not supported by this type of rule");
     }
 

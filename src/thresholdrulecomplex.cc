@@ -23,16 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  */
 
 #include <czmq.h>
+#include <sstream>
+
 #include "thresholdrulecomplex.h"
-extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
-}
 
 int ThresholdRuleComplex::
     fill(
-        cxxtools::JsonDeserializer &json,
-        const std::string &json_string)
+        cxxtools::JsonDeserializer &json)
 {
     const cxxtools::SerializationInfo *si = json.si();
     if ( si->findMember("threshold") == NULL ) {
@@ -52,7 +49,14 @@ int ThresholdRuleComplex::
     zsys_info ("it is complex threshold rule");
 
     target >>= _metrics;
-    _json_representation = json_string;
+    
+    // serialize to json, so we have actual json without the trash
+    std::stringstream output_json;
+    cxxtools::JsonSerializer serializer(output_json);
+    serializer.beautify(false);   // not so nice to read, but very compact
+    serializer.serialize((*si));
+    output_json >> _json_representation;
+
     threshold.getMember("rule_name") >>= _name;
     threshold.getMember("element") >>= _element;
     // values

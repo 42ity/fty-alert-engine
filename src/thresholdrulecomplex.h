@@ -47,7 +47,7 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(cxxtools::JsonDeserializer &json, const std::string &json_string);
+    int fill(cxxtools::JsonDeserializer &json);
 
     friend int readRule (std::istream &f, Rule **rule);
 };

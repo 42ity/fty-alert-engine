@@ -1031,6 +1031,45 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
+    // Test case #16.1: add new rule, with the trash at the end
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* rule_with_trash = s_readall ("testrules/rule_with_trash.rule");
+    assert (rule_with_trash);
+    zmsg_addstrf (rule, "%s", rule_with_trash);
+    zstr_free (&rule_with_trash);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // Test case #16.2: add new rule, GET the rule with trash
+    command = zmsg_new ();
+    zmsg_addstrf (command, "%s", "GET");
+    zmsg_addstrf (command, "%s", "rule_with_trash");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    std::string expected_json = "{\"threshold\":{\"rule_name\":\"rule_with_trash\",\"target\":[\"abc@fff1\"],\"element\":\"fff\",\"values\":[{\"low_critical\":\"30\"}],\"results\":[{\"low_critical\":{\"action\":[\"EMAIL\",\"SMS\"],\"description\":\"WOW low critical description\"}}],\"evaluation\":\"function main(abc_fff) return OK end\"}}";
+    assert ( expected_json.compare(foo) );
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    
+
     // no new alert sent here
 
     zactor_destroy (&ag_server);
