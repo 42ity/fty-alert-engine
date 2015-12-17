@@ -37,7 +37,7 @@ public:
     // 0 - ok
     // 1 - it is not pattern rule
     // TODO json string is bad idea, redo to serialization in future
-    int fill(cxxtools::JsonDeserializer &json, const std::string &json_string)
+    int fill(cxxtools::JsonDeserializer &json)
     {
         const cxxtools::SerializationInfo *si = json.si();
         if ( si->findMember("threshold") == NULL ) {
@@ -57,7 +57,13 @@ public:
         zsys_info ("it is simple threshold rule");
 
         target >>= _metric;
-        _json_representation = json_string;
+        // serialize to json, so we have actual json without the trash
+        std::stringstream output_json;
+        cxxtools::JsonSerializer serializer(output_json);
+        serializer.beautify(false);   // not so nice to read, but very compact
+        serializer.serialize((*si));
+        output_json >> _json_representation;
+
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
         // values

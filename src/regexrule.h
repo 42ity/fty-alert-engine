@@ -49,7 +49,7 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(cxxtools::JsonDeserializer &json, const std::string &json_string)
+    int fill(cxxtools::JsonDeserializer &json)
     {
         const cxxtools::SerializationInfo *si = json.si();
         if ( si->findMember("pattern") == NULL ) {
@@ -94,7 +94,13 @@ public:
         }
         // TODO what if regexp is not correct?
         _rex = zrex_new(_rex_str.c_str());
-        _json_representation = json_string;
+        // serialize to json, so we have actual json without the trash
+        std::stringstream output_json;
+        cxxtools::JsonSerializer serializer(output_json);
+        serializer.beautify(false);   // not so nice to read, but very compact
+        serializer.serialize((*si));
+        output_json >> _json_representation;
+
         return 0;
     };
 

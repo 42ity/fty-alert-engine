@@ -41,7 +41,7 @@ int readRule (std::istream &f, Rule **rule)
         // TODO not very good use of fill function. work in progress
 
         *rule = new RegexRule();
-        int rv = (*rule)->fill (json, json_string);
+        int rv = (*rule)->fill (json);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
@@ -49,36 +49,36 @@ int readRule (std::istream &f, Rule **rule)
             return 2;
         }
         delete (*rule);
-        
+
         *rule = new ThresholdRuleSimple();
-        rv = (*rule)->fill (json, json_string);
+        rv = (*rule)->fill (json);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
             delete (*rule);
             return 2;
         }
-        delete (*rule); 
+        delete (*rule);
 
         *rule = new ThresholdRuleComplex();
-        rv = (*rule)->fill (json, json_string);
+        rv = (*rule)->fill (json);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
             delete (*rule);
             return 2;
         }
-        delete (*rule); 
+        delete (*rule);
 
         *rule = new NormalRule();
-        rv = (*rule)->fill (json, json_string);
+        rv = (*rule)->fill (json);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
             delete (*rule);
             return 2;
         }
-        delete (*rule); 
+        delete (*rule);
 
         throw std::runtime_error("Cannot detect type of the rule");
     }
@@ -103,7 +103,7 @@ std::set <std::string> AlertConfiguration::
         // every rule at the beggining has empty set of alerts
         std::vector<PureAlert> emptyAlerts{};
         for ( const auto &fn : d) {
-            
+
             // we are interested only in files with names "*.rule"
             if ( fn.length() < 5 ) {
                 continue;
