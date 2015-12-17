@@ -62,7 +62,7 @@ public:
         cxxtools::JsonSerializer serializer(output_json);
         serializer.beautify(false);   // not so nice to read, but very compact
         serializer.serialize((*si));
-        output_json >> _json_representation;
+        _json_representation = output_json.str();
 
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
