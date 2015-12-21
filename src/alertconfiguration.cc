@@ -30,13 +30,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int readRule (std::istream &f, Rule **rule)
 {
+    *rule = NULL;
     // TODO check, that rule actions have unique names (in the rule)
     // TODO check, that values have unique name (in the rule)
     try {
-        // TODO this appoach can cause, that "Json" repsesentation is HUGE file because of witespaces
-        std::string json_string(std::istreambuf_iterator<char>(f), {});
-        std::stringstream s(json_string);
-        cxxtools::JsonDeserializer json(s);
+        cxxtools::JsonDeserializer json(f);
         json.deserialize();
         // TODO not very good use of fill function. work in progress
 
@@ -80,7 +78,8 @@ int readRule (std::istream &f, Rule **rule)
         }
         delete (*rule);
 
-        throw std::runtime_error("Cannot detect type of the rule");
+        zsys_error ("Cannot detect type of the rule");
+        return 1;
     }
     catch ( const std::exception &e) {
         zsys_error ("Cannot parse JSON, ignore it. %s", e.what());
