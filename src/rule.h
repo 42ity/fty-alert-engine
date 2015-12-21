@@ -203,12 +203,17 @@ public:
      */
     void save (const std::string &path) {
         // ASSUMPTION: file name is the same as rule name
-        // rule name and file name are CASE SENSITIVE.
+        // rule name and file name are CASE INSENSITIVE.
 
         std::string full_name = path + _name + ".rule";
         zsys_info ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
-        ofs << _json_representation;
+        if ( !ofs.good() ) {
+            zsys_error ("Cannot save the file, changes will disappear after agent restart");
+        }
+        else {
+            ofs << _json_representation;
+        }
         ofs.close();
         return;
     };
