@@ -25,7 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define SRC_THRESHOLDRULESIMPLE_H
 
 #include "rule.h"
-#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/serializationinfo.h>
 
 class ThresholdRuleSimple : public Rule
 {
@@ -36,14 +36,13 @@ public:
     // throws -> it is pattern but with errors
     // 0 - ok
     // 1 - it is not pattern rule
-    // TODO json string is bad idea, redo to serialization in future
-    int fill(cxxtools::JsonDeserializer &json)
+    int fill(const cxxtools::SerializationInfo &si)
     {
-        const cxxtools::SerializationInfo *si = json.si();
-        if ( si->findMember("threshold") == NULL ) {
+        _si = si;
+        if ( si.findMember("threshold") == NULL ) {
             return 1;
         }
-        auto threshold = si->getMember("threshold");
+        auto threshold = si.getMember("threshold");
         if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
             zsys_info ("Root of json must be an object with property 'threshold'.");
             throw std::runtime_error("Root of json must be an object with property 'threshold'.");
@@ -57,13 +56,6 @@ public:
         zsys_info ("it is simple threshold rule");
 
         target >>= _metric;
-        // serialize to json, so we have actual json without the trash
-        std::stringstream output_json;
-        cxxtools::JsonSerializer serializer(output_json);
-        serializer.beautify(false);   // not so nice to read, but very compact
-        serializer.serialize((*si));
-        _json_representation = output_json.str();
-
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
         // values

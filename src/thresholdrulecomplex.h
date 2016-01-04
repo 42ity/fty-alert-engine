@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // used for zsys
 
 #include <czmq.h>
-#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/serializationinfo.h>
 #include "luarule.h"
 extern "C" {
 #include <lua.h>
@@ -47,7 +47,7 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(cxxtools::JsonDeserializer &json);
+    virtual int fill(const cxxtools::SerializationInfo &si);
 
     friend int readRule (std::istream &f, Rule **rule);
 };
