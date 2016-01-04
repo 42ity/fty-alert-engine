@@ -70,14 +70,6 @@ public:
     {};
 
     /*
-     * \brief Destroys alert configuration
-     */
-    ~AlertConfiguration() {
-        for ( auto &oneRule : _configs )
-            delete oneRule;
-    };
-
-    /*
      * \brief Reads the configuration from persistence
      *
      * Set of topics is empty if there are no rules or there are some errors
@@ -88,7 +80,11 @@ public:
 
     std::vector<Rule*> getRules (void)
     {
-        return _configs;
+        std::vector<Rule*> ret;
+        for (const auto &i : _alerts) {
+            ret.push_back (i.first);
+        }
+        return ret;
     };
 
     void setPath (const char* path) {
@@ -117,7 +113,8 @@ public:
     };
 
     bool haveRule (const std::string &rule_name) const {
-        for ( const auto &oneKnownRule: _configs ) {
+        for ( const auto &i: _alerts ) {
+            const auto &oneKnownRule = i.first;
             if ( oneKnownRule->hasSameNameAs(rule_name) )
                 return true;
         }
@@ -149,8 +146,6 @@ public:
 private:
     // TODO it is bad implementation, any improvements are welcome
     std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
-
-    std::vector <Rule*> _configs;
 
     // directory, where rules are stored
     std::string _path;
