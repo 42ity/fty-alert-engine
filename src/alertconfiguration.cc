@@ -34,12 +34,24 @@ int readRule (std::istream &f, Rule **rule)
     // TODO check, that rule actions have unique names (in the rule)
     // TODO check, that values have unique name (in the rule)
     try {
-        cxxtools::JsonDeserializer json(f);
-        json.deserialize();
-        // TODO not very good use of fill function. work in progress
+        cxxtools::SerializationInfo si2;
+        {
+            std::string json_string(std::istreambuf_iterator<char>(f), {});
+            std::stringstream s(json_string);
+            cxxtools::JsonDeserializer json(s);
+            json.deserialize(si2);
+            if (si2.memberCount () == 0)
+                throw std::runtime_error ("empty input json document");
+        }
+
+        //MVY: SerializationInfo can contain more items, which is not what we
+        //     want, pick the first one
+        cxxtools::SerializationInfo si;
+        si.addMember ("") <<= si2.getMember (0);
 
         *rule = new RegexRule();
-        int rv = (*rule)->fill (json);
+        int rv = (*rule)->fill (si);
+
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
@@ -49,7 +61,7 @@ int readRule (std::istream &f, Rule **rule)
         delete (*rule);
 
         *rule = new ThresholdRuleSimple();
-        rv = (*rule)->fill (json);
+        rv = (*rule)->fill (si);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
@@ -59,7 +71,7 @@ int readRule (std::istream &f, Rule **rule)
         delete (*rule);
 
         *rule = new ThresholdRuleComplex();
-        rv = (*rule)->fill (json);
+        rv = (*rule)->fill (si);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {
@@ -69,7 +81,7 @@ int readRule (std::istream &f, Rule **rule)
         delete (*rule);
 
         *rule = new NormalRule();
-        rv = (*rule)->fill (json);
+        rv = (*rule)->fill (si);
         if ( rv == 0 )
             return 0;
         if ( rv == 2 ) {

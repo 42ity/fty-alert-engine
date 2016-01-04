@@ -27,15 +27,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "thresholdrulecomplex.h"
 
-int ThresholdRuleComplex::
-    fill(
-        cxxtools::JsonDeserializer &json)
+int ThresholdRuleComplex::fill(
+        const cxxtools::SerializationInfo &si)
 {
-    const cxxtools::SerializationInfo *si = json.si();
-    if ( si->findMember("threshold") == NULL ) {
+    _si = si;
+    if ( si.findMember("threshold") == NULL ) {
         return 1;
     }
-    auto threshold = si->getMember("threshold");
+    auto threshold = si.getMember("threshold");
     if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
         zsys_info ("Root of json must be an object with property 'threshold'.");
         throw std::runtime_error("Root of json must be an object with property 'threshold'.");
@@ -49,14 +48,6 @@ int ThresholdRuleComplex::
     zsys_info ("it is complex threshold rule");
 
     target >>= _metrics;
-    
-    // serialize to json, so we have actual json without the trash
-    std::stringstream output_json;
-    cxxtools::JsonSerializer serializer(output_json);
-    serializer.beautify(false);   // not so nice to read, but very compact
-    serializer.serialize((*si));
-    _json_representation = output_json.str();
-
     threshold.getMember("rule_name") >>= _name;
     threshold.getMember("element") >>= _element;
     // values

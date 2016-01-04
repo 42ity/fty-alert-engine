@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef SRC_NORMALRULE_H
 #define SRC_NORMALRULE_H
 
-#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/serializationinfo.h>
 #include "luarule.h"
 extern "C" {
 #include <lua.h>
@@ -45,14 +45,14 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(cxxtools::JsonDeserializer &json)
+    int fill(const cxxtools::SerializationInfo &si)
     {
-        const cxxtools::SerializationInfo *si = json.si();
-        if ( si->findMember("single") == NULL ) {
+        _si = si;
+        if ( si.findMember("single") == NULL ) {
             return 1;
         }
         zsys_info ("it is SINGLE rule");
-        auto single = si->getMember("single");
+        auto single = si.getMember("single");
         if ( single.category () != cxxtools::SerializationInfo::Object ) {
             zsys_info ("Root of json must be an object with property 'single'.");
             throw std::runtime_error("Root of json must be an object with property 'single'.");
@@ -65,14 +65,6 @@ public:
             throw std::runtime_error ("property 'target' in json must be an Array");
         }
         target >>= _metrics;
-
-        // serialize to json, so we have actual json without the trash
-        std::stringstream output_json;
-        cxxtools::JsonSerializer serializer(output_json);
-        serializer.beautify(false);   // not so nice to read, but very compact
-        serializer.serialize((*si));
-        _json_representation = output_json.str();
-
         single.getMember("rule_name") >>= _name;
         single.getMember("element") >>= _element;
         // values

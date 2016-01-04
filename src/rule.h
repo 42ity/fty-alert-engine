@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define SRC_RULE_H
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -87,9 +88,7 @@ public:
 
     void name (const std::string &name) { _name = name; }
 
-    virtual int fill(cxxtools::JsonDeserializer &json) {
-        throw std::runtime_error("Method not supported by this type of rule");
-    }
+    virtual int fill(const cxxtools::SerializationInfo &si) = 0;
 
     virtual void globalVariables (const std::map<std::string,double> &vars) {
         _variables.clear ();
@@ -195,7 +194,11 @@ public:
      * \return json representation of the rule as string
      */
     std::string getJsonRule (void) const {
-        return _json_representation;
+        std::stringstream s;
+        cxxtools::JsonSerializer js (s);
+        js.beautify (true);
+        js.serialize (_si).finish();
+        return s.str();
     };
 
     /*
@@ -212,7 +215,7 @@ public:
             zsys_error ("Cannot save the file, changes will disappear after agent restart");
         }
         else {
-            ofs << _json_representation;
+            ofs << getJsonRule ();
         }
         ofs.close();
         return;
@@ -255,7 +258,6 @@ protected:
      */
     std::vector<std::string> _metrics;
 
-
     /*
      * \brief Every rule should have a rule name
      *
@@ -266,7 +268,7 @@ protected:
      */
     std::string _name;
 
-    std::string _json_representation;
+    cxxtools::SerializationInfo _si;
 
     /*
      * \brief User cannot construct object of abstract entity

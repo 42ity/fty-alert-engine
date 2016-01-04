@@ -27,7 +27,6 @@ extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
-#include <cxxtools/jsondeserializer.h>
 // because of regex and zsysinfo
 #include <czmq.h>
 #include "luarule.h"
@@ -49,14 +48,14 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(cxxtools::JsonDeserializer &json)
+    int fill(const cxxtools::SerializationInfo &si)
     {
-        const cxxtools::SerializationInfo *si = json.si();
-        if ( si->findMember("pattern") == NULL ) {
+        _si = si;
+        if ( si.findMember("pattern") == NULL ) {
             return 1;
         }
         zsys_info ("it is PATTERN rule");
-        auto pattern = si->getMember("pattern");
+        auto pattern = si.getMember("pattern");
         if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
             zsys_info ("Root of json must be an object with property 'pattern'.");
             throw std::runtime_error("Root of json must be an object with property 'pattern'.");
@@ -94,13 +93,6 @@ public:
         }
         // TODO what if regexp is not correct?
         _rex = zrex_new(_rex_str.c_str());
-        // serialize to json, so we have actual json without the trash
-        std::stringstream output_json;
-        cxxtools::JsonSerializer serializer(output_json);
-        serializer.beautify(false);   // not so nice to read, but very compact
-        serializer.serialize((*si));
-        _json_representation = output_json.str();
-
         return 0;
     };
 
