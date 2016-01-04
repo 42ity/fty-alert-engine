@@ -35,6 +35,7 @@
 #include <malamute.h>
 #include <bios_proto.h>
 #include <math.h>
+#include <functional>
 
 #include "rule.h"
 #include "normalrule.h"
@@ -65,20 +66,19 @@ list_rules(
     zsys_info ("Give me the list of rules with type = '%s'", type);
     std::vector<Rule*> rules;
 
+    std::function<bool(Rule*)> filter_f;
+
     if (streq (type,"all")) {
-        rules = ac.getRules();
+        filter_f = [](Rule* r) {return r != NULL; };
     }
     else if (streq (type,"threshold")) {
-        // actually we have 2 slightly different threshold rules
-        rules = ac.getRulesByType (typeid (ThresholdRuleSimple));
-        std::vector<Rule *> rules1 = ac.getRulesByType (typeid (ThresholdRuleComplex));
-        rules.insert (rules.begin(), rules1.begin(), rules1.end());
+        filter_f = [](Rule* r) {return r != NULL && (typeid (ThresholdRuleSimple) == typeid (r) || typeid (ThresholdRuleComplex) == typeid (r)); };
     }
     else if (streq (type,"single")) {
-        rules = ac.getRulesByType (typeid (NormalRule));
+        filter_f = [](Rule* r) {return r != NULL && typeid (NormalRule) == typeid (r); };
     }
     else if (streq (type,"pattern")) {
-        rules = ac.getRulesByType (typeid (RegexRule));
+        filter_f = [](Rule* r) {return r != NULL && typeid (RegexRule) == typeid (r); };
     }
     else {
         //invalid type
@@ -93,7 +93,10 @@ list_rules(
     assert (reply);
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type);
-    for (auto rule: rules) {
+    for (const auto &i: ac) {
+        const auto &rule = i.first;
+        if (!filter_f(rule))
+            continue;
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
@@ -354,7 +357,8 @@ evaluate_metric(
     AlertConfiguration &ac)
 {
     // Go through all known rules, and try to evaluate them
-    for ( const auto &rule : ac.getRules() ) {
+    for ( const auto &i : ac ) {
+        const auto &rule = i.first;
         try {
             zsys_info(" # Check rule '%s'", rule->name().c_str());
             if ( !rule->isTopicInteresting (triggeringMetric.generateTopic())) {
