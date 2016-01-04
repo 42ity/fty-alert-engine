@@ -155,7 +155,6 @@ std::set <std::string> AlertConfiguration::
             }
             // add rule to the configuration
             _alerts.push_back (std::make_pair(rule, emptyAlerts));
-            _configs.push_back (rule);
             zsys_info ("file '%s' readed correctly", fn.c_str());
         }
     } catch( std::exception &e ){
@@ -191,7 +190,6 @@ int AlertConfiguration::
     }
     std::vector<PureAlert> emptyAlerts{};
     _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
-    _configs.push_back (*newRule);
     (*newRule)->save(getPersistencePath());
     // in any case we need to check new subjects
     for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
@@ -255,7 +253,8 @@ int AlertConfiguration::
         oneRuleAlerts.second.clear();
         // update rule
         // This part is ugly, as there are duplicate pointers
-        for ( auto &oneRule: _configs ) {
+        for ( auto &i: _alerts ) {
+            auto &oneRule = i.first;
             if ( oneRule->hasSameNameAs (old_name) ) {
                 // -- free memory used by oldone
                 int rv = oneRule->remove(getPersistencePath());
@@ -416,7 +415,8 @@ std::vector<Rule*> AlertConfiguration::
        cout << typeid( *pd ).name() << endl;   //prints "class Derived"
        */
     std::vector<Rule *> result;
-    for ( auto rule : _configs) {
+    for ( auto &i : _alerts) {
+        auto &rule = i.first;
         //zsys_info("T type '%s'", typeid(*rule).name() );
         if( type_id == typeid(Rule) || type_id == typeid(*rule) ) {
             result.push_back(rule);
@@ -431,7 +431,8 @@ Rule* AlertConfiguration::
 {
     // TODO: make some map of names to avoid o(n)?
     // Return iterator rather than pointer?
-    for (auto rule : _configs) {
+    for (auto &i : _alerts) {
+        auto &rule = i.first;
         if( rule->hasSameNameAs( name ) ) return rule;
     }
     return NULL;
