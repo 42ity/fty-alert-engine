@@ -78,14 +78,9 @@ public:
      */
     std::set <std::string> readConfiguration (void);
 
-    std::vector<Rule*> getRules (void)
-    {
-        std::vector<Rule*> ret;
-        for (const auto &i : _alerts) {
-            ret.push_back (i.first);
-        }
-        return ret;
-    };
+    // XXX: this exposes a lot of internal stuff - we need better iterators ...
+    std::vector <std::pair<Rule*, std::vector<PureAlert> > >::iterator begin() { return _alerts.begin(); }
+    std::vector <std::pair<Rule*, std::vector<PureAlert> > >::iterator end() { return _alerts.end(); }
 
     void setPath (const char* path) {
         _path = path;
