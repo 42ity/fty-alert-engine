@@ -576,7 +576,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 zstr_free (&param1);
                 zstr_free (&param2);
-                zstr_free (&param2);
+                zstr_free (&param3);
             }
             else
                 zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
