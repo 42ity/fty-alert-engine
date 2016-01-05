@@ -64,8 +64,6 @@ list_rules(
     AlertConfiguration &ac)
 {
     zsys_info ("Give me the list of rules with type = '%s'", type);
-    std::vector<Rule*> rules;
-
     std::function<bool(const RulePtr&)> filter_f;
 
     if (streq (type,"all")) {
@@ -86,11 +84,9 @@ list_rules(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INVALID_TYPE");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     }
     zmsg_t *reply = zmsg_new ();
-    assert (reply);
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type);
     for (const auto &i: ac) {
@@ -100,7 +96,6 @@ list_rules(
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-    zmsg_destroy( &reply );
 }
 
 static void
@@ -115,7 +110,6 @@ get_rule(
         if (rule->hasSameNameAs (name))
         {
             zmsg_t *reply = zmsg_new ();
-            assert (reply);
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, rule->getJsonRule().c_str());
             mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
@@ -199,7 +193,6 @@ add_rule(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ALREADY_EXISTS");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     case 0:
         // rule was created succesfully
@@ -214,7 +207,6 @@ add_rule(
         zmsg_addstr (reply, "OK");
         zmsg_addstr (reply, json_representation);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         // send updated alert
         send_alerts (client, alertsToSend, new_rule_it->first);
         return;
@@ -223,7 +215,6 @@ add_rule(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_LUA");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
 
     default:
@@ -231,7 +222,6 @@ add_rule(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_JSON");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     }
 }
@@ -256,7 +246,6 @@ update_rule(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     case 0:
         // rule was updated succesfully
@@ -270,7 +259,6 @@ update_rule(
         zmsg_addstr (reply, "OK");
         zmsg_addstr (reply, json_representation);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         // send updated alert
         send_alerts (client, alertsToSend, new_rule_it->first);
         return;
@@ -279,21 +267,18 @@ update_rule(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_LUA");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     case -3:
         // rule with new rule name already exists
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ALREADY_EXISTS");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     default:
         // error during the rule creation
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_JSON");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     }
 }
@@ -314,7 +299,6 @@ change_state(
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
         mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     }
 
@@ -335,7 +319,6 @@ change_state(
             zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
         }
         mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
         return;
     }
     // send a reply back
@@ -345,7 +328,6 @@ change_state(
     zmsg_addstr (reply, element_name);
     zmsg_addstr (reply, new_state);
     mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-    zmsg_destroy (&reply);
     // send updated alert
     send_alerts (client, {alertToSend}, rule_name);
 }
@@ -450,6 +432,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zstr_free (&pattern);
                 zstr_free (&stream);
             }
+            else
             if (streq (cmd, "CONFIG")) {
                 char* filename = zmsg_popstr (msg);
 
@@ -475,6 +458,8 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there is no messages
+        // TODO: probably alert also should be send every XXX seconds,
+        // even if no measurements were recieved
         zmsg_t *zmessage = mlm_client_recv (client);
         if ( zmessage == NULL ) {
             continue;
