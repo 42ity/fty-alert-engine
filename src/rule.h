@@ -243,8 +243,6 @@ public:
 
     virtual ~Rule () {};
 
-    friend int readRule (std::istream &f, Rule **rule);
-
 protected:
     /*
      * \brief Vector of metrics to be evaluated
