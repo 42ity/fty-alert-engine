@@ -522,6 +522,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
             }
+            bios_proto_destroy (&bmessage);
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
@@ -961,6 +962,8 @@ bios_alert_generator_server_test (bool verbose)
     foo = zmsg_popstr (recv);
     assert (streq (foo, "OK"));
     zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
 
     // #13.2 evaluate metric
     m = bios_proto_encode_metric (
@@ -1004,6 +1007,7 @@ bios_alert_generator_server_test (bool verbose)
     foo = zmsg_popstr (recv);
     assert (streq (foo, "OK"));
     zstr_free (&foo);
+    zmsg_destroy (&recv);
 
     // Test case #15.2: evaluate it
     m = bios_proto_encode_metric (
@@ -1038,6 +1042,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
+    zmsg_destroy (&recv);
 
     // Test case #16.1: add new rule, with the trash at the end
     rule = zmsg_new();
