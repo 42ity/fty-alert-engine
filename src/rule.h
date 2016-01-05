@@ -140,7 +140,7 @@ public:
      * \return 0 if evaluation was correct
      *         non 0 if there were some errors during the evaluation
      */
-    virtual int evaluate (const MetricList &metricList, PureAlert **pureAlert) = 0;
+    virtual int evaluate (const MetricList &metricList, PureAlert &pureAlert) = 0;
 
     /*
      * \brief Checks if topic is necessary for rule evaluation

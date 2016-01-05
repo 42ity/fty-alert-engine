@@ -39,13 +39,13 @@ class LuaRule : public Rule {
     void code (const std::string &newCode);
     std::string code () const { return _code; };
     void globalVariables (const std::map<std::string,double> &vars);
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert);
+    int evaluate (const MetricList &metricList, PureAlert &pureAlert);
     double luaEvaluate(const std::vector<double> &metrics);
     ~LuaRule () { if (_lstate) lua_close (_lstate); }
-    friend Rule* readRule (std::istream &f);
+    friend int readRule (std::istream &f, Rule** rule);
  protected:
     void _setGlobalVariablesToLUA();
-    
+
     bool _valid = false;
     lua_State *_lstate = NULL;
  private:
