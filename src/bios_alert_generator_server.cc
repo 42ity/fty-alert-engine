@@ -602,11 +602,13 @@ s_readall (const char* filename) {
     fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *ret = (char*) calloc (1, fsize * sizeof (char));
+    char *ret = (char*) malloc (fsize * sizeof (char) + 1);
     if (!ret)
         return NULL;
+    memset ((void*) ret, '\0', fsize * sizeof (char) + 1);
 
     size_t r = fread((void*) ret, 1, fsize, fp);
+    fclose (fp);
     if (r == fsize)
         return ret;
 
