@@ -33,7 +33,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <fstream>
 #include <iostream>
 #include <czmq.h>
-#include <memory>
 
 #include "purealert.h"
 #include "metriclist.h"
@@ -211,11 +210,15 @@ public:
             ofs << getJsonRule ();
         }
         ofs.close();
-        return;
     };
 
     /*
      * \brief Delete rule from the persistance
+     *
+     * \param[in] path - a path to files
+     *
+     * \return 0 on success
+     *         non-zero on error
      */
     int remove (const std::string &path) {
 
