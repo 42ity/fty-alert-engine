@@ -66,19 +66,19 @@ list_rules(
     zsys_info ("Give me the list of rules with type = '%s'", type);
     std::vector<Rule*> rules;
 
-    std::function<bool(Rule*)> filter_f;
+    std::function<bool(const RulePtr&)> filter_f;
 
     if (streq (type,"all")) {
-        filter_f = [](Rule* r) {return r != NULL; };
+        filter_f = [](const RulePtr &r) {return r != NULL; };
     }
     else if (streq (type,"threshold")) {
-        filter_f = [](Rule* r) {return r != NULL && (typeid (ThresholdRuleSimple) == typeid (r) || typeid (ThresholdRuleComplex) == typeid (r)); };
+        filter_f = [](const RulePtr &r) {return r != NULL && (typeid (ThresholdRuleSimple) == typeid (r) || typeid (ThresholdRuleComplex) == typeid (r)); };
     }
     else if (streq (type,"single")) {
-        filter_f = [](Rule* r) {return r != NULL && typeid (NormalRule) == typeid (r); };
+        filter_f = [](const RulePtr &r) {return r != NULL && typeid (NormalRule) == typeid (r); };
     }
     else if (streq (type,"pattern")) {
-        filter_f = [](Rule* r) {return r != NULL && typeid (RegexRule) == typeid (r); };
+        filter_f = [](const RulePtr &r) {return r != NULL && typeid (RegexRule) == typeid (r); };
     }
     else {
         //invalid type
@@ -110,22 +110,24 @@ get_rule(
     AlertConfiguration &ac)
 {
     zsys_info ("Give me the detailes about rule with rule_name = '%s'", name);
-    Rule *rule = ac.getRuleByName(name);
-    if(!rule) {
-        // rule doesn't exist
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "NOT_FOUND");
-        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        zmsg_destroy (&reply);
-        return;
+    for (const auto& i: ac) {
+        const auto &rule = i.first;
+        if (rule->hasSameNameAs (name))
+        {
+            zmsg_t *reply = zmsg_new ();
+            assert (reply);
+            zmsg_addstr (reply, "OK");
+            zmsg_addstr (reply, rule->getJsonRule().c_str());
+            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            return;
+        }
     }
+
     zmsg_t *reply = zmsg_new ();
-    assert (reply);
-    zmsg_addstr (reply, "OK");
-    zmsg_addstr (reply, rule->getJsonRule().c_str());
-    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-    zmsg_destroy( &reply );
+    zmsg_addstr (reply, "ERROR");
+    zmsg_addstr (reply, "NOT_FOUND");
+    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    return;
 }
 
 
@@ -174,7 +176,7 @@ static void
 send_alerts(
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
-    const Rule *rule)
+    const RulePtr &rule)
 {
     send_alerts (client, alertsToSend, rule->name());
 }
@@ -188,8 +190,8 @@ add_rule(
     std::istringstream f(json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
-    Rule* newRule = NULL;
-    int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, &newRule);
+    AlertConfiguration::iterator new_rule_it;
+    int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
     case -2:
@@ -214,7 +216,7 @@ add_rule(
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         // send updated alert
-        send_alerts (client, alertsToSend, newRule);
+        send_alerts (client, alertsToSend, new_rule_it->first);
         return;
     case -5:
         // error during the rule creation (lua)
@@ -245,8 +247,8 @@ update_rule(
     std::istringstream f(json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
-    Rule* newRule = NULL;
-    int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, &newRule);
+    AlertConfiguration::iterator new_rule_it;
+    int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
     case -2:
@@ -270,7 +272,7 @@ update_rule(
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         zmsg_destroy (&reply);
         // send updated alert
-        send_alerts (client, alertsToSend, newRule);
+        send_alerts (client, alertsToSend, new_rule_it->first);
         return;
     case -5:
         // error during the rule creation (lua)

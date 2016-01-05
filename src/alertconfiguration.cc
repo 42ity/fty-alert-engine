@@ -28,9 +28,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "thresholdrulecomplex.h"
 #include "regexrule.h"
 
-int readRule (std::istream &f, Rule **rule)
+int readRule (std::istream &f, RulePtr &rule)
 {
-    *rule = NULL;
+    rule.reset();
     // TODO check, that rule actions have unique names (in the rule)
     // TODO check, that values have unique name (in the rule)
     try {
@@ -49,53 +49,57 @@ int readRule (std::istream &f, Rule **rule)
         cxxtools::SerializationInfo si;
         si.addMember ("") <<= si2.getMember (0);
 
-        *rule = new RegexRule();
-        int rv = (*rule)->fill (si);
+        std::unique_ptr <Rule> temp_rule;
 
-        if ( rv == 0 )
-            return 0;
-        if ( rv == 2 ) {
-            delete (*rule);
-            return 2;
+        {
+            temp_rule = std::unique_ptr<Rule> {new RegexRule()};
+            int rv = temp_rule->fill (si);
+            if ( rv == 0 ) {
+                rule = std::move (temp_rule);
+                return 0;
+            }
+            if ( rv == 2 )
+                return 2;
         }
-        delete (*rule);
 
-        *rule = new ThresholdRuleSimple();
-        rv = (*rule)->fill (si);
-        if ( rv == 0 )
-            return 0;
-        if ( rv == 2 ) {
-            delete (*rule);
-            return 2;
+        {
+            temp_rule = std::unique_ptr<Rule> {new ThresholdRuleSimple()};
+            int rv = temp_rule->fill (si);
+            if ( rv == 0 ) {
+                rule = std::move (temp_rule);
+                return 0;
+            }
+            if ( rv == 2 )
+                return 2;
         }
-        delete (*rule);
 
-        *rule = new ThresholdRuleComplex();
-        rv = (*rule)->fill (si);
-        if ( rv == 0 )
-            return 0;
-        if ( rv == 2 ) {
-            delete (*rule);
-            return 2;
+        {
+            temp_rule = std::unique_ptr<Rule> {new ThresholdRuleComplex()};
+            int rv = temp_rule->fill (si);
+            if ( rv == 0 ) {
+                rule = std::move (temp_rule);
+                return 0;
+            }
+            if ( rv == 2 )
+                return 2;
         }
-        delete (*rule);
 
-        *rule = new NormalRule();
-        rv = (*rule)->fill (si);
-        if ( rv == 0 )
-            return 0;
-        if ( rv == 2 ) {
-            delete (*rule);
-            return 2;
+        {
+            temp_rule = std::unique_ptr<Rule> {new NormalRule()};
+            int rv = temp_rule->fill (si);
+            if ( rv == 0 ) {
+                rule = std::move (temp_rule);
+                return 0;
+            }
+            if ( rv == 2 )
+                return 2;
         }
-        delete (*rule);
 
         zsys_error ("Cannot detect type of the rule");
         return 1;
     }
     catch ( const std::exception &e) {
         zsys_error ("Cannot parse JSON, ignore it. %s", e.what());
-        delete (*rule);
         return 1;
     }
 }
@@ -126,8 +130,8 @@ std::set <std::string> AlertConfiguration::
             // read rule from the file
             std::ifstream f(d.path() + "/" + fn);
             zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
-            Rule *rule = NULL;
-            int rv = readRule (f, &rule);
+            std::unique_ptr<Rule> rule;
+            int rv = readRule (f, rule);
             if ( rv != 0 ) {
                 // rule can't be read correctly from the file
                 zsys_info ("nothing to do");
@@ -138,14 +142,12 @@ std::set <std::string> AlertConfiguration::
             // If they are different ignore this rule
             if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
                 zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
-                delete rule;
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if ( haveRule (rule) ) {
                 zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
-                delete rule;
                 continue;
             }
 
@@ -154,7 +156,7 @@ std::set <std::string> AlertConfiguration::
                 result.insert (interestedTopic);
             }
             // add rule to the configuration
-            _alerts.push_back (std::make_pair(rule, emptyAlerts));
+            _alerts.push_back (std::make_pair(std::move(rule), emptyAlerts));
             zsys_info ("file '%s' readed correctly", fn.c_str());
         }
     } catch( std::exception &e ){
@@ -169,13 +171,13 @@ int AlertConfiguration::
         std::istream &newRuleString,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
-        Rule** newRule)
+        AlertConfiguration::iterator &it)
 {
-    // ASSUMPTION: function should be used as intended to be used
-    assert (newRule);
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
-    // TODO memory leak
-    int rv = readRule (newRuleString, newRule);
+    RulePtr temp_rule;
+    zsys_error ("before readRule: temp_rule: %x", temp_rule.get());
+    int rv = readRule (newRuleString, temp_rule);
+    zsys_error ("after readRule: temp_rule: %x", temp_rule.get());
     if ( rv == 1 ) {
         zsys_info ("nothing created, json error");
         return -1;
@@ -184,17 +186,21 @@ int AlertConfiguration::
         zsys_info ("nothing created, lua error");
         return -5;
     }
-    if ( haveRule (*newRule) ) {
+    zsys_error ("before haveRule: temp_rule: %x", temp_rule.get());
+    if ( haveRule (temp_rule) ) {
         zsys_info ("rule already exists");
         return -2;
     }
+    zsys_error ("after haveRule: temp_rule: %x", temp_rule.get());
+
     std::vector<PureAlert> emptyAlerts{};
-    _alerts.push_back (std::make_pair(*newRule, emptyAlerts));
-    (*newRule)->save(getPersistencePath());
+    temp_rule->save(getPersistencePath());
     // in any case we need to check new subjects
-    for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
+    for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
         newSubjectsToSubscribe.insert (interestedTopic);
     }
+    _alerts.push_back (std::make_pair(std::move(temp_rule), emptyAlerts));
+    it = _alerts.end() - 1;
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
@@ -208,10 +214,8 @@ int AlertConfiguration::
         const std::string &old_name,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
-        Rule** newRule)
+        AlertConfiguration::iterator &it)
 {
-    // ASSUMPTION: function should be used as intended to be used
-    assert (newRule);
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
     // need to find out if rule exists already or not
     if ( !haveRule (old_name) )
@@ -220,8 +224,8 @@ int AlertConfiguration::
         return -2;
     }
 
-    // TODO memory leak
-    int rv = readRule (newRuleString, newRule);
+    RulePtr temp_rule;
+    int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
         zsys_info ("nothing to update, json error");
         return -1;
@@ -231,12 +235,15 @@ int AlertConfiguration::
         return -5;
     }
     // need to find out if rule exists already or not
-    if ( ! (*newRule)->hasSameNameAs(old_name) && haveRule ((*newRule)->name()) )
+    if ( ! temp_rule->hasSameNameAs(old_name) && haveRule (temp_rule->name()) )
     {
         // rule with new old_name
         zsys_info ("Rule with such name already exists");
         return -3;
     }
+
+    bool to_push_new_rule = false;
+
     // find alerts, that should be resolved
     for ( auto &oneRuleAlerts: _alerts ) {
         if ( ! oneRuleAlerts.first->hasSameNameAs (old_name) ) {
@@ -253,25 +260,29 @@ int AlertConfiguration::
         oneRuleAlerts.second.clear();
         // update rule
         // This part is ugly, as there are duplicate pointers
-        for ( auto &i: _alerts ) {
-            auto &oneRule = i.first;
+        for ( auto i = _alerts.begin(); i != _alerts.end(); ++i ) {
+            auto &oneRule = i->first;
             if ( oneRule->hasSameNameAs (old_name) ) {
                 // -- free memory used by oldone
                 int rv = oneRule->remove(getPersistencePath());
                 zsys_info ("remove rv = %d", rv);
-                delete oneRule;
-                oneRule = *newRule;
+                oneRule.reset ();
+                _alerts.erase (i);
+                to_push_new_rule = true;
                 break; // old_name is unique
             }
         }
-        // -- use new rule
-        oneRuleAlerts.first = *newRule;
     }
     // in any case we need to check new subjects
-    for ( const auto &interestedTopic : (*newRule)->getNeededTopics() ) {
+    for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
         newSubjectsToSubscribe.insert (interestedTopic);
     }
-    (*newRule)->save(getPersistencePath());
+    temp_rule->save(getPersistencePath());
+    if (to_push_new_rule) {
+        std::vector<PureAlert> emptyAlerts{};
+        _alerts.push_back (std::make_pair(std::move(temp_rule), emptyAlerts));
+        it = _alerts.end() -1;
+    }
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
@@ -281,7 +292,7 @@ int AlertConfiguration::
 
 PureAlert* AlertConfiguration::
     updateAlert (
-        const Rule *rule,
+        const RulePtr &rule,
         const PureAlert &pureAlert)
 {
     for ( auto &oneRuleAlerts : _alerts ) // this object can be changed -> no const
@@ -400,40 +411,4 @@ int AlertConfiguration::
     }
     zsys_info ("Cannot acknowledge alert, because it doesn't exist");
     return -4;
-}
-
-std::vector<Rule*> AlertConfiguration::
-    getRulesByType (
-        const std::type_info &type_id)
-{
-    /* How this works: https://msdn.microsoft.com/ru-ru/library/fyf39xec.aspx
-       Derived* pd = new Derived;
-       Base* pb = pd;
-       cout << typeid( pb ).name()  << endl;   //prints "class Base *"
-       cout << typeid( *pb ).name() << endl;   //prints "class Derived"
-       cout << typeid( pd ).name()  << endl;   //prints "class Derived *"
-       cout << typeid( *pd ).name() << endl;   //prints "class Derived"
-       */
-    std::vector<Rule *> result;
-    for ( auto &i : _alerts) {
-        auto &rule = i.first;
-        //zsys_info("T type '%s'", typeid(*rule).name() );
-        if( type_id == typeid(Rule) || type_id == typeid(*rule) ) {
-            result.push_back(rule);
-        }
-    }
-    return result;
-}
-
-Rule* AlertConfiguration::
-    getRuleByName (
-        const std::string &name)
-{
-    // TODO: make some map of names to avoid o(n)?
-    // Return iterator rather than pointer?
-    for (auto &i : _alerts) {
-        auto &rule = i.first;
-        if( rule->hasSameNameAs( name ) ) return rule;
-    }
-    return NULL;
 }
