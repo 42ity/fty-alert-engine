@@ -94,10 +94,11 @@ int readRule (std::istream &f, RulePtr &rule)
             if ( rv == 2 )
                 return 2;
         }
-
+        zsys_error ("Cannot detect type of the rule");
         return 1;
     }
     catch ( const std::exception &e) {
+        zsys_error ("Cannot parse JSON, ignore it. %s", e.what());
         return 1;
     }
 }
