@@ -28,6 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <set>
 #include <vector>
+#include <memory>
 
 #include "rule.h"
 #include "purealert.h"
@@ -36,7 +37,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // \return 1 if rule has errors in json
 //         2 if lua function has errors
 //         0 if everything is ok
-int readRule (std::istream &f, Rule **rule);
+int readRule (std::istream &f, RulePtr &rule);
 
 
 // Alert configuration is a class that manages rules and evaruted alerts
@@ -51,6 +52,10 @@ int readRule (std::istream &f, Rule **rule);
 //
 class AlertConfiguration{
 public:
+
+    typedef typename std::vector <std::pair<RulePtr, std::vector<PureAlert> > > A;
+    typedef typename A::value_type value_type;
+    typedef typename A::iterator iterator;
 
     /*
      * \brief Creates an empty rule-alert configuration with empty path
@@ -78,9 +83,9 @@ public:
      */
     std::set <std::string> readConfiguration (void);
 
-    // XXX: this exposes a lot of internal stuff - we need better iterators ...
-    std::vector <std::pair<Rule*, std::vector<PureAlert> > >::iterator begin() { return _alerts.begin(); }
-    std::vector <std::pair<Rule*, std::vector<PureAlert> > >::iterator end() { return _alerts.end(); }
+    // XXX: this exposes a lot of internal stuff - we need iterator as a class, not just typedef
+    iterator begin() { return _alerts.begin(); }
+    iterator end() { return _alerts.end(); }
 
     void setPath (const char* path) {
         _path = path;
@@ -91,7 +96,7 @@ public:
         std::istream &newRuleString,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
-        Rule** newRule);
+        iterator &it);
 
     // alertsToSend must be send in the order from first element to last element!!!
     int updateRule (
@@ -99,11 +104,11 @@ public:
         const std::string &rule_name,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
-        Rule** newRule);
+        iterator &it);
 
-    PureAlert* updateAlert (const Rule *rule, const PureAlert &pureAlert);
+    PureAlert* updateAlert (const RulePtr &rule, const PureAlert &pureAlert);
 
-    bool haveRule (const Rule *rule) const {
+    bool haveRule (const RulePtr &rule) const {
         return haveRule (rule->name ());
     };
 
@@ -123,24 +128,13 @@ public:
                 const char *new_state,
                 PureAlert &pureAlert);
 
-    /**
-     * \brief get list of rules by type
-     * \return vector of Rule*
-     *
-     * Use getRulesByType( typeid(ThresholdRule) ) for getting all thresholds.
-     * Use getRulesByType( typeid(Rule) ) for getting all rules.
-     */
-    std::vector<Rule*> getRulesByType (const std::type_info &type_id);
-
-    Rule* getRuleByName (const std::string &name);
-
     std::string getPersistencePath(void) {
         return _path + '/';
     }
 
 private:
     // TODO it is bad implementation, any improvements are welcome
-    std::vector <std::pair<Rule*, std::vector<PureAlert> > > _alerts;
+    A _alerts;
 
     // directory, where rules are stored
     std::string _path;

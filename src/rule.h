@@ -33,6 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <fstream>
 #include <iostream>
 #include <czmq.h>
+#include <memory>
 
 #include "purealert.h"
 #include "metriclist.h"
@@ -77,6 +78,9 @@ enum RULE_RESULT {
     RULE_RESULT_TO_HIGH_CRITICAL =  2,
     RULE_RESULT_UNKNOWN          =  3,
 };
+
+class Rule;
+typedef std::unique_ptr<Rule> RulePtr;
 
 /*
  * \brief General representation for rules
@@ -161,18 +165,7 @@ public:
      *
      * \return true/false
      */
-    bool hasSameNameAs (const Rule &rule) const {
-        return hasSameNameAs (rule._name);
-    };
-
-    /*
-     * \brief Checks if rules have same names
-     *
-     * \param[in] rule - pointer to the rule to check
-     *
-     * \return true/false
-     */
-    bool hasSameNameAs (const Rule *rule) const {
+    bool hasSameNameAs (const RulePtr &rule) const {
         return hasSameNameAs (rule->_name);
     };
 
