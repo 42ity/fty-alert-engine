@@ -96,7 +96,7 @@ public:
         return 0;
     };
 
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) const
+    int evaluate (const MetricList &metricList, PureAlert &pureAlert) const
     {
         lua_State *lua_context = setContext (metricList);
         if ( lua_context == NULL ) {
@@ -130,16 +130,16 @@ public:
         if ( outcome != _outcomes.cend() )
         {
             // some known outcome was found
-            *pureAlert = new PureAlert(ALERT_START, ::time(NULL), outcome->second._description, element, outcome->second._severity, outcome->second._actions);
-            (**pureAlert).print();
+            pureAlert = PureAlert(ALERT_START, ::time(NULL), outcome->second._description, element, outcome->second._severity, outcome->second._actions);
+            pureAlert.print();
             lua_close (lua_context);
             return 0;
         }
         if ( streq (status, "ok") )
         {
             // When alert is resolved, it doesn't have new severity!!!!
-            *pureAlert = new PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", element, "DOESN'T MATTER", {""});
-            (**pureAlert).print();
+            pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", element, "DOESN'T MATTER", {""});
+            pureAlert.print();
             lua_close (lua_context);
             return 0;
         }

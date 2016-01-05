@@ -364,26 +364,25 @@ evaluate_metric(
         try {
             zsys_info(" # Check rule '%s'", rule->name().c_str());
             if ( !rule->isTopicInteresting (triggeringMetric.generateTopic())) {
-                zsys_info (" ### Metric is not interesting for this rule");
+                zsys_debug (" ### Metric is not interesting for this rule");
                 continue;
             }
 
-            PureAlert *pureAlert = NULL;
-            // TODO memory leak
-            int rv = rule->evaluate (knownMetricValues, &pureAlert);
+            PureAlert pureAlert;
+            int rv = rule->evaluate (knownMetricValues, pureAlert);
             if ( rv != 0 ) {
-                zsys_info (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
+                zsys_error (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
                 continue;
             }
-            zsys_info (" ### Metric was evaluated");
 
-            auto alertToSend = ac.updateAlert (rule, *pureAlert);
-            if ( alertToSend == NULL ) {
-                zsys_info(" ### alert updated, nothing to send");
+            PureAlert alertToSend;
+            rv = ac.updateAlert (rule, pureAlert, alertToSend);
+            if ( rv == -1 ) {
+                zsys_debug (" ### alert updated, nothing to send");
                 // nothing to send
                 continue;
             }
-            send_alerts (client, {*alertToSend}, rule);
+            send_alerts (client, {alertToSend}, rule);
         }
         catch ( const std::exception &e) {
             zsys_error ("CANNOT evaluate rule, because '%s'", e.what());

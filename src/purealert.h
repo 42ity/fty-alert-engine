@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #define ALERT_UNKNOWN  "UNKNOWN"
 #define ALERT_START    "ACTIVE"
@@ -33,7 +34,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define ALERT_ACK3     "ACK-IGNORE"
 #define ALERT_ACK4     "ACK-SILENCE"
 #define ALERT_RESOLVED "RESOLVED"
-
 
 class PureAlert{
  public:
@@ -66,5 +66,7 @@ class PureAlert{
     static bool isStatusKnown (const char *status);
     void print(void) const;
 };
+
+typedef std::unique_ptr<PureAlert> PureAlertPtr;
 
 #endif // SRC_PURE_ALERT_H_

@@ -106,7 +106,7 @@ public:
         std::vector <PureAlert> &alertsToSend,
         iterator &it);
 
-    PureAlert* updateAlert (const RulePtr &rule, const PureAlert &pureAlert);
+    int updateAlert (const RulePtr &rule, const PureAlert &pureAlert, PureAlert &alert_to_send);
 
     bool haveRule (const RulePtr &rule) const {
         return haveRule (rule->name ());

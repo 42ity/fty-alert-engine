@@ -79,7 +79,7 @@ public:
         return 0;
     }
 
-    int evaluate (const MetricList &metricList, PureAlert **pureAlert) {
+    int evaluate (const MetricList &metricList, PureAlert &pureAlert) {
         // ASSUMPTION: constants are in values
         //  high_critical
         //  high_warning
@@ -90,9 +90,9 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_critical");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->_severity = outcome->second._severity;
-                (*pureAlert)->_actions = outcome->second._actions;
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions = outcome->second._actions;
                 return 0;
             }
         }
@@ -100,9 +100,9 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_warning");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->_severity = outcome->second._severity;
-                (*pureAlert)->_actions = outcome->second._actions;
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions = outcome->second._actions;
                 return 0;
             }
         }
@@ -110,9 +110,9 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_critical");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->_severity = outcome->second._severity;
-                (*pureAlert)->_actions = outcome->second._actions;
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions = outcome->second._actions;
                 return 0;
             }
         }
@@ -120,16 +120,16 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_warning");
-                *pureAlert = new PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                (*pureAlert)->_severity = outcome->second._severity;
-                (*pureAlert)->_actions = outcome->second._actions;
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions = outcome->second._actions;
                 return 0;
             }
         }
         // if we are here -> no alert was detected
         // TODO actions
-        *pureAlert = new PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
-        (**pureAlert).print();
+        pureAlert = PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
+        pureAlert.print();
         return 0;
     };
 

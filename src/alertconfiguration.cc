@@ -290,10 +290,11 @@ int AlertConfiguration::
     return 0;
 }
 
-PureAlert* AlertConfiguration::
+int AlertConfiguration::
     updateAlert (
         const RulePtr &rule,
-        const PureAlert &pureAlert)
+        const PureAlert &pureAlert,
+        PureAlert &alert_to_send)
 {
     for ( auto &oneRuleAlerts : _alerts ) // this object can be changed -> no const
     {
@@ -330,8 +331,8 @@ PureAlert* AlertConfiguration::
                     zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 // in both cases we need to send an alert
-                PureAlert *toSend = new PureAlert(oneAlert);
-                return toSend;
+                alert_to_send = PureAlert(oneAlert);
+                return 0;
             }
             if ( pureAlert._status == ALERT_RESOLVED ) {
                 if ( oneAlert._status != ALERT_RESOLVED ) {
@@ -342,12 +343,12 @@ PureAlert* AlertConfiguration::
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
                     zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
-                    PureAlert *toSend = new PureAlert(oneAlert);
-                    return toSend;
+                    alert_to_send = PureAlert(oneAlert);
+                    return 0;
                 }
                 else {
                     // alert was already resolved -> nothing to do
-                    return NULL;
+                    return -1;
                 }
             }
         } // end of proceesing existing alerts
@@ -359,8 +360,8 @@ PureAlert* AlertConfiguration::
             {
                 oneRuleAlerts.second.push_back(pureAlert);
                 zsys_info("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
-                PureAlert *toSend = new PureAlert(pureAlert);
-                return toSend;
+                alert_to_send = PureAlert(pureAlert);
+                return 0;
             }
             else
             {
@@ -368,7 +369,7 @@ PureAlert* AlertConfiguration::
             }
         }
     } // end of processing one rule
-    return NULL; //make compiler happy - why this finctions returns smthng?
+    return -1;
 }
 
 
