@@ -99,9 +99,6 @@ public:
         }
         return 0;
     }
-
-    friend int readRule (std::istream &f, Rule **rule);
-
 };
 
 #endif // SRC_NORMALRULE_H_

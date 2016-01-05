@@ -158,8 +158,6 @@ public:
         return std::vector<std::string>{_rex_str};
     };
 
-    friend int readRule (std::istream &f, Rule **rule);
-
 protected:
 
     lua_State* setContext (const MetricList &metricList) const

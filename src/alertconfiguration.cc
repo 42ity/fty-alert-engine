@@ -94,7 +94,6 @@ int readRule (std::istream &f, RulePtr &rule)
             if ( rv == 2 )
                 return 2;
         }
-
         zsys_error ("Cannot detect type of the rule");
         return 1;
     }
@@ -175,9 +174,7 @@ int AlertConfiguration::
 {
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
     RulePtr temp_rule;
-    zsys_error ("before readRule: temp_rule: %x", temp_rule.get());
     int rv = readRule (newRuleString, temp_rule);
-    zsys_error ("after readRule: temp_rule: %x", temp_rule.get());
     if ( rv == 1 ) {
         zsys_info ("nothing created, json error");
         return -1;
@@ -186,12 +183,10 @@ int AlertConfiguration::
         zsys_info ("nothing created, lua error");
         return -5;
     }
-    zsys_error ("before haveRule: temp_rule: %x", temp_rule.get());
     if ( haveRule (temp_rule) ) {
         zsys_info ("rule already exists");
         return -2;
     }
-    zsys_error ("after haveRule: temp_rule: %x", temp_rule.get());
 
     std::vector<PureAlert> emptyAlerts{};
     temp_rule->save(getPersistencePath());

@@ -576,7 +576,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 zstr_free (&param1);
                 zstr_free (&param2);
-                zstr_free (&param2);
+                zstr_free (&param3);
             }
             else
                 zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
@@ -602,11 +602,13 @@ s_readall (const char* filename) {
     fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *ret = (char*) calloc (1, fsize * sizeof (char));
+    char *ret = (char*) malloc (fsize * sizeof (char) + 1);
     if (!ret)
         return NULL;
+    memset ((void*) ret, '\0', fsize * sizeof (char) + 1);
 
     size_t r = fread((void*) ret, 1, fsize, fp);
+    fclose (fp);
     if (r == fsize)
         return ret;
 

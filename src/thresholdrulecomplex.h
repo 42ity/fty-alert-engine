@@ -48,8 +48,6 @@ public:
      *         0 if everything is ok
      */
     virtual int fill(const cxxtools::SerializationInfo &si);
-
-    friend int readRule (std::istream &f, Rule **rule);
 };
 
 
