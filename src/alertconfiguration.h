@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 /*! \file alertconfiguration.h
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
+ *  \author Michal Vyskocil  <MichalVyskocil@Eaton.com>
  *  \brief Representation of alert configuration
  */
 
@@ -33,10 +34,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "rule.h"
 #include "purealert.h"
 
-// It tries to parse and read JSON rules
-// \return 1 if rule has errors in json
-//         2 if lua function has errors
-//         0 if everything is ok
+/*
+ * Parses the input and reads the rule\
+ *
+ * \param[in]  f    - an input stream to parse a rule
+ * \param[out] rule - a parsed rule
+ *
+ * \return 1 if rule has errors in json
+ *         2 if lua function has errors
+ *         0 if everything is ok
+ */
 int readRule (std::istream &f, RulePtr &rule);
 
 
@@ -68,7 +75,7 @@ public:
     /*
      * \brief Creates an empty rule-alert configuration
      *
-     * \param[in] @path - a directory where rules are stored
+     * \param[in] path - a directory where rules are stored
      */
     AlertConfiguration (const std::string &path)
         : _path (path)
@@ -83,22 +90,60 @@ public:
      */
     std::set <std::string> readConfiguration (void);
 
-    // XXX: this exposes a lot of internal stuff - we need iterator as a class, not just typedef
+    // XXX: this exposes a lot of internal stuff - we need iterator as a class,
+    // not just typedef
     iterator begin() { return _alerts.begin(); }
     iterator end() { return _alerts.end(); }
 
+    /*
+     * \brief Sets a path to configuration files
+     *
+     * \param[in] path - a directory where rules are stored
+     */
     void setPath (const char* path) {
         _path = path;
     }
 
-    // alertsToSend must be send in the order from first element to last element!!!
+    /*
+     * \brief Adds a rule to the configuration
+     *
+     * alertsToSend must be sent in the order from the first element to the last element
+     *
+     * \param[in] newRuleString - an input stream to parse a rule
+     * \param[out] newSubjectsToSubscribe - subjects that are required by the new rule
+     * \param[out] alertsToSend - alerts that where affected by new rule
+     * \param[out] it - iterator to the new rule
+     *
+     * \return -1 when rule has error in JSON
+     *         -2 when rule with such name already exists
+     *         -5 when rule has error in lua
+     *          0 when rule was parsed and added correctly (but it can be not saved)
+     */
     int addRule (
         std::istream &newRuleString,
         std::set <std::string> &newSubjectsToSubscribe,
         std::vector <PureAlert> &alertsToSend,
         iterator &it);
 
-    // alertsToSend must be send in the order from first element to last element!!!
+    /*
+     * \brief Updates existing rule in the configuration
+     *
+     * alertsToSend must be sent in the order from the first element to the last element
+     *
+     * \param[in] newRuleString - an input stream to parse a rule
+     *              (can have a new name for this rule)
+     * \param[in] old_name - old name of the rule
+     * \param[out] newSubjectsToSubscribe - subjects that are required by the new rule
+     * \param[out] alertsToSend - alerts that where affected by new rule
+     * \param[out] it - iterator to the new rule
+     *
+     * \return -2 when rule with old_name doesn't exist -> nothing to update
+     *         -1 when rule has error in JSON
+     *         -5 when rule has error in lua
+     *         -3 if name of the rule is changed, but for the new name rule
+     *              already exists
+     *          0 when rule was parsed and updated correctly (but it can be not saved)
+     */
     int updateRule (
         std::istream &newRuleString,
         const std::string &rule_name,
@@ -106,7 +151,20 @@ public:
         std::vector <PureAlert> &alertsToSend,
         iterator &it);
 
-    int updateAlert (const RulePtr &rule, const PureAlert &pureAlert, PureAlert &alert_to_send);
+    /*
+     * \brief Incapsulates alert in the model
+     *
+     * \param[in] rule - the evaluated rule
+     * \param[in] pureAlert - the result of the evaluation (alert)
+     * \param[out] alrtt_to_send - the alert prepared to send
+     *
+     * \return -1 nothing to send
+     *          0 need to send an alert
+     */
+    int updateAlert (
+        const RulePtr &rule,
+        const PureAlert &pureAlert,
+        PureAlert &alert_to_send);
 
     bool haveRule (const RulePtr &rule) const {
         return haveRule (rule->name ());
@@ -133,7 +191,8 @@ public:
     }
 
 private:
-    // TODO it is bad implementation, any improvements are welcome
+
+    // rules and corresponding alerts
     A _alerts;
 
     // directory, where rules are stored

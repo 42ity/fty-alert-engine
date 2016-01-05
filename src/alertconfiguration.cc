@@ -199,7 +199,8 @@ int AlertConfiguration::
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
-    //  ( requires more sophisticated approach: need to refactor evaluate back for 2 params + some logic here )
+    //  ( requires more sophisticated approach: need to refactor evaluate back 
+    //  for 2 params + some logic here )
     return 0;
 }
 
@@ -281,7 +282,8 @@ int AlertConfiguration::
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
-    //  ( requires more sophisticated approach: need to refactor evaluate back for 2 params + some logic here )
+    //  ( requires more sophisticated approach: need to refactor evaluate back 
+    //  for 2 params + some logic here )
     return 0;
 }
 
