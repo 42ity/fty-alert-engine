@@ -37,6 +37,11 @@
 #include <math.h>
 #include <functional>
 
+int agent_alert_verbose;
+
+#define zsys_debug(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
+
 #include "rule.h"
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
@@ -379,8 +384,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     // need to track incoming measurements
     MetricList cache;
     AlertConfiguration alertConfiguration;
-    bool verbose = false;
-
     char *name = (char*) args;
 
     mlm_client_t *client = mlm_client_new ();
@@ -403,7 +406,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                verbose = true;
+                agent_alert_verbose = true;
                 zmsg_destroy (&msg);
             }
             else
@@ -446,7 +449,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                     int rv = mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
                     if (rv == -1)
                         zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, METRICS_STREAM, interestedSubject.c_str());
-                    if (verbose)
                         zsys_debug("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
                 }
                 zstr_free (&filename);
