@@ -44,7 +44,7 @@ public:
         }
         auto threshold = si.getMember("threshold");
         if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-            zsys_info ("Root of json must be an object with property 'threshold'.");
+            zsys_error ("Root of json must be an object with property 'threshold'.");
             throw std::runtime_error("Root of json must be an object with property 'threshold'.");
         }
 
@@ -53,7 +53,7 @@ public:
         if ( target.category () != cxxtools::SerializationInfo::Value ) {
             return 1;
         }
-        zsys_info ("it is simple threshold rule");
+        zsys_debug ("it is simple threshold rule");
 
         target >>= _metric;
         threshold.getMember("rule_name") >>= _name;
@@ -63,7 +63,7 @@ public:
         std::map<std::string,double> tmp_values;
         auto values = threshold.getMember("values");
         if ( values.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("parameter 'values' in json must be an array.");
+            zsys_error ("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
         }
         values >>= tmp_values;
@@ -72,7 +72,7 @@ public:
         // outcomes
         auto outcomes = threshold.getMember("results");
         if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("parameter 'results' in json must be an array.");
+            zsys_error ("parameter 'results' in json must be an array.");
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;

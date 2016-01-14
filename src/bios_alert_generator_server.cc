@@ -37,6 +37,11 @@
 #include <math.h>
 #include <functional>
 
+int agent_alert_verbose = 0;
+
+#define zsys_debug(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
+
 #include "rule.h"
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
@@ -63,7 +68,7 @@ list_rules(
     const char *type,
     AlertConfiguration &ac)
 {
-    zsys_info ("Give me the list of rules with type = '%s'", type);
+    zsys_debug ("Give me the list of rules with type = '%s'", type);
     std::function<bool(const RulePtr&)> filter_f;
 
     if (streq (type,"all")) {
@@ -104,7 +109,7 @@ get_rule(
     const char *name,
     AlertConfiguration &ac)
 {
-    zsys_info ("Give me the detailes about rule with rule_name = '%s'", name);
+    zsys_debug ("Give me the detailes about rule with rule_name = '%s'", name);
     for (const auto& i: ac) {
         const auto &rule = i.first;
         if (rule->hasSameNameAs (name))
@@ -196,11 +201,11 @@ add_rule(
         return;
     case 0:
         // rule was created succesfully
-        zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-        zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+        zsys_debug ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+        zsys_debug ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
             mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-            zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+            zsys_debug("Registered to receive '%s'\n", interestedSubject.c_str());
         }
 
         // send a reply back
@@ -249,11 +254,11 @@ update_rule(
         return;
     case 0:
         // rule was updated succesfully
-        zsys_info ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-        zsys_info ("alertsToSend count = %d", alertsToSend.size() );
+        zsys_debug ("newsubjects count = %d", newSubjectsToSubscribe.size() );
+        zsys_debug ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
             mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-            zsys_info("Registered to receive '%s'\n", interestedSubject.c_str());
+            zsys_debug("Registered to receive '%s'\n", interestedSubject.c_str());
         }
         // send a reply back
         zmsg_addstr (reply, "OK");
@@ -344,7 +349,7 @@ evaluate_metric(
     for ( const auto &i : ac ) {
         const auto &rule = i.first;
         try {
-            zsys_info(" # Check rule '%s'", rule->name().c_str());
+            zsys_debug(" # Check rule '%s'", rule->name().c_str());
             if ( !rule->isTopicInteresting (triggeringMetric.generateTopic())) {
                 zsys_debug (" ### Metric is not interesting for this rule");
                 continue;
@@ -379,8 +384,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     // need to track incoming measurements
     MetricList cache;
     AlertConfiguration alertConfiguration;
-    bool verbose = false;
-
     char *name = (char*) args;
 
     mlm_client_t *client = mlm_client_new ();
@@ -403,7 +406,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                verbose = true;
+                agent_alert_verbose = true;
                 zmsg_destroy (&msg);
             }
             else
@@ -439,15 +442,14 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 // Read initial configuration
                 alertConfiguration.setPath(filename);
                 std::set <std::string> subjectsToConsume = alertConfiguration.readConfiguration();
-                zsys_info ("subjectsToConsume count: %d\n", subjectsToConsume.size());
+                zsys_debug ("subjectsToConsume count: %d\n", subjectsToConsume.size());
 
                 // Subscribe to all subjects
                 for ( const auto &interestedSubject : subjectsToConsume ) {
                     int rv = mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
                     if (rv == -1)
                         zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, METRICS_STREAM, interestedSubject.c_str());
-                    if (verbose)
-                        zsys_info("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
+                        zsys_debug("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
                 }
                 zstr_free (&filename);
             }
@@ -465,7 +467,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             continue;
         }
         std::string topic = mlm_client_subject(client);
-        zsys_info("Got message '%s'", topic.c_str());
+        zsys_debug("Got message '%s'", topic.c_str());
         // There are two possible inputs and they come in different ways
         // from the stream  -> metrics
         // from the mailbox -> rules
@@ -474,7 +476,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         if( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
             if( ! bmessage ) {
-                zsys_info ("cannot decode message, ignoring\n");
+                zsys_debug ("cannot decode message, ignoring\n");
                 continue;
             }
             if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
@@ -490,15 +492,15 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 double dvalue = strtod (value, &end);
                 if (errno == ERANGE) {
                     errno = 0;
-                    zsys_info ("cannot convert value to double, ignore message\n");
+                    zsys_debug ("cannot convert value to double, ignore message\n");
                     continue;
                 }
                 else if (end == value || *end != '\0') {
-                    zsys_info ("cannot convert value to double, ignore message\n");
+                    zsys_debug ("cannot convert value to double, ignore message\n");
                     continue;
                 }
 
-                zsys_info("Got message '%s' with value %s\n", topic.c_str(), value);
+                zsys_debug("Got message '%s' with value %s\n", topic.c_str(), value);
 
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
@@ -554,7 +556,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 char *param2 = zmsg_popstr (zmessage); // element name
                 char *param3 = zmsg_popstr (zmessage); // state
                 if ( !param1 || !param2 || !param3 ) {
-                    zsys_info ("Ignore it. Unexpected message format");
+                    zsys_debug ("Ignore it. Unexpected message format");
                 }
                 else {
                     change_state (client, param1, param2, param3, alertConfiguration);
@@ -565,7 +567,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zstr_free (&param3);
             }
             else
-                zsys_info ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
+                zsys_debug ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
         }
         zmsg_destroy (&zmessage);
     }

@@ -35,7 +35,17 @@ static const char *ENDPOINT = "ipc://@/malamute";
 
 int main (int argc, char** argv)
 {
+    bool set_verbose = false;
+    char* bios_log_level = getenv ("BIOS_LOG_LEVEL");
+    if (argc == 2 && streq (argv[1], "-v"))
+        set_verbose = true;
+    else
+    if (bios_log_level && streq (bios_log_level, "LOG_DEBUG"))
+        set_verbose = true;
+
     zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) AGENT_NAME);
+    if (set_verbose)
+        zstr_sendx (ag_server, "VERBOSE", NULL);
     zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
     zstr_sendx (ag_server, "CONFIG", PATH, NULL);
