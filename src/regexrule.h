@@ -54,10 +54,10 @@ public:
         if ( si.findMember("pattern") == NULL ) {
             return 1;
         }
-        zsys_info ("it is PATTERN rule");
+        zsys_debug ("it is PATTERN rule");
         auto pattern = si.getMember("pattern");
         if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
-            zsys_info ("Root of json must be an object with property 'pattern'.");
+            zsys_error ("Root of json must be an object with property 'pattern'.");
             throw std::runtime_error("Root of json must be an object with property 'pattern'.");
         }
 
@@ -68,7 +68,7 @@ public:
         std::map<std::string,double> tmp_values;
         auto values = pattern.getMember("values");
         if ( values.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("parameter 'values' in json must be an array.");
+            zsys_error ("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
         }
         values >>= tmp_values;
@@ -77,7 +77,7 @@ public:
         // outcomes
         auto outcomes = pattern.getMember("results");
         if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("parameter 'results' in json must be an array.");
+            zsys_error ("parameter 'results' in json must be an array.");
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
@@ -88,7 +88,7 @@ public:
             code(tmp);
         }
         catch ( const std::exception &e ) {
-            zsys_warning ("something with lua function: %s", e.what());
+            zsys_error ("something with lua function: %s", e.what());
             return 2;
         }
         // TODO what if regexp is not correct?
@@ -104,13 +104,13 @@ public:
             return 2;
         }
 
-        zsys_info ("lua_code = %s", code().c_str() );
+        zsys_debug ("lua_code = %s", code().c_str() );
         int error = luaL_loadbuffer (lua_context, code().c_str(), code().length(), "line") ||
             lua_pcall (lua_context, 0, 1, 0);
 
         if ( error ) {
             // syntax error in evaluate
-            zsys_info ("Syntax error: %s\n", lua_tostring(lua_context, -1));
+            zsys_error ("Syntax error: %s\n", lua_tostring(lua_context, -1));
             lua_close (lua_context);
             return 1;
         }
@@ -119,7 +119,7 @@ public:
 
         // evaluation was successful, need to read the result
         if ( !lua_isstring (lua_context, -1) ) {
-            zsys_info ("unexcpected returned value\n");
+            zsys_error ("unexcpected returned value\n");
             lua_close (lua_context);
             return -1;
         }

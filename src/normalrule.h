@@ -51,17 +51,17 @@ public:
         if ( si.findMember("single") == NULL ) {
             return 1;
         }
-        zsys_info ("it is SINGLE rule");
+        zsys_debug ("it is SINGLE rule");
         auto single = si.getMember("single");
         if ( single.category () != cxxtools::SerializationInfo::Object ) {
-            zsys_info ("Root of json must be an object with property 'single'.");
+            zsys_error ("Root of json must be an object with property 'single'.");
             throw std::runtime_error("Root of json must be an object with property 'single'.");
         }
 
         // target
         auto target = single.getMember("target");
         if ( target.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("property 'target' in json must be an Array");
+            zsys_error ("property 'target' in json must be an Array");
             throw std::runtime_error ("property 'target' in json must be an Array");
         }
         target >>= _metrics;
@@ -73,7 +73,7 @@ public:
             std::map<std::string,double> tmp_values;
             auto values = single.getMember("values");
             if ( values.category () != cxxtools::SerializationInfo::Array ) {
-                zsys_info ("parameter 'values' in json must be an array.");
+                zsys_error ("parameter 'values' in json must be an array.");
                 throw std::runtime_error("parameter 'values' in json must be an array");
             }
             values >>= tmp_values;
@@ -83,7 +83,7 @@ public:
         // outcomes
         auto outcomes = single.getMember("results");
         if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_info ("parameter 'results' in json must be an array.");
+            zsys_error ("parameter 'results' in json must be an array.");
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;

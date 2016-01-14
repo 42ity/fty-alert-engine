@@ -36,7 +36,7 @@ int ThresholdRuleComplex::fill(
     }
     auto threshold = si.getMember("threshold");
     if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-        zsys_debug ("Root of json must be an object with property 'threshold'.");
+        zsys_info ("Root of json must be an object with property 'threshold'.");
         throw std::runtime_error("Root of json must be an object with property 'threshold'.");
     }
 
@@ -55,7 +55,7 @@ int ThresholdRuleComplex::fill(
     std::map<std::string,double> tmp_values;
     auto values = threshold.getMember("values");
     if ( values.category () != cxxtools::SerializationInfo::Array ) {
-        zsys_debug ("parameter 'values' in json must be an array.");
+        zsys_error ("parameter 'values' in json must be an array.");
         throw std::runtime_error("parameter 'values' in json must be an array");
     }
     values >>= tmp_values;
@@ -64,7 +64,7 @@ int ThresholdRuleComplex::fill(
     // outcomes
     auto outcomes = threshold.getMember("results");
     if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-        zsys_debug ("parameter 'results' in json must be an array.");
+        zsys_error ("parameter 'results' in json must be an array.");
         throw std::runtime_error ("parameter 'results' in json must be an array.");
     }
     outcomes >>= _outcomes;
@@ -75,7 +75,7 @@ int ThresholdRuleComplex::fill(
         code(tmp);
     }
     catch ( const std::exception &e ) {
-        zsys_warning ("something with lua function: %s", e.what());
+        zsys_error ("something with lua function: %s", e.what());
         return 2;
     }
 

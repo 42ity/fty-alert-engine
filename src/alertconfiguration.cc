@@ -133,20 +133,20 @@ std::set <std::string> AlertConfiguration::
             int rv = readRule (f, rule);
             if ( rv != 0 ) {
                 // rule can't be read correctly from the file
-                zsys_debug ("nothing to do");
+                zsys_warning ("nothing to do");
                 continue;
             }
 
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule
             if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
-                zsys_debug ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
+                zsys_warning ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if ( haveRule (rule) ) {
-                zsys_debug ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
+                zsys_warning ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
                 continue;
             }
 
@@ -176,15 +176,15 @@ int AlertConfiguration::
     RulePtr temp_rule;
     int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
-        zsys_debug ("nothing created, json error");
+        zsys_error ("nothing created, json error");
         return -1;
     }
     if ( rv == 2 ) {
-        zsys_debug ("nothing created, lua error");
+        zsys_error ("nothing created, lua error");
         return -5;
     }
     if ( haveRule (temp_rule) ) {
-        zsys_debug ("rule already exists");
+        zsys_error ("rule already exists");
         return -2;
     }
 
@@ -216,25 +216,25 @@ int AlertConfiguration::
     // need to find out if rule exists already or not
     if ( !haveRule (old_name) )
     {
-        zsys_debug ("rule doesn't exist");
+        zsys_error ("rule doesn't exist");
         return -2;
     }
 
     RulePtr temp_rule;
     int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
-        zsys_debug ("nothing to update, json error");
+        zsys_error ("nothing to update, json error");
         return -1;
     }
     if ( rv == 2 ) {
-        zsys_debug ("nothing to update, lua error");
+        zsys_error ("nothing to update, lua error");
         return -5;
     }
     // need to find out if rule exists already or not
     if ( ! temp_rule->hasSameNameAs(old_name) && haveRule (temp_rule->name()) )
     {
         // rule with new old_name
-        zsys_debug ("Rule with such name already exists");
+        zsys_error ("Rule with such name already exists");
         return -3;
     }
 
@@ -378,11 +378,11 @@ int AlertConfiguration::
         PureAlert &pureAlert)
 {
     if ( !PureAlert::isStatusKnown(new_state) ) {
-        zsys_debug ("Unknown new status, ignore it");
+        zsys_error ("Unknown new status, ignore it");
         return -5;
     }
     if ( strcmp(new_state, ALERT_RESOLVED) == 0 ) {
-        zsys_debug ("User can't resolve alert manually");
+        zsys_error ("User can't resolve alert manually");
         return -2;
     }
     for ( auto &oneRuleAlerts : _alerts )
@@ -399,7 +399,7 @@ int AlertConfiguration::
             }
             // we found the alert
             if ( oneAlert._status == ALERT_RESOLVED ) {
-                zsys_debug ("state of RESOLVED alert cannot be chaged manually");
+                zsys_error ("state of RESOLVED alert cannot be chaged manually");
                 return -1;
             }
             oneAlert._status = new_state;
@@ -407,6 +407,6 @@ int AlertConfiguration::
             return 0;
         }
     }
-    zsys_debug ("Cannot acknowledge alert, because it doesn't exist");
+    zsys_error ("Cannot acknowledge alert, because it doesn't exist");
     return -4;
 }
