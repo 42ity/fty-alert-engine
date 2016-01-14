@@ -37,7 +37,7 @@
 #include <math.h>
 #include <functional>
 
-int agent_alert_verbose;
+int agent_alert_verbose = 0;
 
 #define zsys_debug(...) \
     do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
