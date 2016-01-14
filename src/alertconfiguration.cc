@@ -128,25 +128,25 @@ std::set <std::string> AlertConfiguration::
 
             // read rule from the file
             std::ifstream f(d.path() + "/" + fn);
-            zsys_info ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
+            zsys_debug ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
             std::unique_ptr<Rule> rule;
             int rv = readRule (f, rule);
             if ( rv != 0 ) {
                 // rule can't be read correctly from the file
-                zsys_info ("nothing to do");
+                zsys_debug ("nothing to do");
                 continue;
             }
 
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule
             if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
-                zsys_info ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
+                zsys_debug ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if ( haveRule (rule) ) {
-                zsys_info ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
+                zsys_debug ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
                 continue;
             }
 
@@ -156,7 +156,7 @@ std::set <std::string> AlertConfiguration::
             }
             // add rule to the configuration
             _alerts.push_back (std::make_pair(std::move(rule), emptyAlerts));
-            zsys_info ("file '%s' readed correctly", fn.c_str());
+            zsys_debug ("file '%s' readed correctly", fn.c_str());
         }
     } catch( std::exception &e ){
         zsys_error("Can't read configuration: %s", e.what());
@@ -176,15 +176,15 @@ int AlertConfiguration::
     RulePtr temp_rule;
     int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
-        zsys_info ("nothing created, json error");
+        zsys_debug ("nothing created, json error");
         return -1;
     }
     if ( rv == 2 ) {
-        zsys_info ("nothing created, lua error");
+        zsys_debug ("nothing created, lua error");
         return -5;
     }
     if ( haveRule (temp_rule) ) {
-        zsys_info ("rule already exists");
+        zsys_debug ("rule already exists");
         return -2;
     }
 
@@ -216,25 +216,25 @@ int AlertConfiguration::
     // need to find out if rule exists already or not
     if ( !haveRule (old_name) )
     {
-        zsys_info ("rule doesn't exist");
+        zsys_debug ("rule doesn't exist");
         return -2;
     }
 
     RulePtr temp_rule;
     int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
-        zsys_info ("nothing to update, json error");
+        zsys_debug ("nothing to update, json error");
         return -1;
     }
     if ( rv == 2 ) {
-        zsys_info ("nothing to update, lua error");
+        zsys_debug ("nothing to update, lua error");
         return -5;
     }
     // need to find out if rule exists already or not
     if ( ! temp_rule->hasSameNameAs(old_name) && haveRule (temp_rule->name()) )
     {
         // rule with new old_name
-        zsys_info ("Rule with such name already exists");
+        zsys_debug ("Rule with such name already exists");
         return -3;
     }
 
@@ -261,7 +261,7 @@ int AlertConfiguration::
             if ( oneRule->hasSameNameAs (old_name) ) {
                 // -- free memory used by oldone
                 int rv = oneRule->remove(getPersistencePath());
-                zsys_info ("remove rv = %d", rv);
+                zsys_debug ("remove rv = %d", rv);
                 oneRule.reset ();
                 _alerts.erase (i);
                 to_push_new_rule = true;
@@ -317,7 +317,7 @@ int AlertConfiguration::
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
                     // element is the same -> no need to update the field
-                    zsys_info("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    zsys_debug("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 else {
                     // Found alert is still active -> it is the same alert
@@ -325,7 +325,7 @@ int AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    zsys_info("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    zsys_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 // in both cases we need to send an alert
                 alert_to_send = PureAlert(oneAlert);
@@ -339,7 +339,7 @@ int AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    zsys_info("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    zsys_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                     alert_to_send = PureAlert(oneAlert);
                     return 0;
                 }
@@ -356,7 +356,7 @@ int AlertConfiguration::
             if ( pureAlert._status != ALERT_RESOLVED )
             {
                 oneRuleAlerts.second.push_back(pureAlert);
-                zsys_info("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
+                zsys_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
                 alert_to_send = PureAlert(pureAlert);
                 return 0;
             }
@@ -378,11 +378,11 @@ int AlertConfiguration::
         PureAlert &pureAlert)
 {
     if ( !PureAlert::isStatusKnown(new_state) ) {
-        zsys_info ("Unknown new status, ignore it");
+        zsys_debug ("Unknown new status, ignore it");
         return -5;
     }
     if ( strcmp(new_state, ALERT_RESOLVED) == 0 ) {
-        zsys_info ("User can't resolve alert manually");
+        zsys_debug ("User can't resolve alert manually");
         return -2;
     }
     for ( auto &oneRuleAlerts : _alerts )
@@ -399,7 +399,7 @@ int AlertConfiguration::
             }
             // we found the alert
             if ( oneAlert._status == ALERT_RESOLVED ) {
-                zsys_info ("state of RESOLVED alert cannot be chaged manually");
+                zsys_debug ("state of RESOLVED alert cannot be chaged manually");
                 return -1;
             }
             oneAlert._status = new_state;
@@ -407,6 +407,6 @@ int AlertConfiguration::
             return 0;
         }
     }
-    zsys_info ("Cannot acknowledge alert, because it doesn't exist");
+    zsys_debug ("Cannot acknowledge alert, because it doesn't exist");
     return -4;
 }
