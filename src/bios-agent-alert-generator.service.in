@@ -1,10 +1,12 @@
 [Unit]
 Description=bios-agent-alert-generator service
+Requires=network.target malamute.service
 After=network.target malamute.service
+PartOf=bios.target
 
 [Service]
 Type=simple
 ExecStart=@prefix@/bin/bios-agent-alert-generator
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=bios.target
