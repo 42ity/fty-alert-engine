@@ -53,7 +53,7 @@ public:
         if ( target.category () != cxxtools::SerializationInfo::Value ) {
             return 1;
         }
-        zsys_debug ("it is simple threshold rule");
+        zsys_debug1 ("it is simple threshold rule");
 
         target >>= _metric;
         threshold.getMember("rule_name") >>= _name;

@@ -201,7 +201,7 @@ public:
         // rule name and file name are CASE INSENSITIVE.
 
         std::string full_name = path + _name + ".rule";
-        zsys_debug ("trying to save file : '%s'", full_name.c_str());
+        zsys_debug1 ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
         if ( !ofs.good() ) {
             zsys_error ("Cannot save the file '%s', changes will disappear after agent restart", full_name.c_str());
@@ -223,7 +223,7 @@ public:
     int remove (const std::string &path) {
 
         std::string full_name = path + _name + ".rule";
-        zsys_debug ("trying to remove file : '%s'", full_name.c_str());
+        zsys_debug1 ("trying to remove file : '%s'", full_name.c_str());
         return std::remove (full_name.c_str());
     };
 

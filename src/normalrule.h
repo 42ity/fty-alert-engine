@@ -51,7 +51,7 @@ public:
         if ( si.findMember("single") == NULL ) {
             return 1;
         }
-        zsys_debug ("it is SINGLE rule");
+        zsys_debug1 ("it is SINGLE rule");
         auto single = si.getMember("single");
         if ( single.category () != cxxtools::SerializationInfo::Object ) {
             zsys_error ("Root of json must be an object with property 'single'.");

@@ -54,7 +54,7 @@ public:
         if ( si.findMember("pattern") == NULL ) {
             return 1;
         }
-        zsys_debug ("it is PATTERN rule");
+        zsys_debug1 ("it is PATTERN rule");
         auto pattern = si.getMember("pattern");
         if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
             zsys_error ("Root of json must be an object with property 'pattern'.");
@@ -104,7 +104,7 @@ public:
             return 2;
         }
 
-        zsys_debug ("lua_code = %s", code().c_str() );
+        zsys_debug1 ("lua_code = %s", code().c_str() );
         int error = luaL_loadbuffer (lua_context, code().c_str(), code().length(), "line") ||
             lua_pcall (lua_context, 0, 1, 0);
 

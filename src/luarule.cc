@@ -20,6 +20,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \author Tomas Halman <TomasHalman@eaton.com>
  *  \brief Class implementing Lua rule evaluation
  */
+#include <czmq.h>
+extern int agent_alert_verbose;
+
+#define zsys_debug1(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
+
 
 #include "luarule.h"
 
@@ -85,7 +91,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     for ( const auto &metric : _metrics ) {
         double value = metricList.find (metric);
         if ( isnan (value) ) {
-            zsys_debug("Don't have everything for '%s' yet\n", _name.c_str());
+            zsys_debug1("Don't have everything for '%s' yet\n", _name.c_str());
             return RULE_RESULT_UNKNOWN;
         }
         values.push_back(value);

@@ -27,6 +27,11 @@
     =========================================================================
 */
 
+#include <czmq.h>
+extern int agent_alert_verbose;
+
+#define zsys_debug1(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 #include "alert_agent_classes.h"
 
 //  -------------------------------------------------------------------------
