@@ -204,7 +204,7 @@ public:
         zsys_debug ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
         if ( !ofs.good() ) {
-            zsys_error ("Cannot save the file, changes will disappear after agent restart");
+            zsys_error ("Cannot save the file '%s', changes will disappear after agent restart", full_name.c_str());
         }
         else {
             ofs << getJsonRule ();
