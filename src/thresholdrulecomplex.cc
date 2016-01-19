@@ -23,6 +23,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  */
 
 #include <czmq.h>
+extern int agent_alert_verbose;
+
+#define zsys_debug1(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 #include <sstream>
 
 #include "thresholdrulecomplex.h"
@@ -45,7 +49,7 @@ int ThresholdRuleComplex::fill(
     if ( target.category () != cxxtools::SerializationInfo::Array ) {
         return 1;
     }
-    zsys_debug ("it is complex threshold rule");
+    zsys_debug1 ("it is complex threshold rule");
 
     target >>= _metrics;
     threshold.getMember("rule_name") >>= _name;
