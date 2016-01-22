@@ -6,6 +6,10 @@
     url = "https://eaton.com/"
     license = "GPL-2.0+"
     >
+
+    <target name = "debian" />
+    <target name = "redhat" />
+
     <include filename = "license.xml" />
     <version major = "0" minor = "1" patch = "0" />
     <use project = "malamute" />
@@ -30,7 +34,10 @@
     <class name = "purealert" private="1">PureAlert</class>
     <class name = "rule" private="1">Rule</class>
     <class name = "thresholdrulecomplex" private="1">ThresholdRuleComplex</class>
-    <class name = "bios_alert_generator_server">Actor evaluating rules</class>
-    <main name = "bios-agent-alert-generator" service="1">Daemon evaluating rules and producing alerts</main>
+    <class name = "bios_alert_generator_server" state = "stable" >Actor evaluating rules</class>
+    <main name = "bios-agent-alert-generator" service = "1" no_config = "1" >
+        Daemon evaluating rules and producing alerts
+        <extra type = "systemd-tmpfiles" />
+    </main>
 
 </project>

@@ -1,0 +1,3 @@
+debian/tmp/usr/include/*
+debian/tmp/usr/lib/*/libalert_agent.so
+debian/tmp/usr/lib/*/pkgconfig/libalert_agent.pc

@@ -17,7 +17,6 @@
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 
-
 Source:         alert-agent
 Section:        net
 Priority:       optional
@@ -29,13 +28,15 @@ Build-Depends: bison, debhelper (>= 8),
     automake,
     autoconf,
     libtool,
+    libsodium-dev,
     libzmq4-dev,
     libczmq-dev,
     libmlm-dev,
     libbiosproto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-    dh-autoreconf
+    dh-autoreconf,
+    systemd
 
 Package: libalert-agent0
 Architecture: any
@@ -47,6 +48,7 @@ Package: alert-agent-dev
 Architecture: all
 Section: libdevel
 Depends:
+    libsodium-dev,
     libzmq4-dev,
     libczmq-dev,
     libmlm-dev,

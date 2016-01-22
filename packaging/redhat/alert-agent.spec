@@ -30,11 +30,13 @@ BuildRequires:  automake
 BuildRequires:  autoconf
 BuildRequires:  libtool
 BuildRequires:  pkg-config
+BuildRequires:  systemd-devel
 BuildRequires:  gcc-c++
+BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
-BuildRequires:  libbiosproto-devel
+BuildRequires:  biosproto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -62,6 +64,7 @@ This package contains shared library.
 Summary:        evaluates rules written in lua and produce alerts
 Group:          System/Libraries
 Requires:       libalert_agent0 = %{version}
+Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
@@ -84,7 +87,7 @@ This package contains development files.
 
 %build
 sh autogen.sh
-%{configure}
+%{configure} --with-systemd
 make %{_smp_mflags}
 
 %install
@@ -97,9 +100,10 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %doc COPYING
-%dir %{_prefix}/lib/tmpfiles.d/
 %{_bindir}/bios-agent-alert-generator
 %{_prefix}/lib/systemd/system/bios-agent-alert-generator*.service
-%{_prefix}/lib/tmpfiles.d/alert_generator.conf
+
+%dir /usr/lib/tmpfiles.d
+/usr/lib/tmpfiles.d/bios-agent-alert-generator.conf
 
 %changelog

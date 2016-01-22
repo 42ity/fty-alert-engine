@@ -69,19 +69,99 @@ if test "x${ALERT_AGENT_GCOV}" == "xyes"; then
     if test "x${ALERT_AGENT_ORIG_CFLAGS}" != "xnone"; then
         CFLAGS="${CFLAGS} ${ALERT_AGENT_ORIG_CFLAGS}"
     fi
+    AM_CONDITIONAL(WITH_GCOV, true)
+else
+    AM_CONDITIONAL(WITH_GCOV, false)
 fi
 
 PREVIOUS_CFLAGS="${CFLAGS}"
 PREVIOUS_LIBS="${LIBS}"
 
 
+was_libsodium_check_lib_detected=no
+
+PKG_CHECK_MODULES([libsodium], [libsodium >= 0.0.0],
+    [
+        AC_DEFINE(HAVE_LIBSODIUM, 1, [The libsodium library is to be used.])
+    ],
+    [
+        AC_ARG_WITH([libsodium],
+            [
+                AS_HELP_STRING([--with-libsodium],
+                [Specify libsodium prefix])
+            ],
+            [search_libsodium="yes"],
+            [])
+
+        libsodium_synthetic_cflags=""
+        libsodium_synthetic_libs="-lsodium"
+
+        if test "x$search_libsodium" = "xyes"; then
+            if test -r "${with_libsodium}/include/sodium.h"; then
+                libsodium_synthetic_cflags="-I${with_libsodium}/include"
+                libsodium_synthetic_libs="-L${with_libsodium}/lib -lsodium"
+            else
+                AC_MSG_ERROR([${with_libsodium}/include/sodium.h not found. Please check libsodium prefix])
+            fi
+        fi
+
+        AC_CHECK_LIB([libsodium], [sodium_init],
+            [
+                CFLAGS="${libsodium_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${libsodium_synthetic_libs} ${LDFLAGS}"
+                LIBS="${libsodium_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([libsodium_CFLAGS],[${libsodium_synthetic_cflags}])
+                AC_SUBST([libsodium_LIBS],[${libsodium_synthetic_libs}])
+                was_libsodium_check_lib_detected=yes
+                AC_DEFINE(HAVE_LIBSODIUM, 1, [The libsodium library is to be used.])
+            ],
+            [])
+    ])
+
+if test "x$was_libsodium_check_lib_detected" = "xno"; then
+    CFLAGS="${libsodium_CFLAGS} ${CFLAGS}"
+    LIBS="${libsodium_LIBS} ${LIBS}"
+fi
+
+
 was_libzmq_check_lib_detected=no
 
-PKG_CHECK_MODULES([libzmq], [libzmq >= 4.2.0],
+PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
     [
     ],
     [
-        AC_MSG_ERROR([Cannot find required package for libzmq. Note, pkg-config is required due to specified version >= 4.2.0])
+        AC_ARG_WITH([libzmq],
+            [
+                AS_HELP_STRING([--with-libzmq],
+                [Specify libzmq prefix])
+            ],
+            [search_libzmq="yes"],
+            [])
+
+        libzmq_synthetic_cflags=""
+        libzmq_synthetic_libs="-lzmq"
+
+        if test "x$search_libzmq" = "xyes"; then
+            if test -r "${with_libzmq}/include/zmq.h"; then
+                libzmq_synthetic_cflags="-I${with_libzmq}/include"
+                libzmq_synthetic_libs="-L${with_libzmq}/lib -lzmq"
+            else
+                AC_MSG_ERROR([${with_libzmq}/include/zmq.h not found. Please check libzmq prefix])
+            fi
+        fi
+
+        AC_CHECK_LIB([libzmq], [zmq_init],
+            [
+                CFLAGS="${libzmq_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${libzmq_synthetic_libs} ${LDFLAGS}"
+                LIBS="${libzmq_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([libzmq_CFLAGS],[${libzmq_synthetic_cflags}])
+                AC_SUBST([libzmq_LIBS],[${libzmq_synthetic_libs}])
+                was_libzmq_check_lib_detected=yes
+            ],
+            [AC_MSG_ERROR([cannot link with -lzmq, install libzmq.])])
     ])
 
 if test "x$was_libzmq_check_lib_detected" = "xno"; then
@@ -92,11 +172,41 @@ fi
 
 was_czmq_check_lib_detected=no
 
-PKG_CHECK_MODULES([czmq], [libczmq >= 3.0.1],
+PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
     [
     ],
     [
-        AC_MSG_ERROR([Cannot find required package for libczmq. Note, pkg-config is required due to specified version >= 3.0.1])
+        AC_ARG_WITH([libczmq],
+            [
+                AS_HELP_STRING([--with-libczmq],
+                [Specify libczmq prefix])
+            ],
+            [search_libczmq="yes"],
+            [])
+
+        czmq_synthetic_cflags=""
+        czmq_synthetic_libs="-lczmq"
+
+        if test "x$search_libczmq" = "xyes"; then
+            if test -r "${with_libczmq}/include/czmq.h"; then
+                czmq_synthetic_cflags="-I${with_libczmq}/include"
+                czmq_synthetic_libs="-L${with_libczmq}/lib -lczmq"
+            else
+                AC_MSG_ERROR([${with_libczmq}/include/czmq.h not found. Please check libczmq prefix])
+            fi
+        fi
+
+        AC_CHECK_LIB([libczmq], [zctx_test],
+            [
+                CFLAGS="${czmq_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${czmq_synthetic_libs} ${LDFLAGS}"
+                LIBS="${czmq_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([czmq_CFLAGS],[${czmq_synthetic_cflags}])
+                AC_SUBST([czmq_LIBS],[${czmq_synthetic_libs}])
+                was_czmq_check_lib_detected=yes
+            ],
+            [AC_MSG_ERROR([cannot link with -lczmq, install libczmq.])])
     ])
 
 if test "x$was_czmq_check_lib_detected" = "xno"; then
@@ -201,7 +311,7 @@ PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
     [
     ],
     [
-        AC_MSG_ERROR([Cannot find required package for lua. Note, pkg-config is required due to specified version >= 5.1.0])
+        AC_MSG_ERROR([Cannot find lua 5.1.0 or higher])
     ])
 
 if test "x$was_lua_check_lib_detected" = "xno"; then
@@ -262,24 +372,38 @@ LIBS="${PREVIOUS_LIBS}"
 alert_agent_on_mingw32="no"
 alert_agent_on_cygwin="no"
 alert_agent_on_android="no"
+alert_agent_on_linux="no"
+alert_agent_on_gnu="no"
 
 # Host specific checks
 AC_CANONICAL_HOST
 
-# Determine whether or not documentation should be built and installed.
-alert_agent_build_doc="yes"
-alert_agent_install_man="yes"
+# Man pages are built/installed if asciidoc and xmlto are present
+#   --with-docs=no overrides this
+AC_ARG_WITH([docs],
+    AS_HELP_STRING([--with-docs],
+        [Build and install man pages [default=yes]]),
+    [with_docs=$withval])
 
-# Check for asciidoc and xmlto and don't build the docs if these are not installed.
-AC_CHECK_PROG(alert_agent_have_asciidoc, asciidoc, yes, no)
-AC_CHECK_PROG(alert_agent_have_xmlto, xmlto, yes, no)
-if test "x$alert_agent_have_asciidoc" = "xno" -o "x$alert_agent_have_xmlto" = "xno"; then
+if test "x$with_docs" = "xno"; then
     alert_agent_build_doc="no"
-    # Tarballs built with 'make dist' ship with prebuilt documentation.
-    if ! test -f doc/alert_agent.7; then
-        alert_agent_install_man="no"
-        AC_MSG_WARN([You are building an unreleased version of ALERT-AGENT and asciidoc or xmlto are not installed.])
-        AC_MSG_WARN([Documentation will not be built and manual pages will not be installed.])
+    alert_agent_install_man="no"
+else
+    # Determine whether or not documentation should be built and installed.
+    alert_agent_build_doc="yes"
+    alert_agent_install_man="yes"
+
+    # Check for asciidoc and xmlto and don't build the docs if these are not installed.
+    AC_CHECK_PROG(alert_agent_have_asciidoc, asciidoc, yes, no)
+    AC_CHECK_PROG(alert_agent_have_xmlto, xmlto, yes, no)
+    if test "x$alert_agent_have_asciidoc" = "xno" -o "x$alert_agent_have_xmlto" = "xno"; then
+        alert_agent_build_doc="no"
+        # Tarballs built with 'make dist' ship with prebuilt documentation.
+        if ! test -f doc/alert_agent.7; then
+            alert_agent_install_man="no"
+            AC_MSG_WARN([You are building an unreleased version of ALERT-AGENT and asciidoc or xmlto are not installed.])
+            AC_MSG_WARN([Documentation will not be built and manual pages will not be installed.])
+        fi
     fi
 fi
 AC_MSG_CHECKING([whether to build documentation])
@@ -296,6 +420,7 @@ case "${host_os}" in
         # Define on Linux to enable all library features
         CPPFLAGS="-D_GNU_SOURCE -DLINUX $CPPFLAGS"
         AC_DEFINE(ALERT_AGENT_HAVE_LINUX, 1, [Have Linux OS])
+        alert_agent_on_linux="yes"
 
         case "${host_os}" in
             *android*)
@@ -354,6 +479,14 @@ case "${host_os}" in
         AC_DEFINE(ALERT_AGENT_HAVE_CYGWIN, 1, [Have Cygwin])
         alert_agent_on_cygwin="yes"
         ;;
+    gnu*)
+        # Define on GNU/Hurd to enable all library features
+        if test "x$GXX" = "xyes"; then
+            CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
+        fi
+        AC_DEFINE(ALERT_AGENT_HAVE_GNU, 1, [Have GNU/Hurd OS])
+        alert_agent_on_gnu="yes"
+        ;;
     *)
         AC_MSG_ERROR([unsupported system: ${host_os}.])
         ;;
@@ -392,6 +525,8 @@ AM_CONDITIONAL(ENABLE_SHARED, test "x$enable_shared" = "xyes")
 AM_CONDITIONAL(ON_MINGW, test "x$alert_agent_on_mingw32" = "xyes")
 AM_CONDITIONAL(ON_CYGWIN, test "x$alert_agent_on_cygwin" = "xyes")
 AM_CONDITIONAL(ON_ANDROID, test "x$alert_agent_on_android" = "xyes")
+AM_CONDITIONAL(ON_LINUX, test "x$alert_agent_on_linux" = "xyes")
+AM_CONDITIONAL(ON_GNU, test "x$alert_agent_on_gnu" = "xyes")
 AM_CONDITIONAL(INSTALL_MAN, test "x$alert_agent_install_man" = "xyes")
 AM_CONDITIONAL(BUILD_DOC, test "x$alert_agent_build_doc" = "xyes")
 
@@ -405,6 +540,16 @@ AC_ARG_WITH([bios-agent-alert-generator],
 AM_CONDITIONAL([WITH_BIOS_AGENT_ALERT_GENERATOR], [test x$with_bios_agent_alert_generator != xno])
 AM_COND_IF([WITH_BIOS_AGENT_ALERT_GENERATOR], [AC_MSG_NOTICE([WITH_BIOS_AGENT_ALERT_GENERATOR defined])])
 
+# Check for alert_agent_selftest intent
+AC_ARG_WITH([alert_agent_selftest],
+    AS_HELP_STRING([--with-alert_agent_selftest],
+        [Compile the alert_agent_selftest program [default=yes].]),
+    [with_alert_agent_selftest=$withval],
+    [with_alert_agent_selftest=yes])
+
+AM_CONDITIONAL([WITH_ALERT_AGENT_SELFTEST], [test x$with_alert_agent_selftest != xno])
+AM_COND_IF([WITH_ALERT_AGENT_SELFTEST], [AC_MSG_NOTICE([WITH_ALERT_AGENT_SELFTEST defined])])
+
 # Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(perror gettimeofday memset getifaddrs)
@@ -416,15 +561,61 @@ AC_ARG_WITH([pkgconfigdir], AS_HELP_STRING([--with-pkgconfigdir=PATH],
 AC_SUBST([pkgconfigdir])
 
 
+# enable specific system integration features
+AC_ARG_WITH([systemd],
+    AS_HELP_STRING([--with-systemd],
+    [Build and install with systemd integration [default=no].]),
+    [with_systemd=$withval],
+    [with_systemd=no])
+
+AM_CONDITIONAL([WITH_SYSTEMD], [test x$with_systemd != xno])
+
+AM_COND_IF([WITH_SYSTEMD],
+    [PKG_CHECK_MODULES([SYSTEMD], [systemd >= 200], [],
+        [AC_MSG_ERROR([Cannot find required package for systemd. Note, pkg-config is required due to specified version >= 200])])],
+    [])
+
+if test "x$cross_compiling" = "xyes"; then
+    #   Enable draft by default when cross-compiling
+    gitmaster=yes
+else
+    # enable draft API by default if we're in a git repository
+    # else disable it by default; then allow --with-draft=yes/no override
+    AC_CHECK_FILE(.git, [gitmaster=yes], [gitmaster=no])
+fi
+
+AC_ARG_WITH([drafts],
+    AS_HELP_STRING([--with-drafts],
+        [Build and install draft classes and methods [default=yes.]]),
+    [with_drafts=$withval],
+    [with_drafts=$gitmaster])
+
+AM_CONDITIONAL([WITH_DRAFTS], [test x$with_drafts != xno])
+
+if test "x$with_drafts" = "xyes"; then
+    AC_MSG_NOTICE([building draft, stable, and legacy API])
+    AC_DEFINE(WITH_DRAFTS, 1, [Build and install draft classes and methods.])
+    AC_SUBST(pkg_config_defines, "-DWITH_DRAFTS=1")
+else
+    AC_MSG_NOTICE([building stable and legacy API (no drafts)])
+    AC_SUBST(pkg_config_defines, "")
+fi
 
 # Specify output files
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  src/libalert_agent.pc
-                 src/bios-agent-alert-generator.service
                  ])
-AC_OUTPUT
 
+AM_COND_IF([WITH_SYSTEMD],
+    [AC_CONFIG_FILES([
+                 src/bios-agent-alert-generator.service
+                 src/bios-agent-alert-generator.conf
+    ])],
+    [])
+
+
+AC_OUTPUT
 ################################################################################
 #  THIS FILE IS 100% GENERATED BY ZPROJECT; DO NOT EDIT EXCEPT EXPERIMENTALLY  #
 #  Please refer to the README for information about making permanent changes.  #
