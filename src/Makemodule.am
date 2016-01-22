@@ -60,6 +60,9 @@ src_bios_agent_alert_generator_systemd_tmpfilesdir = /usr/lib/tmpfiles.d
 src_bios_agent_alert_generator_systemd_tmpfiles_DATA = src/bios-agent-alert-generator.conf
 endif #WITH_SYSTEMD
 
+src_bios_agent_alert_generator__var_lib_bios_alert_agent_warranty_ruledir = /var/lib/bios/alert_agent
+src_bios_agent_alert_generator__var_lib_bios_alert_agent_warranty_rule_DATA = src/warranty.rule
+
 endif #WITH_BIOS_AGENT_ALERT_GENERATOR
 if WITH_ALERT_AGENT_SELFTEST
 check_PROGRAMS += src/alert_agent_selftest
@@ -68,9 +71,8 @@ src_alert_agent_selftest_CPPFLAGS = ${AM_CPPFLAGS}
 src_alert_agent_selftest_LDADD = ${program_libs}
 src_alert_agent_selftest_SOURCES = src/alert_agent_selftest.cc
 if WITH_SYSTEMD
-src_bios_agent_alert_generator_systemd_tmpfilesdir = /usr/lib/tmpfiles.d
-src_bios_agent_alert_generator_systemd_tmpfiles_DATA = src/bios-agent-alert-generator.conf
 endif #WITH_SYSTEMD
+
 
 endif #WITH_ALERT_AGENT_SELFTEST
 

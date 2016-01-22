@@ -37,6 +37,7 @@
     <class name = "bios_alert_generator_server" state = "stable" >Actor evaluating rules</class>
     <main name = "bios-agent-alert-generator" service = "1" no_config = "1" >
         Daemon evaluating rules and producing alerts
+        <extra type = "x-rules" path = "/var/lib/bios/alert_agent" name = "warranty.rule" />
         <extra type = "systemd-tmpfiles" />
     </main>
 
