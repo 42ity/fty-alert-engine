@@ -103,6 +103,8 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/bios-agent-alert-generator
 %{_prefix}/lib/systemd/system/bios-agent-alert-generator*.service
 
+%dir /var/lib/bios/alert_agent
+/var/lib/bios/alert_agent/warranty.rule
 %dir /usr/lib/tmpfiles.d
 /usr/lib/tmpfiles.d/bios-agent-alert-generator.conf
 
