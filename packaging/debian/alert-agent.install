@@ -1,5 +1,7 @@
 debian/tmp/usr/bin/bios-agent-alert-generator
 debian/tmp/usr/lib/systemd/system/bios-agent-alert-generator*.service
 
+debian/tmp//var/lib/bios/alert_agent/warranty.rule
 debian/tmp//usr/lib/tmpfiles.d/bios-agent-alert-generator.conf
+
 

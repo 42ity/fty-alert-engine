@@ -605,6 +605,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
                  src/libalert_agent.pc
+                 src/warranty.rule
                  ])
 
 AM_COND_IF([WITH_SYSTEMD],
