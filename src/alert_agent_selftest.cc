@@ -27,74 +27,24 @@
     =========================================================================
 */
 
-#include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 #include "alert_agent_classes.h"
 
-//  -------------------------------------------------------------------------
-//  Prototype of test function
-//
-
-typedef void (*testfn_t) (bool);
-
-//  -------------------------------------------------------------------------
-//  Mapping of test class and test function.
-//
-
-typedef struct
-{
+typedef struct {
     const char *testname;
-    testfn_t test;
+    void (*test) (bool);
 } test_item_t;
 
-//  -------------------------------------------------------------------------
-//  Declaration of all tests
-//
-
-#define DECLARE_TEST(TEST) {#TEST, TEST}
-
-test_item_t all_tests [] = {
-    //DECLARE_TEST(metriclist_test),
-    //DECLARE_TEST(alertconfiguration_test),
-    //DECLARE_TEST(luarule_test),
-    //DECLARE_TEST(purealert_test),
-    //DECLARE_TEST(rule_test),
-    //DECLARE_TEST(thresholdrulecomplex_test),
-    DECLARE_TEST(bios_alert_generator_server_test),
-    {0, 0} // Null terminator
+static test_item_t
+all_tests [] = {
+    //{ "metriclist", metriclist_test },
+    //{ "alertconfiguration", alertconfiguration_test },
+    //{ "luarule", luarule_test },
+    //{ "purealert", purealert_test },
+    //{ "rule", rule_test },
+    //{ "thresholdrulecomplex", thresholdrulecomplex_test },
+    { "bios_alert_generator_server", bios_alert_generator_server_test },
+    {0, 0}          //  Sentinel
 };
-
-//  -------------------------------------------------------------------------
-//  Return the number of available tests.
-//
-
-static inline unsigned
-test_get_number (void)
-{
-    unsigned count = 0;
-    test_item_t *item;
-    for (item = all_tests; item->test; item++)
-        count++;
-    return count;
-}
-
-//  -------------------------------------------------------------------------
-//  Print names of all available tests to stdout.
-//
-
-static inline void
-test_print_list (void)
-{
-    unsigned count = 0;
-    test_item_t *item;
-    for (item = all_tests; item->test; item++) {
-        count++;
-        printf ("%u:%s\n", count, item->testname);
-    }
-}
 
 //  -------------------------------------------------------------------------
 //  Test whether a test is available.
@@ -116,11 +66,11 @@ test_available (const char *testname)
 //  Run all tests.
 //
 
-static inline void
+static void
 test_runall (bool verbose)
 {
-    printf ("Running alert-agent selftests...\n");
     test_item_t *item;
+    printf ("Running alert-agent selftests...\n");
     for (item = all_tests; item->test; item++)
         item->test (verbose);
 
@@ -134,20 +84,41 @@ main (int argc, char **argv)
     test_item_t *test = 0;
     int argn;
     for (argn = 1; argn < argc; argn++) {
-        if (streq (argv [argn], "-v"))
+        if (streq (argv [argn], "--help")
+        ||  streq (argv [argn], "-h")) {
+            puts ("alert_agent_selftest.c [options] ...");
+            puts ("  --verbose / -v         verbose test output");
+            puts ("  --number / -n          report number of tests");
+            puts ("  --list / -l            list all tests");
+            puts ("  --test / -t [name]     run only test 'name'");
+            puts ("  --continue / -c        continue on exception (on Windows)");
+            return 0;
+        }
+        if (streq (argv [argn], "--verbose")
+        ||  streq (argv [argn], "-v"))
             verbose = true;
         else
-        if (streq (argv [argn], "--nb")) {
-            printf("%d\n", test_get_number ());
+        if (streq (argv [argn], "--number")
+        ||  streq (argv [argn], "-n")) {
+            puts ("7");
             return 0;
         }
         else
-        if (streq (argv [argn], "--list")) {
-            test_print_list ();
+        if (streq (argv [argn], "--list")
+        ||  streq (argv [argn], "-l")) {
+            puts ("Available tests:");
+            puts ("    metriclist");
+            puts ("    alertconfiguration");
+            puts ("    luarule");
+            puts ("    purealert");
+            puts ("    rule");
+            puts ("    thresholdrulecomplex");
+            puts ("    bios_alert_generator_server");
             return 0;
         }
         else
-        if (streq (argv [argn], "--test")) {
+        if (streq (argv [argn], "--test")
+        ||  streq (argv [argn], "-t")) {
             argn++;
             if (argn >= argc) {
                 fprintf (stderr, "--test needs an argument\n");
@@ -155,12 +126,13 @@ main (int argc, char **argv)
             }
             test = test_available (argv [argn]);
             if (!test) {
-                fprintf (stderr, "%s is not available\n", argv [argn]);
+                fprintf (stderr, "%s not valid, use --list to show tests\n", argv [argn]);
                 return 1;
             }
         }
         else
-        if (streq (argv [argn], "-e")) {
+        if (streq (argv [argn], "--continue")
+        ||  streq (argv [argn], "-c")) {
 #ifdef _MSC_VER
             //  When receiving an abort signal, only print to stderr (no dialog)
             _set_abort_behavior (0, _WRITE_ABORT_MSG);
@@ -172,7 +144,7 @@ main (int argc, char **argv)
         }
     }
     if (test) {
-        printf ("Running alert-agent selftest '%s'...\n", test->testname);
+        printf ("Running alert-agent test '%s'...\n", test->testname);
         test->test (verbose);
     }
     else

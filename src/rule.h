@@ -37,6 +37,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "purealert.h"
 #include "metriclist.h"
 
+#ifndef zsys_debug1
+extern int agent_alert_verbose;
+#define zsys_debug1(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
+#endif
+
 /*
  * \brief Helper structure to store a possible outcome of rule evaluation
  *

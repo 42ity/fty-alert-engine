@@ -1,4 +1,0 @@
-project_libs += -lcxxtools
-
-tmpfilesdir := /usr/lib/tmpfiles.d/
-tmpfiles_DATA = src/alert_generator.conf

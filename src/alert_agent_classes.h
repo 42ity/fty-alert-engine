@@ -26,6 +26,9 @@
 #ifndef ALERT_AGENT_CLASSES_H_INCLUDED
 #define ALERT_AGENT_CLASSES_H_INCLUDED
 
+//  Platform definitions, must come first
+#include "platform.h"
+
 //  External API
 #include "../include/alert_agent.h"
 
