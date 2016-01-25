@@ -1,7 +1,7 @@
 {
     "pattern" : {
         "rule_name"     :   "warranty",
-        "target"        :   "^(end_warranty|warranty_expiration)_date@.+",
+        "target"        :   "^end_warranty_date@.+",
         "values"        :   [ { "warning":"60"}, {"critical":"10"} ],
         "results"       :   [
                                 {"high_critical"  : { "action" : ["EMAIL"], "description" : "Warranty for device will expire in less than 10 days" }},
