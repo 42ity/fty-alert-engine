@@ -69,19 +69,20 @@ list_rules(
     AlertConfiguration &ac)
 {
     zsys_debug1 ("Give me the list of rules with type = '%s'", type);
-    std::function<bool(const RulePtr&)> filter_f;
+    zsys_debug1 ("type == '%s'", type);
+    std::function<bool(const std::string& s)> filter_f;
 
     if (streq (type,"all")) {
-        filter_f = [](const RulePtr &r) {return r != NULL; };
+        filter_f = [](const std::string& s) {return true; };
     }
     else if (streq (type,"threshold")) {
-        filter_f = [](const RulePtr &r) {return r != NULL && (typeid (ThresholdRuleSimple) == typeid (r) || typeid (ThresholdRuleComplex) == typeid (r)); };
+        filter_f = [](const std::string& s) {return s.compare ("threshold") == 0; };
     }
     else if (streq (type,"single")) {
-        filter_f = [](const RulePtr &r) {return r != NULL && typeid (NormalRule) == typeid (r); };
+        filter_f = [](const std::string& s) {return s.compare ("single") == 0; };
     }
     else if (streq (type,"pattern")) {
-        filter_f = [](const RulePtr &r) {return r != NULL && typeid (RegexRule) == typeid (r); };
+        filter_f = [](const std::string& s) {return s.compare ("pattern") == 0; };
     }
     else {
         //invalid type
@@ -94,10 +95,19 @@ list_rules(
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type);
+    // std::vector <
+    //  std::pair <
+    //      RulePtr,
+    //      std::vector<PureAlert> 
+    //      >
+    // >
     for (const auto &i: ac) {
-        const auto &rule = i.first;
-        if (!filter_f(rule))
+        const auto& rule = i.first;
+        if (!filter_f(rule->whoami ())) {
+            zsys_debug1 ("Skipping rule  = '%s'", rule->getJsonRule().c_str());
             continue;
+        }
+        zsys_debug1 ("Adding rule  = '%s'", rule->getJsonRule().c_str());
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);

@@ -33,6 +33,8 @@ public:
 
     ThresholdRuleSimple(){};
 
+    std::string whoami () const { return "threshold"; }
+
     // throws -> it is pattern but with errors
     // 0 - ok
     // 1 - it is not pattern rule

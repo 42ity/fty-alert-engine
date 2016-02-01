@@ -39,6 +39,8 @@ public:
         _rex = NULL;
     };
 
+    std::string whoami () const { return "pattern"; }
+
     /*
      * \brief parse json and check lua and fill the object
      *

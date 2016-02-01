@@ -36,6 +36,8 @@ class NormalRule : public LuaRule
 public:
     NormalRule(){};
 
+    std::string whoami () const { return "single"; }
+
     /*
      * \brief parse json and check lua and fill the object
      *
