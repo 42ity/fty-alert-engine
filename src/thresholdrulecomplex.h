@@ -36,6 +36,7 @@ extern "C" {
 class ThresholdRuleComplex : public LuaRule
 {
 public:
+    std::string whoami () const { return "threshold"; }
 
     ThresholdRuleComplex(){};
     /*

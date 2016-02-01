@@ -93,6 +93,7 @@ typedef std::unique_ptr<Rule> RulePtr;
 class Rule {
 
 public:
+    virtual std::string whoami () const { return ""; };
     std::string name (void) const { return _name; }
 
     void name (const std::string &name) { _name = name; }
@@ -270,10 +271,6 @@ protected:
 
     cxxtools::SerializationInfo _si;
 
-    /*
-     * \brief User cannot construct object of abstract entity
-     */
-    Rule(){};
 
 private:
     /*
