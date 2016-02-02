@@ -1,0 +1,62 @@
+{
+	"threshold": {
+		"rule_name": "check_update_threshold_simple",
+		"rule_desc": "Humidity",
+		"target": "average.humidity@DC-Roztoky",
+		"element": "DC-Roztoky",
+		"values_unit": "%",
+		"values": [
+			{
+				"low_warning": "40"
+			},
+			{
+				"low_critical": "30"
+			},
+			{
+				"high_warning": "60"
+			},
+			{
+				"high_critical": "70"
+			}
+		],
+		"results": [
+			{
+				"low_warning": {
+					"action": [
+						"EMAIL", "SMS"
+					],
+					"severity": "low",
+					"description": "Humidity in datacenter DC-Roztoky is low"
+				}
+			},
+			{
+				"low_critical": {
+					"action": [
+						"EMAIL", "SMS"
+					],
+					"severity": "high",
+					"description": "Humidity in datacenter DC-Roztoky is critically low"
+				}
+			},
+			{
+				"high_warning": {
+					"action": [
+						"EMAIL", "SMS"
+					],
+					"severity": "low",
+					"description": "Humidity in datacenter DC-Roztoky is high"
+				}
+			},
+			{
+				"high_critical": {
+					"action": [
+						"EMAIL", "SMS"
+					],
+					"severity": "high",
+					"description": "Humidity in datacenter DC-Roztoky is critically high"
+				}
+			}
+		]
+	}
+}
+
