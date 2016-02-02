@@ -98,16 +98,16 @@ list_rules(
     // std::vector <
     //  std::pair <
     //      RulePtr,
-    //      std::vector<PureAlert> 
+    //      std::vector<PureAlert>
     //      >
     // >
     for (const auto &i: ac) {
         const auto& rule = i.first;
         if (!filter_f(rule->whoami ())) {
-            zsys_debug1 ("Skipping rule  = '%s'", rule->getJsonRule().c_str());
+            zsys_debug1 ("Skipping rule  = '%s'", rule->name().c_str());
             continue;
         }
-        zsys_debug1 ("Adding rule  = '%s'", rule->getJsonRule().c_str());
+        zsys_debug1 ("Adding rule  = '%s'", rule->name().c_str());
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
