@@ -141,6 +141,7 @@ public:
      *         -1 when rule has error in JSON
      *         -5 when rule has error in lua
      *         -3 if name of the rule is changed, but for the new name rule
+     *         -6 disk manipulation error (storing, moving...)
      *              already exists
      *          0 when rule was parsed and updated correctly (but it can be not saved)
      */

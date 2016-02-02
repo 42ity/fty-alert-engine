@@ -195,7 +195,7 @@ int AlertConfiguration::
     }
 
     std::vector<PureAlert> emptyAlerts{};
-    temp_rule->save(getPersistencePath());
+    temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule");
     // in any case we need to check new subjects
     for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
         newSubjectsToSubscribe.insert (interestedTopic);
@@ -245,6 +245,7 @@ int AlertConfiguration::
     }
 
     bool to_push_new_rule = false;
+    iterator rule_to_remove = _alerts.end ();
 
     // find alerts, that should be resolved
     for ( auto &oneRuleAlerts: _alerts ) {
@@ -265,12 +266,16 @@ int AlertConfiguration::
         for ( auto i = _alerts.begin(); i != _alerts.end(); ++i ) {
             auto &oneRule = i->first;
             if ( oneRule->hasSameNameAs (old_name) ) {
+                rule_to_remove = i;
                 // -- free memory used by oldone
+                //
+                /*   This is moved below after we try to save .new and remove old
                 int rv = oneRule->remove(getPersistencePath());
                 zsys_debug1 ("remove rv = %d", rv);
                 oneRule.reset ();
                 _alerts.erase (i);
                 to_push_new_rule = true;
+                */
                 break; // old_name is unique
             }
         }
@@ -279,7 +284,36 @@ int AlertConfiguration::
     for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
         newSubjectsToSubscribe.insert (interestedTopic);
     }
-    temp_rule->save(getPersistencePath());
+    try {
+        temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule.new");
+    }
+    catch (const std::exception& e) {
+        zsys_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule.new").c_str (), e.what ());
+        return -6;                
+    }
+    int rule_removed = 0;
+    std::string rule_removed_name;
+    if (rule_to_remove != _alerts.end ()) {
+        rule_removed = rule_to_remove->first->remove (getPersistencePath());
+
+        rule_removed_name = rule_to_remove->first->name ();
+        rule_to_remove->first.reset ();
+        _alerts.erase (rule_to_remove);
+        to_push_new_rule = true;
+    }
+    if (rule_removed != 0) {
+        zsys_error ("Rule '%s' was removed from memory but there was a problem removing it from storage. "
+                    "Update rule therefore can not be moved to old file name - it is stored with postfix '.new'.", rule_removed_name.c_str ());
+        return -6;
+    }
+    // rename 
+    rv = std::rename (std::string (getPersistencePath()).append (rule_removed_name).append(".rule.new").c_str (),
+                          std::string (getPersistencePath()).append (rule_removed_name).append(".rule").c_str ()); 
+    if (rv) {
+        zsys_error ("Error renaming .rule.new to .new for '%s'", rule_removed_name.c_str ());
+        return -6;
+    } 
+
     if (to_push_new_rule) {
         std::vector<PureAlert> emptyAlerts{};
         _alerts.push_back (std::make_pair(std::move(temp_rule), emptyAlerts));

@@ -203,11 +203,11 @@ public:
     /*
      * \brief Save rule to the persistance
      */
-    void save (const std::string &path) {
+    void save (const std::string &path, const std::string& name) {
         // ASSUMPTION: file name is the same as rule name
         // rule name and file name are CASE INSENSITIVE.
 
-        std::string full_name = path + _name + ".rule";
+        std::string full_name = path + name;
         zsys_debug1 ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
         if ( !ofs.good() ) {
