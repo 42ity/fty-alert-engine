@@ -231,7 +231,14 @@ add_rule(
         zmsg_addstr (reply, "BAD_LUA");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
-
+    case -6:
+    {
+        // error during the rule creation (lua)
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "Internal error - operating with storate/disk failed.");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        return;
+    }
     default:
         // error during the rule creation
         zmsg_addstr (reply, "ERROR");
@@ -289,6 +296,14 @@ update_rule(
         zmsg_addstr (reply, "ALREADY_EXISTS");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
+    case -6:
+    {
+        // error during the rule creation (lua)
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "Internal error - operating with storate/disk failed.");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        return;
+    }
     default:
         // error during the rule creation
         zmsg_addstr (reply, "ERROR");
