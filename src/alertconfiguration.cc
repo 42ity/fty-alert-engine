@@ -195,7 +195,13 @@ int AlertConfiguration::
     }
 
     std::vector<PureAlert> emptyAlerts{};
-    temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule");
+    try {
+        temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule");
+    }
+    catch (const std::exception& e) {
+        zsys_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule").c_str (), e.what ());
+        return -6;                
+    }
     // in any case we need to check new subjects
     for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
         newSubjectsToSubscribe.insert (interestedTopic);

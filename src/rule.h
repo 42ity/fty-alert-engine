@@ -210,12 +210,8 @@ public:
         std::string full_name = path + name;
         zsys_debug1 ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
-        if ( !ofs.good() ) {
-            zsys_error ("Cannot save the file '%s', changes will disappear after agent restart", full_name.c_str());
-        }
-        else {
-            ofs << getJsonRule ();
-        }
+        ofs.exceptions (~std::ofstream::goodbit);
+        ofs << getJsonRule ();
         ofs.close();
     };
 
