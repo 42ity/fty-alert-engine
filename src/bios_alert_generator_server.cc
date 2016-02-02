@@ -1080,6 +1080,56 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&foo);
     zmsg_destroy (&recv);
 
+    // test case #17 update the existing rule (type: threshold_simple)
+    // input:
+    //          * file check_update_threshold_simple.rule
+    //          * file check_update_threshold_simple2.rule
+    //      rules inside the files have the same names, but
+    //      "values" are different
+    // 1. add rule from the file check_update_threshold_simple.rule
+    // 2. update "check_update_threshold_simple" rule with file "check_update_threshold_simple2.rule"
+    //
+    // expected result: SUCCESS
+
+    // 1.
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    simplethreshold_rule = s_readall ("testrules/check_update_threshold_simple.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // 2.
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    simplethreshold_rule = s_readall ("testrules/check_update_threshold_simple2.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", "check_update_threshold_simple");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    // check the result of the operation
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+
     // no new alert sent here
 
     zactor_destroy (&ag_server);
