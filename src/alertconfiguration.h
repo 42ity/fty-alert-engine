@@ -94,6 +94,7 @@ public:
     // not just typedef
     iterator begin() { return _alerts.begin(); }
     iterator end() { return _alerts.end(); }
+    size_t size () { return _alerts.size (); }
 
     /*
      * \brief Sets a path to configuration files
