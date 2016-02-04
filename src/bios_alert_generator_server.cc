@@ -68,7 +68,7 @@ list_rules(
     const char *type,
     AlertConfiguration &ac)
 {
-    zsys_debug1 ("Give me the list of rules with type = '%s'", type);
+    zsys_debug1 ("\t--- entering ---");
     zsys_debug1 ("type == '%s'", type);
     std::function<bool(const std::string& s)> filter_f;
 
@@ -86,10 +86,15 @@ list_rules(
     }
     else {
         //invalid type
+        zsys_warning ("type '%s' is invalid", type);
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INVALID_TYPE");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+                mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
     zmsg_t *reply = zmsg_new ();
@@ -101,6 +106,7 @@ list_rules(
     //      std::vector<PureAlert>
     //      >
     // >
+    zsys_debug1 ("number of all rules = '%zu'", ac.size ());
     for (const auto &i: ac) {
         const auto& rule = i.first;
         if (!filter_f(rule->whoami ())) {
@@ -110,7 +116,11 @@ list_rules(
         zsys_debug1 ("Adding rule  = '%s'", rule->name().c_str());
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
+    zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zsys_debug1 ("mlm_client_sendto () finished");
+    zsys_debug1 ("\t--- leaving ---");
 }
 
 static void
@@ -119,23 +129,40 @@ get_rule(
     const char *name,
     AlertConfiguration &ac)
 {
-    zsys_debug1 ("Give me the detailes about rule with rule_name = '%s'", name);
+    assert (name != NULL);
+    zsys_debug1 ("\t--- entering ---");
+    zsys_debug1 ("name = '%s'", name);
+    zsys_debug1 ("number of all rules = '%zu'", ac.size ());
     for (const auto& i: ac) {
         const auto &rule = i.first;
         if (rule->hasSameNameAs (name))
         {
+            zsys_debug1 ("found");
             zmsg_t *reply = zmsg_new ();
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, rule->getJsonRule().c_str());
+
+            zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+                mlm_client_sender (client), RULES_SUBJECT);
             mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            zsys_debug1 ("mlm_client_sendto () finished");
+
+            zsys_debug1 ("\t--- leaving ---");
             return;
         }
     }
 
+    zsys_debug1 ("not found");
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "ERROR");
     zmsg_addstr (reply, "NOT_FOUND");
+
+    zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+        mlm_client_sender (client), RULES_SUBJECT);
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    zsys_debug1 ("mlm_client_sendto () finished");
+
+    zsys_debug1 ("\t--- leaving ---");
     return;
 }
 
@@ -144,14 +171,20 @@ static std::string
 makeActionList(
     const std::vector <std::string> &actions)
 {
-    std::ostringstream s;
+    zsys_debug1 ("\t--- entering ---");
+    std::string s;
+    bool first = true;
     for (const auto& oneAction : actions) {
-        if (&oneAction != &actions[0]) {
-            s << "/";
+        if (first) { 
+            s.append (oneAction);
+            first = false;
         }
-        s << oneAction;
+        else {
+            s.append ("/").append (oneAction);
+        }
     }
-    return s.str();
+    zsys_debug1 ("\t--- leaving ---");
+    return s;
 }
 
 static void
@@ -160,6 +193,7 @@ send_alerts(
     const std::vector <PureAlert> &alertsToSend,
     const std::string &rule_name)
 {
+    zsys_debug1 ("\t--- entering ---");
     for ( const auto &alert : alertsToSend )
     {
         zmsg_t *msg = bios_proto_encode_alert (
@@ -176,9 +210,12 @@ send_alerts(
             std::string atopic = rule_name + "/"
                 + alert._severity + "@"
                 + alert._element;
+            zsys_debug1 ("mlm_client_send (subject = '%s')", atopic.c_str());
             mlm_client_send (client, atopic.c_str(), &msg);
+            zsys_debug1 ("mlm_client_send () finished.");
         }
     }
+    zsys_debug1 ("\t--- leaving ---");
 }
 
 static void
@@ -196,6 +233,7 @@ add_rule(
     const char *json_representation,
     AlertConfiguration &ac)
 {
+    zsys_debug1 ("\t--- entering ---");
     std::istringstream f(json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
@@ -207,43 +245,76 @@ add_rule(
         // rule exists
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ALREADY_EXISTS");
+
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case 0:
         // rule was created succesfully
         zsys_debug1 ("newsubjects count = %d", newSubjectsToSubscribe.size() );
         zsys_debug1 ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+            zsys_debug1 ("Registering to receive '%s'", interestedSubject.c_str());
             mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-            zsys_debug1("Registered to receive '%s'\n", interestedSubject.c_str());
+            zsys_debug1("Registering finished");
         }
 
         // send a reply back
         zmsg_addstr (reply, "OK");
-        zmsg_addstr (reply, json_representation);
+        zmsg_addstr (reply, json_representation)
+            ;
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+
         // send updated alert
+        zsys_debug1 ("send_alerts () started");
         send_alerts (client, alertsToSend, new_rule_it->first);
+        zsys_debug1 ("send_alerts () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case -5:
         // error during the rule creation (lua)
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_LUA");
+
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case -6:
     {
         // error during the rule creation (lua)
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "Internal error - operating with storate/disk failed.");
+
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
     default:
         // error during the rule creation
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_JSON");
+
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
 }
@@ -256,6 +327,7 @@ update_rule(
     const char *rule_name,
     AlertConfiguration &ac)
 {
+    zsys_debug1 ("\t--- entering ---");
     std::istringstream f(json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
@@ -267,48 +339,76 @@ update_rule(
         // ERROR rule doesn't exist
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case 0:
         // rule was updated succesfully
         zsys_debug1 ("newsubjects count = %d", newSubjectsToSubscribe.size() );
         zsys_debug1 ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
+            zsys_debug1 ("Registering to receive '%s'", interestedSubject.c_str());
             mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-            zsys_debug1("Registered to receive '%s'\n", interestedSubject.c_str());
+            zsys_debug1("Registering finished");
         }
         // send a reply back
         zmsg_addstr (reply, "OK");
         zmsg_addstr (reply, json_representation);
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
         // send updated alert
+        zsys_debug1 ("send_alerts () start");
         send_alerts (client, alertsToSend, new_rule_it->first);
+        zsys_debug1 ("send_alerts () finished");
+
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case -5:
         // error during the rule creation (lua)
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_LUA");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case -3:
         // rule with new rule name already exists
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ALREADY_EXISTS");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     case -6:
     {
         // error during the rule creation (lua)
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "Internal error - operating with storate/disk failed.");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
     default:
         // error during the rule creation
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_JSON");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), RULES_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
 }
@@ -322,18 +422,25 @@ change_state(
     const char *new_state,
     AlertConfiguration &ac)
 {
+    zsys_debug1 ("\t--- entering ---");
     if ( !ac.haveRule (rule_name) )
     {
         // ERROR rule doesn't exist
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), ACK_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
 
     PureAlert alertToSend;
+    zsys_debug1 ("updateAlertState () start");
     int rv = ac.updateAlertState (rule_name, element_name, new_state, alertToSend);
+    zsys_debug1 ("updateAlertState () finished");
     if ( rv != 0 )
     {
         // ERROR during the rule updating
@@ -348,7 +455,11 @@ change_state(
         else {
             zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
         }
+        zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+            mlm_client_sender (client), ACK_SUBJECT);
         mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
+        zsys_debug1 ("\t--- leaving ---");
         return;
     }
     // send a reply back
@@ -357,9 +468,15 @@ change_state(
     zmsg_addstr (reply, rule_name);
     zmsg_addstr (reply, element_name);
     zmsg_addstr (reply, new_state);
+    zsys_debug1 ("mlm_client_sendto (address = '%s', subject = '%s), tracker != NULL, timeout = 1000",
+        mlm_client_sender (client), ACK_SUBJECT);
     mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        zsys_debug1 ("mlm_client_sendto () finished");
     // send updated alert
+    zsys_debug1 ("send_alerts () start");
     send_alerts (client, {alertToSend}, rule_name);
+    zsys_debug1 ("send_alerts () finished");
+    zsys_debug1 ("\t--- leaving ---");
 }
 
 
@@ -370,42 +487,55 @@ evaluate_metric(
     const MetricList &knownMetricValues,
     AlertConfiguration &ac)
 {
+    zsys_debug1 ("\t--- entering ---");
     // Go through all known rules, and try to evaluate them
     for ( const auto &i : ac ) {
         const auto &rule = i.first;
         try {
             zsys_debug1(" # Check rule '%s'", rule->name().c_str());
-            if ( !rule->isTopicInteresting (triggeringMetric.generateTopic())) {
+            zsys_debug1 ("isTopicInteresting () start");
+            bool is_interresting = rule->isTopicInteresting (triggeringMetric.generateTopic());
+            zsys_debug1 ("isTopicInteresting () finished");
+            
+            if ( !is_interresting) {
                 zsys_debug1 (" ### Metric is not interesting for this rule");
                 continue;
             }
 
             PureAlert pureAlert;
+            zsys_debug1 ("evaluate () start");
             int rv = rule->evaluate (knownMetricValues, pureAlert);
+            zsys_debug1 ("evaluate () finished");
             if ( rv != 0 ) {
                 zsys_error (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
                 continue;
             }
 
             PureAlert alertToSend;
+            zsys_debug1 ("updateAlert () start");
             rv = ac.updateAlert (rule, pureAlert, alertToSend);
+            zsys_debug1 ("updateAlert () finished");
             if ( rv == -1 ) {
                 zsys_debug1 (" ### alert updated, nothing to send");
                 // nothing to send
                 continue;
             }
+            zsys_debug1 ("send_alerts () start");
             send_alerts (client, {alertToSend}, rule);
+            zsys_debug1 ("send_alerts () finished");
         }
         catch ( const std::exception &e) {
             zsys_error ("CANNOT evaluate rule, because '%s'", e.what());
         }
     }
+    zsys_debug1 ("\t--- leaving ---");
 }
 
 
 void
 bios_alert_generator_server (zsock_t *pipe, void* args)
 {
+    zsys_debug1 ("\t--- entering ---");
     // need to track incoming measurements
     MetricList cache;
     AlertConfiguration alertConfiguration;
@@ -421,40 +551,53 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
         void *which = zpoller_wait (poller, -1);
         if (which == pipe) {
+            zsys_debug1 ("which == pipe");
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
 
             if (streq (cmd, "$TERM")) {
+                zsys_debug ("$TERM received");
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
             }
             else
             if (streq (cmd, "VERBOSE")) {
+                zsys_debug ("VERBOSE received");
                 agent_alert_verbose = true;
                 zmsg_destroy (&msg);
             }
             else
             if (streq (cmd, "CONNECT")) {
+                zsys_debug ("CONNECT received");
                 char* endpoint = zmsg_popstr (msg);
+                zsys_debug1 ("mlm_client_connect (endpoint = '%s', timetou = 1000, name = '%s'",
+                        endpoint, name);
                 int rv = mlm_client_connect (client, endpoint, 1000, name);
+                zsys_debug1 ("mlm_client_connect () finished");
                 if (rv == -1)
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
             }
             else
             if (streq (cmd, "PRODUCER")) {
+                zsys_debug ("PRODUCER received");
                 char* stream = zmsg_popstr (msg);
+                zsys_debug1 ("mlm_client_set_producer (stream = '%s')", stream);
                 int rv = mlm_client_set_producer (client, stream);
+                zsys_debug1 ("mlm_client_set_producer () finished");
                 if (rv == -1)
                     zsys_error ("%s: can't set producer on stream '%s'", name, stream);
                 zstr_free (&stream);
             }
             else
             if (streq (cmd, "CONSUMER")) {
+                zsys_debug ("CONSUMER received");
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
+                zsys_debug1 ("mlm_client_set_consumer (stream = '%s', pattern = '%s')", stream, pattern);
                 int rv = mlm_client_set_consumer (client, stream, pattern);
+                zsys_debug1 ("mlm_client_set_consumer () finished");
                 if (rv == -1)
                     zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
                 zstr_free (&pattern);
@@ -462,6 +605,8 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
             if (streq (cmd, "CONFIG")) {
+                zsys_debug ("CONFIG received");
+                // TODO
                 char* filename = zmsg_popstr (msg);
 
                 // Read initial configuration
@@ -482,12 +627,15 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             zmsg_destroy (&msg);
             continue;
         }
+        zsys_debug1 ("which != pipe");
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there is no messages
         // TODO: probably alert also should be send every XXX seconds,
         // even if no measurements were recieved
+        zsys_debug ("mlm_client_recv () start");
         zmsg_t *zmessage = mlm_client_recv (client);
+        zsys_debug ("mlm_client_recv () finished");
         if ( zmessage == NULL ) {
             continue;
         }
@@ -499,6 +647,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
         if( is_bios_proto(zmessage) ) {
+            zsys_debug1 ("bios_proto message");
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
             if( ! bmessage ) {
                 zsys_debug1 ("cannot decode message, ignoring\n");
@@ -532,16 +681,20 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 bios_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
+                zsys_debug1 ("evaluate_metric () start");
                 evaluate_metric(client, m, cache, alertConfiguration);
+                zsys_debug1 ("evaluate_metric () finished");
             }
             bios_proto_destroy (&bmessage);
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
+            zsys_debug1 ("not bios_proto && mailbox");
             // According RFC we expect here a messages
             // with the topics ACK_SUBJECT and RULE_SUBJECT
             if ( streq (mlm_client_subject (client), RULES_SUBJECT) )
             {
+                zsys_debug1 ("%s", RULES_SUBJECT);
                 // Here we can have:
                 //  * new rule
                 //  * request for list of rules
@@ -550,21 +703,29 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 char *param = zmsg_popstr (zmessage);
                 if (command && param) {
                     if (streq (command, "LIST")) {
+                        zsys_debug ("list_rules () start");
                         list_rules (client, param, alertConfiguration);
+                        zsys_debug ("list_rules () finished");
                     }
                     else if (streq (command, "GET")) {
+                        zsys_debug ("get_rule () start");
                         get_rule (client, param, alertConfiguration);
+                        zsys_debug ("get_rule () finished");
                     }
                     else if (streq (command, "ADD") ) {
                         if ( zmsg_size(zmessage) == 0 ) {
                             // ADD/json
+                            zsys_debug ("add_rule () start");
                             add_rule (client, param, alertConfiguration);
+                            zsys_debug ("add_rule () finished");
                         }
                         else
                         {
                             // ADD/json/old_name
                             char *param1 = zmsg_popstr (zmessage);
+                            zsys_debug ("update_rule () start");
                             update_rule (client, param, param1, alertConfiguration);
+                            zsys_debug ("update_rule () finished");
                             if (param1) free (param1);
                         }
                     }
@@ -575,6 +736,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             else
             if ( streq (mlm_client_subject (client), ACK_SUBJECT) )
             {
+                zsys_debug1 ("%s", ACK_SUBJECT);
                 // Here we can have:
                 //  * change acknowlegment state of the alert
                 char *param1 = zmsg_popstr (zmessage); // rule name
@@ -584,7 +746,9 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                     zsys_debug1 ("Ignore it. Unexpected message format");
                 }
                 else {
+                    zsys_debug1 ("change_state () start");
                     change_state (client, param1, param2, param3, alertConfiguration);
+                    zsys_debug1 ("change_state () finished");
                 }
 
                 zstr_free (&param1);
@@ -599,6 +763,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 exit:
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
+    zsys_debug1 ("\t--- leaving ---");
 }
 
 //  --------------------------------------------------------------------------
@@ -606,6 +771,7 @@ exit:
 
 static char*
 s_readall (const char* filename) {
+    zsys_debug1 ("\t--- entering ---");
     FILE *fp = fopen(filename, "rt");
     if (!fp)
         return NULL;
@@ -626,6 +792,7 @@ s_readall (const char* filename) {
         return ret;
 
     free (ret);
+    zsys_debug1 ("\t--- leaving ---");
     return NULL;
 }
 
