@@ -616,7 +616,9 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 // Subscribe to all subjects
                 for ( const auto &interestedSubject : subjectsToConsume ) {
+                    zsys_debug1 ("mlm_client_set_consumer (stream = '%s', pattern = '%s')",  METRICS_STREAM, interestedSubject.c_str());
                     int rv = mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
+                    zsys_debug1 ("mlm_client_set_consumer () finished");
                     if (rv == -1)
                         zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, METRICS_STREAM, interestedSubject.c_str());
                         zsys_debug1("%s: Registered to receive '%s'\n", name, interestedSubject.c_str());
