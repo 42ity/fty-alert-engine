@@ -98,56 +98,16 @@ public:
         return 0;
     };
 
-    int evaluate (const MetricList &metricList, PureAlert &pureAlert) const
+    int evaluate (const MetricList &metricList, PureAlert &pureAlert)
     {
-        lua_State *lua_context = setContext (metricList);
-        if ( lua_context == NULL ) {
-            // not possible to evaluate metric with current known Metrics
-            return 2;
-        }
-
-        zsys_debug1 ("lua_code = %s", code().c_str() );
-        int error = luaL_loadbuffer (lua_context, code().c_str(), code().length(), "line") ||
-            lua_pcall (lua_context, 0, 1, 0);
-
-        if ( error ) {
-            // syntax error in evaluate
-            zsys_error ("Syntax error: %s\n", lua_tostring(lua_context, -1));
-            lua_close (lua_context);
-            return 1;
-        }
-        // if we are going to use the same context repeatedly -> use lua_pop(lua_context, 1)
-        // to pop error message from the stack
-
-        // evaluation was successful, need to read the result
-        if ( !lua_isstring (lua_context, -1) ) {
-            zsys_error ("unexcpected returned value\n");
-            lua_close (lua_context);
-            return -1;
-        }
-        std::string element = metricList.getLastMetric().getElementName();
-        // ok, in the lua stack we got, what we expected
-        const char *status = lua_tostring(lua_context, -1); // "ok" or result name
-        auto outcome = _outcomes.find (status);
-        if ( outcome != _outcomes.cend() )
-        {
-            // some known outcome was found
-            pureAlert = PureAlert(ALERT_START, ::time(NULL), outcome->second._description, element, outcome->second._severity, outcome->second._actions);
-            pureAlert.print();
-            lua_close (lua_context);
-            return 0;
-        }
-        if ( streq (status, "ok") )
-        {
-            // When alert is resolved, it doesn't have new severity!!!!
-            pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", element, "DOESN'T MATTER", {""});
-            pureAlert.print();
-            lua_close (lua_context);
-            return 0;
-        }
-        zsys_error ("unknown result '%s' received from lua function", status);
-        lua_close (lua_context);
-        return -1;
+        LuaRule::evaluate(metricList, pureAlert);
+        /*if ( rv != 0 ) {
+            return rv;
+        }*/
+        // regexp rule is special, it has to generate alert for the element,
+        // that triggert the evaluation
+        pureAlert._element = metricList.getLastMetric().getElementName();
+        return 0;
     };
 
     bool isTopicInteresting(const std::string &topic) const
@@ -158,28 +118,6 @@ public:
     std::vector<std::string> getNeededTopics(void) const
     {
         return std::vector<std::string>{_rex_str};
-    };
-
-protected:
-
-    lua_State* setContext (const MetricList &metricList) const
-    {
-#if LUA_VERSION_NUM > 501
-        lua_State *lua_context = luaL_newstate();
-#else
-        lua_State *lua_context = lua_open();
-#endif
-        // 1 ) set up metric
-        lua_pushnumber(lua_context, metricList.getLastMetric().getValue());
-        lua_setglobal(lua_context, "value");
-
-        //  2 ) set up variables
-        for ( const auto &aConstantValue : getGlobalVariables() ) {
-            lua_pushnumber (lua_context, aConstantValue.second);
-            lua_setglobal (lua_context, aConstantValue.first.c_str());
-        }
-        // we are here -> all constants are set
-        return lua_context;
     };
 
 private:
