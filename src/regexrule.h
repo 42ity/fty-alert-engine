@@ -100,10 +100,10 @@ public:
 
     int evaluate (const MetricList &metricList, PureAlert &pureAlert)
     {
-        LuaRule::evaluate(metricList, pureAlert);
-        /*if ( rv != 0 ) {
+        int rv = LuaRule::evaluate(metricList, pureAlert);
+        if ( rv != 0 ) {
             return rv;
-        }*/
+        }
         // regexp rule is special, it has to generate alert for the element,
         // that triggert the evaluation
         pureAlert._element = metricList.getLastMetric().getElementName();
