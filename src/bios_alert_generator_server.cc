@@ -836,7 +836,7 @@ bios_alert_generator_server_test (bool verbose)
     if (verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*");
+    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
     zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
