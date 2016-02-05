@@ -556,20 +556,20 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             char *cmd = zmsg_popstr (msg);
 
             if (streq (cmd, "$TERM")) {
-                zsys_debug ("$TERM received");
+                zsys_debug1 ("$TERM received");
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                zsys_debug ("VERBOSE received");
+                zsys_debug1 ("VERBOSE received");
                 agent_alert_verbose = true;
                 zmsg_destroy (&msg);
             }
             else
             if (streq (cmd, "CONNECT")) {
-                zsys_debug ("CONNECT received");
+                zsys_debug1 ("CONNECT received");
                 char* endpoint = zmsg_popstr (msg);
                 zsys_debug1 ("mlm_client_connect (endpoint = '%s', timetou = 1000, name = '%s'",
                         endpoint, name);
@@ -581,7 +581,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
             if (streq (cmd, "PRODUCER")) {
-                zsys_debug ("PRODUCER received");
+                zsys_debug1 ("PRODUCER received");
                 char* stream = zmsg_popstr (msg);
                 zsys_debug1 ("mlm_client_set_producer (stream = '%s')", stream);
                 int rv = mlm_client_set_producer (client, stream);
@@ -592,7 +592,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
             if (streq (cmd, "CONSUMER")) {
-                zsys_debug ("CONSUMER received");
+                zsys_debug1 ("CONSUMER received");
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
                 zsys_debug1 ("mlm_client_set_consumer (stream = '%s', pattern = '%s')", stream, pattern);
@@ -605,7 +605,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
             if (streq (cmd, "CONFIG")) {
-                zsys_debug ("CONFIG received");
+                zsys_debug1 ("CONFIG received");
                 // TODO
                 char* filename = zmsg_popstr (msg);
 
@@ -635,9 +635,9 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         // and doesn't do anything if there is no messages
         // TODO: probably alert also should be send every XXX seconds,
         // even if no measurements were recieved
-        zsys_debug ("mlm_client_recv () start");
+        zsys_debug1 ("mlm_client_recv () start");
         zmsg_t *zmessage = mlm_client_recv (client);
-        zsys_debug ("mlm_client_recv () finished");
+        zsys_debug1 ("mlm_client_recv () finished");
         if ( zmessage == NULL ) {
             continue;
         }
@@ -705,29 +705,29 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 char *param = zmsg_popstr (zmessage);
                 if (command && param) {
                     if (streq (command, "LIST")) {
-                        zsys_debug ("list_rules () start");
+                        zsys_debug1 ("list_rules () start");
                         list_rules (client, param, alertConfiguration);
-                        zsys_debug ("list_rules () finished");
+                        zsys_debug1 ("list_rules () finished");
                     }
                     else if (streq (command, "GET")) {
-                        zsys_debug ("get_rule () start");
+                        zsys_debug1 ("get_rule () start");
                         get_rule (client, param, alertConfiguration);
-                        zsys_debug ("get_rule () finished");
+                        zsys_debug1 ("get_rule () finished");
                     }
                     else if (streq (command, "ADD") ) {
                         if ( zmsg_size(zmessage) == 0 ) {
                             // ADD/json
-                            zsys_debug ("add_rule () start");
+                            zsys_debug1 ("add_rule () start");
                             add_rule (client, param, alertConfiguration);
-                            zsys_debug ("add_rule () finished");
+                            zsys_debug1 ("add_rule () finished");
                         }
                         else
                         {
                             // ADD/json/old_name
                             char *param1 = zmsg_popstr (zmessage);
-                            zsys_debug ("update_rule () start");
+                            zsys_debug1 ("update_rule () start");
                             update_rule (client, param, param1, alertConfiguration);
-                            zsys_debug ("update_rule () finished");
+                            zsys_debug1 ("update_rule () finished");
                             if (param1) free (param1);
                         }
                     }
