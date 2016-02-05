@@ -255,6 +255,7 @@ add_rule(
         return;
     case 0:
         // rule was created succesfully
+        /* TODO: WIP, don't delete
         zsys_debug1 ("newsubjects count = %d", newSubjectsToSubscribe.size() );
         zsys_debug1 ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
@@ -262,6 +263,7 @@ add_rule(
             mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
             zsys_debug1("Registering finished");
         }
+        */
 
         // send a reply back
         zmsg_addstr (reply, "OK");
@@ -347,6 +349,7 @@ update_rule(
         return;
     case 0:
         // rule was updated succesfully
+        /* TODO: WIP, don't delete
         zsys_debug1 ("newsubjects count = %d", newSubjectsToSubscribe.size() );
         zsys_debug1 ("alertsToSend count = %d", alertsToSend.size() );
         for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
@@ -354,6 +357,7 @@ update_rule(
             mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
             zsys_debug1("Registering finished");
         }
+        */
         // send a reply back
         zmsg_addstr (reply, "OK");
         zmsg_addstr (reply, json_representation);
@@ -832,6 +836,7 @@ bios_alert_generator_server_test (bool verbose)
     if (verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
+    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*");
     zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
