@@ -200,7 +200,7 @@ int AlertConfiguration::
     }
     catch (const std::exception& e) {
         zsys_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule").c_str (), e.what ());
-        return -6;                
+        return -6;
     }
     // in any case we need to check new subjects
     for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
@@ -211,7 +211,7 @@ int AlertConfiguration::
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
-    //  ( requires more sophisticated approach: need to refactor evaluate back 
+    //  ( requires more sophisticated approach: need to refactor evaluate back
     //  for 2 params + some logic here )
     return 0;
 }
@@ -226,8 +226,7 @@ int AlertConfiguration::
 {
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
     // need to find out if rule exists already or not
-    if ( !haveRule (old_name) )
-    {
+    if ( !haveRule (old_name) ) {
         zsys_error ("rule doesn't exist");
         return -2;
     }
@@ -242,7 +241,8 @@ int AlertConfiguration::
         zsys_error ("nothing to update, lua error");
         return -5;
     }
-    // need to find out if rule exists already or not
+    // if name of the rule changed, then
+    // need to find out if rule with new rulename exists already or not
     if ( ! temp_rule->hasSameNameAs(old_name) && haveRule (temp_rule->name()) )
     {
         // rule with new old_name
@@ -250,85 +250,69 @@ int AlertConfiguration::
         return -3;
     }
 
-    bool to_push_new_rule = false;
-    iterator rule_to_remove = _alerts.end ();
+    // find rule, that should be updated
+    auto rule_to_update = _alerts.begin();
+    while ( rule_to_update != _alerts.end() ) {
+        if ( rule_to_update->first->hasSameNameAs (old_name) ) {
+            break;
+        }
+        ++rule_to_update;
+    }
+    // rule_to_update is an iterator to the rule+alerts
 
-    // find alerts, that should be resolved
-    for ( auto &oneRuleAlerts: _alerts ) {
-        if ( ! oneRuleAlerts.first->hasSameNameAs (old_name) ) {
-            continue;
-        }
-        // so we finally found a list of alerts
-        // resolve found alerts
-        for ( auto &oneAlert : oneRuleAlerts.second ) {
-            oneAlert._status = ALERT_RESOLVED;
-            oneAlert._description = "Rule changed";
-            // put them into the list of alerts that changed
-            alertsToSend.push_back (oneAlert);
-        }
-        oneRuleAlerts.second.clear();
-        // update rule
-        // This part is ugly, as there are duplicate pointers
-        for ( auto i = _alerts.begin(); i != _alerts.end(); ++i ) {
-            auto &oneRule = i->first;
-            if ( oneRule->hasSameNameAs (old_name) ) {
-                rule_to_remove = i;
-                // -- free memory used by oldone
-                //
-                /*   This is moved below after we try to save .new and remove old
-                int rv = oneRule->remove(getPersistencePath());
-                zsys_debug1 ("remove rv = %d", rv);
-                oneRule.reset ();
-                _alerts.erase (i);
-                to_push_new_rule = true;
-                */
-                break; // old_name is unique
-            }
-        }
-    }
-    // in any case we need to check new subjects
-    for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
-        newSubjectsToSubscribe.insert (interestedTopic);
-    }
+    // try to save the file, first
     try {
         temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule.new");
     }
     catch (const std::exception& e) {
+        // if error happend, we didn't lose any previous data
         zsys_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule.new").c_str (), e.what ());
-        return -6;                
-    }
-    int rule_removed = 0;
-    std::string rule_removed_name;
-    if (rule_to_remove != _alerts.end ()) {
-        rule_removed = rule_to_remove->first->remove (getPersistencePath());
-
-        rule_removed_name = rule_to_remove->first->name ();
-        rule_to_remove->first.reset ();
-        _alerts.erase (rule_to_remove);
-        to_push_new_rule = true;
-    }
-    if (rule_removed != 0) {
-        zsys_error ("Rule '%s' was removed from memory but there was a problem removing it from storage. "
-                    "Update rule therefore can not be moved to old file name - it is stored with postfix '.new'.", rule_removed_name.c_str ());
         return -6;
     }
-    // rename 
+    // as we successfuly saved the new file, we can try to remove old one
+    rv = rule_to_update->first->remove (getPersistencePath());
+    std::string rule_removed_name = rule_to_update->first->name ();
+    if ( rv != 0 ) {
+        zsys_error ("Old rule wasn't removed, but new one stored with postfix '.new' and is not used yet. Rename *.rule.new file to *.rule, remove old .rule and then manually and restart the daemon", rule_removed_name.c_str ());
+        return -6;
+    }
+    // as we successfuly removed old rule, we can rename new rule to the right name
     rv = std::rename (std::string (getPersistencePath()).append (rule_removed_name).append(".rule.new").c_str (),
-                          std::string (getPersistencePath()).append (rule_removed_name).append(".rule").c_str ()); 
-    if (rv) {
-        zsys_error ("Error renaming .rule.new to .new for '%s'", rule_removed_name.c_str ());
+            std::string (getPersistencePath()).append (rule_removed_name).append(".rule").c_str ());
+    if ( rv != 0 ) {
+        zsys_error ("Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon", rule_removed_name.c_str ());
         return -6;
-    } 
-
-    if (to_push_new_rule) {
-        std::vector<PureAlert> emptyAlerts{};
-        _alerts.push_back (std::make_pair(std::move(temp_rule), emptyAlerts));
-        it = _alerts.end() -1;
     }
+    // so, in the files now everything ok
+    // and we need to fix information in the memory
+
+    // resolve found alerts
+    for ( auto &oneAlert : rule_to_update->second ) {
+        oneAlert._status = ALERT_RESOLVED;
+        oneAlert._description = "Rule changed";
+        // put them into the list of alerts that changed
+        alertsToSend.push_back (oneAlert);
+    }
+    // clear cache
+    rule_to_update->second.clear();
+    // remove old rule
+    rule_to_update->first.reset ();
+    // remove entire entiry
+    _alerts.erase (rule_to_update);
+
+    // find new topics to subscribe
+    std::vector<PureAlert> emptyAlerts{};
+    // As we changed the rule, we need to check new subjects
+    for ( const auto &interestedTopic : temp_rule->getNeededTopics() ) {
+        newSubjectsToSubscribe.insert (interestedTopic);
+    }
+    // put new rule with empty alerts into the cache
+    _alerts.push_back (std::make_pair(std::move(temp_rule), emptyAlerts));
+    it = _alerts.end() - 1;
     // CURRENT: wait until new measurements arrive
     // TODO: reevaluate immidiately ( new Method )
     // reevaluate rule for every known metric
-    //  ( requires more sophisticated approach: need to refactor evaluate back 
+    //  ( requires more sophisticated approach: need to refactor evaluate back
     //  for 2 params + some logic here )
     return 0;
 }
