@@ -48,9 +48,16 @@ public:
         _source (source),
         _units (units),
         _value (value),
-        _timestamp (timestamp),
         _element_destination_name (destination)
-    {};
+    {
+        // we need to have a precise value of "now"
+        if ( timestamp != -1 ) {
+            _timestamp = timestamp;
+        }
+        else {
+            _timestamp = ::time(NULL);
+        }
+    };
 
     double getValue (void) {
         return _value;
