@@ -59,11 +59,11 @@ public:
         }
     };
 
-    double getValue (void) {
+    double getValue (void) const {
         return _value;
     };
 
-    std::string getElementName (void) {
+    std::string getElementName (void) const {
         return _element_name;
     };
 
