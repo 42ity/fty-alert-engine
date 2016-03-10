@@ -203,7 +203,7 @@ send_alerts(
             alert._status.c_str(),
             alert._severity.c_str(),
             alert._description.c_str(),
-            -1,
+            ::time (NULL),
             makeActionList(alert._actions).c_str()
         );
         if( msg ) {
@@ -655,8 +655,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 const char *element_src = bios_proto_element_src(bmessage);
                 const char *value = bios_proto_value(bmessage);
                 const char *unit = bios_proto_unit(bmessage);
-                int64_t timestamp = bios_proto_time(bmessage);
-                if( timestamp <= 0 ) timestamp = time(NULL);
+                uint64_t timestamp = bios_proto_time(bmessage);
 
                 char *end;
                 double dvalue = strtod (value, &end);
@@ -1143,7 +1142,7 @@ bios_alert_generator_server_test (bool verbose)
 
     // #13.2 evaluate metric
     m = bios_proto_encode_metric (
-            NULL, "status.ups", "5PX1500-01", "1032.000", "", -1);
+            NULL, "status.ups", "5PX1500-01", "1032.000", "", ::time (NULL));
     mlm_client_send (producer, "status.ups@5PX1500-01", &m);
 
     // Test case #14: add new rule, but with lua syntax error
@@ -1187,7 +1186,7 @@ bios_alert_generator_server_test (bool verbose)
 
     // Test case #15.2: evaluate it
     m = bios_proto_encode_metric (
-            NULL, "status.ups", "ROZ.UPS33", "42.00", "", -1);
+            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL));
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1204,7 +1203,7 @@ bios_alert_generator_server_test (bool verbose)
 
     // Test case #15.3: evaluate it again
     m = bios_proto_encode_metric (
-            NULL, "status.ups", "ROZ.UPS33", "42.00", "", -1);
+            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL));
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
