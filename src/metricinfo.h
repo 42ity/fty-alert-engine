@@ -41,22 +41,16 @@ public:
         const std::string &source,
         const std::string &units,
         double value,
-        int64_t timestamp,
+        uint64_t timestamp,
         const std::string &destination
         ):
         _element_name (element_name),
         _source (source),
         _units (units),
         _value (value),
+        _timestamp (timestamp),
         _element_destination_name (destination)
     {
-        // we need to have a precise value of "now"
-        if ( timestamp != -1 ) {
-            _timestamp = timestamp;
-        }
-        else {
-            _timestamp = ::time(NULL);
-        }
     };
 
     double getValue (void) const {
@@ -67,7 +61,7 @@ public:
         return _element_name;
     };
 
-    int64_t getTimestamp (void) const {
+    uint64_t getTimestamp (void) const {
         return _timestamp;
     };
 
@@ -89,7 +83,7 @@ private:
     std::string _source;
     std::string _units;
     double      _value;
-    int64_t     _timestamp;
+    uint64_t     _timestamp;
     std::string _element_destination_name;
 
 };

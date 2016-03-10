@@ -115,7 +115,7 @@ public:
 private:
 
     // Maximum livetime of metric
-    int _maxLiveTime = 5 * 60;
+    uint64_t _maxLiveTime = 5 * 60;
 
     // Metric list <topic, Metric>
     std::map <std::string, MetricInfo> _knownMetrics;
