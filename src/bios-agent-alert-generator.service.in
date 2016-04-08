@@ -12,6 +12,7 @@ EnvironmentFile=-/usr/share/bios/etc/default/bios__%n.conf
 EnvironmentFile=-/etc/default/bios
 EnvironmentFile=-/etc/default/bios__%n.conf
 ExecStart=@prefix@/bin/bios-agent-alert-generator
+Restart=always
 
 [Install]
 WantedBy=bios.target
