@@ -493,19 +493,20 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
 
     zsock_signal (pipe, 0);
-
+    
+    bool needCheck = false;
     while (!zsys_interrupted) {
-        if ( !mlm_client_connected (client) ) {
+        if ( needCheck && !mlm_client_connected (client) ) {
             zsys_error ("BIOS-2076: mlm client was disconnected, sacrifice the alert agent to be revived by systemd");
             break;
         }
         void *which = zpoller_wait (poller, 5000);
 
-        if ( ( which == NULL ) && (zpoller_expired (poller) ) {
+        if ( ( which == NULL ) && (zpoller_expired (poller) ) ) {
             // timeout, just start new loop
             continue;
         }
-        if ( ( which == NULL ) && ( zpoller_terminated (poller) ) {
+        if ( ( which == NULL ) && ( zpoller_terminated (poller) ) ) {
             zsys_info ("zpoller was terminated, I am going to shut down");
             // terminated !!!
             break;
@@ -536,6 +537,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (rv == -1)
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
+                needCheck = true;
             }
             else
             if (streq (cmd, "PRODUCER")) {
