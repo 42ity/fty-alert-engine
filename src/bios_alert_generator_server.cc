@@ -501,11 +501,11 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         }
         void *which = zpoller_wait (poller, 5000);
 
-        if ( ( which == NULL ) && (zpoller_expired (poller) ) {
+        if ( ( which == NULL ) && (zpoller_expired (poller) ) ) {
             // timeout, just start new loop
             continue;
         }
-        if ( ( which == NULL ) && ( zpoller_terminated (poller) ) {
+        if ( ( which == NULL ) && ( zpoller_terminated (poller) ) ) {
             zsys_info ("zpoller was terminated, I am going to shut down");
             // terminated !!!
             break;
