@@ -495,8 +495,22 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     zsock_signal (pipe, 0);
 
     while (!zsys_interrupted) {
+        if ( !mlm_client_connected (client) ) {
+            zsys_error ("BIOS-2076: mlm client was disconnected, sacrifice the alert agent to be revived by systemd");
+            break;
+        }
+        void *which = zpoller_wait (poller, 5000);
 
-        void *which = zpoller_wait (poller, -1);
+        if ( ( which == NULL ) && (zpoller_expired (poller) ) {
+            // timeout, just start new loop
+            continue;
+        }
+        if ( ( which == NULL ) && ( zpoller_terminated (poller) ) {
+            zsys_info ("zpoller was terminated, I am going to shut down");
+            // terminated !!!
+            break;
+        }
+
         if (which == pipe) {
             zsys_debug1 ("which == pipe");
             zmsg_t *msg = zmsg_recv (pipe);
