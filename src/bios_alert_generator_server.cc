@@ -494,7 +494,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
     zsock_signal (pipe, 0);
     
-    bool needCheck = false;
+//    bool needCheck = false;
     while (!zsys_interrupted) {
         /* this function is broken under high load, comment it for now
         if ( needCheck && !mlm_client_connected (client) ) {
@@ -539,7 +539,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (rv == -1)
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
-                needCheck = true;
+//                needCheck = true;
             }
             else
             if (streq (cmd, "PRODUCER")) {
