@@ -496,10 +496,12 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     
     bool needCheck = false;
     while (!zsys_interrupted) {
+        /* this function is broken under high load, comment it for now
         if ( needCheck && !mlm_client_connected (client) ) {
             zsys_error ("BIOS-2076: mlm client was disconnected, sacrifice the alert agent to be revived by systemd");
             break;
         }
+        */
         void *which = zpoller_wait (poller, 5000);
 
         if ( ( which == NULL ) && (zpoller_expired (poller) ) ) {
