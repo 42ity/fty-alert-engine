@@ -36,6 +36,7 @@
 #include <bios_proto.h>
 #include <math.h>
 #include <functional>
+#include <algorithm>
 
 int agent_alert_verbose = 0;
 
@@ -478,23 +479,65 @@ evaluate_metric(
     zsys_debug1 ("evaluate_metric --- leaving ---");
 }
 
+static void
+s_statistics (
+        uint64_t now,
+        uint64_t previous,
+        std::vector <uint64_t>& stream_messages,
+        std::vector <uint64_t>& mailbox_messages) {
+    double stream_mean = 0.0, mailbox_mean = 0.0;
+
+    uint64_t sum = 0;
+    for (std::size_t i = 0; i < stream_messages.size (); i++) {
+        sum += stream_messages.at (i);
+    }
+    stream_mean = sum / stream_messages.size ();
+
+    sum = 0;
+    for (std::size_t i = 0; i < mailbox_messages.size (); i++) {
+        sum += mailbox_messages.at (i);
+    }
+    mailbox_mean = sum / mailbox_messages.size ();
+
+    std::nth_element (stream_messages.begin(), stream_messages.begin() + stream_messages.size()/2, stream_messages.end());
+    std::nth_element (mailbox_messages.begin(), mailbox_messages.begin() + mailbox_messages.size()/2, mailbox_messages.end());
+
+    zsys_info ("========== TIMING INFO ==========");
+    zsys_info ("\tTime period '%" PRIu64"' miliseconds\t(start: '%" PRIu64"', stop:'%" PRIu64"')", 
+            now - previous, previous, now);
+    zsys_info ("\tNumber of messages received '%" PRIu64"', out of which", stream_messages.size () + mailbox_messages.size ());
+    zsys_info ("\t\tSTREAM  == '%" PRIu64"' messages. Mean time: '%s', median time: '%s'",
+           stream_messages.size (), std::to_string (stream_mean).c_str (), std::to_string (stream_messages[stream_messages.size ()/2]).c_str ());
+    zsys_info ("\t\tMAILBOX == '%" PRIu64"' messages. Mean time: '%s', median time: '%s'",
+            mailbox_messages.size (), std::to_string (mailbox_mean).c_str (), std::to_string (mailbox_messages[mailbox_messages.size ()/2]).c_str ());
+
+    stream_messages.clear ();
+    mailbox_messages.clear ();
+} 
 
 void
 bios_alert_generator_server (zsock_t *pipe, void* args)
 {
     zsys_debug1 ("bios_alert_generator_server --- entering ---");
-    // need to track incoming measurements
-    MetricList cache;
+    MetricList cache; // need to track incoming measurements
     AlertConfiguration alertConfiguration;
     char *name = (char*) args;
 
     mlm_client_t *client = mlm_client_new ();
+    assert (client);
 
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
+    assert (poller);
+
+    uint64_t timestamp = static_cast<uint64_t> (zclock_mono ());
+    uint64_t timeout = 30000;
+
+    std::vector <uint64_t> stream_messages;
+    std::vector <uint64_t> mailbox_messages;
+
 
     zsock_signal (pipe, 0);
     
-//    bool needCheck = false;
     while (!zsys_interrupted) {
         /* this function is broken under high load, comment it for now
         if ( needCheck && !mlm_client_connected (client) ) {
@@ -502,16 +545,23 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             break;
         }
         */
-        void *which = zpoller_wait (poller, 5000);
-
-        if ( ( which == NULL ) && (zpoller_expired (poller) ) ) {
-            // timeout, just start new loop
+        void *which = zpoller_wait (poller, timeout);
+        if (which == NULL) {
+            if (zpoller_terminated (poller) || zsys_interrupted) {
+                zsys_warning ("zpoller_terminated () or zsys_interrupted. Shutting down.");
+                break;
+            }
+            if (zpoller_expired (poller)) {
+                s_statistics (timestamp+timeout, timestamp, stream_messages, mailbox_messages);
+            }
+            timestamp = static_cast<uint64_t> (zclock_mono ());
             continue;
         }
-        if ( ( which == NULL ) && ( zpoller_terminated (poller) ) ) {
-            zsys_info ("zpoller was terminated, I am going to shut down");
-            // terminated !!!
-            break;
+
+        uint64_t now = static_cast<uint64_t> (zclock_mono ());
+        if (now - timestamp >= timeout) {
+            s_statistics (now, timestamp, stream_messages, mailbox_messages);
+            timestamp = static_cast<uint64_t> (zclock_mono ());
         }
 
         if (which == pipe) {
@@ -599,7 +649,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zsys_debug1 ("cannot decode message, ignoring\n");
                 continue;
             }
-            if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
+            if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {                
                 // process as metric message
                 const char *type = bios_proto_type(bmessage);
                 const char *element_src = bios_proto_element_src(bmessage);
@@ -621,17 +671,21 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 zsys_debug1("Got message '%s' with value %s\n", topic.c_str(), value);
 
+                uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
                 bios_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
+                uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
+                stream_messages.push_back (ts_end - ts_start);
             }
             bios_proto_destroy (&bmessage);
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
+            uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
             zsys_debug1 ("not bios_proto && mailbox");
             // According RFC we expect here a messages
             // with the topics ACK_SUBJECT and RULE_SUBJECT
@@ -690,6 +744,8 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             else
                 zsys_debug1 ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
+            uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
+            mailbox_messages.push_back (ts_end - ts_start);
         }
         zmsg_destroy (&zmessage);
     }
