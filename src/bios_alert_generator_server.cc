@@ -485,31 +485,54 @@ s_statistics (
         uint64_t previous,
         std::vector <uint64_t>& stream_messages,
         std::vector <uint64_t>& mailbox_messages) {
-    double stream_mean = 0.0, mailbox_mean = 0.0;
+    double stream_mean = 0.0;
+    double mailbox_mean = 0.0;
 
-    uint64_t sum = 0;
-    for (std::size_t i = 0; i < stream_messages.size (); i++) {
-        sum += stream_messages.at (i);
+    uint64_t stream_median = 0;
+    uint64_t mailbox_median = 0;
+
+    if (!stream_messages.empty ()) {
+        uint64_t sum = 0;
+        for (std::size_t i = 0; i < stream_messages.size (); i++) {
+	        sum += stream_messages.at (i);
+	    }
+    	stream_mean = sum / stream_messages.size ();
+
+        std::nth_element (stream_messages.begin(), stream_messages.begin() + stream_messages.size()/2, stream_messages.end());
+        stream_median = stream_messages[stream_messages.size ()/2];
     }
-    stream_mean = sum / stream_messages.size ();
 
-    sum = 0;
-    for (std::size_t i = 0; i < mailbox_messages.size (); i++) {
-        sum += mailbox_messages.at (i);
+    if (!mailbox_messages.empty ()) {
+        uint64_t sum = 0;
+        for (std::size_t i = 0; i < mailbox_messages.size (); i++) {
+            sum += mailbox_messages.at (i);
+        }
+        mailbox_mean = sum / mailbox_messages.size ();
+
+        std::nth_element (mailbox_messages.begin(), mailbox_messages.begin() + mailbox_messages.size()/2, mailbox_messages.end());
+        mailbox_median = mailbox_messages[mailbox_messages.size ()/2];
     }
-    mailbox_mean = sum / mailbox_messages.size ();
 
-    std::nth_element (stream_messages.begin(), stream_messages.begin() + stream_messages.size()/2, stream_messages.end());
-    std::nth_element (mailbox_messages.begin(), mailbox_messages.begin() + mailbox_messages.size()/2, mailbox_messages.end());
 
-    zsys_info ("========== TIMING INFO ==========");
-    zsys_info ("\tTime period '%" PRIu64"' miliseconds\t(start: '%" PRIu64"', stop:'%" PRIu64"')", 
-            now - previous, previous, now);
-    zsys_info ("\tNumber of messages received '%" PRIu64"', out of which", stream_messages.size () + mailbox_messages.size ());
-    zsys_info ("\t\tSTREAM  == '%" PRIu64"' messages. Mean time: '%s', median time: '%s'",
-           stream_messages.size (), std::to_string (stream_mean).c_str (), std::to_string (stream_messages[stream_messages.size ()/2]).c_str ());
-    zsys_info ("\t\tMAILBOX == '%" PRIu64"' messages. Mean time: '%s', median time: '%s'",
-            mailbox_messages.size (), std::to_string (mailbox_mean).c_str (), std::to_string (mailbox_messages[mailbox_messages.size ()/2]).c_str ());
+    zsys_warning ("========== TIMING INFO ==========");
+    zsys_warning (
+            "\tTime period '%" PRIu64"' miliseconds\t(start: '%" PRIu64"', stop:'%" PRIu64"')", 
+            now - previous,
+            previous,
+            now);
+    zsys_warning (                            
+            "\tNumber of messages received '%" PRIu64"', out of which",
+            stream_messages.size () + mailbox_messages.size ());
+    zsys_warning (
+            "\t\tSTREAM  == '%" PRIu64"' messages. Mean time: '%s', median time: '%s'",
+            stream_messages.size (),
+            std::to_string (stream_mean).c_str (),
+            std::to_string (stream_median).c_str ());
+    zsys_warning (
+            "\t\tMAILBOX == '%" PRIu64"' messages. Mean time: '%s', median time: '%s'",
+            mailbox_messages.size (),
+            std::to_string (mailbox_mean).c_str (),
+            std::to_string (mailbox_median).c_str ());
 
     stream_messages.clear ();
     mailbox_messages.clear ();
