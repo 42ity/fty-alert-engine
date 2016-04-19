@@ -641,6 +641,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 // Read initial configuration
                 alertConfiguration.setPath(filename);
+                // XXX: somes to subscribe are returned, but not used for now
                 alertConfiguration.readConfiguration();
 
                 zstr_free (&filename);
