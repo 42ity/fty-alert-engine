@@ -189,7 +189,7 @@ public:
                 const char *new_state,
                 PureAlert &pureAlert);
 
-    std::string getPersistencePath(void) {
+    std::string getPersistencePath(void) const {
         return _path + '/';
     }
 
