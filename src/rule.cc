@@ -70,7 +70,6 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
     */
     for ( const auto &oneElement : si ) { // iterate through the array
         auto outcomeName = oneElement.getMember(0).name();
-        std::string severity;
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
         if ( outcomeName == "low_critical" || outcomeName == "high_critical" ) {
