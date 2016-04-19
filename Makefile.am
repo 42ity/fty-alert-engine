@@ -20,6 +20,7 @@ AM_CPPFLAGS = \
     ${biosproto_CFLAGS} \
     ${lua_CFLAGS} \
     ${cxxtools_CFLAGS} \
+	-D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
 project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${biosproto_LIBS} ${lua_LIBS} ${cxxtools_LIBS}
