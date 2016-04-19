@@ -771,8 +771,10 @@ s_readall (const char* filename) {
     fseek(fp, 0, SEEK_SET);
 
     char *ret = (char*) malloc (fsize * sizeof (char) + 1);
-    if (!ret)
+    if (!ret) {
+        fclose (fp);
         return NULL;
+    }
     memset ((void*) ret, '\0', fsize * sizeof (char) + 1);
 
     size_t r = fread((void*) ret, 1, fsize, fp);
