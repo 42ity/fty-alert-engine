@@ -45,23 +45,33 @@ class PureAlert{
     std::vector <std::string> _actions;
 
     PureAlert() { _timestamp = 0; };
-    PureAlert(const std::string &s, int64_t tm, const std::string &descr, const std::string &element_name)
-    {
-        _status = s;
-        _timestamp = tm;
-        _description = descr;
-        _element = element_name;
-    };
+    PureAlert(
+        const std::string &s,
+        int64_t tm,
+        const std::string &descr,
+        const std::string &element_name)
+    :
+        _status{s},
+        _timestamp{tm},
+        _description{descr},
+        _element{element_name}
+    {};
 
-    PureAlert(const std::string &s, int64_t tm, const std::string &descr, const std::string &element_name, const std::string &severity, const std::vector<std::string> &actions)
-    {
-        _status = s;
-        _timestamp = tm;
-        _description = descr;
-        _element = element_name;
-        _severity = severity;
-        _actions = actions;
-    };
+    PureAlert(
+        const std::string &s,
+        int64_t tm,
+        const std::string &descr,
+        const std::string &element_name,
+        const std::string &severity,
+        const std::vector<std::string> &actions)
+    :
+        _status{s},
+        _timestamp{tm},
+        _description{descr},
+        _element{element_name},
+        _severity{severity},
+        _actions{actions}
+    {};
 
     static bool isStatusKnown (const char *status);
     void print(void) const;
