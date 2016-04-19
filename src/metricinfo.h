@@ -32,9 +32,10 @@ public:
         return _source + "@" + _element_name;
     };
 
-    MetricInfo() {
-        _timestamp = 0;
-    };
+    MetricInfo():
+        _value{0},
+        _timestamp{0}
+    {};
 
     MetricInfo (
         const std::string &element_name,
@@ -43,15 +44,15 @@ public:
         double value,
         uint64_t timestamp,
         const std::string &destination
-        ):
+        )
+    :
         _element_name (element_name),
         _source (source),
         _units (units),
         _value (value),
         _timestamp (timestamp),
         _element_destination_name (destination)
-    {
-    };
+    {};
 
     double getValue (void) const {
         return _value;
@@ -65,7 +66,7 @@ public:
         return _timestamp;
     };
 
-    bool isUnknown() const {
+    bool isUnknown (void) const {
         if ( _element_name.empty() ||
              _source.empty() ||
              _units.empty() ) {
@@ -83,9 +84,8 @@ private:
     std::string _source;
     std::string _units;
     double      _value;
-    uint64_t     _timestamp;
+    uint64_t    _timestamp;
     std::string _element_destination_name;
-
 };
 
 #endif // SRC_METRICINFO_H_
