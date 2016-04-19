@@ -641,7 +641,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 // Read initial configuration
                 alertConfiguration.setPath(filename);
-                std::set <std::string> subjectsToConsume = alertConfiguration.readConfiguration();
+                alertConfiguration.readConfiguration();
 
                 zstr_free (&filename);
             }
@@ -672,7 +672,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zsys_debug1 ("cannot decode message, ignoring\n");
                 continue;
             }
-            if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {                
+            if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
                 // process as metric message
                 const char *type = bios_proto_type(bmessage);
                 const char *element_src = bios_proto_element_src(bmessage);
