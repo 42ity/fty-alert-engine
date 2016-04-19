@@ -203,7 +203,7 @@ public:
     /*
      * \brief Save rule to the persistance
      */
-    void save (const std::string &path, const std::string& name) {
+    void save (const std::string &path, const std::string& name) const {
         // ASSUMPTION: file name is the same as rule name
         // rule name and file name are CASE INSENSITIVE.
 
