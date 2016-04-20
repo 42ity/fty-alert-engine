@@ -91,7 +91,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     for ( const auto &metric : _metrics ) {
         double value = metricList.find (metric);
         if ( isnan (value) ) {
-            zsys_debug1("Don't have everything for '%s' yet\n", _name.c_str());
+            //zsys_debug1("Don't have everything for '%s' yet\n", _name.c_str());
             return RULE_RESULT_UNKNOWN;
         }
         values.push_back(value);
