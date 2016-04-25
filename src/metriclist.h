@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 /*
  * \brief This class is intended to handle set of current known metrics.
- * 
+ *
  * You can create it, ad new metrics, find known metrics by topic,
  * and remove metrics that are not valid.
  */
@@ -68,12 +68,12 @@ public:
      *
      * \param[in] topic - topic we are looking for
      *
-     * \return NAN   - if metric is too old or 
+     * \return NAN   - if metric is too old or
      *                  it is not present in the list
      *         value - otherwise
      */
     double findAndCheck (const std::string &topic) const;
-    
+
     /*
      * \brief Finds a value of the metric in the list
      *
@@ -92,8 +92,8 @@ public:
      * \param[in] topic - topic we are looking for
      *
      * \return MetricInfo       - if metric was found or
-     *         MetricInfo empty - if metric isn't found 
-     *                            ( isUnknown() is true) 
+     *         MetricInfo empty - if metric isn't found
+     *                            ( isUnknown() is true)
      */
     MetricInfo getMetricInfo (
         const std::string &topic) const;
@@ -103,7 +103,7 @@ public:
      */
     void removeOldMetrics (void);
 
-    /* 
+    /*
      * \brief Gets the last added metric
      *
      * \return last added (or updated) metric
@@ -113,9 +113,6 @@ public:
     };
 
 private:
-
-    // Maximum livetime of metric
-    uint64_t _maxLiveTime = 5 * 60;
 
     // Metric list <topic, Metric>
     std::map <std::string, MetricInfo> _knownMetrics;

@@ -32,9 +32,11 @@ public:
         return _source + "@" + _element_name;
     };
 
-    MetricInfo():
+    MetricInfo()
+    :
         _value{0},
-        _timestamp{0}
+        _timestamp{0},
+        _ttl{5 * 60}
     {};
 
     MetricInfo (
@@ -43,22 +45,23 @@ public:
         const std::string &units,
         double value,
         uint64_t timestamp,
-        const std::string &destination
-        )
-    :
+        const std::string &destination,
+        uint64_t ttl
+        ):
         _element_name (element_name),
         _source (source),
         _units (units),
         _value (value),
         _timestamp (timestamp),
-        _element_destination_name (destination)
+        _element_destination_name (destination),
+        _ttl (ttl)
     {};
 
-    double getValue (void) const {
+    double getValue (void) const{
         return _value;
     };
 
-    std::string getElementName (void) const {
+    std::string getElementName (void) const{
         return _element_name;
     };
 
@@ -66,7 +69,7 @@ public:
         return _timestamp;
     };
 
-    bool isUnknown (void) const {
+    bool isUnknown(void) const {
         if ( _element_name.empty() ||
              _source.empty() ||
              _units.empty() ) {
@@ -74,6 +77,22 @@ public:
         }
         return false;
     };
+
+    uint64_t getTtl(void) const {
+        return _ttl;
+    };
+
+    std::string getUnits(void) const {
+        return _units;
+    };
+
+    std::string getSource (void) const {
+        return _source;
+    };
+    void setTime(void) { _timestamp = ::time(NULL); };
+    void setUnits(const std::string &U) { _units = U; };
+    friend inline bool operator==( const MetricInfo &lhs, const MetricInfo &rhs );
+    friend inline bool operator!=( const MetricInfo &lhs, const MetricInfo &rhs );
 
     // This class is very close to metric info
     // So let it use fields directly
@@ -86,6 +105,20 @@ private:
     double      _value;
     uint64_t    _timestamp;
     std::string _element_destination_name;
+
+    // time to live [s]
+    uint64_t _ttl;
+
 };
+
+inline bool operator==( const MetricInfo &lhs, const MetricInfo &rhs ) {
+    return ( lhs._units == rhs._units &&
+             lhs._value == rhs._value
+           );
+}
+
+inline bool operator!=( const MetricInfo &lhs, const MetricInfo &rhs ) {
+    return ! ( lhs == rhs );
+}
 
 #endif // SRC_METRICINFO_H_

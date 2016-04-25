@@ -516,7 +516,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     assert (poller);
 
-    uint64_t timestamp = static_cast<uint64_t> (zclock_mono ());
+    uint64_t timestamp_stat = static_cast<uint64_t> (zclock_mono ());
     uint64_t timeout = 30000;
 
     std::vector <uint64_t> stream_messages;
@@ -524,7 +524,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
 
     zsock_signal (pipe, 0);
-    
+
     while (!zsys_interrupted) {
         /* this function is broken under high load, comment it for now
         if ( needCheck && !mlm_client_connected (client) ) {
@@ -539,16 +539,16 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 break;
             }
             if (zpoller_expired (poller)) {
-                s_statistics (timestamp+timeout, timestamp, stream_messages, mailbox_messages);
+                s_statistics (timestamp_stat + timeout, timestamp_stat, stream_messages, mailbox_messages);
             }
-            timestamp = static_cast<uint64_t> (zclock_mono ());
+            timestamp_stat = static_cast<uint64_t> (zclock_mono ());
             continue;
         }
 
         uint64_t now = static_cast<uint64_t> (zclock_mono ());
-        if (now - timestamp >= timeout) {
-            s_statistics (now, timestamp, stream_messages, mailbox_messages);
-            timestamp = static_cast<uint64_t> (zclock_mono ());
+        if (now - timestamp_stat >= timeout) {
+            s_statistics (now, timestamp_stat, stream_messages, mailbox_messages);
+            timestamp_stat = static_cast<uint64_t> (zclock_mono ());
         }
 
         if (which == pipe) {
@@ -642,7 +642,8 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 const char *element_src = bios_proto_element_src(bmessage);
                 const char *value = bios_proto_value(bmessage);
                 const char *unit = bios_proto_unit(bmessage);
-                uint64_t timestamp = bios_proto_time(bmessage);
+                uint64_t timestamp = ::time(NULL);
+                uint64_t ttl = bios_proto_time(bmessage);
 
                 char *end;
                 double dvalue = strtod (value, &end);
@@ -660,7 +661,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
                 // Update cache with new value
-                MetricInfo m (element_src, type, unit, dvalue, timestamp, "");
+                MetricInfo m (element_src, type, unit, dvalue, timestamp, "", ttl);
                 bios_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
