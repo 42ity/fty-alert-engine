@@ -642,8 +642,8 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 const char *element_src = bios_proto_element_src(bmessage);
                 const char *value = bios_proto_value(bmessage);
                 const char *unit = bios_proto_unit(bmessage);
-                uint64_t timestamp = ::time(NULL);
-                uint64_t ttl = bios_proto_time(bmessage);
+                uint32_t ttl = bios_proto_ttl(bmessage);
+                uint64_t timestamp = bios_proto_aux_number (bmessage, "time", ::time(NULL));
 
                 char *end;
                 double dvalue = strtod (value, &end);
