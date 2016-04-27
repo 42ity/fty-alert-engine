@@ -654,11 +654,13 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                     errno = 0;
                     bios_proto_print (bmessage);
                     zsys_error ("cannot convert value to double #1, ignore message\n");
+                    bios_proto_destroy (&bmessage);
                     continue;
                 }
                 else if (end == value || *end != '\0') {
                     bios_proto_print (bmessage);
                     zsys_error ("cannot convert value to double #2, ignore message\n");
+                    bios_proto_destroy (&bmessage);
                     continue;
                 }
 
