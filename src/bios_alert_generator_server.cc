@@ -644,16 +644,23 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 const char *unit = bios_proto_unit(bmessage);
                 uint32_t ttl = bios_proto_ttl(bmessage);
                 uint64_t timestamp = bios_proto_aux_number (bmessage, "time", ::time(NULL));
-
+                // TODO: 2016-04-27 ACE: fix it later, when "string" values
+                // in the metric would be considered as
+                // normal behaviour, but for now it is not supposed to be so
+                // -> generated error messages into the log
                 char *end;
                 double dvalue = strtod (value, &end);
                 if (errno == ERANGE) {
                     errno = 0;
-                    zsys_debug1 ("cannot convert value to double, ignore message\n");
+                    bios_proto_print (bmessage);
+                    zsys_error ("cannot convert value to double #1, ignore message\n");
+                    bios_proto_destroy (&bmessage);
                     continue;
                 }
                 else if (end == value || *end != '\0') {
-                    zsys_debug1 ("cannot convert value to double, ignore message\n");
+                    bios_proto_print (bmessage);
+                    zsys_error ("cannot convert value to double #2, ignore message\n");
+                    bios_proto_destroy (&bmessage);
                     continue;
                 }
 
