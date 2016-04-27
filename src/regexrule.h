@@ -39,6 +39,10 @@ public:
         _rex = NULL;
     };
 
+    ~RegexRule() {
+        zrex_destroy (&_rex);
+    };
+
     std::string whoami () const { return "pattern"; }
 
     /*
@@ -100,6 +104,7 @@ public:
 
     int evaluate (const MetricList &metricList, PureAlert &pureAlert)
     {
+        _metrics = {metricList.getLastMetric().generateTopic()};
         int rv = LuaRule::evaluate(metricList, pureAlert);
         if ( rv != 0 ) {
             return rv;
