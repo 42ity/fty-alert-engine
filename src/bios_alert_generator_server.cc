@@ -653,18 +653,18 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (errno == ERANGE) {
                     errno = 0;
                     bios_proto_print (bmessage);
-                    zsys_error ("cannot convert value to double #1, ignore message\n");
+                    zsys_error ("cannot convert value to double #1, ignore message");
                     bios_proto_destroy (&bmessage);
                     continue;
                 }
                 else if (end == value || *end != '\0') {
                     bios_proto_print (bmessage);
-                    zsys_error ("cannot convert value to double #2, ignore message\n");
+                    zsys_error ("cannot convert value to double #2, ignore message");
                     bios_proto_destroy (&bmessage);
                     continue;
                 }
 
-                zsys_debug1("Got message '%s' with value %s\n", topic.c_str(), value);
+                zsys_debug1("Got message '%s' with value %s", topic.c_str(), value);
 
                 uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
                 // Update cache with new value
@@ -1287,6 +1287,25 @@ bios_alert_generator_server_test (bool verbose)
 
     // check the result of the operation
     recv = mlm_client_recv (ui);
+    
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    
+    zsys_info ("######## Test case #18 add some rule (type: pattern)");
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* pattern_rule = s_readall ("testrules/pattern.rule");
+    assert (pattern_rule);
+    zmsg_addstrf (rule, "%s", pattern_rule);
+    zstr_free (&pattern_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
 
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
@@ -1295,9 +1314,72 @@ bios_alert_generator_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 
+    zsys_info ("######## Test case #19 evaluate some rule (type: pattern)");
+    //      1. OK
+    m = bios_proto_encode_metric (
+            NULL, "end_warranty_date", "UPS_pattern_rule", "100", "some description", 24*60*60);
+    mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
+    //      1.1. No ALERT should be generated
+    zpoller_t *poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
+    void *which = zpoller_wait (poller, 1000);
+    assert ( which == NULL );
+    if ( verbose ) {
+        zsys_debug ("No email was sent: SUCCESS");
+    }
+    zpoller_destroy (&poller);
+
+    //      2. LOW_WARNING
+    m = bios_proto_encode_metric (
+            NULL, "end_warranty_date", "UPS_pattern_rule", "20", "some description", 24*60*60);
+    mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
+
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (streq (bios_proto_rule (brecv), "warranty"));
+    assert (streq (bios_proto_element_src (brecv), "UPS_pattern_rule"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "WARNING"));
+    bios_proto_destroy (&brecv);
+
+    //      3. LOW_CRITICAL
+    m = bios_proto_encode_metric (
+            NULL, "end_warranty_date", "UPS_pattern_rule", "2", "some description", 24*60*60);
+    mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
+
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (streq (bios_proto_rule (brecv), "warranty"));
+    assert (streq (bios_proto_element_src (brecv), "UPS_pattern_rule"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // Test case #20 update some rule (type: pattern)
+/*  ACE: need help. here is some memory leak in the memcheck, cannot find
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    pattern_rule = s_readall ("testrules/pattern.rule");
+    assert (pattern_rule);
+    zmsg_addstrf (rule, "%s", pattern_rule);
+    zmsg_addstrf (rule, "%s", "warranty");
+    zstr_free (&pattern_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+*/
     // no new alert sent here
-
+    zclock_sleep (3000);
     zactor_destroy (&ag_server);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);

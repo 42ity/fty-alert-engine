@@ -1,15 +1,13 @@
 {
     "pattern" : {
-        "rule_name"     :   "pattern",
-        "target"        :   "ddd@.*",
-        "values"        :   [
-                                {"a1"  : "30"},
-                                {"a2"  : "40"}
-                            ],
+        "rule_name"     :   "warranty",
+        "target"        :   "^end_warranty_date@.+",
+        "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"} ],
         "results"       :   [
-                                {"high_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW P1" }},
-                                {"low_warning"  : { "action" : ["EMAIL"], "description" : "wow p2"}}
+                                {"low_critical"  : { "action" : ["EMAIL"], "description" : "Warranty for device will expire in less than 10 days" }},
+                                {"low_warning"  : { "action" : ["EMAIL"], "description" : "Warranty for device will expire in less than 60 days"}}
                             ],
-        "evaluation"    : "function main(value) local new_value = value * a1 - a2 if  ( new_value < 100 ) then return LOW_WARNING end if ( new_value > 150 ) then return HIGH_WARNING end return OK end"
+        "evaluation"    : "function main(value) if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= low_warning ) then return LOW_WARNING end return OK end"
     }
 }
+

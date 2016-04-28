@@ -111,7 +111,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
         pureAlert.print();
         return 0;
     }
-    zsys_error ("unknown result received from lua function");
+    zsys_error ("Rule has returned a result %s, but it is not specified in 'result' in the JSON rule definition", statusText);
     return RULE_RESULT_UNKNOWN;
 }
 
