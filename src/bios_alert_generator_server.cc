@@ -804,7 +804,7 @@ bios_alert_generator_server_test (bool verbose)
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
-    mlm_client_set_consumer (consumer, "ALERTS", ".*");
+    mlm_client_set_consumer (consumer, "ALERTS_SYS", ".*");
 
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
@@ -814,7 +814,7 @@ bios_alert_generator_server_test (bool verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
-    zstr_sendx (ag_server, "PRODUCER", "ALERTS", NULL);
+    zstr_sendx (ag_server, "PRODUCER", "ALERTS_SYS", NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
