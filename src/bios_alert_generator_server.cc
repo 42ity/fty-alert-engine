@@ -1267,7 +1267,7 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&foo);
     zstr_free (&pattern_rule);
     zmsg_destroy (&recv);
-    bios_proto_destroy (&brecv);
+    
     // Test case #20 update some rule (type: pattern)
 /*  ACE: need help. here is some memory leak in the memcheck, cannot find
     rule = zmsg_new();
