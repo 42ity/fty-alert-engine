@@ -58,7 +58,6 @@ int agent_alert_verbose = 0;
 
 #define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
-#define ACK_SUBJECT "rfc-alerts-acknowledge"
 
 #include "../include/alert_agent.h"
 #include "alert_agent_classes.h"
@@ -352,57 +351,6 @@ update_rule(
         return;
     }
 }
-
-
-static void
-change_state(
-    mlm_client_t *client,
-    const char *rule_name,
-    const char *element_name,
-    const char *new_state,
-    AlertConfiguration &ac)
-{
-    if ( !ac.haveRule (rule_name) )
-    {
-        // ERROR rule doesn't exist
-        zsys_debug1 ("rule not found");
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "NOT_FOUND");
-        mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
-    }
-
-    PureAlert alertToSend;
-    int rv = ac.updateAlertState (rule_name, element_name, new_state, alertToSend);
-    if ( rv != 0 )
-    {
-        // ERROR during the rule updating
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, "ERROR");
-        if ( rv == -5 || rv == -2 || rv == -1 ) {
-            zmsg_addstr (reply, "BAD_STATE");
-        }
-        if ( rv == -4 ) {
-            zmsg_addstr (reply, "NOT_FOUND");
-        }
-        else {
-            zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
-        }
-        mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
-    }
-    // send a reply back
-    zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "OK");
-    zmsg_addstr (reply, rule_name);
-    zmsg_addstr (reply, element_name);
-    zmsg_addstr (reply, new_state);
-    mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-    // send updated alert
-    send_alerts (client, {alertToSend}, rule_name);
-}
-
 
 static void
 evaluate_metric(
@@ -717,28 +665,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zstr_free (&command);
                 zstr_free (&param);
             }
-            else
-            if ( streq (mlm_client_subject (client), ACK_SUBJECT) )
-            {
-                zsys_debug1 ("%s", ACK_SUBJECT);
-                // Here we can have:
-                //  * change acknowlegment state of the alert
-                char *param1 = zmsg_popstr (zmessage); // rule name
-                char *param2 = zmsg_popstr (zmessage); // element name
-                char *param3 = zmsg_popstr (zmessage); // state
-                if ( !param1 || !param2 || !param3 ) {
-                    zsys_debug1 ("Ignore it. Unexpected message format");
-                }
-                else {
-                    change_state (client, param1, param2, param3, alertConfiguration);
-                }
-
-                zstr_free (&param1);
-                zstr_free (&param2);
-                zstr_free (&param3);
-            }
-            else
-                zsys_debug1 ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
+            
             uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
             mailbox_messages.push_back (ts_end - ts_start);
         }
