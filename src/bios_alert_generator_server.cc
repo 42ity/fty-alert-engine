@@ -972,43 +972,15 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
-
-    // Test case #10: test alert acknowledge
-    rule = zmsg_new();
-    zmsg_addstrf (rule, "%s", "simplethreshold");
-    zmsg_addstrf (rule, "%s", "fff");
-    zmsg_addstrf (rule, "%s", "ACK-PAUSE");
-    mlm_client_sendto (ui, "alert-agent", "rfc-alerts-acknowledge", NULL, 1000, &rule);
-
-    char *subject, *status, *rule_name, *element_name, *new_state;
-    r = mlm_client_recvx (ui, &subject, &status, &rule_name, &element_name, &new_state, NULL);
-    assert (r != -1);
-    assert (streq (status, "OK"));
-    assert (streq (rule_name, "simplethreshold"));
-    assert (streq (element_name, "fff"));
-    assert (streq (new_state, "ACK-PAUSE"));
-    zstr_free (&subject);
-    zstr_free (&status);
-    zstr_free (&rule_name);
-    zstr_free (&element_name);
-    zstr_free (&new_state);
-
-    recv = mlm_client_recv (consumer);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
-    assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACK-PAUSE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
-
+          
     // Test case #11: generate alert - high again - after ACK-PAUSE
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
+
     recv = mlm_client_recv (consumer);
+
 
     assert (recv);
     assert (is_bios_proto (recv));
@@ -1016,7 +988,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (brecv);
     assert (streq (bios_proto_rule (brecv), "simplethreshold"));
     assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACK-PAUSE"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
@@ -1025,7 +997,9 @@ bios_alert_generator_server_test (bool verbose)
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
+    
     recv = mlm_client_recv (consumer);
+    
 
     assert (recv);
     assert (is_bios_proto (recv));
@@ -1046,7 +1020,9 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&onbattery_rule);
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
 
+
     recv = mlm_client_recv (ui);
+
 
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
@@ -1070,7 +1046,9 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&complexthreshold_rule_lua_error);
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
 
+
     recv = mlm_client_recv (ui);
+
 
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
