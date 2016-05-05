@@ -58,7 +58,6 @@ int agent_alert_verbose = 0;
 
 #define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
-#define ACK_SUBJECT "rfc-alerts-acknowledge"
 
 #include "../include/alert_agent.h"
 #include "alert_agent_classes.h"
@@ -352,57 +351,6 @@ update_rule(
         return;
     }
 }
-
-
-static void
-change_state(
-    mlm_client_t *client,
-    const char *rule_name,
-    const char *element_name,
-    const char *new_state,
-    AlertConfiguration &ac)
-{
-    if ( !ac.haveRule (rule_name) )
-    {
-        // ERROR rule doesn't exist
-        zsys_debug1 ("rule not found");
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "NOT_FOUND");
-        mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
-    }
-
-    PureAlert alertToSend;
-    int rv = ac.updateAlertState (rule_name, element_name, new_state, alertToSend);
-    if ( rv != 0 )
-    {
-        // ERROR during the rule updating
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, "ERROR");
-        if ( rv == -5 || rv == -2 || rv == -1 ) {
-            zmsg_addstr (reply, "BAD_STATE");
-        }
-        if ( rv == -4 ) {
-            zmsg_addstr (reply, "NOT_FOUND");
-        }
-        else {
-            zmsg_addstr (reply, "CANT_CHANGE_ALERT_STATE");
-        }
-        mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
-    }
-    // send a reply back
-    zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "OK");
-    zmsg_addstr (reply, rule_name);
-    zmsg_addstr (reply, element_name);
-    zmsg_addstr (reply, new_state);
-    mlm_client_sendto (client, mlm_client_sender(client), ACK_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-    // send updated alert
-    send_alerts (client, {alertToSend}, rule_name);
-}
-
 
 static void
 evaluate_metric(
@@ -717,28 +665,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zstr_free (&command);
                 zstr_free (&param);
             }
-            else
-            if ( streq (mlm_client_subject (client), ACK_SUBJECT) )
-            {
-                zsys_debug1 ("%s", ACK_SUBJECT);
-                // Here we can have:
-                //  * change acknowlegment state of the alert
-                char *param1 = zmsg_popstr (zmessage); // rule name
-                char *param2 = zmsg_popstr (zmessage); // element name
-                char *param3 = zmsg_popstr (zmessage); // state
-                if ( !param1 || !param2 || !param3 ) {
-                    zsys_debug1 ("Ignore it. Unexpected message format");
-                }
-                else {
-                    change_state (client, param1, param2, param3, alertConfiguration);
-                }
-
-                zstr_free (&param1);
-                zstr_free (&param2);
-                zstr_free (&param3);
-            }
-            else
-                zsys_debug1 ("Ignore it. Unexpected topic for MAILBOX message: '%s'", mlm_client_subject (client) );
+            
             uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
             mailbox_messages.push_back (ts_end - ts_start);
         }
@@ -804,7 +731,7 @@ bios_alert_generator_server_test (bool verbose)
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
-    mlm_client_set_consumer (consumer, "ALERTS_SYS", ".*");
+    mlm_client_set_consumer (consumer, "_ALERTS_SYS", ".*");
 
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
@@ -814,7 +741,7 @@ bios_alert_generator_server_test (bool verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
-    zstr_sendx (ag_server, "PRODUCER", "ALERTS_SYS", NULL);
+    zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
@@ -1045,43 +972,15 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
-
-    // Test case #10: test alert acknowledge
-    rule = zmsg_new();
-    zmsg_addstrf (rule, "%s", "simplethreshold");
-    zmsg_addstrf (rule, "%s", "fff");
-    zmsg_addstrf (rule, "%s", "ACK-PAUSE");
-    mlm_client_sendto (ui, "alert-agent", "rfc-alerts-acknowledge", NULL, 1000, &rule);
-
-    char *subject, *status, *rule_name, *element_name, *new_state;
-    r = mlm_client_recvx (ui, &subject, &status, &rule_name, &element_name, &new_state, NULL);
-    assert (r != -1);
-    assert (streq (status, "OK"));
-    assert (streq (rule_name, "simplethreshold"));
-    assert (streq (element_name, "fff"));
-    assert (streq (new_state, "ACK-PAUSE"));
-    zstr_free (&subject);
-    zstr_free (&status);
-    zstr_free (&rule_name);
-    zstr_free (&element_name);
-    zstr_free (&new_state);
-
-    recv = mlm_client_recv (consumer);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
-    assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACK-PAUSE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
-
+          
     // Test case #11: generate alert - high again - after ACK-PAUSE
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
+
     recv = mlm_client_recv (consumer);
+
 
     assert (recv);
     assert (is_bios_proto (recv));
@@ -1089,7 +988,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (brecv);
     assert (streq (bios_proto_rule (brecv), "simplethreshold"));
     assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACK-PAUSE"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
@@ -1098,7 +997,9 @@ bios_alert_generator_server_test (bool verbose)
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
+    
     recv = mlm_client_recv (consumer);
+    
 
     assert (recv);
     assert (is_bios_proto (recv));
@@ -1119,7 +1020,9 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&onbattery_rule);
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
 
+
     recv = mlm_client_recv (ui);
+
 
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
@@ -1143,7 +1046,9 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&complexthreshold_rule_lua_error);
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
 
+
     recv = mlm_client_recv (ui);
+
 
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
@@ -1358,7 +1263,11 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
-
+    
+    zstr_free (&foo);
+    zstr_free (&pattern_rule);
+    zmsg_destroy (&recv);
+    
     // Test case #20 update some rule (type: pattern)
 /*  ACE: need help. here is some memory leak in the memcheck, cannot find
     rule = zmsg_new();
