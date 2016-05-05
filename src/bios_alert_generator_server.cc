@@ -1263,7 +1263,10 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
-
+    
+    zstr_free (&foo);
+    zstr_free (&pattern_rule);
+    zmsg_destroy (&recv);
     // Test case #20 update some rule (type: pattern)
 /*  ACE: need help. here is some memory leak in the memcheck, cannot find
     rule = zmsg_new();
