@@ -35,9 +35,9 @@ public:
 
     std::string whoami () const { return "threshold"; }
 
-    // throws -> it is pattern but with errors
+    // throws -> it is imple threshold but with errors
     // 0 - ok
-    // 1 - it is not pattern rule
+    // 1 - it is not simple threshold rule
     int fill(const cxxtools::SerializationInfo &si)
     {
         _si = si;
@@ -53,6 +53,22 @@ public:
         // target
         auto target = threshold.getMember("target");
         if ( target.category () != cxxtools::SerializationInfo::Value ) {
+            return 1;
+        }
+        // rule_source
+        if ( si.findMember("rule_source") == NULL ) {
+            // if key is not there, take default
+            _rule_source = "Manual user input";
+            _si.addMember("rule_source") <<= _rule_source;
+        }
+        else {
+            auto rule_source = threshold.getMember("rule_source");
+            if ( rule_source.category () != cxxtools::SerializationInfo::Value ) {
+                throw std::runtime_error("'rule_source' in json must be value.");
+            }
+            rule_source >>= _rule_source;
+        }
+        if ( _rule_source != "Manual user input" ) {
             return 1;
         }
         zsys_debug1 ("it is simple threshold rule");
