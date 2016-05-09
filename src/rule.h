@@ -268,6 +268,7 @@ protected:
     cxxtools::SerializationInfo _si;
 
 
+    std::string _rule_source; 
 private:
     /*
      * \brief User is able to define his own constants,
@@ -276,6 +277,7 @@ private:
      * Maps name of the variable to the value.
      */
     std::map <std::string, double> _variables;
+
 
 };
 
