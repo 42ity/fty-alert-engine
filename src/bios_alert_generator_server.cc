@@ -972,7 +972,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
-          
+
     // Test case #11: generate alert - high again - after ACK-PAUSE
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
@@ -997,9 +997,9 @@ bios_alert_generator_server_test (bool verbose)
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
-    
+
     recv = mlm_client_recv (consumer);
-    
+
 
     assert (recv);
     assert (is_bios_proto (recv));
@@ -1192,7 +1192,7 @@ bios_alert_generator_server_test (bool verbose)
 
     // check the result of the operation
     recv = mlm_client_recv (ui);
-    
+
     assert (zmsg_size (recv) == 2);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "OK"));
@@ -1200,7 +1200,6 @@ bios_alert_generator_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 
-    
     zsys_info ("######## Test case #18 add some rule (type: pattern)");
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
@@ -1230,7 +1229,7 @@ bios_alert_generator_server_test (bool verbose)
     void *which = zpoller_wait (poller, 1000);
     assert ( which == NULL );
     if ( verbose ) {
-        zsys_debug ("No email was sent: SUCCESS");
+        zsys_debug ("No alert was sent: SUCCESS");
     }
     zpoller_destroy (&poller);
 
@@ -1263,11 +1262,11 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_state (brecv), "ACTIVE"));
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
-    
+
     zstr_free (&foo);
     zstr_free (&pattern_rule);
     zmsg_destroy (&recv);
-    
+
     // Test case #20 update some rule (type: pattern)
 /*  ACE: need help. here is some memory leak in the memcheck, cannot find
     rule = zmsg_new();
@@ -1287,7 +1286,83 @@ bios_alert_generator_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 */
-    // no new alert sent here
+    // Test case #21:   Thresholds imported from devices
+    //      21.1.1  add existing rule: devicethreshold
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char *devicethreshold_rule = s_readall ("testrules/devicethreshold.rule");
+    assert (devicethreshold_rule);
+    zmsg_addstrf (rule, "%s", devicethreshold_rule);
+    zstr_free (&devicethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    //      21.1.2  add existing rule second time: devicethreshold
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    devicethreshold_rule = s_readall ("testrules/devicethreshold2.rule");
+    assert (devicethreshold_rule);
+    zmsg_addstrf (rule, "%s", devicethreshold_rule);
+    zstr_free (&devicethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ALREADY_EXISTS"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    //      21.2  update existing rule
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    devicethreshold_rule = s_readall ("testrules/devicethreshold2.rule");
+    assert (devicethreshold_rule);
+    zmsg_addstrf (rule, "%s", devicethreshold_rule);
+    zstr_free (&devicethreshold_rule);
+    zmsg_addstrf (rule, "%s", "device_threshold_test"); // name of the rule
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    //      21.3  check that alert is not generated
+    zhash_t *aux = zhash_new ();
+    zhash_autofree (aux);
+    zhash_insert(aux, "time", (char *) std::to_string(::time(NULL)).c_str());
+
+    m = bios_proto_encode_metric (
+            aux, "device_metric", "ggg", "100", "", 600);
+    zhash_destroy (&aux);
+    mlm_client_send (producer, "device_metric@ggg", &m);
+
+    poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
+    which = zpoller_wait (poller, 1000);
+    assert ( which == NULL );
+    if ( verbose ) {
+        zsys_debug ("No alert was sent: SUCCESS");
+    }
+    zpoller_destroy (&poller);
+
     zclock_sleep (3000);
     zactor_destroy (&ag_server);
     mlm_client_destroy (&ui);
