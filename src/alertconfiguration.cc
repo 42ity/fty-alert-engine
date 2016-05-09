@@ -31,6 +31,7 @@ extern int agent_alert_verbose;
 #include "metriclist.h"
 #include "normalrule.h"
 #include "thresholdrulesimple.h"
+#include "thresholdruledevice.h"
 #include "thresholdrulecomplex.h"
 #include "regexrule.h"
 
@@ -70,6 +71,17 @@ int readRule (std::istream &f, RulePtr &rule)
 
         {
             temp_rule = std::unique_ptr<Rule> {new ThresholdRuleSimple()};
+            int rv = temp_rule->fill (si);
+            if ( rv == 0 ) {
+                rule = std::move (temp_rule);
+                return 0;
+            }
+            if ( rv == 2 )
+                return 2;
+        }
+
+        {
+            temp_rule = std::unique_ptr<Rule> {new ThresholdRuleDevice()};
             int rv = temp_rule->fill (si);
             if ( rv == 0 ) {
                 rule = std::move (temp_rule);

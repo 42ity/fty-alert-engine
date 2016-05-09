@@ -17,27 +17,28 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 /*!
- *  \file thresholdrulesimple.h
+ *  \file thresholdruledevice.h
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Simple threshold rule representation
+ *  \brief Threshold rule representation for rules directly extracted
+ *          from device
  */
-#ifndef SRC_THRESHOLDRULESIMPLE_H
-#define SRC_THRESHOLDRULESIMPLE_H
+#ifndef SRC_THRESHOLDRULEDEVICE_H
+#define SRC_THRESHOLDRULEDEVICE_H
 
 #include "rule.h"
 #include <cxxtools/serializationinfo.h>
 
-class ThresholdRuleSimple : public Rule
+class ThresholdRuleDevice : public Rule
 {
 public:
 
-    ThresholdRuleSimple(){};
+    ThresholdRuleDevice(){};
 
     std::string whoami () const { return "threshold"; }
 
-    // throws -> it is simple threshold but with errors
+    // throws -> it is device threshold but with errors
     // 0 - ok
-    // 1 - it is not simple threshold rule
+    // 1 - it is not device threshold rule
     int fill(const cxxtools::SerializationInfo &si)
     {
         _si = si;
@@ -69,12 +70,11 @@ public:
             rule_source >>= _rule_source;
         }
         zsys_debug1 ("rule_source = %s", _rule_source.c_str());
-        if ( _rule_source != "Manual user input" ) {
+        if ( _rule_source == "Manual user input" ) {
             return 1;
         }
-        zsys_debug1 ("it is simple threshold rule");
+        zsys_debug1 ("it is device threshold rule");
 
-        target >>= _metric;
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
         // values
@@ -99,71 +99,21 @@ public:
     }
 
     int evaluate (const MetricList &metricList, PureAlert &pureAlert) {
-        // ASSUMPTION: constants are in values
-        //  high_critical
-        //  high_warning
-        //  low_warning
-        //  low_critical
-        const auto GV = getGlobalVariables();
-        auto valueToCheck = GV.find ("high_critical");
-        if ( valueToCheck != GV.cend() ) {
-            if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("high_critical");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        valueToCheck = GV.find ("high_warning");
-        if ( valueToCheck != GV.cend() ) {
-            if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("high_warning");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        valueToCheck = GV.find ("low_critical");
-        if ( valueToCheck != GV.cend() ) {
-            if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("low_critical");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        valueToCheck = GV.find ("low_warning");
-        if ( valueToCheck != GV.cend() ) {
-            if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
-                auto outcome = _outcomes.find ("low_warning");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions = outcome->second._actions;
-                return 0;
-            }
-        }
-        // if we are here -> no alert was detected
-        // TODO actions
-        pureAlert = PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
-        pureAlert.print();
+        // INTENTIONALLY We do not evaluate this rule at all
+        // It is evaluated in NUT-agent somewhere
+        // rules are here, just to provide webUI access to the rule representation
         return 0;
     };
 
     bool isTopicInteresting(const std::string &topic) const {
-        return ( _metric == topic ? true : false );
+        // we are not interested in any topics
+        return false;
     };
 
     std::vector<std::string> getNeededTopics(void) const {
-        return {_metric};
+        return {};
     };
-
-private:
-    // needed metric topic
-    std::string _metric;
 };
 
 
-#endif // SRC_THRESHOLDRULESIMPLE_H
+#endif // SRC_THRESHOLDRULEDEVICE_H
