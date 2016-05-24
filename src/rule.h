@@ -98,6 +98,9 @@ public:
 
     void name (const std::string &name) { _name = name; }
 
+    std::string rule_class (void) const { return _rule_class; }
+    void rule_class (const std::string &rule_class) { _rule_class = rule_class; }
+    
     virtual int fill(const cxxtools::SerializationInfo &si) = 0;
 
     virtual void globalVariables (const std::map<std::string,double> &vars) {
@@ -269,6 +272,11 @@ protected:
 
 
     std::string _rule_source; 
+
+    /*
+     * \brief Human readable info about this rule purpose like "internal temperature"
+     */
+    std::string _rule_class;
 private:
     /*
      * \brief User is able to define his own constants,

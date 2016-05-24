@@ -1,6 +1,7 @@
 {
     "threshold" : {
         "rule_name"     :   "complexthreshold",
+        "rule_class"    :   "example class",
         "target"        :   ["abc@fff1", "abc@fff2"],
         "element"       :   "fff",
         "values"        :   [ {"low_critical"  : "30"},

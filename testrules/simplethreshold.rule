@@ -2,6 +2,7 @@
     "threshold" : {
         "rule_name"     :   "simplethreshold",
         "target"        :   "abc@fff",
+        "rule_class"    :   "example class",
         "element"       :   "fff",
         "values"        :   [ {"low_critical"  : "30"},
                               {"low_warning"   : "40"},

@@ -69,6 +69,10 @@ public:
 
         pattern.getMember("rule_name") >>= _name;
         pattern.getMember("target") >>= _rex_str;
+        // rule_class
+        if ( pattern.findMember("rule_class") != NULL ) {
+            pattern.getMember("rule_class") >>= _rule_class;
+        }
 
         // values
         std::map<std::string,double> tmp_values;

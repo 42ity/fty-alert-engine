@@ -69,6 +69,10 @@ public:
         target >>= _metrics;
         single.getMember("rule_name") >>= _name;
         single.getMember("element") >>= _element;
+        // rule_class
+        if ( single.findMember("rule_class") != NULL ) {
+            single.getMember("rule_class") >>= _rule_class;
+        }
         // values
         // values are not required for single rule
         if ( single.findMember("values") != NULL ) {
