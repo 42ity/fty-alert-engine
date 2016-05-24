@@ -66,6 +66,7 @@ static void
 list_rules(
     mlm_client_t *client,
     const char *type,
+    const char *ruleclass,
     AlertConfiguration &ac)
 {
     std::function<bool(const std::string& s)> filter_f;
@@ -103,8 +104,8 @@ list_rules(
     zsys_debug1 ("number of all rules = '%zu'", ac.size ());
     for (const auto &i: ac) {
         const auto& rule = i.first;
-        if (!filter_f(rule->whoami ())) {
-            zsys_debug1 ("Skipping rule  = '%s'", rule->name().c_str());
+        if (! (filter_f (rule->whoami ()) && (ruleclass == NULL || rule->rule_class().compare (ruleclass) == 0) ) {
+                zsys_debug1 ("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
             continue;
         }
         zsys_debug1 ("Adding rule  = '%s'", rule->name().c_str());
@@ -582,7 +583,9 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 char *param = zmsg_popstr (zmessage);
                 if (command && param) {
                     if (streq (command, "LIST")) {
-                        list_rules (client, param, alertConfiguration);
+                        char *rule_class = zmsg_popstr (zmessage);
+                        list_rules (client, param, rule_class, alertConfiguration);
+                        zstr_free (&rule_class);
                     }
                     else if (streq (command, "GET")) {
                         get_rule (client, param, alertConfiguration);
