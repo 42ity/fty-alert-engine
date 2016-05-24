@@ -66,9 +66,12 @@ static void
 list_rules(
     mlm_client_t *client,
     const char *type,
+    const char *ruleclass,
     AlertConfiguration &ac)
 {
     std::function<bool(const std::string& s)> filter_f;
+    std::string rclass;
+    if (ruleclass) rclass = ruleclass;
 
     if (streq (type,"all")) {
         filter_f = [](const std::string& s) {return true; };
@@ -94,6 +97,7 @@ list_rules(
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type);
+    zmsg_addstr (reply, rclass.c_str ());
     // std::vector <
     //  std::pair <
     //      RulePtr,
@@ -103,8 +107,8 @@ list_rules(
     zsys_debug1 ("number of all rules = '%zu'", ac.size ());
     for (const auto &i: ac) {
         const auto& rule = i.first;
-        if (!filter_f(rule->whoami ())) {
-            zsys_debug1 ("Skipping rule  = '%s'", rule->name().c_str());
+        if (! (filter_f (rule->whoami ()) && (rclass.empty() || rule->rule_class() == rclass)) ) {
+                zsys_debug1 ("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
             continue;
         }
         zsys_debug1 ("Adding rule  = '%s'", rule->name().c_str());
@@ -582,7 +586,9 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 char *param = zmsg_popstr (zmessage);
                 if (command && param) {
                     if (streq (command, "LIST")) {
-                        list_rules (client, param, alertConfiguration);
+                        char *rule_class = zmsg_popstr (zmessage);
+                        list_rules (client, param, rule_class, alertConfiguration);
+                        zstr_free (&rule_class);
                     }
                     else if (streq (command, "GET")) {
                         get_rule (client, param, alertConfiguration);
@@ -688,16 +694,20 @@ bios_alert_generator_server_test (bool verbose)
     zmsg_t *command = zmsg_new ();
     zmsg_addstrf (command, "%s", "LIST");
     zmsg_addstrf (command, "%s", "all");
+    zmsg_addstrf (command, "%s", "");
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
 
     zmsg_t *recv = mlm_client_recv (ui);
 
-    assert (zmsg_size (recv) == 2);
+    assert (zmsg_size (recv) == 3);
     char * foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
     zstr_free (&foo);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "all"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, ""));
     zstr_free (&foo);
     zmsg_destroy (&recv);
 
@@ -744,16 +754,20 @@ bios_alert_generator_server_test (bool verbose)
     command = zmsg_new ();
     zmsg_addstrf (command, "%s", "LIST");
     zmsg_addstrf (command, "%s", "all");
+    zmsg_addstrf (command, "%s", "");
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
 
     recv = mlm_client_recv (ui);
 
-    assert (zmsg_size (recv) == 3);
+    assert (zmsg_size (recv) == 4);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
     zstr_free (&foo);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "all"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, ""));
     zstr_free (&foo);
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
@@ -807,14 +821,39 @@ bios_alert_generator_server_test (bool verbose)
 
     recv = mlm_client_recv (ui);
 
-    assert (zmsg_size (recv) == 2);
+    assert (zmsg_size (recv) == 3);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
     zstr_free (&foo);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "single"));
     zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, ""));
+    zstr_free (&foo);
     zmsg_destroy (&recv);
+
+    // Test case #4.1: list w/o rules
+    command = zmsg_new ();
+    zmsg_addstrf (command, "%s", "LIST");
+    zmsg_addstrf (command, "%s", "all");
+    zmsg_addstrf (command, "%s", "example class");
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 4);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "LIST"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "all"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "example class"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+    
 
     //Test case #5: generate alert - below the treshold
     zmsg_t *m = bios_proto_encode_metric (

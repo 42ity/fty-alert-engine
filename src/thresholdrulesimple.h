@@ -77,6 +77,10 @@ public:
         target >>= _metric;
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
+        // rule_class
+        if ( threshold.findMember("rule_class") != NULL ) {
+            threshold.getMember("rule_class") >>= _rule_class;
+        }
         // values
         // TODO check low_critical < low_warnong < high_warning < hign crtical
         std::map<std::string,double> tmp_values;
@@ -109,7 +113,7 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_critical");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element, this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions = outcome->second._actions;
                 return 0;
@@ -119,7 +123,7 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second < metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("high_warning");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element, this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions = outcome->second._actions;
                 return 0;
@@ -129,7 +133,7 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_critical");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element, this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions = outcome->second._actions;
                 return 0;
@@ -139,7 +143,7 @@ public:
         if ( valueToCheck != GV.cend() ) {
             if ( valueToCheck->second > metricList.getLastMetric().getValue() ) {
                 auto outcome = _outcomes.find ("low_warning");
-                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element);
+                pureAlert = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp() , outcome->second._description, this->_element, this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions = outcome->second._actions;
                 return 0;
@@ -147,7 +151,7 @@ public:
         }
         // if we are here -> no alert was detected
         // TODO actions
-        pureAlert = PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element);
+        pureAlert = PureAlert(ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element, this->_rule_class);
         pureAlert.print();
         return 0;
     };

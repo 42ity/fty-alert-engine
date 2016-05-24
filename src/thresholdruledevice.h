@@ -77,6 +77,10 @@ public:
 
         threshold.getMember("rule_name") >>= _name;
         threshold.getMember("element") >>= _element;
+        // rule_class
+        if ( threshold.findMember("rule_class") != NULL ) {
+            threshold.getMember("rule_class") >>= _rule_class;
+        }
         // values
         // TODO check low_critical < low_warnong < high_warning < hign crtical
         std::map<std::string,double> tmp_values;
