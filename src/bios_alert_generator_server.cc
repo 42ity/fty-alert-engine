@@ -1341,6 +1341,51 @@ bios_alert_generator_server_test (bool verbose)
     }
     zpoller_destroy (&poller);
 
+
+
+    // Test 22: a simple threshold with not double value
+    // actually, this "behaviour" would automatically apply to ALL rules,
+    // as it is implemented in rule.class
+    // 22-1 : "AA20"
+    rule = zmsg_new();
+    zmsg_addstr (rule, "ADD");
+    simplethreshold_rule = s_readall ("testrules/simplethreshold_string_value1.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstr (rule, simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    zsys_info (foo);
+    assert (streq (foo, "BAD_JSON"));
+    zstr_free (&foo);
+
+    // 22-2 : "20AA"
+    rule = zmsg_new();
+    zmsg_addstr (rule, "ADD");
+    simplethreshold_rule = s_readall ("testrules/simplethreshold_string_value2.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstr (rule, simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    zsys_info (foo);
+    assert (streq (foo, "BAD_JSON"));
+    zstr_free (&foo);
+
     zclock_sleep (3000);
     zactor_destroy (&ag_server);
     mlm_client_destroy (&ui);
