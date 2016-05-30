@@ -1365,6 +1365,7 @@ bios_alert_generator_server_test (bool verbose)
     zsys_info (foo);
     assert (streq (foo, "BAD_JSON"));
     zstr_free (&foo);
+    zmsg_destroy (&recv);
 
     // 22-2 : "20AA"
     rule = zmsg_new();
@@ -1385,6 +1386,7 @@ bios_alert_generator_server_test (bool verbose)
     zsys_info (foo);
     assert (streq (foo, "BAD_JSON"));
     zstr_free (&foo);
+    zmsg_destroy (&recv);
 
     zclock_sleep (3000);
     zactor_destroy (&ag_server);
