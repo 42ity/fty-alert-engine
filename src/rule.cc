@@ -55,8 +55,18 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
         auto variableName = oneElement.getMember(0).name();
         std::string valueString;
         oneElement.getMember(0) >>= valueString;
-        double valueDouble = std::stod (valueString);
-        values.emplace (variableName, valueDouble);
+        std::size_t pos = 0;
+        try {
+            double valueDouble = std::stod (valueString, &pos);
+            if  ( pos != valueString.length() ) {
+                throw std::invalid_argument("Value should be double");
+            }
+            values.emplace (variableName, valueDouble);
+        }
+        catch (const std::exception &e ) {
+            zsys_error ("Value '%s' is not double", valueString.c_str());
+            throw std::runtime_error("Value should be double");
+        }
     }
 }
 // TODO error handling mistakes can be hidden here
