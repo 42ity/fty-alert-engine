@@ -73,6 +73,20 @@ public:
         if ( single.findMember("rule_class") != NULL ) {
             single.getMember("rule_class") >>= _rule_class;
         }
+        // rule_source
+        if ( single.findMember("rule_source") == NULL ) {
+            // if key is not there, take default
+            _rule_source = "Manual user input";
+            single.addMember("rule_source") <<= _rule_source;
+        }
+        else {
+            auto rule_source = single.getMember("rule_source");
+            if ( rule_source.category () != cxxtools::SerializationInfo::Value ) {
+                throw std::runtime_error("'rule_source' in json must be value.");
+            }
+            rule_source >>= _rule_source;
+        }
+        zsys_debug1 ("rule_source = %s", _rule_source.c_str());
         // values
         // values are not required for single rule
         if ( single.findMember("values") != NULL ) {
