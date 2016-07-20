@@ -59,7 +59,7 @@ public:
         if ( threshold.findMember("rule_source") == NULL ) {
             // if key is not there, take default
             _rule_source = "Manual user input";
-            _si.addMember("rule_source") <<= _rule_source;
+            threshold.addMember("rule_source") <<= _rule_source;
         }
         else {
             auto rule_source = threshold.getMember("rule_source");

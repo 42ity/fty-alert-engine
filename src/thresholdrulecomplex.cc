@@ -58,6 +58,19 @@ int ThresholdRuleComplex::fill(
     if ( threshold.findMember("rule_class") != NULL ) {
         threshold.getMember("rule_class") >>= _rule_class;
     }
+    // rule_source
+    if ( threshold.findMember("rule_source") == NULL ) {
+        // if key is not there, take default
+        _rule_source = "Manual user input";
+        threshold.addMember("rule_source") <<= _rule_source;
+    }
+    else {
+        auto rule_source = threshold.getMember("rule_source");
+        if ( rule_source.category () != cxxtools::SerializationInfo::Value ) {
+            throw std::runtime_error("'rule_source' in json must be value.");
+        }
+        rule_source >>= _rule_source;
+    }
     // values
     // TODO check low_critical < low_warning < high_warning < high_critical
     std::map<std::string,double> tmp_values;
