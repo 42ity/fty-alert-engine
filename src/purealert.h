@@ -38,7 +38,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class PureAlert{
  public:
     std::string _status;
-    int64_t _timestamp;
+    uint64_t _timestamp;
     std::string _description;
     std::string _element;
     std::string _severity;
@@ -48,7 +48,7 @@ class PureAlert{
     PureAlert() { _timestamp = 0; };
     PureAlert(
         const std::string &s,
-        int64_t tm,
+        uint64_t tm,
         const std::string &descr,
         const std::string &element_name,
         const std::string &rule_class)
@@ -62,7 +62,7 @@ class PureAlert{
 
     PureAlert(
         const std::string &s,
-        int64_t tm,
+        uint64_t tm,
         const std::string &descr,
         const std::string &element_name,
         const std::string &severity,

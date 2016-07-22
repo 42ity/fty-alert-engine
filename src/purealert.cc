@@ -44,7 +44,7 @@ bool PureAlert::isStatusKnown (const char *status)
 
 void PureAlert::print() const {
     zsys_debug1 ("status = %s", _status.c_str());
-    zsys_debug1 ("timestamp = %d", _timestamp);
+    zsys_debug1 ("timestamp = %"PRIu64, _timestamp);
     zsys_debug1 ("description = %s", _description.c_str());
     zsys_debug1 ("element = %s", _element.c_str());
     zsys_debug1 ("severity = %s", _severity.c_str());
