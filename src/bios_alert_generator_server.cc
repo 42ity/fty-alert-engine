@@ -443,7 +443,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         }
 
         if (which == pipe) {
-            zsys_debug1 ("which == pipe");
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
 
@@ -505,7 +504,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             zmsg_destroy (&msg);
             continue;
         }
-        zsys_debug1 ("which != pipe");
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there is no messages
@@ -610,7 +608,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zstr_free (&command);
                 zstr_free (&param);
             }
-            
+
             uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
             mailbox_messages.push_back (ts_end - ts_start);
         }
