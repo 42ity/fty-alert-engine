@@ -531,12 +531,15 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             if (streq (cmd, "CONFIG")) {
                 zsys_debug1 ("CONFIG received");
                 char* filename = zmsg_popstr (msg);
-
-                // Read initial configuration
-                alertConfiguration.setPath(filename);
-                // XXX: somes to subscribe are returned, but not used for now
-                alertConfiguration.readConfiguration();
-
+                if ( filename ) {
+                    // Read initial configuration
+                    alertConfiguration.setPath(filename);
+                    // XXX: somes to subscribe are returned, but not used for now
+                    alertConfiguration.readConfiguration();
+                }
+                else {
+                    zsys_error ("%s: in CONFIG command next frame is missing", name);
+                }
                 zstr_free (&filename);
             }
             zstr_free (&cmd);
