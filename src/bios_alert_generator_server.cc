@@ -26,12 +26,9 @@
 @end
 */
 #include <string.h>
-#include <stdio.h>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <sstream>
-#include <fstream>
 #include <malamute.h>
 #include <bios_proto.h>
 #include <math.h>
@@ -50,11 +47,6 @@ int agent_alert_verbose = 0;
 #include "regexrule.h"
 
 #include "alertconfiguration.h"
-
-//http://en.cppreference.com/w/cpp/language/typeid
-//The header <typeinfo> must be included before using typeid
-#include <typeinfo>
-
 
 #define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
