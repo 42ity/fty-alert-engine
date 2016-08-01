@@ -497,7 +497,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             if (streq (cmd, "VERBOSE")) {
                 zsys_debug1 ("VERBOSE received");
                 agent_alert_verbose = true;
-                zmsg_destroy (&msg);
             }
             else
             if (streq (cmd, "CONNECT")) {
