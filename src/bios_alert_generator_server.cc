@@ -62,9 +62,6 @@ list_rules(
     AlertConfiguration &ac)
 {
     std::function<bool(const std::string& s)> filter_f;
-    std::string rclass;
-    if (ruleclass) rclass = ruleclass;
-
     if (streq (type,"all")) {
         filter_f = [](const std::string& s) {return true; };
     }
@@ -85,6 +82,11 @@ list_rules(
         zmsg_addstr (reply, "INVALID_TYPE");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
+    }
+
+    std::string rclass;
+    if (ruleclass) {
+        rclass = ruleclass;
     }
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "LIST");
