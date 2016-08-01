@@ -467,37 +467,20 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     assert (poller);
 
-    uint64_t timestamp_stat = static_cast<uint64_t> (zclock_mono ());
     uint64_t timeout = 30000;
-
-    std::vector <uint64_t> stream_messages;
-    std::vector <uint64_t> mailbox_messages;
-
 
     zsock_signal (pipe, 0);
 
     while (!zsys_interrupted) {
-        /* this function is broken under high load, comment it for now
-        if ( needCheck && !mlm_client_connected (client) ) {
-            zsys_error ("BIOS-2076: mlm client was disconnected, sacrifice the alert agent to be revived by systemd");
-            break;
-        }
-        */
         void *which = zpoller_wait (poller, timeout);
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
-                zsys_warning ("zpoller_terminated () or zsys_interrupted. Shutting down.");
+                zsys_warning ("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
                 break;
             }
             if (zpoller_expired (poller)) {
             }
-            timestamp_stat = static_cast<uint64_t> (zclock_mono ());
             continue;
-        }
-
-        uint64_t now = static_cast<uint64_t> (zclock_mono ());
-        if (now - timestamp_stat >= timeout) {
-            timestamp_stat = static_cast<uint64_t> (zclock_mono ());
         }
 
         if (which == pipe) {
@@ -505,16 +488,15 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             char *cmd = zmsg_popstr (msg);
 
             if (streq (cmd, "$TERM")) {
-                zsys_debug1 ("$TERM received");
+                zsys_debug1 ("%s: $TERM received", name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                zsys_debug1 ("VERBOSE received");
+                zsys_debug1 ("%s: VERBOSE received", name);
                 agent_alert_verbose = true;
-                zmsg_destroy (&msg);
             }
             else
             if (streq (cmd, "CONNECT")) {
@@ -524,7 +506,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (rv == -1)
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
-//                needCheck = true;
             }
             else
             if (streq (cmd, "PRODUCER")) {
@@ -550,12 +531,15 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             if (streq (cmd, "CONFIG")) {
                 zsys_debug1 ("CONFIG received");
                 char* filename = zmsg_popstr (msg);
-
-                // Read initial configuration
-                alertConfiguration.setPath(filename);
-                // XXX: somes to subscribe are returned, but not used for now
-                alertConfiguration.readConfiguration();
-
+                if ( filename ) {
+                    // Read initial configuration
+                    alertConfiguration.setPath(filename);
+                    // XXX: somes to subscribe are returned, but not used for now
+                    alertConfiguration.readConfiguration();
+                }
+                else {
+                    zsys_error ("%s: in CONFIG command next frame is missing", name);
+                }
                 zstr_free (&filename);
             }
             zstr_free (&cmd);
@@ -577,11 +561,10 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
-        // TODO  this "IF" is ugly, make it linear!
-        if( is_bios_proto(zmessage) ) {
+        if ( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
             if( ! bmessage ) {
-                zsys_error ("cannot decode message with topic %s, ignoring", topic.c_str());
+                zsys_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 continue;
             }
             if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
@@ -601,101 +584,90 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (errno == ERANGE) {
                     errno = 0;
                     bios_proto_print (bmessage);
-                    zsys_error ("cannot convert value to double #1, ignore message");
+                    zsys_error ("%s: can't convert value to double #1, ignore message", name);
                     bios_proto_destroy (&bmessage);
                     continue;
                 }
                 else if (end == value || *end != '\0') {
                     bios_proto_print (bmessage);
-                    zsys_error ("cannot convert value to double #2, ignore message");
+                    zsys_error ("%s: can't convert value to double #2, ignore message", name);
                     bios_proto_destroy (&bmessage);
                     continue;
                 }
 
-                zsys_debug1("Got message '%s' with value %s", topic.c_str(), value);
+                zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
 
-                uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "", ttl);
                 bios_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
-                uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
-                stream_messages.push_back (ts_end - ts_start);
             }
             bios_proto_destroy (&bmessage);
         }
-        else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
-        {
-            uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
-            zsys_debug1 ("not bios_proto && mailbox");
-            // According RFC we expect here a messages
-            // with the topics ACK_SUBJECT and RULE_SUBJECT
-            if ( streq (mlm_client_subject (client), RULES_SUBJECT) )
-            {
-                zsys_debug1 ("%s", RULES_SUBJECT);
-                // Here we can have:
-                //  * request for list of rules
-                //  * get detailed info about the rule
-                //  * new/update rule
-                //  * touch rule
-                char *command = zmsg_popstr (zmessage);
-                char *param = zmsg_popstr (zmessage);
-                if (command && param) {
-                    if (streq (command, "LIST")) {
-                        char *rule_class = zmsg_popstr (zmessage);
-                        list_rules (client, param, rule_class, alertConfiguration);
-                        zstr_free (&rule_class);
-                    }
-                    else if (streq (command, "GET")) {
-                        get_rule (client, param, alertConfiguration);
-                    }
-                    else if (streq (command, "ADD") ) {
-                        if ( zmsg_size(zmessage) == 0 ) {
-                            // ADD/json
-                            add_rule (client, param, alertConfiguration);
-                        }
-                        else {
-                            // ADD/json/old_name
-                            char *param1 = zmsg_popstr (zmessage);
-                            update_rule (client, param, param1, alertConfiguration);
-                            if (param1) free (param1);
-                        }
-                    } else if (streq (command, "TOUCH") ) {
-                        touch_rule (client, param, alertConfiguration, true);
+        // According RFC we expect here a messages
+        // with the topic:
+        //   * RULE_SUBJECT
+        else
+        if ( streq (mlm_client_subject (client), RULES_SUBJECT) ) {
+            zsys_debug1 ("%s", RULES_SUBJECT);
+            // Here we can have:
+            //  * request for list of rules
+            //  * get detailed info about the rule
+            //  * new/update rule
+            //  * touch rule
+            char *command = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            if (command && param) {
+                if (streq (command, "LIST")) {
+                    char *rule_class = zmsg_popstr (zmessage);
+                    list_rules (client, param, rule_class, alertConfiguration);
+                    zstr_free (&rule_class);
+                }
+                else if (streq (command, "GET")) {
+                    get_rule (client, param, alertConfiguration);
+                }
+                else if (streq (command, "ADD") ) {
+                    if ( zmsg_size(zmessage) == 0 ) {
+                        // ADD/json
+                        add_rule (client, param, alertConfiguration);
                     }
                     else {
-                        zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
+                        // ADD/json/old_name
+                        char *param1 = zmsg_popstr (zmessage);
+                        update_rule (client, param, param1, alertConfiguration);
+                        if (param1) free (param1);
                     }
+                } else if (streq (command, "TOUCH") ) {
+                    touch_rule (client, param, alertConfiguration, true);
                 }
-                zstr_free (&command);
-                zstr_free (&param);
+                else {
+                    zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
+                }
             }
-
-            uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
-            mailbox_messages.push_back (ts_end - ts_start);
+            zstr_free (&command);
+            zstr_free (&param);
         }
-        else if ( streq (mlm_client_command (client), "STREAM DELIVER" ) )
-        {
-            zsys_debug1 ("not bios_proto && stream");
-            // Here we can have:
+        else {
+            // Here we can have a message with arbitrary topic, but according protocol
+            // first frame must be one of the following:
             //  * METIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
-            char *metrictopic = zmsg_popstr (zmessage);
-            if (command && metrictopic) {
-                if (streq (command, "METRICUNAVAILABLE")) {
+            if (streq (command, "METRICUNAVAILABLE")) {
+                char *metrictopic = zmsg_popstr (zmessage);
+                if (metrictopic) {
                     check_metrics (client, metrictopic, alertConfiguration);
                 }
                 else {
-                    zsys_error ("Received unexpected message to STREAM with command '%s'", command);
+                    zsys_error ("%s: Received command '%s', but message has bad format", name, command);
                 }
+                zstr_free (&metrictopic);
             }
             else {
-                zsys_error ("wrong message format");
+                zsys_error ("%s: Unexcepted message received", name);
             }
             zstr_free (&command);
-            zstr_free (&metrictopic);
         }
         zmsg_destroy (&zmessage);
     }
