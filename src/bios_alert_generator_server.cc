@@ -467,22 +467,11 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     assert (poller);
 
-    uint64_t timestamp_stat = static_cast<uint64_t> (zclock_mono ());
     uint64_t timeout = 30000;
-
-    std::vector <uint64_t> stream_messages;
-    std::vector <uint64_t> mailbox_messages;
-
 
     zsock_signal (pipe, 0);
 
     while (!zsys_interrupted) {
-        /* this function is broken under high load, comment it for now
-        if ( needCheck && !mlm_client_connected (client) ) {
-            zsys_error ("BIOS-2076: mlm client was disconnected, sacrifice the alert agent to be revived by systemd");
-            break;
-        }
-        */
         void *which = zpoller_wait (poller, timeout);
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
@@ -491,13 +480,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             if (zpoller_expired (poller)) {
             }
-            timestamp_stat = static_cast<uint64_t> (zclock_mono ());
             continue;
-        }
-
-        uint64_t now = static_cast<uint64_t> (zclock_mono ());
-        if (now - timestamp_stat >= timeout) {
-            timestamp_stat = static_cast<uint64_t> (zclock_mono ());
         }
 
         if (which == pipe) {
@@ -614,21 +597,17 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 zsys_debug1("Got message '%s' with value %s", topic.c_str(), value);
 
-                uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "", ttl);
                 bios_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
-                uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
-                stream_messages.push_back (ts_end - ts_start);
             }
             bios_proto_destroy (&bmessage);
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
-            uint64_t ts_start = static_cast<uint64_t> (zclock_mono ());
             zsys_debug1 ("not bios_proto && mailbox");
             // According RFC we expect here a messages
             // with the topics ACK_SUBJECT and RULE_SUBJECT
@@ -672,9 +651,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 zstr_free (&command);
                 zstr_free (&param);
             }
-
-            uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
-            mailbox_messages.push_back (ts_end - ts_start);
         }
         else if ( streq (mlm_client_command (client), "STREAM DELIVER" ) )
         {
