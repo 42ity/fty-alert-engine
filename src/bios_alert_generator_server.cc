@@ -1006,7 +1006,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
-    // Test case #11: generate alert - high again - after ACK-PAUSE
+    // Test case #11: generate alert - high again
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
@@ -1025,7 +1025,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
-    // Test case #12: generate alert - resolved - after ACK-PAUSE
+    // Test case #12: generate alert - resolved
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
