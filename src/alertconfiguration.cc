@@ -229,6 +229,38 @@ int AlertConfiguration::
 }
 
 int AlertConfiguration::
+    touchRule (
+        const std::string &rule_name,
+        std::vector <PureAlert> &alertsToSend)
+{
+    // find rule, that should be touched
+    auto rule_to_update = _alerts.begin();
+    while ( rule_to_update != _alerts.end() ) {
+        if ( rule_to_update->first->hasSameNameAs (rule_name) ) {
+            break;
+        }
+        ++rule_to_update;
+    }
+    // rule_to_update is an iterator to the rule+alerts
+    if ( rule_to_update == _alerts.end() ) {
+        zsys_error ("rule '%s' doesn't exist", rule_name.c_str());
+        return -1;
+    }
+
+    // resolve found alerts
+    for ( auto &oneAlert : rule_to_update->second ) {
+        oneAlert._status = ALERT_RESOLVED;
+        oneAlert._description = "Rule was changed implicitly";
+        // put them into the list of alerts that had changed
+        alertsToSend.push_back (oneAlert);
+    }
+    // clear alert cache
+    rule_to_update->second.clear();
+
+    return 0;
+}
+
+int AlertConfiguration::
     updateRule (
         std::istream &newRuleString,
         const std::string &old_name,

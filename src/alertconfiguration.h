@@ -134,7 +134,7 @@ public:
      *
      * \param[in] newRuleString - an input stream to parse a rule
      *              (can have a new name for this rule)
-     * \param[in] old_name - old name of the rule
+     * \param[in] rule_name - old name of the rule
      * \param[out] newSubjectsToSubscribe - subjects that are required by the new rule
      * \param[out] alertsToSend - alerts that where affected by new rule
      * \param[out] it - iterator to the new rule
@@ -155,11 +155,28 @@ public:
         iterator &it);
 
     /*
+     * \brief Touch existing rule in the configuration.
+     * 
+     * Indicats that something in rule was changed implicitly.
+     *
+     * alertsToSend must be sent in the order from the first element to the last element
+     *
+     * \param[in] rule_name - name of the rule to touch
+     * \param[out] alertsToSend - alerts that where affected by this rule
+     *
+     * \return -1 when rule with rule_name doesn't exist -> nothing to update
+     *          0 when rule was touched successfully
+     */
+    int touchRule (
+        const std::string &rule_name,
+        std::vector <PureAlert> &alertsToSend);
+
+    /*
      * \brief Incapsulates alert in the model
      *
      * \param[in] rule - the evaluated rule
      * \param[in] pureAlert - the result of the evaluation (alert)
-     * \param[out] alrtt_to_send - the alert prepared to send
+     * \param[out] alert_to_send - the alert prepared to send
      *
      * \return -1 nothing to send
      *          0 need to send an alert

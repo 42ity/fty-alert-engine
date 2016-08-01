@@ -1,0 +1,14 @@
+{
+    "single" : {
+        "rule_name"     :   "rule_to_metrictouch2",
+        "target"        :   ["metrictouch1@element1", "metrictouch2@element2"],
+        "element"       :   "element3",
+        "values"        :   [ {"a1": "1"},
+                              {"a2": "-1"}
+                            ],
+        "results"       :   [ {"high_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "RES r1" }},
+                              {"high_warning"  : { "action" : ["EMAIL"],       "severity" : "WARNING" , "description" : "RES r2"}}
+                            ],
+        "evaluation"    : "function main(metrictouch1_element1, metrcitouch2_element2) local new_value = metrictouch1_element1*a1 + metrcitouch2_element2*a2 if  ( new_value > 0 ) then return HIGH_WARNING end if ( new_value < -10 ) then return HIGH_CRITICAL end return OK end"
+    }
+}
