@@ -506,7 +506,6 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (rv == -1)
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 zstr_free (&endpoint);
-//                needCheck = true;
             }
             else
             if (streq (cmd, "PRODUCER")) {
