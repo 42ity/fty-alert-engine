@@ -561,8 +561,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
-        // TODO  this "IF" is ugly, make it linear!
-        if( is_bios_proto(zmessage) ) {
+        if ( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
             if( ! bmessage ) {
                 zsys_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
@@ -607,72 +606,68 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             }
             bios_proto_destroy (&bmessage);
         }
-        else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
-        {
-            zsys_debug1 ("%s: not bios_proto && mailbox", name);
-            // According RFC we expect here a messages
-            // with the topics ACK_SUBJECT and RULE_SUBJECT
-            if ( streq (mlm_client_subject (client), RULES_SUBJECT) )
-            {
-                zsys_debug1 ("%s", RULES_SUBJECT);
-                // Here we can have:
-                //  * request for list of rules
-                //  * get detailed info about the rule
-                //  * new/update rule
-                //  * touch rule
-                char *command = zmsg_popstr (zmessage);
-                char *param = zmsg_popstr (zmessage);
-                if (command && param) {
-                    if (streq (command, "LIST")) {
-                        char *rule_class = zmsg_popstr (zmessage);
-                        list_rules (client, param, rule_class, alertConfiguration);
-                        zstr_free (&rule_class);
-                    }
-                    else if (streq (command, "GET")) {
-                        get_rule (client, param, alertConfiguration);
-                    }
-                    else if (streq (command, "ADD") ) {
-                        if ( zmsg_size(zmessage) == 0 ) {
-                            // ADD/json
-                            add_rule (client, param, alertConfiguration);
-                        }
-                        else {
-                            // ADD/json/old_name
-                            char *param1 = zmsg_popstr (zmessage);
-                            update_rule (client, param, param1, alertConfiguration);
-                            if (param1) free (param1);
-                        }
-                    } else if (streq (command, "TOUCH") ) {
-                        touch_rule (client, param, alertConfiguration, true);
+        // According RFC we expect here a messages
+        // with the topic:
+        //   * RULE_SUBJECT
+        else
+        if ( streq (mlm_client_subject (client), RULES_SUBJECT) ) {
+            zsys_debug1 ("%s", RULES_SUBJECT);
+            // Here we can have:
+            //  * request for list of rules
+            //  * get detailed info about the rule
+            //  * new/update rule
+            //  * touch rule
+            char *command = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            if (command && param) {
+                if (streq (command, "LIST")) {
+                    char *rule_class = zmsg_popstr (zmessage);
+                    list_rules (client, param, rule_class, alertConfiguration);
+                    zstr_free (&rule_class);
+                }
+                else if (streq (command, "GET")) {
+                    get_rule (client, param, alertConfiguration);
+                }
+                else if (streq (command, "ADD") ) {
+                    if ( zmsg_size(zmessage) == 0 ) {
+                        // ADD/json
+                        add_rule (client, param, alertConfiguration);
                     }
                     else {
-                        zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
+                        // ADD/json/old_name
+                        char *param1 = zmsg_popstr (zmessage);
+                        update_rule (client, param, param1, alertConfiguration);
+                        if (param1) free (param1);
                     }
+                } else if (streq (command, "TOUCH") ) {
+                    touch_rule (client, param, alertConfiguration, true);
                 }
-                zstr_free (&command);
-                zstr_free (&param);
+                else {
+                    zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
+                }
             }
+            zstr_free (&command);
+            zstr_free (&param);
         }
-        else if ( streq (mlm_client_command (client), "STREAM DELIVER" ) )
-        {
-            zsys_debug1 ("not bios_proto && stream");
-            // Here we can have:
+        else {
+            // Here we can have a message with arbitrary topic, but according protocol
+            // first frame must be one of the following:
             //  * METIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
-            char *metrictopic = zmsg_popstr (zmessage);
-            if (command && metrictopic) {
-                if (streq (command, "METRICUNAVAILABLE")) {
+            if (streq (command, "METRICUNAVAILABLE")) {
+                char *metrictopic = zmsg_popstr (zmessage);
+                if (metrictopic) {
                     check_metrics (client, metrictopic, alertConfiguration);
                 }
                 else {
-                    zsys_error ("%s: Received unexpected message to STREAM with command '%s'", name, command);
+                    zsys_error ("%s: Received command '%s', but message has bad format", name, command);
                 }
+                zstr_free (&metrictopic);
             }
             else {
-                zsys_error ("%s: wrong message format", name);
+                zsys_error ("%s: Unexcepted message received", name);
             }
             zstr_free (&command);
-            zstr_free (&metrictopic);
         }
         zmsg_destroy (&zmessage);
     }
