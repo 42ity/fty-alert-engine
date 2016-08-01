@@ -475,7 +475,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         void *which = zpoller_wait (poller, timeout);
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
-                zsys_warning ("zpoller_terminated () or zsys_interrupted. Shutting down.");
+                zsys_warning ("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
                 break;
             }
             if (zpoller_expired (poller)) {
@@ -488,14 +488,14 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             char *cmd = zmsg_popstr (msg);
 
             if (streq (cmd, "$TERM")) {
-                zsys_debug1 ("$TERM received");
+                zsys_debug1 ("%s: $TERM received", name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                zsys_debug1 ("VERBOSE received");
+                zsys_debug1 ("%s: VERBOSE received", name);
                 agent_alert_verbose = true;
             }
             else
@@ -563,7 +563,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         if( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
             if( ! bmessage ) {
-                zsys_error ("cannot decode message with topic %s, ignoring", topic.c_str());
+                zsys_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 continue;
             }
             if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
@@ -583,18 +583,18 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 if (errno == ERANGE) {
                     errno = 0;
                     bios_proto_print (bmessage);
-                    zsys_error ("cannot convert value to double #1, ignore message");
+                    zsys_error ("%s: can't convert value to double #1, ignore message", name);
                     bios_proto_destroy (&bmessage);
                     continue;
                 }
                 else if (end == value || *end != '\0') {
                     bios_proto_print (bmessage);
-                    zsys_error ("cannot convert value to double #2, ignore message");
+                    zsys_error ("%s: can't convert value to double #2, ignore message", name);
                     bios_proto_destroy (&bmessage);
                     continue;
                 }
 
-                zsys_debug1("Got message '%s' with value %s", topic.c_str(), value);
+                zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
 
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "", ttl);
@@ -607,7 +607,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         }
         else if ( streq (mlm_client_command (client), "MAILBOX DELIVER" ) )
         {
-            zsys_debug1 ("not bios_proto && mailbox");
+            zsys_debug1 ("%s: not bios_proto && mailbox", name);
             // According RFC we expect here a messages
             // with the topics ACK_SUBJECT and RULE_SUBJECT
             if ( streq (mlm_client_subject (client), RULES_SUBJECT) )
@@ -663,11 +663,11 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                     check_metrics (client, metrictopic, alertConfiguration);
                 }
                 else {
-                    zsys_error ("Received unexpected message to STREAM with command '%s'", command);
+                    zsys_error ("%s: Received unexpected message to STREAM with command '%s'", name, command);
                 }
             }
             else {
-                zsys_error ("wrong message format");
+                zsys_error ("%s: wrong message format", name);
             }
             zstr_free (&command);
             zstr_free (&metrictopic);
