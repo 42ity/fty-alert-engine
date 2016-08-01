@@ -26,12 +26,9 @@
 @end
 */
 #include <string.h>
-#include <stdio.h>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <sstream>
-#include <fstream>
 #include <malamute.h>
 #include <bios_proto.h>
 #include <math.h>
@@ -51,11 +48,6 @@ int agent_alert_verbose = 0;
 
 #include "alertconfiguration.h"
 
-//http://en.cppreference.com/w/cpp/language/typeid
-//The header <typeinfo> must be included before using typeid
-#include <typeinfo>
-
-
 #define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
 
@@ -70,9 +62,6 @@ list_rules(
     AlertConfiguration &ac)
 {
     std::function<bool(const std::string& s)> filter_f;
-    std::string rclass;
-    if (ruleclass) rclass = ruleclass;
-
     if (streq (type,"all")) {
         filter_f = [](const std::string& s) {return true; };
     }
@@ -94,6 +83,11 @@ list_rules(
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
     }
+
+    std::string rclass;
+    if (ruleclass) {
+        rclass = ruleclass;
+    }
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type);
@@ -108,7 +102,7 @@ list_rules(
     for (const auto &i: ac) {
         const auto& rule = i.first;
         if (! (filter_f (rule->whoami ()) && (rclass.empty() || rule->rule_class() == rclass)) ) {
-                zsys_debug1 ("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
+            zsys_debug1 ("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
             continue;
         }
         zsys_debug1 ("Adding rule  = '%s'", rule->name().c_str());
@@ -1006,7 +1000,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
-    // Test case #11: generate alert - high again - after ACK-PAUSE
+    // Test case #11: generate alert - high again
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
@@ -1025,7 +1019,7 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (bios_proto_severity (brecv), "CRITICAL"));
     bios_proto_destroy (&brecv);
 
-    // Test case #12: generate alert - resolved - after ACK-PAUSE
+    // Test case #12: generate alert - resolved
     m = bios_proto_encode_metric (
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
