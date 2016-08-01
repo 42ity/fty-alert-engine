@@ -281,8 +281,6 @@ add_rule(
         return;
     }
 }
-
-
 static void
 update_rule(
     mlm_client_t *client,
@@ -331,7 +329,7 @@ update_rule(
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
     case -3:
-        zsys_debug1 ("new rule najme already exists");
+        zsys_debug1 ("new rule name already exists");
         // rule with new rule name already exists
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ALREADY_EXISTS");
@@ -353,6 +351,66 @@ update_rule(
         zmsg_addstr (reply, "BAD_JSON");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
+    }
+}
+
+
+static void
+touch_rule(
+    mlm_client_t *client,
+    const char *rule_name,
+    AlertConfiguration &ac,
+    bool send_reply)
+{
+    std::vector <PureAlert> alertsToSend;
+
+    int rv = ac.touchRule (rule_name, alertsToSend);
+    switch (rv) {
+        case -1: {
+            zsys_debug1 ("touch_rule:%s: Rule was not found", rule_name);
+            // ERROR rule doesn't exist
+            if ( send_reply ) {
+                zmsg_t *reply = zmsg_new ();
+                if ( !reply ) {
+                    zsys_error ("touch_rule:%s: Cannot create reply message.", rule_name);
+                    return;
+                }
+                zmsg_addstr (reply, "ERROR");
+                zmsg_addstr (reply, "NOT_FOUND");
+                mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+            }
+            return;
+        }
+        case 0: {
+            // rule was touched
+            // send a reply back
+            zsys_debug1 ("touch_rule:%s: ok", rule_name);
+            if ( send_reply ) {
+                zmsg_t *reply = zmsg_new ();
+                if ( !reply ) {
+                    zsys_error ("touch_rule:%s: Cannot create reply message.", rule_name);
+                    return;
+                }
+                zmsg_addstr (reply, "OK");
+                mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+            }
+            // send updated alert
+            send_alerts (client, alertsToSend, rule_name); // TODO third parameter
+            return;
+        }
+    }
+}
+
+void check_metrics (
+    mlm_client_t *client,
+    const char *metric_topic,
+    AlertConfiguration &ac)
+{
+    for ( const auto &i: ac) {
+        const auto &rule = i.first;
+        if ( rule->isTopicInteresting (metric_topic) ) {
+            touch_rule (client, rule->name().c_str(), ac, false);
+        }
     }
 }
 
@@ -519,6 +577,7 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
+        // TODO  this "IF" is ugly, make it linear!
         if( is_bios_proto(zmessage) ) {
             bios_proto_t *bmessage = bios_proto_decode(&zmessage);
             if( ! bmessage ) {
@@ -577,9 +636,10 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
             {
                 zsys_debug1 ("%s", RULES_SUBJECT);
                 // Here we can have:
-                //  * new rule
                 //  * request for list of rules
                 //  * get detailed info about the rule
+                //  * new/update rule
+                //  * touch rule
                 char *command = zmsg_popstr (zmessage);
                 char *param = zmsg_popstr (zmessage);
                 if (command && param) {
@@ -596,13 +656,17 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                             // ADD/json
                             add_rule (client, param, alertConfiguration);
                         }
-                        else
-                        {
+                        else {
                             // ADD/json/old_name
                             char *param1 = zmsg_popstr (zmessage);
                             update_rule (client, param, param1, alertConfiguration);
                             if (param1) free (param1);
                         }
+                    } else if (streq (command, "TOUCH") ) {
+                        touch_rule (client, param, alertConfiguration, true);
+                    }
+                    else {
+                        zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
                     }
                 }
                 zstr_free (&command);
@@ -611,6 +675,27 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
             uint64_t ts_end = static_cast<uint64_t> (zclock_mono ());
             mailbox_messages.push_back (ts_end - ts_start);
+        }
+        else if ( streq (mlm_client_command (client), "STREAM DELIVER" ) )
+        {
+            zsys_debug1 ("not bios_proto && stream");
+            // Here we can have:
+            //  * METIC_UNAVAILABLE
+            char *command = zmsg_popstr (zmessage);
+            char *metrictopic = zmsg_popstr (zmessage);
+            if (command && metrictopic) {
+                if (streq (command, "METRICUNAVAILABLE")) {
+                    check_metrics (client, metrictopic, alertConfiguration);
+                }
+                else {
+                    zsys_error ("Received unexpected message to STREAM with command '%s'", command);
+                }
+            }
+            else {
+                zsys_error ("wrong message format");
+            }
+            zstr_free (&command);
+            zstr_free (&metrictopic);
         }
         zmsg_destroy (&zmessage);
     }
@@ -684,6 +769,7 @@ bios_alert_generator_server_test (bool verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
     zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
@@ -851,7 +937,6 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (foo, "example class"));
     zstr_free (&foo);
     zmsg_destroy (&recv);
-    
 
     //Test case #5: generate alert - below the treshold
     zmsg_t *m = bios_proto_encode_metric (
@@ -1386,6 +1471,274 @@ bios_alert_generator_server_test (bool verbose)
     zstr_free (&foo);
     zmsg_destroy (&recv);
 
+    // test 23: touch rule, that doesn't exist
+    zmsg_t *touch_request = zmsg_new ();
+    assert (touch_request);
+    zmsg_addstr (touch_request, "TOUCH");
+    zmsg_addstr (touch_request, "rule_to_touch_doesnt_exists");
+    int rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (ui);
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "NOT_FOUND"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+
+    // test 24: touch rule that exists
+    //
+    //
+    // Create a rule we are going to test against
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char *rule_to_touch = s_readall ("testrules/rule_to_touch.rule");
+    assert (rule_to_touch);
+    zmsg_addstrf (rule, "%s", rule_to_touch);
+    zstr_free (&rule_to_touch);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    //
+    // 24.1 there is no any alerts on the rule
+    // # 1 send touch request
+    touch_request = zmsg_new ();
+    assert (touch_request);
+    zmsg_addstr (touch_request, "TOUCH");
+    zmsg_addstr (touch_request, "rule_to_touch");
+    rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (ui);
+    assert (recv);
+    assert (zmsg_size (recv) == 1);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+
+    // # 2 No ALERT should be generated/regenerated/closed
+    poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
+    assert (poller);
+    which = zpoller_wait (poller, 1000);
+    assert ( which == NULL );
+    if ( verbose ) {
+        zsys_debug ("No alert was sent: SUCCESS");
+    }
+    zpoller_destroy (&poller);
+
+    // 24.2: there exists ACTIVE alert
+    // # 1 as there were no alerts, lets create one :)
+    // # 1.1 send metric
+    m = bios_proto_encode_metric (
+            NULL, "metrictouch", "assettouch", "10", "X", 0);
+    assert (m);
+    rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
+    assert ( rv == 0 );
+
+    // # 1.2 receive alert
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "rule_to_touch"));
+    assert (streq (bios_proto_element_src (brecv), "assettouch"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // # 2 send touch request
+    touch_request = zmsg_new ();
+    assert (touch_request);
+    zmsg_addstr (touch_request, "TOUCH");
+    zmsg_addstr (touch_request, "rule_to_touch");
+    rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (ui);
+    assert (recv);
+    assert (zmsg_size (recv) == 1);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+
+    // # 3 the only existing ALERT must be RESOLVED
+    poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
+    assert (poller);
+    which = zpoller_wait (poller, 1000);
+    assert ( which != NULL );
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert ( is_bios_proto (recv));
+    if ( verbose ) {
+        brecv = bios_proto_decode (&recv);
+        assert (streq (bios_proto_rule (brecv), "rule_to_touch"));
+        assert (streq (bios_proto_element_src (brecv), "assettouch"));
+        assert (streq (bios_proto_state (brecv), "RESOVLED"));
+        assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+        bios_proto_destroy (&brecv);
+        zsys_debug ("Alert was sent: SUCCESS");
+    }
+    zmsg_destroy (&recv);
+    zpoller_destroy (&poller);
+
+    // 24.3: there exists a RESOLVED alert for this rule
+    // # 1 send touch request
+    touch_request = zmsg_new ();
+    assert (touch_request);
+    zmsg_addstr (touch_request, "TOUCH");
+    zmsg_addstr (touch_request, "rule_to_touch");
+    rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (ui);
+    assert (recv);
+    assert (zmsg_size (recv) == 1);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    zmsg_destroy (&recv);
+
+    // # 2 NO alert should be generated
+    poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
+    assert (poller);
+    which = zpoller_wait (poller, 1000);
+    assert ( which == NULL );
+    if ( verbose ) {
+        zsys_debug ("No alert was sent: SUCCESS");
+    }
+    zpoller_destroy (&poller);
+
+    // test 25: metric_unavailable
+    //
+    //
+    // Create a rules we are going to test against
+    // # 1 Add First rule
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    rule_to_touch = s_readall ("testrules/rule_to_metrictouch1.rule");
+    assert (rule_to_touch);
+    zmsg_addstrf (rule, "%s", rule_to_touch);
+    zstr_free (&rule_to_touch);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // # 2 Add Second rule
+    rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    rule_to_touch = s_readall ("testrules/rule_to_metrictouch2.rule");
+    assert (rule_to_touch);
+    zmsg_addstrf (rule, "%s", rule_to_touch);
+    zstr_free (&rule_to_touch);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // # 3 Generate alert on the First rule
+    // # 3.1 Send metric
+    m = bios_proto_encode_metric (
+            NULL, "metrictouch1", "element1", "100", "X", 0);
+    assert (m);
+    rv = mlm_client_send (producer, "metrictouch1@element1", &m);
+    assert ( rv == 0 );
+
+    // # 3.2 receive alert
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "rule_to_metrictouch1"));
+    assert (streq (bios_proto_element_src (brecv), "element3"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
+    bios_proto_destroy (&brecv);
+
+    // # 4 Generate alert on the Second rule
+    // # 4.1 Send metric
+    m = bios_proto_encode_metric (
+            NULL, "metrictouch2", "element2", "80", "X", 0);
+    assert (m);
+    rv = mlm_client_send (producer, "metrictouch2@element2", &m);
+    assert ( rv == 0 );
+
+    // # 4.2 receive alert
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_rule (brecv), "rule_to_metrictouch2"));
+    assert (streq (bios_proto_element_src (brecv), "element3"));
+    assert (streq (bios_proto_state (brecv), "ACTIVE"));
+    assert (streq (bios_proto_severity (brecv), "WARNING"));
+    bios_proto_destroy (&brecv);
+
+    // # 5 Send "metric unavailable"
+    // # 5.1. We need a special client for this
+    mlm_client_t *metric_unavailable = mlm_client_new ();
+    mlm_client_connect (metric_unavailable, endpoint, 1000, "metricunavailable");
+    mlm_client_set_producer (metric_unavailable, "_METRICS_UNAVAILABLE");
+
+    // # 5.2. send UNAVAILABLE metric
+    zmsg_t *m_unavailable = zmsg_new();
+    assert (m_unavailable);
+    zmsg_addstr (m_unavailable, "METRICUNAVAILABLE");
+    zmsg_addstr (m_unavailable, "metrictouch1@element1");
+
+    rv = mlm_client_send (metric_unavailable, "metrictouch1@element1", &m_unavailable);
+    assert ( rv == 0 );
+
+    // # 6 Check that 2 alerts were resolved
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_element_src (brecv), "element3"));
+    assert (streq (bios_proto_state (brecv), "RESOLVED"));
+    bios_proto_destroy (&brecv);
+
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_bios_proto (recv));
+    brecv = bios_proto_decode (&recv);
+    assert (brecv);
+    assert (streq (bios_proto_element_src (brecv), "element3"));
+    assert (streq (bios_proto_state (brecv), "RESOLVED"));
+    bios_proto_destroy (&brecv);
+
+    // # 7 clean up
+    mlm_client_destroy (&metric_unavailable);
+
     zclock_sleep (3000);
     zactor_destroy (&ag_server);
     mlm_client_destroy (&ui);
@@ -1394,5 +1747,4 @@ bios_alert_generator_server_test (bool verbose)
     zactor_destroy (&server);
     //  @end
     printf ("OK\n");
-
 }

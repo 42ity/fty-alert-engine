@@ -49,8 +49,10 @@ int main (int argc, char** argv)
         zstr_sendx (ag_server, "VERBOSE", NULL);
     zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_server, "CONFIG", PATH, NULL);
+    // TODO add constants from libbiosproto!!
     zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
     zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
 
 
     //  Accept and print any message back from server
