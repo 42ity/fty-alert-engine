@@ -1,20 +1,20 @@
 /*
-Copyright (C) 2014 - 2015 Eaton
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+ * Copyright (C) 2014 - 2015 Eaton
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 /*! \file rule.h
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
@@ -100,7 +100,7 @@ public:
 
     std::string rule_class (void) const { return _rule_class; }
     void rule_class (const std::string &rule_class) { _rule_class = rule_class; }
-    
+
     virtual int fill(const cxxtools::SerializationInfo &si) = 0;
 
     virtual void globalVariables (const std::map<std::string,double> &vars) {
@@ -271,7 +271,7 @@ protected:
     cxxtools::SerializationInfo _si;
 
 
-    std::string _rule_source; 
+    std::string _rule_source;
 
     /*
      * \brief Human readable info about this rule purpose like "internal temperature"
