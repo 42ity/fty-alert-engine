@@ -36,7 +36,7 @@ BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
-BuildRequires:  biosproto-devel
+BuildRequires:  libbiosproto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -68,7 +68,7 @@ Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
-Requires:       biosproto-devel
+Requires:       libbiosproto-devel
 Requires:       lua-devel
 Requires:       cxxtools-devel
 
