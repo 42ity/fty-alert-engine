@@ -169,8 +169,14 @@ send_alerts(
 {
     for ( const auto &alert : alertsToSend )
     {
+        // create 5 minutes alert TTL
+        // TODO: have TTL from metrics ttl? 
+        zhash_t *aux = zhash_new();
+        zhash_autofree (aux);
+        zhash_insert (aux, "TTL", (void *)"300");
+        
         zmsg_t *msg = bios_proto_encode_alert (
-            NULL,
+            aux,
             rule_name.c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
@@ -186,6 +192,7 @@ send_alerts(
             mlm_client_send (client, atopic.c_str(), &msg);
             zsys_debug1 ("mlm_client_send (subject = '%s')", atopic.c_str());
         }
+        zhash_destroy (&aux);
     }
 }
 
