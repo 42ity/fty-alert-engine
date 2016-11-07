@@ -169,11 +169,10 @@ send_alerts(
 {
     for ( const auto &alert : alertsToSend )
     {
-        // create 5 minutes alert TTL
-        // TODO: have TTL from metrics ttl? 
+        // create 3*ttl minutes alert TTL
         zhash_t *aux = zhash_new();
         zhash_autofree (aux);
-        zhash_insert (aux, "TTL", (void *)"300");
+        zhash_insert (aux, "TTL", (void*) std::to_string (alert._ttl).c_str ());
         
         zmsg_t *msg = bios_proto_encode_alert (
             aux,
@@ -442,6 +441,7 @@ evaluate_metric(
 
             PureAlert alertToSend;
             rv = ac.updateAlert (rule, pureAlert, alertToSend);
+            alertToSend._ttl = triggeringMetric.getTtl () * 3;
             if ( rv == -1 ) {
                 zsys_debug1 (" ### alert updated, nothing to send");
                 // nothing to send
