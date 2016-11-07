@@ -44,6 +44,7 @@ class PureAlert{
     std::string _severity;
     std::vector <std::string> _actions;
     std::string _rule_class;
+    uint64_t _ttl;
 
     PureAlert() { _timestamp = 0; };
     PureAlert(
@@ -57,7 +58,8 @@ class PureAlert{
         _timestamp{tm},
         _description{descr},
         _element{element_name},
-        _rule_class{rule_class}
+        _rule_class{rule_class},
+        _ttl {0}
     {};
 
     PureAlert(
@@ -73,7 +75,8 @@ class PureAlert{
         _description{descr},
         _element{element_name},
         _severity{severity},
-        _actions{actions}
+        _actions{actions},
+        _ttl {0}
     {};
 
     std::string rule_class() { return _rule_class; };
