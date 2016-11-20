@@ -1,0 +1,18 @@
+{
+    "threshold" : {
+        "rule_name"     :   "realpower.default@\u017dlu\u0165ou\u010dk\u00fd K\u016f\u0148",
+        "rule_class"    :   "Total power in rack",
+        "rule_hierarchy":   "power.realpower.default.rack",
+        "target"        :   "realpower.default@\u017dlu\u0165ou\u010dk\u00fd K\u016f\u0148",
+        "element"       :   "\u017dlu\u0165ou\u010dk\u00fd K\u016f\u0148",
+        "values_unit"   :   "W",
+        "values"        :   [ {"low_critical"  : "30"},
+                              {"low_warning"   : "40"},
+                              {"high_warning"  : "50"},
+                              {"high_critical" : "60"} ],
+        "results"       :   [ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
+                              {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
+                              {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
+                              {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ]
+    }
+}

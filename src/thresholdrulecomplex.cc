@@ -51,9 +51,15 @@ int ThresholdRuleComplex::fill(
     }
     zsys_debug1 ("it is complex threshold rule");
 
-    target >>= _metrics;
-    threshold.getMember("rule_name") >>= _name;
-    threshold.getMember("element") >>= _element;
+    std::vector<std::basic_string <cxxtools::Char>> cxxtools_Char_metrics;
+    target >>= cxxtools_Char_metrics;
+    for (const auto& ccm: cxxtools_Char_metrics) {
+        _metrics.push_back (cxxtools::Utf8Codec::encode (ccm));
+    } 
+
+    si_getValueUtf8 (threshold, "rule_name", _name);
+    si_getValueUtf8 (threshold, "element", _element);
+
     // rule_class
     if ( threshold.findMember("rule_class") != NULL ) {
         threshold.getMember("rule_class") >>= _rule_class;
