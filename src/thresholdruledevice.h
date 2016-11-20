@@ -75,8 +75,9 @@ public:
         }
         zsys_debug1 ("it is device threshold rule");
 
-        threshold.getMember("rule_name") >>= _name;
-        threshold.getMember("element") >>= _element;
+        si_getValueUtf8 (threshold, "rule_name", _name);
+        si_getValueUtf8 (threshold, "element", _element);
+
         // rule_class
         if ( threshold.findMember("rule_class") != NULL ) {
             threshold.getMember("rule_class") >>= _rule_class;

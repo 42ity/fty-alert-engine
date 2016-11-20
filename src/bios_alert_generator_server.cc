@@ -767,7 +767,27 @@ bios_alert_generator_server_test (bool verbose)
     assert (streq (foo, ""));
     zstr_free (&foo);
     zmsg_destroy (&recv);
+//
+    {
+    // Test case #2.0: add new rule
+    zmsg_t *rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* simplethreshold_rule = s_readall ("testrules/simplethreshold3.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
 
+    recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+    }
+//
     // Test case #2.1: add new rule
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
@@ -815,8 +835,8 @@ bios_alert_generator_server_test (bool verbose)
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
 
     recv = mlm_client_recv (ui);
-
-    assert (zmsg_size (recv) == 4);
+    
+    assert (zmsg_size (recv) == 5);
     foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
     zstr_free (&foo);
@@ -1718,6 +1738,26 @@ bios_alert_generator_server_test (bool verbose)
     mlm_client_destroy (&consumer);
     mlm_client_destroy (&producer);
     zactor_destroy (&server);
+
+    static const std::vector <std::string> strings {
+        "ŽlUťOUčKý kůň",
+        "\u017dlu\u0165ou\u010dk\xc3\xbd K\u016f\xc5\x88",
+        "Žluťou\u0165ký kůň",
+        "ŽLUťou\u0165Ký kůň",
+        "Ka\xcc\x81rol",
+        "K\xc3\xa1rol",
+        "супер test",
+        "\u0441\u0443\u043f\u0435\u0440 Test"
+
+    };
+
+    assert (utf8eq (strings[0], strings[1]) == 1);
+    assert (utf8eq (strings[0], strings[2]) == 0);
+    assert (utf8eq (strings[1], strings[2]) == 0);
+    assert (utf8eq (strings[2], strings[3]) == 1);
+    assert (utf8eq (strings[4], strings[5]) == 0);
+    assert (utf8eq (strings[6], strings[7]) == 1);
+
     //  @end
     printf ("OK\n");
 }

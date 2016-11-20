@@ -24,6 +24,94 @@ extern int agent_alert_verbose;
 
 #include "rule.h"
 
+// 1, ..., 4 - # of utf8 octets
+// -1 - error 
+static int8_t
+utf8_octets (const std::string& s, std::string::size_type pos)
+{
+    assert (pos < s.length ());
+
+    const char c = s[pos];
+    if ((c & 0x80 ) == 0) {     // lead bit is zero, must be a single ascii
+        return 1;
+    }
+    else
+    if ((c & 0xE0 ) == 0xC0 ) { // 110x xxxx (2 octets)
+        return 2;
+    }
+    else
+    if ((c & 0xF0 ) == 0xE0 ) { // 1110 xxxx (3 octets)
+        return 3;
+    }
+    else
+    if ((c & 0xF8 ) == 0xF0 ) { // 1111 0xxx (4 octets)
+        return 4;
+    }
+    else {
+        zsys_error ("Unrecognized utf8 lead byte '%x' in string '%s'", c, s.c_str ());
+        return -1;
+    }
+}
+
+// 0 - same
+// 1 - different
+static int
+utf8_compare_octets (const std::string& s1, std::string::size_type s1_pos, const std::string& s2, std::string::size_type s2_pos, uint8_t count)
+{
+    assert (count >= 1 && count <= 4);
+    assert (s1_pos + count <= s1.length ());
+    assert (s2_pos + count <= s2.length ());
+
+    for (int i = 0; i < count; i++) {
+        const char c1 = s1[s1_pos + i];
+        const char c2 = s2[s2_pos + i];
+
+        if ((count == 1 && tolower (c1) != tolower (c2)) ||
+            (count > 1  && c1 != c2))
+            return 1;
+    }
+    return 0;
+}
+
+int
+utf8eq (const std::string& s1, const std::string& s2)
+{
+    if (s1.length () != s2.length ())
+        return 0;
+
+    std::string::size_type s1_pos = 0, s2_pos = 0;
+    std::string::size_type length = s1.length ();
+
+
+    while (s1_pos < length &&
+           s2_pos < length)
+    {
+        uint8_t s1_octets = utf8_octets (s1, s1_pos);
+        uint8_t s2_octets = utf8_octets (s2, s2_pos);
+
+        if (s1_octets == -1 || s2_octets == -1)
+            return -1;
+
+        if (s1_octets != s2_octets)
+            return 0;
+        
+        if (utf8_compare_octets (s1, s1_pos, s2, s2_pos, s1_octets) == 1)
+            return 0;
+        
+        s1_pos = s1_pos + s1_octets;
+        s2_pos = s2_pos + s1_octets;
+    }
+    return 1;
+}
+
+void
+si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& member_name, std::string& result)
+{
+    std::basic_string <cxxtools::Char> cxxtools_Char_name;
+    si.getMember (member_name).getValue (cxxtools_Char_name);
+    result = cxxtools::Utf8Codec::encode (cxxtools_Char_name);
+}
+
 /*
  * \brief Serialzation of outcome
  */
@@ -99,7 +187,8 @@ bool Rule::isTopicInteresting(const std::string &topic) const {
     // ok this is o(n) but we will have up to 3 topics in vector
     // TODO: find other model
     for ( const auto &item : _metrics ) {
-        if (item == topic) return true;
+        if (utf8eq (item, topic))
+            return true;
     }
     return false;
 }
