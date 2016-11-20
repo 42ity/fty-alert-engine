@@ -43,6 +43,15 @@ extern int agent_alert_verbose;
     do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 #endif
 
+//  1  - equals
+//  0  - different
+// -1  - error
+int
+utf8eq (const std::string& s1, const std::string& s2);
+
+void
+si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& member_name, std::string& result);
+
 /*
  * \brief Helper structure to store a possible outcome of rule evaluation
  *
@@ -186,8 +195,7 @@ public:
      * \return true/false
      */
     bool hasSameNameAs (const std::string &name) const {
-        // works until we use ASCII names
-        return strcasecmp( this->_name.c_str(), name.c_str() ) == 0;
+        return utf8eq (_name, name);
     };
 
     /*
