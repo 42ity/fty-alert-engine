@@ -1,44 +1,54 @@
 <project
-    name = "alert-agent"
-    description = "Evaluates rules written in Lua and produce alerts"
+    name = "fty-alert-engine"
+    description = "42ity service evaluating rules written in Lua and producing alerts"
     script = "zproject.gsl"
-    email = "bios@eaton.com"
-    url = "https://eaton.com/"
+    email = "EatonIPCOpenSource@eaton.com"
+    url = "https://42ity.org/"
+    repo = "https://github.com/42ity/fty-alert-engine"
     license = "GPL-2.0+"
     >
 
     <target name = "debian" />
     <target name = "redhat" />
+    <target name = "travis" />
 
     <include filename = "license.xml" />
-    <version major = "0" minor = "1" patch = "0" />
-    <use project = "malamute" />
+    <version major = "1" minor = "0" patch = "0" />
 
-    <use project = "biosproto" libname = "libbiosproto" prefix="biosproto"
+    <use project = "malamute" />
+    <use project = "fty-proto" libname = "libfty_proto" prefix="ftyproto"
         min_major = "0" min_minor = "0" min_patch = "0"
-        repository = "https://stash.mbt.lab.etn.com/BIOS/libbiosproto"
-        test = "bios_proto_test">
+        repository = "https://github.com/42ity/fty-proto"
+        test = "fty_proto_test">
         <use project = "malamute"/>
     </use>
-
     <use project = "lua" libname = "lua" prefix="lua"
         min_major = "5" min_minor = "1" mit_patch = "0"
-        repository = "https://github.com/lua/lua"
-        includename = "lua" debian_name="liblua5.1-0-dev"
-        test = "lua_close" />
-    <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
-
+        debian_name="liblua5.1-0-dev"
+        test = "lua_close"
+        optional = "1"
+    />
+    <use project = "lua51" libname = "lua51" prefix="lua"
+        min_major = "5" min_minor = "1" mit_patch = "0"
+        debian_name="liblua5.1-0-dev"
+        test = "lua_close"
+        optional = "1"
+    />
+    <!-- alert engine uses patched cxxtools, point to 42ity fork instead -->
+    <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
+        repository = "https://github.com/42ity/cxxtools"
+        release = "42ity"
+    />
     <class name = "metriclist" private="1">MetricList</class>
     <class name = "alertconfiguration" private="1">alertconfiguration</class>
     <class name = "luarule" private="1">luaRule</class>
     <class name = "purealert" private="1">PureAlert</class>
     <class name = "rule" private="1">Rule</class>
     <class name = "thresholdrulecomplex" private="1">ThresholdRuleComplex</class>
-    <class name = "bios_alert_generator_server" state = "stable" >Actor evaluating rules</class>
-    <main name = "bios-agent-alert-generator" service = "1" no_config = "1" >
+    <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
+    <main name = "fty-alert-engine" service = "1" no_config = "1" >
         Daemon evaluating rules and producing alerts
-        <extra type = "x-rules" path = "/var/lib/bios/alert_agent" name = "warranty.rule" />
+        <extra type = "x-rules" path = "/var/lib/fty/fty_alert_engine" name = "warranty.rule" />
         <extra type = "systemd-tmpfiles" />
     </main>
-
 </project>

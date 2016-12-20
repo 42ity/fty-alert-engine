@@ -1,5 +1,5 @@
 /*  =========================================================================
-    bios_alert_generator_server - Actor evaluating rules
+    fty_alert_engine_server - Actor evaluating rules
 
     Copyright (C) 2014 - 2015 Eaton
 
@@ -21,7 +21,7 @@
 
 /*
 @header
-    bios_alert_generator_server - Actor evaluating rules
+    fty_alert_engine_server - Actor evaluating rules
 @discuss
 @end
 */
@@ -30,7 +30,7 @@
 #include <vector>
 #include <sstream>
 #include <malamute.h>
-#include <bios_proto.h>
+#include <fty_proto.h>
 #include <math.h>
 #include <functional>
 #include <algorithm>
@@ -51,8 +51,8 @@ int agent_alert_verbose = 0;
 #define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
 
-#include "../include/alert_agent.h"
-#include "alert_agent_classes.h"
+#include "fty_alert_engine.h"
+#include "fty_alert_engine_classes.h"
 
 static void
 list_rules(
@@ -174,7 +174,7 @@ send_alerts(
         zhash_autofree (aux);
         zhash_insert (aux, "TTL", (void*) std::to_string (alert._ttl).c_str ());
         
-        zmsg_t *msg = bios_proto_encode_alert (
+        zmsg_t *msg = fty_proto_encode_alert (
             aux,
             rule_name.c_str(),
             alert._element.c_str(),
@@ -456,7 +456,7 @@ evaluate_metric(
 }
 
 void
-bios_alert_generator_server (zsock_t *pipe, void* args)
+fty_alert_engine_server (zsock_t *pipe, void* args)
 {
     MetricList cache; // need to track incoming measurements
     AlertConfiguration alertConfiguration;
@@ -562,20 +562,20 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
-        if ( is_bios_proto(zmessage) ) {
-            bios_proto_t *bmessage = bios_proto_decode(&zmessage);
+        if ( is_fty_proto(zmessage) ) {
+            fty_proto_t *bmessage = fty_proto_decode(&zmessage);
             if( ! bmessage ) {
                 zsys_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 continue;
             }
-            if ( bios_proto_id(bmessage) == BIOS_PROTO_METRIC )  {
+            if ( fty_proto_id(bmessage) == FTY_PROTO_METRIC )  {
                 // process as metric message
-                const char *type = bios_proto_type(bmessage);
-                const char *element_src = bios_proto_element_src(bmessage);
-                const char *value = bios_proto_value(bmessage);
-                const char *unit = bios_proto_unit(bmessage);
-                uint32_t ttl = bios_proto_ttl(bmessage);
-                uint64_t timestamp = bios_proto_aux_number (bmessage, "time", ::time(NULL));
+                const char *type = fty_proto_type(bmessage);
+                const char *element_src = fty_proto_element_src(bmessage);
+                const char *value = fty_proto_value(bmessage);
+                const char *unit = fty_proto_unit(bmessage);
+                uint32_t ttl = fty_proto_ttl(bmessage);
+                uint64_t timestamp = fty_proto_aux_number (bmessage, "time", ::time(NULL));
                 // TODO: 2016-04-27 ACE: fix it later, when "string" values
                 // in the metric would be considered as
                 // normal behaviour, but for now it is not supposed to be so
@@ -584,15 +584,15 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
                 double dvalue = strtod (value, &end);
                 if (errno == ERANGE) {
                     errno = 0;
-                    bios_proto_print (bmessage);
+                    fty_proto_print (bmessage);
                     zsys_error ("%s: can't convert value to double #1, ignore message", name);
-                    bios_proto_destroy (&bmessage);
+                    fty_proto_destroy (&bmessage);
                     continue;
                 }
                 else if (end == value || *end != '\0') {
-                    bios_proto_print (bmessage);
+                    fty_proto_print (bmessage);
                     zsys_error ("%s: can't convert value to double #2, ignore message", name);
-                    bios_proto_destroy (&bmessage);
+                    fty_proto_destroy (&bmessage);
                     continue;
                 }
 
@@ -600,12 +600,12 @@ bios_alert_generator_server (zsock_t *pipe, void* args)
 
                 // Update cache with new value
                 MetricInfo m (element_src, type, unit, dvalue, timestamp, "", ttl);
-                bios_proto_destroy(&bmessage);
+                fty_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
             }
-            bios_proto_destroy (&bmessage);
+            fty_proto_destroy (&bmessage);
         }
         // According RFC we expect here a messages
         // with the topic:
@@ -709,9 +709,9 @@ s_readall (const char* filename) {
 
 
 void
-bios_alert_generator_server_test (bool verbose)
+fty_alert_engine_server_test (bool verbose)
 {
-    printf (" * bios_alert_generator_server: ");
+    printf (" * fty_alert_engine_server: ");
     if (verbose)
         printf ("\n");
 
@@ -737,7 +737,7 @@ bios_alert_generator_server_test (bool verbose)
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
-    zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) "alert-agent");
+    zactor_t *ag_server = zactor_new (fty_alert_engine_server, (void*) "alert-agent");
     if (verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
@@ -932,103 +932,103 @@ bios_alert_generator_server_test (bool verbose)
     zmsg_destroy (&recv);
 
     //Test case #5: generate alert - below the treshold
-    zmsg_t *m = bios_proto_encode_metric (
+    zmsg_t *m = fty_proto_encode_metric (
             NULL, "abc", "fff", "20", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
 
-    assert (is_bios_proto (recv));
-    bios_proto_t *brecv = bios_proto_decode (&recv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (is_fty_proto (recv));
+    fty_proto_t *brecv = fty_proto_decode (&recv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // Test case #6: generate alert - resolved
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
 
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "RESOLVED"));
-    bios_proto_destroy (&brecv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "RESOLVED"));
+    fty_proto_destroy (&brecv);
 
     // Test case #6: generate alert - high warning
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "52", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "WARNING"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "WARNING"));
+    fty_proto_destroy (&brecv);
 
     // Test case #7: generate alert - high critical
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // Test case #8: generate alert - resolved again
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "RESOLVED"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "RESOLVED"));
+    fty_proto_destroy (&brecv);
 
     // Test case #9: generate alert - high again
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // Test case #11: generate alert - high again
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "62", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
@@ -1037,17 +1037,17 @@ bios_alert_generator_server_test (bool verbose)
 
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // Test case #12: generate alert - resolved
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "abc", "fff", "42", "X", 0);
     mlm_client_send (producer, "abc@fff", &m);
 
@@ -1056,13 +1056,13 @@ bios_alert_generator_server_test (bool verbose)
 
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "simplethreshold"));
-    assert (streq (bios_proto_element_src (brecv), "fff"));
-    assert (streq (bios_proto_state (brecv), "RESOLVED"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "simplethreshold"));
+    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_state (brecv), "RESOLVED"));
+    fty_proto_destroy (&brecv);
 
     // Test case #13: segfault on onbattery
     // #13.1 ADD new rule
@@ -1086,7 +1086,7 @@ bios_alert_generator_server_test (bool verbose)
     zmsg_destroy (&recv);
 
     // #13.2 evaluate metric
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "status.ups", "5PX1500-01", "1032.000", "", ::time (NULL));
     mlm_client_send (producer, "status.ups@5PX1500-01", &m);
 
@@ -1132,38 +1132,38 @@ bios_alert_generator_server_test (bool verbose)
     zmsg_destroy (&recv);
 
     // Test case #15.2: evaluate it
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL));
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "too_high-ROZ.ePDU13"));
-    assert (streq (bios_proto_element_src (brecv), "ePDU13"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "too_high-ROZ.ePDU13"));
+    assert (streq (fty_proto_element_src (brecv), "ePDU13"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // Test case #15.3: evaluate it again
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL));
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
 
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "too_high-ROZ.ePDU13"));
-    assert (streq (bios_proto_element_src (brecv), "ePDU13"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "too_high-ROZ.ePDU13"));
+    assert (streq (fty_proto_element_src (brecv), "ePDU13"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
     zmsg_destroy (&recv);
 
     // Test case #16.1: add new rule, with the trash at the end
@@ -1274,7 +1274,7 @@ bios_alert_generator_server_test (bool verbose)
 
     zsys_info ("######## Test case #19 evaluate some rule (type: pattern)");
     //      1. OK
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "end_warranty_date", "UPS_pattern_rule", "100", "some description", 24*60*60);
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
@@ -1288,34 +1288,34 @@ bios_alert_generator_server_test (bool verbose)
     zpoller_destroy (&poller);
 
     //      2. LOW_WARNING
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "end_warranty_date", "UPS_pattern_rule", "20", "some description", 24*60*60);
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     recv = mlm_client_recv (consumer);
     assert ( recv != NULL );
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
-    assert (streq (bios_proto_rule (brecv), "warranty"));
-    assert (streq (bios_proto_element_src (brecv), "UPS_pattern_rule"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "WARNING"));
-    bios_proto_destroy (&brecv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
+    assert (streq (fty_proto_rule (brecv), "warranty"));
+    assert (streq (fty_proto_element_src (brecv), "UPS_pattern_rule"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "WARNING"));
+    fty_proto_destroy (&brecv);
 
     //      3. LOW_CRITICAL
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "end_warranty_date", "UPS_pattern_rule", "2", "some description", 24*60*60);
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     recv = mlm_client_recv (consumer);
     assert ( recv != NULL );
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
-    assert (streq (bios_proto_rule (brecv), "warranty"));
-    assert (streq (bios_proto_element_src (brecv), "UPS_pattern_rule"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
+    assert (streq (fty_proto_rule (brecv), "warranty"));
+    assert (streq (fty_proto_element_src (brecv), "UPS_pattern_rule"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     zstr_free (&foo);
     zstr_free (&pattern_rule);
@@ -1404,7 +1404,7 @@ bios_alert_generator_server_test (bool verbose)
     zhash_autofree (aux);
     zhash_insert(aux, "time", (char *) std::to_string(::time(NULL)).c_str());
 
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             aux, "device_metric", "ggg", "100", "", 600);
     zhash_destroy (&aux);
     mlm_client_send (producer, "device_metric@ggg", &m);
@@ -1534,7 +1534,7 @@ bios_alert_generator_server_test (bool verbose)
     // 24.2: there exists ACTIVE alert
     // # 1 as there were no alerts, lets create one :)
     // # 1.1 send metric
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "metrictouch", "assettouch", "10", "X", 0);
     assert (m);
     rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
@@ -1543,14 +1543,14 @@ bios_alert_generator_server_test (bool verbose)
     // # 1.2 receive alert
     recv = mlm_client_recv (consumer);
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "rule_to_touch"));
-    assert (streq (bios_proto_element_src (brecv), "assettouch"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "rule_to_touch"));
+    assert (streq (fty_proto_element_src (brecv), "assettouch"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // # 2 send touch request
     touch_request = zmsg_new ();
@@ -1575,14 +1575,14 @@ bios_alert_generator_server_test (bool verbose)
     assert ( which != NULL );
     recv = mlm_client_recv (consumer);
     assert ( recv != NULL );
-    assert ( is_bios_proto (recv));
+    assert ( is_fty_proto (recv));
     if ( verbose ) {
-        brecv = bios_proto_decode (&recv);
-        assert (streq (bios_proto_rule (brecv), "rule_to_touch"));
-        assert (streq (bios_proto_element_src (brecv), "assettouch"));
-        assert (streq (bios_proto_state (brecv), "RESOVLED"));
-        assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-        bios_proto_destroy (&brecv);
+        brecv = fty_proto_decode (&recv);
+        assert (streq (fty_proto_rule (brecv), "rule_to_touch"));
+        assert (streq (fty_proto_element_src (brecv), "assettouch"));
+        assert (streq (fty_proto_state (brecv), "RESOVLED"));
+        assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+        fty_proto_destroy (&brecv);
         zsys_debug ("Alert was sent: SUCCESS");
     }
     zmsg_destroy (&recv);
@@ -1657,7 +1657,7 @@ bios_alert_generator_server_test (bool verbose)
 
     // # 3 Generate alert on the First rule
     // # 3.1 Send metric
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "metrictouch1", "element1", "100", "X", 0);
     assert (m);
     rv = mlm_client_send (producer, "metrictouch1@element1", &m);
@@ -1666,18 +1666,18 @@ bios_alert_generator_server_test (bool verbose)
     // # 3.2 receive alert
     recv = mlm_client_recv (consumer);
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "rule_to_metrictouch1"));
-    assert (streq (bios_proto_element_src (brecv), "element3"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "CRITICAL"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "rule_to_metrictouch1"));
+    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
 
     // # 4 Generate alert on the Second rule
     // # 4.1 Send metric
-    m = bios_proto_encode_metric (
+    m = fty_proto_encode_metric (
             NULL, "metrictouch2", "element2", "80", "X", 0);
     assert (m);
     rv = mlm_client_send (producer, "metrictouch2@element2", &m);
@@ -1686,14 +1686,14 @@ bios_alert_generator_server_test (bool verbose)
     // # 4.2 receive alert
     recv = mlm_client_recv (consumer);
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_rule (brecv), "rule_to_metrictouch2"));
-    assert (streq (bios_proto_element_src (brecv), "element3"));
-    assert (streq (bios_proto_state (brecv), "ACTIVE"));
-    assert (streq (bios_proto_severity (brecv), "WARNING"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_rule (brecv), "rule_to_metrictouch2"));
+    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "WARNING"));
+    fty_proto_destroy (&brecv);
 
     // # 5 Send "metric unavailable"
     // # 5.1. We need a special client for this
@@ -1713,21 +1713,21 @@ bios_alert_generator_server_test (bool verbose)
     // # 6 Check that 2 alerts were resolved
     recv = mlm_client_recv (consumer);
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_element_src (brecv), "element3"));
-    assert (streq (bios_proto_state (brecv), "RESOLVED"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_state (brecv), "RESOLVED"));
+    fty_proto_destroy (&brecv);
 
     recv = mlm_client_recv (consumer);
     assert (recv);
-    assert (is_bios_proto (recv));
-    brecv = bios_proto_decode (&recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (bios_proto_element_src (brecv), "element3"));
-    assert (streq (bios_proto_state (brecv), "RESOLVED"));
-    bios_proto_destroy (&brecv);
+    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_state (brecv), "RESOLVED"));
+    fty_proto_destroy (&brecv);
 
     // # 7 clean up
     mlm_client_destroy (&metric_unavailable);

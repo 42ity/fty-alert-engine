@@ -1,77 +1,77 @@
 #
-#    alert-agent - Evaluates rules written in Lua and produce alerts
+#    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
-#    Copyright (C) 2014 - 2015 Eaton
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
+#    Copyright (C) 2014 - 2015 Eaton                                        
+#                                                                           
+#    This program is free software; you can redistribute it and/or modify   
+#    it under the terms of the GNU General Public License as published by   
+#    the Free Software Foundation; either version 2 of the License, or      
+#    (at your option) any later version.                                    
+#                                                                           
+#    This program is distributed in the hope that it will be useful,        
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+#    GNU General Public License for more details.                           
+#                                                                           
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
 
-Source:         alert-agent
+Source:         fty-alert-engine
 Section:        net
 Priority:       optional
-Maintainer:     John Doe <John.Doe@example.com>
-Uploaders:      John Doe <John.Doe@example.com>
-Standards-Version: 3.9.5
-Build-Depends: bison, debhelper (>= 8),
+Maintainer:     fty-alert-engine Developers <eatonipcopensource@eaton.com>
+Standards-Version: 3.9.7
+Build-Depends: debhelper (>= 9),
     pkg-config,
-    automake,
-    autoconf,
-    libtool,
-    libsodium-dev,
-    libzmq4-dev,
+    dh-autoreconf,
+    libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
-    libbiosproto-dev,
+    libfty-proto-dev,
+    liblua5.1-0-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-    dh-autoreconf,
-    systemd
+# necessary for systemd.pc to get unit install path
+    systemd,
+    dh-systemd,
+Build-Depends-Indep: asciidoc,
+                     xmlto
 
-Package: libalert-agent0
+Package: libfty-alert-engine1
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: alert-agent
- This package contains shared library for alert-agent: evaluates rules written in lua and produce alerts
+Description: 42ity service evaluating rules written in lua and producing alerts shared library
+ This package contains shared library for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
 
-Package: alert-agent-dev
-Architecture: all
+Package: libfty-alert-engine-dev
+Architecture: any
 Section: libdevel
 Depends:
-    libsodium-dev,
-    libzmq4-dev,
+    libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
-    libbiosproto-dev,
+    libfty-proto-dev,
+    liblua5.1-0-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-    libalert-agent0 (= ${binary:Version})
-Description: development files for alert-agent
- This package contains development files for alert-agent: evaluates rules written in lua and produce alerts
+    libfty-alert-engine1 (= ${binary:Version})
+Description: 42ity service evaluating rules written in lua and producing alerts development tools
+ This package contains development files for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
 
-Package: alert-agent
+Package: fty-alert-engine
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: evaluates rules written in lua and produce alerts
- Main package for alert-agent: evaluates rules written in lua and produce alerts
+Description: 42ity service evaluating rules written in lua and producing alerts
+ Main package for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
 
-Package: alert-agent-dbg
+Package: fty-alert-engine-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    alert-agent (= ${binary:Version}),
+    fty-alert-engine (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for alert-agent
- This package contains the debugging symbols for alert-agent : evaluates rules written in lua and produce alerts.
+Description: 42ity service evaluating rules written in lua and producing alerts debugging symbols
+ This package contains the debugging symbols for fty-alert-engine : 42ity service evaluating rules written in lua and producing alerts.
 
