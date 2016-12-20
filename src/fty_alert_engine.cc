@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Starts the alert agent
  */
 
-#include "../include/alert_agent.h"
+#include "fty_alert_engine.h"
 
 // path to the directory, where rules are stored. Attention: without last slash!
 static const char *PATH = "/var/lib/bios/alert_agent";
@@ -44,7 +44,7 @@ int main (int argc, char** argv)
         set_verbose = true;
     }
 
-    zactor_t *ag_server = zactor_new (bios_alert_generator_server, (void*) AGENT_NAME);
+    zactor_t *ag_server = zactor_new (fty_alert_engine_server, (void*) AGENT_NAME);
     if (set_verbose)
         zstr_sendx (ag_server, "VERBOSE", NULL);
     zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);

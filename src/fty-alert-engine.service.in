@@ -1,0 +1,11 @@
+[Unit]
+Description=fty-alert-engine service
+After=network.target
+
+[Service]
+Type=simple
+Environment="prefix=@prefix@"
+ExecStart=@prefix@/bin/fty-alert-engine @sysconfdir@/@PACKAGE@/fty-alert-engine.cfg
+
+[Install]
+WantedBy=multi-user.target

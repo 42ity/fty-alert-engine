@@ -75,8 +75,8 @@ fi
 make -j4
 make install
 cd ..
-git clone --quiet --depth 1 https://github.com/lua/lua lua.git
-cd lua.git
+git clone --quiet --depth 1 -b 42ity https://github.com/42ity/cxxtools cxxtools.git
+cd cxxtools.git
 git --no-pager log --oneline -n1
 if [ -e autogen.sh ]; then
     ./autogen.sh 2> /dev/null
