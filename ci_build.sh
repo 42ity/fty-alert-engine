@@ -120,9 +120,9 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] ; the
     make -j4
     make install
     cd "${BASE_PWD}"
-    git clone --quiet --depth 1 https://github.com/lua/lua lua.git
+    git clone --quiet --depth 1 -b 42ity https://github.com/42ity/cxxtools cxxtools.git
     BASE_PWD=${PWD}
-    cd lua.git
+    cd cxxtools.git
     git --no-pager log --oneline -n1
     if [ -e autogen.sh ]; then
         ./autogen.sh 2> /dev/null

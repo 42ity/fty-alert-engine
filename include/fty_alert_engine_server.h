@@ -1,5 +1,5 @@
 /*  =========================================================================
-    bios_alert_generator_server - Actor evaluating rules
+    fty_alert_engine_server - Actor evaluating rules
 
     Copyright (C) 2014 - 2015 Eaton
 
@@ -28,12 +28,12 @@ extern "C" {
 
 
 //  @interface
-ALERT_AGENT_EXPORT void
-bios_alert_generator_server (zsock_t *pipe, void *args);
+FTY_ALERT_ENGINE_EXPORT void
+fty_alert_engine_server (zsock_t *pipe, void *args);
 
 //  Self test of this class
-ALERT_AGENT_EXPORT void
-    bios_alert_generator_server_test (bool verbose);
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_server_test (bool verbose);
 //  @end
 
 #ifdef __cplusplus
