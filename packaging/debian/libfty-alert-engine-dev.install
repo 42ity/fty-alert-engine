@@ -1,0 +1,4 @@
+usr/include/*
+usr/lib/*/libfty_alert_engine.so
+usr/lib/*/pkgconfig/libfty_alert_engine.pc
+usr/share/man/man3/*
