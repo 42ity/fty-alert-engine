@@ -16,7 +16,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file bios-agent-alert-generator.cc
+/*! \file fty_alert_engine.cc
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
  *  \brief Starts the alert agent
  */
@@ -24,7 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "fty_alert_engine.h"
 
 // path to the directory, where rules are stored. Attention: without last slash!
-static const char *PATH = "/var/lib/bios/alert_agent";
+static const char *PATH = "/var/lib/fty/alert_agent";
 
 // agents name
 static const char *AGENT_NAME = "alert-agent";
@@ -36,11 +36,11 @@ static const char *ENDPOINT = "ipc://@/malamute";
 int main (int argc, char** argv)
 {
     bool set_verbose = false;
-    char* bios_log_level = getenv ("BIOS_LOG_LEVEL");
+    char* fty_log_level = getenv ("FTY_LOG_LEVEL");
     if (argc == 2 && streq (argv[1], "-v")) {
         set_verbose = true;
     }
-    else if (bios_log_level && streq (bios_log_level, "LOG_DEBUG")) {
+    else if (fty_log_level && streq (fty_log_level, "LOG_DEBUG")) {
         set_verbose = true;
     }
 
@@ -49,7 +49,7 @@ int main (int argc, char** argv)
         zstr_sendx (ag_server, "VERBOSE", NULL);
     zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_server, "CONFIG", PATH, NULL);
-    // TODO add constants from libbiosproto!!
+    // TODO add constants from libftyproto!!
     zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
     zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
     zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
