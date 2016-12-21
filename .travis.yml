@@ -26,6 +26,7 @@ matrix:
       apt:
         packages:
         - valgrind
+        - liblua5.1-0-dev
 
 addons:
   apt:
