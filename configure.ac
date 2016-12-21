@@ -269,32 +269,15 @@ was_lua_check_lib_detected=no
 
 PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
     [
-        AC_DEFINE(HAVE_LUA, 1, [The lua library is to be used])
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
     ],
     [
-        AC_MSG_WARN([Cannot find lua 5.1.0 or higher])
+        AC_MSG_ERROR([Cannot find lua 5.1.0 or higher])
     ])
 
 if test "x$was_lua_check_lib_detected" = "xno"; then
     CFLAGS="${lua_CFLAGS} ${CFLAGS}"
     LIBS="${lua_LIBS} ${LIBS}"
-fi
-
-was_lua51_check_lib_detected=no
-
-PKG_CHECK_MODULES([lua51], [lua51 >= 5.1.0],
-    [
-        AC_DEFINE(HAVE_LUA51, 1, [The lua51 library is to be used])
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua51_LIBS"
-    ],
-    [
-        AC_MSG_WARN([Cannot find lua51 5.1.0 or higher])
-    ])
-
-if test "x$was_lua51_check_lib_detected" = "xno"; then
-    CFLAGS="${lua51_CFLAGS} ${CFLAGS}"
-    LIBS="${lua51_LIBS} ${LIBS}"
 fi
 
 was_cxxtools_check_lib_detected=no

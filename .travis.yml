@@ -26,6 +26,7 @@ matrix:
       apt:
         packages:
         - valgrind
+        - liblua5.1-0-dev
 
 addons:
   apt:
@@ -33,12 +34,13 @@ addons:
     - git
     - asciidoc
     - xmlto
+    - liblua5.1-0-dev
 
 before_install:
 - if [ $TRAVIS_OS_NAME == "osx" ] ; then brew update; brew install binutils valgrind ; fi
 
 before_script:
-- ./.travis-lua
+- ./.travis.fixlua
 
 # Hand off to generated script for each BUILD_TYPE
 script: ./ci_build.sh
