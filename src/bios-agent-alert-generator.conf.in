@@ -1,3 +1,0 @@
-# create runtime directories for alert_agent (alert-generator)
-d /var/lib/fty/alert_agent 0755 fty root
-x /var/lib/fty/alert_agent/*

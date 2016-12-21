@@ -19,8 +19,8 @@
     =========================================================================
 */
 
-#ifndef BIOS_ALERT_GENERATOR_SERVER_H_INCLUDED
-#define BIOS_ALERT_GENERATOR_SERVER_H_INCLUDED
+#ifndef FTY_ALERT_ENGINE_SERVER_H_INCLUDED
+#define FTY_ALERT_ENGINE_SERVER_H_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
