@@ -12,7 +12,7 @@ Name: libfty_alert_engine
 Description: 42ity service evaluating rules written in Lua and producing alerts
 Version: @VERSION@
 
-Requires:libzmq libczmq libmlm libfty_proto cxxtools
+Requires:libzmq libczmq libmlm libfty_proto lua >= 5.1.0 cxxtools
 
 Libs: -L${libdir} -lfty_alert_engine
 Cflags: -I${includedir} @pkg_config_defines@
