@@ -55,7 +55,6 @@ BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
 BuildRequires:  fty-proto-devel
 BuildRequires:  lua-devel
-BuildRequires:  lua51-devel
 BuildRequires:  cxxtools-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -86,7 +85,6 @@ Requires:       czmq-devel
 Requires:       malamute-devel
 Requires:       fty-proto-devel
 Requires:       lua-devel
-Requires:       lua51-devel
 Requires:       cxxtools-devel
 
 %description devel
