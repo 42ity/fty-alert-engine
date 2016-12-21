@@ -719,7 +719,7 @@ fty_alert_engine_server_test (bool verbose)
     assert (r == 0); // to make gcc @ CentOS 7 happy
 
     //  @selftest
-    static const char* endpoint = "inproc://bios-ag-server-test";
+    static const char* endpoint = "inproc://fty-ag-server-test";
 
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
