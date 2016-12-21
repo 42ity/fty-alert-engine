@@ -32,12 +32,7 @@
 //  External dependencies
 #include <malamute.h>
 #include <ftyproto.h>
-#if defined (HAVE_LUA)
 #include <lua.h>
-#endif
-#if defined (HAVE_LUA51)
-#include <lua.h>
-#endif
 #include <cxxtools/allocator.h>
 
 //  FTY_ALERT_ENGINE version macros for compile-time API detection

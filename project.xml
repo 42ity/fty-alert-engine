@@ -10,7 +10,7 @@
 
     <target name = "debian" />
     <target name = "redhat" />
-    <target name = "travis" />
+    <target name = "travis" travis_distcheck  = "0" />
 
     <include filename = "license.xml" />
     <version major = "1" minor = "0" patch = "0" />
@@ -26,13 +26,6 @@
         min_major = "5" min_minor = "1" mit_patch = "0"
         debian_name="liblua5.1-0-dev"
         test = "lua_close"
-        optional = "1"
-    />
-    <use project = "lua51" libname = "lua51" prefix="lua"
-        min_major = "5" min_minor = "1" mit_patch = "0"
-        debian_name="liblua5.1-0-dev"
-        test = "lua_close"
-        optional = "1"
     />
     <!-- alert engine uses patched cxxtools, point to 42ity fork instead -->
     <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
