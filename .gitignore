@@ -19,18 +19,23 @@
 *.lo
 
 # Executables
-alert_generator_selftest
-alert-agent
+src/fty_alert_engine_selftest
+src/fty-alert-engine
 *.exe
 *.out
 *.app
 core
-src/alert-agent.service
+src/fty-alert-engine.service
+src/fty-alert-engine.cfg
 
 # Man pages
 doc/*.1
 doc/*.3
 doc/*.7
+doc/fty-alert-engine.doc
+doc/fty-alert-engine.txt
+doc/fty_alert_engine_server.doc
+doc/fty_alert_engine_server.txt
 
 # autoconf files
 .deps
