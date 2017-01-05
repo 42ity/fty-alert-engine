@@ -24,10 +24,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "fty_alert_engine.h"
 
 // path to the directory, where rules are stored. Attention: without last slash!
-static const char *PATH = "/var/lib/fty/alert_agent";
+static const char *PATH = "/var/lib/bios/alert_agent";
 
 // agents name
-static const char *AGENT_NAME = "alert-agent";
+static const char *AGENT_NAME = "fty-alert-engine";
 
 // malamute endpoint
 static const char *ENDPOINT = "ipc://@/malamute";
