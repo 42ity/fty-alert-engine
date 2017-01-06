@@ -24,20 +24,19 @@ Maintainer:     fty-alert-engine Developers <eatonipcopensource@eaton.com>
 Standards-Version: 3.9.7
 Build-Depends: debhelper (>= 9),
     pkg-config,
-    dh-autoreconf,
     libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
     libfty-proto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-# necessary for systemd.pc to get unit install path
     systemd,
     dh-systemd,
+    dh-autoreconf
 Build-Depends-Indep: asciidoc,
                      xmlto
 
-Package: libfty-alert-engine1
+Package: libfty-alert-engine0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: 42ity service evaluating rules written in lua and producing alerts shared library
@@ -53,13 +52,13 @@ Depends:
     libfty-proto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
-    libfty-alert-engine1 (= ${binary:Version})
+    libfty-alert-engine0 (= ${binary:Version})
 Description: 42ity service evaluating rules written in lua and producing alerts development tools
  This package contains development files for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
 
 Package: fty-alert-engine
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends},
 Description: 42ity service evaluating rules written in lua and producing alerts
  Main package for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
 

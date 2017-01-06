@@ -6,7 +6,6 @@ Maintainer: fty-alert-engine Developers <eatonipcopensource@eaton.com>
 Architecture: any
 Build-Depends: debhelper (>= 9),
     pkg-config,
-    dh-autoreconf,
     libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
@@ -15,6 +14,7 @@ Build-Depends: debhelper (>= 9),
     libcxxtools-dev,
     systemd,
     dh-systemd,
+    dh-autoreconf
 Build-Depends-Indep: asciidoc,
                      xmlto
 
