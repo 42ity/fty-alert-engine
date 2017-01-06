@@ -61,17 +61,17 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %description
 fty-alert-engine 42ity service evaluating rules written in lua and producing alerts.
 
-%package -n libfty_alert_engine1
+%package -n libfty_alert_engine0
 Group:          System/Libraries
 Summary:        42ity service evaluating rules written in lua and producing alerts shared library
 
-%description -n libfty_alert_engine1
+%description -n libfty_alert_engine0
 This package contains shared library for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
 
-%post -n libfty_alert_engine1 -p /sbin/ldconfig
-%postun -n libfty_alert_engine1 -p /sbin/ldconfig
+%post -n libfty_alert_engine0 -p /sbin/ldconfig
+%postun -n libfty_alert_engine0 -p /sbin/ldconfig
 
-%files -n libfty_alert_engine1
+%files -n libfty_alert_engine0
 %defattr(-,root,root)
 %doc COPYING
 %{_libdir}/libfty_alert_engine.so.*
@@ -79,7 +79,7 @@ This package contains shared library for fty-alert-engine: 42ity service evaluat
 %package devel
 Summary:        42ity service evaluating rules written in lua and producing alerts
 Group:          System/Libraries
-Requires:       libfty_alert_engine1 = %{version}
+Requires:       libfty_alert_engine0 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
@@ -119,15 +119,15 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg
-/usr/lib/systemd/system/fty-alert-engine.service
+/usr/lib/systemd/system/fty-alert-engine{,@*}.{service,*}
 %dir %{_sysconfdir}/fty-alert-engine
 %if 0%{?suse_version} > 1315
 %post
-%systemd_post fty-alert-engine.service
+%systemd_post fty-alert-engine{,@*}.{service,*}
 %preun
-%systemd_preun fty-alert-engine.service
+%systemd_preun fty-alert-engine{,@*}.{service,*}
 %postun
-%systemd_postun_with_restart fty-alert-engine.service
+%systemd_postun_with_restart fty-alert-engine{,@*}.{service,*}
 %endif
 
 %changelog

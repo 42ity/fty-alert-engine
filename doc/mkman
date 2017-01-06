@@ -88,10 +88,14 @@ sub generate_manpage {
     }
     close MAKEFILE;
 
+    die "The Makefile defined no manpage category for $outp_basename.1 or $name.3"
+        unless ($source ne "");
+
     #   Look for class title in 2nd line of source
     #   If there's no class file, leave hand-written man page alone
     die "Can't open '$source'"
         unless open (SOURCE, $source);
+    # NOTE: This duplication of lines is needed for proper work:
     $_ = <SOURCE>;
     $_ = <SOURCE>;
     $title = "no title found";

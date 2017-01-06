@@ -36,6 +36,7 @@ typedef struct {
 
 static test_item_t
 all_tests [] = {
+// Tests for stable public classes:
     { "fty_alert_engine_server", fty_alert_engine_server_test },
     {0, 0}          //  Sentinel
 };
@@ -101,13 +102,7 @@ main (int argc, char **argv)
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
-            puts ("    metriclist");
-            puts ("    alertconfiguration");
-            puts ("    luarule");
-            puts ("    purealert");
-            puts ("    rule");
-            puts ("    thresholdrulecomplex");
-            puts ("    fty_alert_engine_server");
+            puts ("    fty_alert_engine_server\t- stable");
             return 0;
         }
         else
