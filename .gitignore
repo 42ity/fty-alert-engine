@@ -32,6 +32,7 @@ src/fty_alert_engine_selftest
 core
 src/fty-alert-engine.service
 src/fty-alert-engine.cfg
+src/*.rule
 
  # Distcheck workspace and archives
 fty-alert-engine-1.0.0/
