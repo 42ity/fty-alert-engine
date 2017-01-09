@@ -32,6 +32,9 @@ override_dh_auto_test:
 	echo "Skipped for now"
 
 override_dh_auto_configure:
+	#MVY: manualy edited!!! don't remove, because Debian changed upstream names of pkgconfig files
+	sed -i 's/PKG_CHECK_MODULES(\[lua\], \[lua >= 5.1.0\],/PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],/' configure.ac
+	./autogen.sh
 	dh_auto_configure -- \
 		--with-systemd-units \
 		--enable-drafts=$(DRAFTS)
