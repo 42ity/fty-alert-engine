@@ -25,7 +25,7 @@ env:
   matrix:
     - BUILD_TYPE=default
     - BUILD_TYPE=default-Werror
-    - BUILD_TYPE=cmake
+#    - BUILD_TYPE=cmake
 #   - BUILD_TYPE=android
 #   - BUILD_TYPE=check-py
 
@@ -39,6 +39,9 @@ matrix:
       apt:
         packages:
         - valgrind
+        - liblua5.1-0-dev
+        - asciidoc
+        - xmlto
 
 addons:
   sources:
