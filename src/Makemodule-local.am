@@ -1,3 +1,4 @@
 EXTRA_DIST += \
-	src/metricinfo.h
+	src/metricinfo.h \
+	src/normalrule.h
 
