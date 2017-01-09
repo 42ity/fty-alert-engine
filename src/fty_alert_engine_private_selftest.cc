@@ -39,11 +39,6 @@ fty_alert_engine_private_selftest (bool verbose)
 {
 // Tests for stable private classes:
     metriclist_test (verbose);
-    alertconfiguration_test (verbose);
-    luarule_test (verbose);
-    purealert_test (verbose);
-    rule_test (verbose);
-    thresholdrulecomplex_test (verbose);
 }
 /*
 ################################################################################

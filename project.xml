@@ -26,7 +26,9 @@
          if pkg-config metadata (or tests) do not succeed on a distro;
          the project build would fail if no LUA-5.1 library if present.
          This also causes some duplicates in generated code, but these
-         "should" be harmless in practice. -->
+         "should" be harmless in practice. Also, these packages are not
+         generated into the list of "required" for a build in spec/dsc
+         files and have to be plugged there manually. -->
     <use project = "lua-5.1-redhat" libname = "lua" prefix="lua"
         optional = "1" am_lib_macro = "LUA_5_1"
         min_major = "5" min_minor = "1" mit_patch = "0"
@@ -45,11 +47,11 @@
         release = "42ity"
     />
     <class name = "metriclist" private="1">MetricList</class>
-    <class name = "alertconfiguration" private="1">alertconfiguration</class>
-    <class name = "luarule" private="1">luaRule</class>
-    <class name = "purealert" private="1">PureAlert</class>
-    <class name = "rule" private="1">Rule</class>
-    <class name = "thresholdrulecomplex" private="1">ThresholdRuleComplex</class>
+    <class name = "alertconfiguration" private="1" selftest = "0">alertconfiguration</class>
+    <class name = "luarule" private="1" selftest = "0">luaRule</class>
+    <class name = "purealert" private="1" selftest = "0">PureAlert</class>
+    <class name = "rule" private="1" selftest = "0">Rule</class>
+    <class name = "thresholdrulecomplex" private="1" selftest = "0">ThresholdRuleComplex</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
     <main name = "fty-alert-engine" service = "1" no_config = "1" >
         Daemon evaluating rules and producing alerts
