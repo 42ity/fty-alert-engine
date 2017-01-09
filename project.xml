@@ -22,9 +22,21 @@
         test = "fty_proto_test">
         <use project = "malamute"/>
     </use>
-    <use project = "lua" libname = "lua" prefix="lua"
+    <!-- Note: the optional flag causes "configure" script to not fail
+         if pkg-config metadata (or tests) do not succeed on a distro;
+         the project build would fail if no LUA-5.1 library if present.
+         This also causes some duplicates in generated code, but these
+         "should" be harmless in practice. -->
+    <use project = "lua-5.1-redhat" libname = "lua" prefix="lua"
+        optional = "1" am_lib_macro = "LUA_5_1"
         min_major = "5" min_minor = "1" mit_patch = "0"
-        debian_name="liblua5.1-0-dev"
+        debian_name="liblua5.1-0-dev" redhat_name="lua-devel-5.1.8"
+        test = "lua_close"
+    />
+    <use project = "lua-5.1-debian" libname = "lua5.1" prefix="lua"
+        optional = "1" am_lib_macro = "LUA_5_1"
+        min_major = "5" min_minor = "1" mit_patch = "0"
+        debian_name="liblua5.1-0-dev" redhat_name="lua-devel-5.1.8"
         test = "lua_close"
     />
     <!-- alert engine uses patched cxxtools, point to 42ity fork instead -->

@@ -1,3 +1,8 @@
+# This is a skeleton created by zproject.
+# You can add hand-written code here.
+# Note: this file is moderately customized after generation.
+
+save.xml
 # Object files
 *.o
 *.so
@@ -13,14 +18,14 @@
 
 # Shared objects (inc. Windows DLLs)
 *.dll
-*.so
 *.so.*
 *.dylib
 *.lo
 
 # Executables
-src/fty_alert_engine_selftest
+src/fty-alert-engine_selftest
 src/fty-alert-engine
+src/fty_alert_engine_selftest
 *.exe
 *.out
 *.app
@@ -28,14 +33,15 @@ core
 src/fty-alert-engine.service
 src/fty-alert-engine.cfg
 
+ # Distcheck workspace and archives
+fty-alert-engine-1.0.0/
+fty-alert-engine-1.0.0.tar.gz
+fty-alert-engine-1.0.0.zip
+
 # Man pages
 doc/*.1
 doc/*.3
 doc/*.7
-doc/fty-alert-engine.doc
-doc/fty-alert-engine.txt
-doc/fty_alert_engine_server.doc
-doc/fty_alert_engine_server.txt
 
 # autoconf files
 .deps
@@ -44,6 +50,7 @@ doc/fty_alert_engine_server.txt
 *.trs
 Makefile
 Makefile.in
+!builds/openwrt/Makefile
 aclocal.m4
 autom4te.cache/
 config.log
@@ -57,6 +64,44 @@ src/platform.h.in~
 src/stamp-h1
 src/test-suite.log
 src/.dirstamp
+
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+DartConfiguration.tcl
+install_manifest.txt
+Testing/
+
+# Repositories downloaded by CI integration scripts
+libzmq/
+czmq/
+malamute/
+fty-proto/
+cxxtools/
+
+# Travis build area
+tmp/
+
+# Valgrind files
+callgrind*
+vgcore*
+
+# Vagrant files
+.vagrant
+
+# CLion / PyCharm
+.idea
+
+# GYP files
+project.Makefile
+*.target.mk
+out/
+
+# Android build results
+builds/android/prefix
 
 # qt-android build results
 builds/qt-android/prefix
@@ -75,8 +120,26 @@ builds/android/e2fsprogs
 builds/android/zyre
 src/app/jni/output
 
+# Python build directory
+build/
+
+# MSVC build directories
+obj/
+bin/
+*.tlog
+
+# Qt
+*pro.user
+moc_*
+build-*
+bindings/qt/selftest/selftest
+
 # Temporary files
 *.swp
+*.bak
+.test*
+
+# editor backups
 *~
 
 # ignored platforms
