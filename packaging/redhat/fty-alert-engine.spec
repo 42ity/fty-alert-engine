@@ -97,6 +97,7 @@ This package contains development files for fty-alert-engine: 42ity service eval
 %{_libdir}/libfty_alert_engine.so
 %{_libdir}/pkgconfig/libfty_alert_engine.pc
 %{_mandir}/man3/*
+%{_mandir}/man7/*
 
 %prep
 %setup -q

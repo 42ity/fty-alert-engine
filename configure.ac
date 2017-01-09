@@ -84,6 +84,7 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libzmq not found; falling back to defined compilability tests])
         AC_ARG_WITH([libzmq],
             [
                 AS_HELP_STRING([--with-libzmq],
@@ -131,6 +132,7 @@ PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libczmq not found; falling back to defined compilability tests])
         AC_ARG_WITH([libczmq],
             [
                 AS_HELP_STRING([--with-libczmq],
@@ -178,6 +180,7 @@ PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libmlm not found; falling back to defined compilability tests])
         AC_ARG_WITH([libmlm],
             [
                 AS_HELP_STRING([--with-libmlm],
@@ -225,6 +228,7 @@ PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libfty_proto not found; falling back to defined compilability tests])
         AC_ARG_WITH([libfty_proto],
             [
                 AS_HELP_STRING([--with-libfty_proto],
@@ -265,19 +269,104 @@ if test "x$was_fty_proto_check_lib_detected" = "xno"; then
     LIBS="${fty_proto_LIBS} ${LIBS}"
 fi
 
-was_lua_check_lib_detected=no
+was_lua_5_1_redhat_check_lib_detected=no
 
-PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
+PKG_CHECK_MODULES([lua_5_1_redhat], [lua >= 5.1.0],
     [
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+        AC_DEFINE(HAVE_LUA_5_1, 1, [The lua library is to be used])
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_redhat_LIBS"
     ],
     [
-        AC_MSG_ERROR([Cannot find lua 5.1.0 or higher])
+        AC_MSG_NOTICE([Package lua not found with needed constraints; falling back to defined compilability tests])
+        AC_ARG_WITH([lua],
+            [
+                AS_HELP_STRING([--with-lua],
+                [Specify lua prefix])
+            ],
+            [search_lua="yes"],
+            [])
+
+        lua_5_1_redhat_synthetic_cflags=""
+        lua_5_1_redhat_synthetic_libs="-llua"
+
+        if test "x$search_lua" = "xyes"; then
+            if test -r "${with_lua}/include/lua.h"; then
+                lua_5_1_redhat_synthetic_cflags="-I${with_lua}/include"
+                lua_5_1_redhat_synthetic_libs="-L${with_lua}/lib -llua"
+            else
+                AC_MSG_ERROR([${with_lua}/include/lua.h not found. Please check lua prefix])
+            fi
+        fi
+
+
+        AC_CHECK_LIB([lua], [lua_close],
+            [
+                CFLAGS="${lua_5_1_redhat_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${lua_5_1_redhat_synthetic_libs} ${LDFLAGS}"
+                LIBS="${lua_5_1_redhat_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([lua_5_1_redhat_CFLAGS],[${lua_5_1_redhat_synthetic_cflags}])
+                AC_SUBST([lua_5_1_redhat_LIBS],[${lua_5_1_redhat_synthetic_libs}])
+                was_lua_5_1_redhat_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua library is to be used])
+            ],
+            [])
     ])
 
-if test "x$was_lua_check_lib_detected" = "xno"; then
-    CFLAGS="${lua_CFLAGS} ${CFLAGS}"
-    LIBS="${lua_LIBS} ${LIBS}"
+if test "x$was_lua_5_1_redhat_check_lib_detected" = "xno"; then
+    CFLAGS="${lua_5_1_redhat_CFLAGS} ${CFLAGS}"
+    LIBS="${lua_5_1_redhat_LIBS} ${LIBS}"
+fi
+
+was_lua_5_1_debian_check_lib_detected=no
+
+PKG_CHECK_MODULES([lua_5_1_debian], [lua5.1 >= 5.1.0],
+    [
+        AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_debian_LIBS"
+    ],
+    [
+        AC_MSG_NOTICE([Package lua5.1 not found with needed constraints; falling back to defined compilability tests])
+        AC_ARG_WITH([lua5.1],
+            [
+                AS_HELP_STRING([--with-lua5.1],
+                [Specify lua5.1 prefix])
+            ],
+            [search_lua5.1="yes"],
+            [])
+
+        lua_5_1_debian_synthetic_cflags=""
+        lua_5_1_debian_synthetic_libs="-llua"
+
+        if test "x$search_lua5.1" = "xyes"; then
+            if test -r "${with_lua5.1}/include/lua.h"; then
+                lua_5_1_debian_synthetic_cflags="-I${with_lua5.1}/include"
+                lua_5_1_debian_synthetic_libs="-L${with_lua5.1}/lib -llua"
+            else
+                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
+            fi
+        fi
+
+
+        AC_CHECK_LIB([lua], [lua_close],
+            [
+                CFLAGS="${lua_5_1_debian_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${lua_5_1_debian_synthetic_libs} ${LDFLAGS}"
+                LIBS="${lua_5_1_debian_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([lua_5_1_debian_CFLAGS],[${lua_5_1_debian_synthetic_cflags}])
+                AC_SUBST([lua_5_1_debian_LIBS],[${lua_5_1_debian_synthetic_libs}])
+                was_lua_5_1_debian_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
+            ],
+            [])
+    ])
+
+if test "x$was_lua_5_1_debian_check_lib_detected" = "xno"; then
+    CFLAGS="${lua_5_1_debian_CFLAGS} ${CFLAGS}"
+    LIBS="${lua_5_1_debian_LIBS} ${LIBS}"
 fi
 
 was_cxxtools_check_lib_detected=no
@@ -287,6 +376,7 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package cxxtools not found; falling back to defined compilability tests])
         AC_ARG_WITH([cxxtools],
             [
                 AS_HELP_STRING([--with-cxxtools],

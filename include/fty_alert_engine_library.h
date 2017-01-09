@@ -32,7 +32,12 @@
 //  External dependencies
 #include <malamute.h>
 #include <ftyproto.h>
+#if defined (HAVE_LUA_5_1)
 #include <lua.h>
+#endif
+#if defined (HAVE_LUA_5_1)
+#include <lua.h>
+#endif
 #include <cxxtools/allocator.h>
 
 //  FTY_ALERT_ENGINE version macros for compile-time API detection
@@ -77,6 +82,12 @@ typedef struct _fty_alert_engine_server_t fty_alert_engine_server_t;
 
 //  Public classes, each with its own header file
 #include "fty_alert_engine_server.h"
+
+#ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
+//  Self test for private classes
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_private_selftest (bool verbose);
+#endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
 
 #endif
 /*
