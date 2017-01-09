@@ -49,11 +49,11 @@ addons:
     - asciidoc
     - xmlto
     - libzmq3-dev
-    - libczmq-dev
-    - libmlm-dev
-    - libfty_proto-dev
+#    - libczmq-dev
+#    - libmlm-dev
+#    - libfty_proto-dev
     - liblua5.1-0-dev
-    - cxxtools-dev
+#    - cxxtools-dev
 
 before_install:
 - if [ $TRAVIS_OS_NAME == "osx" ] ; then brew update; brew install binutils valgrind ; fi
