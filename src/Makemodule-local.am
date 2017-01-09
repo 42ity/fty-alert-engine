@@ -2,4 +2,5 @@ EXTRA_DIST += \
 	src/metricinfo.h \
 	src/normalrule.h \
 	src/thresholdrulesimple.h \
-	src/thresholdruledevice.h
+	src/thresholdruledevice.h \
+	src/regexrule.h
