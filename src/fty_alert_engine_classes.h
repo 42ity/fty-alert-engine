@@ -73,6 +73,10 @@ FTY_ALERT_ENGINE_PRIVATE void
 FTY_ALERT_ENGINE_PRIVATE void
     thresholdrulecomplex_test (bool verbose);
 
+//  Self test for private classes
+FTY_ALERT_ENGINE_PRIVATE void
+    fty_alert_engine_private_selftest (bool verbose);
+
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
 
 #endif

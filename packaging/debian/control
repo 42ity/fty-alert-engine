@@ -32,9 +32,8 @@ Build-Depends: debhelper (>= 9),
     libcxxtools-dev,
     systemd,
     dh-systemd,
+    asciidoc-base | asciidoc, xmlto,
     dh-autoreconf
-Build-Depends-Indep: asciidoc,
-                     xmlto
 
 Package: libfty-alert-engine0
 Architecture: any
