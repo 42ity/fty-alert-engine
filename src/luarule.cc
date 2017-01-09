@@ -29,10 +29,10 @@ extern int agent_alert_verbose;
 
 #include "luarule.h"
 
-#include<algorithm>
+#include <algorithm>
 extern "C" {
-#include<lualib.h>
-#include<lauxlib.h>
+#include <lualib.h>
+#include <lauxlib.h>
 }
 
 LuaRule::LuaRule (const LuaRule &r)
