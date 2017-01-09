@@ -48,7 +48,7 @@ addons:
     packages:
     - asciidoc
     - xmlto
-    - libzmq3-dev
+#    - libzmq3-dev
 #    - libczmq-dev
 #    - libmlm-dev
 #    - libfty_proto-dev
