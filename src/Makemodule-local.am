@@ -1,4 +1,5 @@
 EXTRA_DIST += \
 	src/metricinfo.h \
 	src/normalrule.h \
-	src/thresholdrulesimple.h
+	src/thresholdrulesimple.h \
+	src/thresholdruledevice.h
