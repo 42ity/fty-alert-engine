@@ -5,6 +5,8 @@ EXTRA_DIST += \
 	src/thresholdruledevice.h \
 	src/regexrule.h
 
+CLEANFILES ?=
+
 CLEANFILES += \
 	src/*.rule
 
