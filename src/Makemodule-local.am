@@ -22,5 +22,21 @@ CLEANFILES += \
 # src/too_high-ROZ.ePDU13.rule
 # src/warranty.rule
 
+check-local: $(abs_top_builddir)/testrules
 
+$(abs_top_builddir)/testrules: $(abs_top_srcdir)/testrules
+	@if test "$@" != "$<" ; then \
+	    echo "  COPYDIR  testrules"; \
+	    rm -rf "$@"; \
+	    cp -r "$<" "$@" ; \
+	 fi
 
+clean-local: clean-local-check
+.PHONY: clean-local-check
+clean-local-check:
+	@if test "$(abs_top_builddir)" != "$(abs_top_srcdir)" ; then \
+	    if test -d "$(abs_top_builddir)/testrules" ; then \
+	        chmod -R u+w "$(abs_top_builddir)/testrules" ; \
+	        rm -rf "$(abs_top_builddir)/testrules" ; \
+	    fi; \
+	 fi
