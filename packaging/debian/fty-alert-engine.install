@@ -3,3 +3,4 @@ usr/share/man/man1/fty-alert-engine.1
 etc/fty-alert-engine/fty-alert-engine.cfg
 lib/systemd/system/fty-alert-engine{,@*}.{service,*}
 
+
