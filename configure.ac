@@ -82,409 +82,629 @@ PREVIOUS_LIBS="${LIBS}"
 
 was_libzmq_check_lib_detected=no
 
-PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
+search_libzmq="yes"
+with_libzmq = ""
+
+AC_ARG_WITH([libzmq],
+    [
+        AS_HELP_STRING([--with-libzmq],
+        [Optionally specify libzmq prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_libzmq="yes"
+    ],
+    [])
+AS_IF([test x"${with_libzmq}" = xyes],
+    [search_libzmq = "yes"
+     with_libzmq = ""
+    ])
+AS_IF([test x"${with_libzmq}" = xno],
+    [search_libzmq = "no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_libzmq}" = xno],
+    [AC_MSG_WARN([Required dependency on libzmq was explicitly disabled during configuration by '--with-libzmq=no'; subsequent full build of fty-alert-engine may fail])])
+
+AS_IF([test x"${search_libzmq}" = xyes], [
+    PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
+        was_libzmq_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package libzmq not found; falling back to defined compilability tests])
-        AC_ARG_WITH([libzmq],
-            [
-                AS_HELP_STRING([--with-libzmq],
-                [Specify libzmq prefix])
-            ],
-            [search_libzmq="yes"],
-            [])
 
         libzmq_synthetic_cflags=""
         libzmq_synthetic_libs="-lzmq"
 
-        if test "x$search_libzmq" = "xyes"; then
+        if test -n "${with_libzmq}"; then
             if test -r "${with_libzmq}/include/zmq.h"; then
                 libzmq_synthetic_cflags="-I${with_libzmq}/include"
                 libzmq_synthetic_libs="-L${with_libzmq}/lib -lzmq"
             else
                 AC_MSG_ERROR([${with_libzmq}/include/zmq.h not found. Please check libzmq prefix])
             fi
+        else
+            AC_CHECK_HEADER([zmq.h], [],
+                AC_MSG_ERROR([${with_libzmq}/include/zmq.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([zmq], [zmq_init],
             [
+                was_libzmq_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lzmq"
+            ],
+            [AC_MSG_ERROR([cannot link with -lzmq, install libzmq])])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for libzmq
+    AS_CASE(["x${was_libzmq_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${libzmq_CFLAGS} ${CFLAGS}"
+                LIBS="${libzmq_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${libzmq_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${libzmq_synthetic_libs} ${LDFLAGS}"
                 LIBS="${libzmq_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([libzmq_CFLAGS],[${libzmq_synthetic_cflags}])
                 AC_SUBST([libzmq_LIBS],[${libzmq_synthetic_libs}])
-                was_libzmq_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lzmq"
             ],
-            [AC_MSG_ERROR([cannot link with -lzmq, install libzmq])])
+        [xno], [
+            AC_MSG_ERROR([Cannot find libzmq 0.0.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for libzmq
 
-if test "x$was_libzmq_check_lib_detected" = "xno"; then
-    CFLAGS="${libzmq_CFLAGS} ${CFLAGS}"
-    LIBS="${libzmq_LIBS} ${LIBS}"
-fi
 
 was_czmq_check_lib_detected=no
 
-PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
+search_libczmq="yes"
+with_libczmq = ""
+
+AC_ARG_WITH([libczmq],
+    [
+        AS_HELP_STRING([--with-libczmq],
+        [Optionally specify libczmq prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_libczmq="yes"
+    ],
+    [])
+AS_IF([test x"${with_libczmq}" = xyes],
+    [search_libczmq = "yes"
+     with_libczmq = ""
+    ])
+AS_IF([test x"${with_libczmq}" = xno],
+    [search_libczmq = "no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_libczmq}" = xno],
+    [AC_MSG_WARN([Required dependency on czmq was explicitly disabled during configuration by '--with-libczmq=no'; subsequent full build of fty-alert-engine may fail])])
+
+AS_IF([test x"${search_libczmq}" = xyes], [
+    PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
+        was_czmq_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package libczmq not found; falling back to defined compilability tests])
-        AC_ARG_WITH([libczmq],
-            [
-                AS_HELP_STRING([--with-libczmq],
-                [Specify libczmq prefix])
-            ],
-            [search_libczmq="yes"],
-            [])
 
         czmq_synthetic_cflags=""
         czmq_synthetic_libs="-lczmq"
 
-        if test "x$search_libczmq" = "xyes"; then
+        if test -n "${with_libczmq}"; then
             if test -r "${with_libczmq}/include/czmq.h"; then
                 czmq_synthetic_cflags="-I${with_libczmq}/include"
                 czmq_synthetic_libs="-L${with_libczmq}/lib -lczmq"
             else
                 AC_MSG_ERROR([${with_libczmq}/include/czmq.h not found. Please check libczmq prefix])
             fi
+        else
+            AC_CHECK_HEADER([czmq.h], [],
+                AC_MSG_ERROR([${with_libczmq}/include/czmq.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([czmq], [zhashx_test],
             [
+                was_czmq_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lczmq"
+            ],
+            [AC_MSG_ERROR([cannot link with -lczmq, install libczmq])])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
+    AS_CASE(["x${was_czmq_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${czmq_CFLAGS} ${CFLAGS}"
+                LIBS="${czmq_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${czmq_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${czmq_synthetic_libs} ${LDFLAGS}"
                 LIBS="${czmq_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([czmq_CFLAGS],[${czmq_synthetic_cflags}])
                 AC_SUBST([czmq_LIBS],[${czmq_synthetic_libs}])
-                was_czmq_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lczmq"
             ],
-            [AC_MSG_ERROR([cannot link with -lczmq, install libczmq])])
+        [xno], [
+            AC_MSG_ERROR([Cannot find libczmq 0.0.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for libczmq
 
-if test "x$was_czmq_check_lib_detected" = "xno"; then
-    CFLAGS="${czmq_CFLAGS} ${CFLAGS}"
-    LIBS="${czmq_LIBS} ${LIBS}"
-fi
 
 was_malamute_check_lib_detected=no
 
-PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
+search_libmlm="yes"
+with_libmlm = ""
+
+AC_ARG_WITH([libmlm],
+    [
+        AS_HELP_STRING([--with-libmlm],
+        [Optionally specify libmlm prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_libmlm="yes"
+    ],
+    [])
+AS_IF([test x"${with_libmlm}" = xyes],
+    [search_libmlm = "yes"
+     with_libmlm = ""
+    ])
+AS_IF([test x"${with_libmlm}" = xno],
+    [search_libmlm = "no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_libmlm}" = xno],
+    [AC_MSG_WARN([Required dependency on malamute was explicitly disabled during configuration by '--with-libmlm=no'; subsequent full build of fty-alert-engine may fail])])
+
+AS_IF([test x"${search_libmlm}" = xyes], [
+    PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
+        was_malamute_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package libmlm not found; falling back to defined compilability tests])
-        AC_ARG_WITH([libmlm],
-            [
-                AS_HELP_STRING([--with-libmlm],
-                [Specify libmlm prefix])
-            ],
-            [search_libmlm="yes"],
-            [])
 
         malamute_synthetic_cflags=""
         malamute_synthetic_libs="-lmlm"
 
-        if test "x$search_libmlm" = "xyes"; then
+        if test -n "${with_libmlm}"; then
             if test -r "${with_libmlm}/include/malamute.h"; then
                 malamute_synthetic_cflags="-I${with_libmlm}/include"
                 malamute_synthetic_libs="-L${with_libmlm}/lib -lmlm"
             else
                 AC_MSG_ERROR([${with_libmlm}/include/malamute.h not found. Please check libmlm prefix])
             fi
+        else
+            AC_CHECK_HEADER([malamute.h], [],
+                AC_MSG_ERROR([${with_libmlm}/include/malamute.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([mlm], [mlm_server_test],
             [
+                was_malamute_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmlm"
+            ],
+            [AC_MSG_ERROR([cannot link with -lmlm, install libmlm])])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
+    AS_CASE(["x${was_malamute_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${malamute_CFLAGS} ${CFLAGS}"
+                LIBS="${malamute_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${malamute_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${malamute_synthetic_libs} ${LDFLAGS}"
                 LIBS="${malamute_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([malamute_CFLAGS],[${malamute_synthetic_cflags}])
                 AC_SUBST([malamute_LIBS],[${malamute_synthetic_libs}])
-                was_malamute_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmlm"
             ],
-            [AC_MSG_ERROR([cannot link with -lmlm, install libmlm])])
+        [xno], [
+            AC_MSG_ERROR([Cannot find libmlm 0.0.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for libmlm
 
-if test "x$was_malamute_check_lib_detected" = "xno"; then
-    CFLAGS="${malamute_CFLAGS} ${CFLAGS}"
-    LIBS="${malamute_LIBS} ${LIBS}"
-fi
 
 was_fty_proto_check_lib_detected=no
 
-PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 0.0.0],
+search_libfty_proto="yes"
+with_libfty_proto = ""
+
+AC_ARG_WITH([libfty_proto],
+    [
+        AS_HELP_STRING([--with-libfty_proto],
+        [Optionally specify libfty_proto prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_libfty_proto="yes"
+    ],
+    [])
+AS_IF([test x"${with_libfty_proto}" = xyes],
+    [search_libfty_proto = "yes"
+     with_libfty_proto = ""
+    ])
+AS_IF([test x"${with_libfty_proto}" = xno],
+    [search_libfty_proto = "no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_libfty_proto}" = xno],
+    [AC_MSG_WARN([Required dependency on fty_proto was explicitly disabled during configuration by '--with-libfty_proto=no'; subsequent full build of fty-alert-engine may fail])])
+
+AS_IF([test x"${search_libfty_proto}" = xyes], [
+    PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
+        was_fty_proto_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package libfty_proto not found; falling back to defined compilability tests])
-        AC_ARG_WITH([libfty_proto],
-            [
-                AS_HELP_STRING([--with-libfty_proto],
-                [Specify libfty_proto prefix])
-            ],
-            [search_libfty_proto="yes"],
-            [])
 
         fty_proto_synthetic_cflags=""
         fty_proto_synthetic_libs="-lftyproto"
 
-        if test "x$search_libfty_proto" = "xyes"; then
+        if test -n "${with_libfty_proto}"; then
             if test -r "${with_libfty_proto}/include/ftyproto.h"; then
                 fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
                 fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lftyproto"
             else
                 AC_MSG_ERROR([${with_libfty_proto}/include/ftyproto.h not found. Please check libfty_proto prefix])
             fi
+        else
+            AC_CHECK_HEADER([ftyproto.h], [],
+                AC_MSG_ERROR([${with_libfty_proto}/include/ftyproto.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([ftyproto], [fty_proto_test],
             [
+                was_fty_proto_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lftyproto"
+            ],
+            [AC_MSG_ERROR([cannot link with -lftyproto, install libfty_proto])])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
+    AS_CASE(["x${was_fty_proto_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${fty_proto_CFLAGS} ${CFLAGS}"
+                LIBS="${fty_proto_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${fty_proto_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${fty_proto_synthetic_libs} ${LDFLAGS}"
                 LIBS="${fty_proto_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([fty_proto_CFLAGS],[${fty_proto_synthetic_cflags}])
                 AC_SUBST([fty_proto_LIBS],[${fty_proto_synthetic_libs}])
-                was_fty_proto_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lftyproto"
             ],
-            [AC_MSG_ERROR([cannot link with -lftyproto, install libfty_proto])])
+        [xno], [
+            AC_MSG_ERROR([Cannot find libfty_proto 0.0.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for libfty_proto
 
-if test "x$was_fty_proto_check_lib_detected" = "xno"; then
-    CFLAGS="${fty_proto_CFLAGS} ${CFLAGS}"
-    LIBS="${fty_proto_LIBS} ${LIBS}"
-fi
 
 was_lua_5_1_redhat_check_lib_detected=no
 
-PKG_CHECK_MODULES([lua_5_1_redhat], [lua >= 5.1.0],
+search_lua="no"
+with_lua = ""
+
+AC_ARG_WITH([lua],
     [
-        AC_DEFINE(HAVE_LUA_5_1, 1, [The lua library is to be used])
+        AS_HELP_STRING([--with-lua],
+        [Optionally specify lua prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_lua="yes"
+    ],
+    [])
+AS_IF([test x"${with_lua}" = xyes],
+    [search_lua = "yes"
+     with_lua = ""
+    ])
+AS_IF([test x"${with_lua}" = xno],
+    [search_lua = "no"])
+
+
+AS_IF([test x"${search_lua}" = xyes], [
+    PKG_CHECK_MODULES([lua_5_1_redhat], [lua >= 5.1.0],
+    [
+        AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used])
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_redhat_LIBS"
+        was_lua_5_1_redhat_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package lua not found with needed constraints; falling back to defined compilability tests])
-        AC_ARG_WITH([lua],
-            [
-                AS_HELP_STRING([--with-lua],
-                [Specify lua prefix])
-            ],
-            [search_lua="yes"],
-            [])
 
         lua_5_1_redhat_synthetic_cflags=""
         lua_5_1_redhat_synthetic_libs="-llua"
 
-        if test "x$search_lua" = "xyes"; then
+        if test -n "${with_lua}"; then
             if test -r "${with_lua}/include/lua.h"; then
                 lua_5_1_redhat_synthetic_cflags="-I${with_lua}/include"
                 lua_5_1_redhat_synthetic_libs="-L${with_lua}/lib -llua"
             else
                 AC_MSG_ERROR([${with_lua}/include/lua.h not found. Please check lua prefix])
             fi
+        else
+            AC_CHECK_HEADER([lua.h], [],
+                AC_MSG_ERROR([${with_lua}/include/lua.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([lua], [lua_close],
             [
+                was_lua_5_1_redhat_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used])
+            ],
+            [])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for lua
+    AS_CASE(["x${was_lua_5_1_redhat_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${lua_5_1_redhat_CFLAGS} ${CFLAGS}"
+                LIBS="${lua_5_1_redhat_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${lua_5_1_redhat_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${lua_5_1_redhat_synthetic_libs} ${LDFLAGS}"
                 LIBS="${lua_5_1_redhat_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([lua_5_1_redhat_CFLAGS],[${lua_5_1_redhat_synthetic_cflags}])
                 AC_SUBST([lua_5_1_redhat_LIBS],[${lua_5_1_redhat_synthetic_libs}])
-                was_lua_5_1_redhat_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua library is to be used (as -llua)])
             ],
-            [])
+        [xno], [
+            AC_MSG_WARN([Cannot find lua 5.1.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for lua
 
-if test "x$was_lua_5_1_redhat_check_lib_detected" = "xno"; then
-    CFLAGS="${lua_5_1_redhat_CFLAGS} ${CFLAGS}"
-    LIBS="${lua_5_1_redhat_LIBS} ${LIBS}"
-fi
 
 was_lua_5_1_debian_check_lib_detected=no
 
-PKG_CHECK_MODULES([lua_5_1_debian], [lua5.1 >= 5.1.0],
+search_lua5_1="no"
+with_lua5_1 = ""
+
+AC_ARG_WITH([lua5.1],
     [
-        AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
+        AS_HELP_STRING([--with-lua5.1],
+        [Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_lua5_1="yes"
+    ],
+    [])
+AS_IF([test x"${with_lua5_1}" = xyes],
+    [search_lua5_1 = "yes"
+     with_lua5_1 = ""
+    ])
+AS_IF([test x"${with_lua5_1}" = xno],
+    [search_lua5_1 = "no"])
+
+
+AS_IF([test x"${search_lua5_1}" = xyes], [
+    PKG_CHECK_MODULES([lua_5_1_debian], [lua5.1 >= 5.1.0],
+    [
+        AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_debian_LIBS"
+        was_lua_5_1_debian_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package lua5.1 not found with needed constraints; falling back to defined compilability tests])
-        AC_ARG_WITH([lua5.1],
-            [
-                AS_HELP_STRING([--with-lua5_1],
-                [Specify lua5_1 prefix])
-            ],
-            [search_lua5_1="yes"],
-            [])
 
         lua_5_1_debian_synthetic_cflags=""
         lua_5_1_debian_synthetic_libs="-llua"
 
-        if test "x$search_lua5_1" = "xyes"; then
+        if test -n "${with_lua5_1}"; then
             if test -r "${with_lua5_1}/include/lua.h"; then
                 lua_5_1_debian_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_5_1_debian_synthetic_libs="-L${with_lua5_1}/lib -llua"
             else
-                AC_MSG_ERROR([${with_lua5_1}/include/lua.h not found. Please check lua5.1 prefix])
+                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
             fi
+        else
+            AC_CHECK_HEADER([lua.h], [],
+                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([lua], [lua_close],
             [
+                was_lua_5_1_debian_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
+            ],
+            [])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
+    AS_CASE(["x${was_lua_5_1_debian_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${lua_5_1_debian_CFLAGS} ${CFLAGS}"
+                LIBS="${lua_5_1_debian_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${lua_5_1_debian_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${lua_5_1_debian_synthetic_libs} ${LDFLAGS}"
                 LIBS="${lua_5_1_debian_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([lua_5_1_debian_CFLAGS],[${lua_5_1_debian_synthetic_cflags}])
                 AC_SUBST([lua_5_1_debian_LIBS],[${lua_5_1_debian_synthetic_libs}])
-                was_lua_5_1_debian_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used (as -llua)])
             ],
-            [])
+        [xno], [
+            AC_MSG_WARN([Cannot find lua5.1 5.1.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for lua5_1
 
-if test "x$was_lua_5_1_debian_check_lib_detected" = "xno"; then
-    CFLAGS="${lua_5_1_debian_CFLAGS} ${CFLAGS}"
-    LIBS="${lua_5_1_debian_LIBS} ${LIBS}"
-fi
 
 was_lua_check_lib_detected=no
 
-PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],
+search_lua5_1="no"
+with_lua5_1 = ""
+
+AC_ARG_WITH([lua5.1],
     [
-        AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+        AS_HELP_STRING([--with-lua5.1],
+        [Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located)])
     ],
     [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua])
-        PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
-            [
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-            ],
-            [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.3])
-        PKG_CHECK_MODULES([lua], [lua5.3 >= 5.1.0],
-            [
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-            ],
-            [
-        AC_MSG_NOTICE([Packages lua5.1 lua lua5.3 not found with needed constraints; falling back to defined compilability tests])
-        AC_ARG_WITH([lua5.1],
-            [
-                AS_HELP_STRING([--with-lua5_1],
-                [Specify lua5_1 prefix])
-            ],
-            [search_lua5_1="yes"],
-            [])
+        search_lua5_1="yes"
+    ],
+    [])
+AS_IF([test x"${with_lua5_1}" = xyes],
+    [search_lua5_1 = "yes"
+     with_lua5_1 = ""
+    ])
+AS_IF([test x"${with_lua5_1}" = xno],
+    [search_lua5_1 = "no"])
+
+
+AS_IF([test x"${search_lua5_1}" = xyes], [
+    PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],
+    [
+        AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+        was_lua_check_lib_detected=pkgcfg
+    ],
+    [
+        AC_MSG_NOTICE([Package lua5.1 not found with needed constraints; falling back to defined compilability tests])
 
         lua_synthetic_cflags=""
         lua_synthetic_libs="-llua"
 
-        if test "x$search_lua5_1" = "xyes"; then
+        if test -n "${with_lua5_1}"; then
             if test -r "${with_lua5_1}/include/lua.h"; then
                 lua_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_synthetic_libs="-L${with_lua5_1}/lib -llua"
             else
-                AC_MSG_ERROR([${with_lua5_1}/include/lua.h not found. Please check lua5.1 prefix])
+                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
             fi
+        else
+            AC_CHECK_HEADER([lua.h], [],
+                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([lua], [lua_close],
             [
+                was_lua_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
+            ],
+            [])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
+    AS_CASE(["x${was_lua_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${lua_CFLAGS} ${CFLAGS}"
+                LIBS="${lua_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${lua_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${lua_synthetic_libs} ${LDFLAGS}"
                 LIBS="${lua_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([lua_CFLAGS],[${lua_synthetic_cflags}])
                 AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
-                was_lua_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used (as -llua)])
             ],
-            [])
-        ])
-        ])
+        [xno], [
+            AC_MSG_WARN([Cannot find lua5.1 5.1.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for lua5_1
 
-if test "x$was_lua_check_lib_detected" = "xno"; then
-    CFLAGS="${lua_CFLAGS} ${CFLAGS}"
-    LIBS="${lua_LIBS} ${LIBS}"
-fi
 
 was_cxxtools_check_lib_detected=no
 
-PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
+search_cxxtools="yes"
+with_cxxtools = ""
+
+AC_ARG_WITH([cxxtools],
+    [
+        AS_HELP_STRING([--with-cxxtools],
+        [Optionally specify cxxtools prefix (directory where its include/ and lib/ are located)])
+    ],
+    [
+        search_cxxtools="yes"
+    ],
+    [])
+AS_IF([test x"${with_cxxtools}" = xyes],
+    [search_cxxtools = "yes"
+     with_cxxtools = ""
+    ])
+AS_IF([test x"${with_cxxtools}" = xno],
+    [search_cxxtools = "no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_cxxtools}" = xno],
+    [AC_MSG_WARN([Required dependency on cxxtools was explicitly disabled during configuration by '--with-cxxtools=no'; subsequent full build of fty-alert-engine may fail])])
+
+AS_IF([test x"${search_cxxtools}" = xyes], [
+    PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
+        was_cxxtools_check_lib_detected=pkgcfg
     ],
     [
         AC_MSG_NOTICE([Package cxxtools not found; falling back to defined compilability tests])
-        AC_ARG_WITH([cxxtools],
-            [
-                AS_HELP_STRING([--with-cxxtools],
-                [Specify cxxtools prefix])
-            ],
-            [search_cxxtools="yes"],
-            [])
 
         cxxtools_synthetic_cflags=""
         cxxtools_synthetic_libs="-lcxxtools"
 
-        if test "x$search_cxxtools" = "xyes"; then
+        if test -n "${with_cxxtools}"; then
             if test -r "${with_cxxtools}/include/cxxtools/allocator.h"; then
                 cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
                 cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
             else
                 AC_MSG_ERROR([${with_cxxtools}/include/cxxtools/allocator.h not found. Please check cxxtools prefix])
             fi
+        else
+            AC_CHECK_HEADER([cxxtools/allocator.h], [],
+                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools/allocator.h not found in default search paths])
+                )
         fi
-
 
         AC_CHECK_LIB([cxxtools], [cxxtools::Utf8Codec::Utf8Codec],
             [
+                was_cxxtools_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lcxxtools"
+            ],
+            [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
+    ])
+dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
+    AS_CASE(["x${was_cxxtools_check_lib_detected}"]
+        [xpkgcfg], [
+                CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
+                LIBS="${cxxtools_LIBS} ${LIBS}"
+            ],
+        [xyes], [
                 CFLAGS="${cxxtools_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${cxxtools_synthetic_libs} ${LDFLAGS}"
                 LIBS="${cxxtools_synthetic_libs} ${LIBS}"
 
                 AC_SUBST([cxxtools_CFLAGS],[${cxxtools_synthetic_cflags}])
                 AC_SUBST([cxxtools_LIBS],[${cxxtools_synthetic_libs}])
-                was_cxxtools_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lcxxtools"
             ],
-            [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
+        [xno], [
+            AC_MSG_ERROR([Cannot find cxxtools 0.0.0 or higher, and no compilability tests were defined either])
     ])
+])
+dnl END of enabled attempts to search for cxxtools
 
-if test "x$was_cxxtools_check_lib_detected" = "xno"; then
-    CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
-    LIBS="${cxxtools_LIBS} ${LIBS}"
-fi
 
 CFLAGS="${PREVIOUS_CFLAGS}"
 LIBS="${PREVIOUS_LIBS}"
@@ -809,9 +1029,6 @@ AM_COND_IF([WITH_SYSTEMD_UNITS],
                  src/fty-alert-engine.service
     ])],
     [])
-
-
-
 
 AC_OUTPUT
 

@@ -44,7 +44,7 @@
     <use project = "lua" libname = "lua5.1" prefix="lua"
         optional = "1" am_lib_macro = "LUA_5_1"
         min_major = "5" min_minor = "1" mit_patch = "0"
-        debian_name="liblua5.1-0-dev" redhat_name=""
+        debian_name="" redhat_name=""
         test = "lua_close">
             <linkname>lua</linkname>
             <linkname>lua5.2</linkname>
