@@ -112,7 +112,6 @@ AC_ARG_WITH([libzmq],
 AS_CASE([x"${with_libzmq}"],
     [xyes], [
         search_libzmq="yes"
-        with_libzmq=""
         ],
     [xno],
         [search_libzmq="no"])
@@ -138,7 +137,7 @@ AS_IF([test x"${search_libzmq}" = xyes], [
         libzmq_synthetic_cflags=""
         libzmq_synthetic_libs="-lzmq"
 
-        if test -n "${with_libzmq}"; then
+        if test -n "${with_libzmq}" && x"${with_libzmq}" != xyes && x"${with_libzmq}" != xno; then
             if test -r "${with_libzmq}/include/zmq.h"; then
                 libzmq_synthetic_cflags="-I${with_libzmq}/include"
                 libzmq_synthetic_libs="-L${with_libzmq}/lib -lzmq"
@@ -195,7 +194,6 @@ AC_ARG_WITH([libczmq],
 AS_CASE([x"${with_libczmq}"],
     [xyes], [
         search_libczmq="yes"
-        with_libczmq=""
         ],
     [xno],
         [search_libczmq="no"])
@@ -221,7 +219,7 @@ AS_IF([test x"${search_libczmq}" = xyes], [
         czmq_synthetic_cflags=""
         czmq_synthetic_libs="-lczmq"
 
-        if test -n "${with_libczmq}"; then
+        if test -n "${with_libczmq}" && x"${with_libczmq}" != xyes && x"${with_libczmq}" != xno; then
             if test -r "${with_libczmq}/include/czmq.h"; then
                 czmq_synthetic_cflags="-I${with_libczmq}/include"
                 czmq_synthetic_libs="-L${with_libczmq}/lib -lczmq"
@@ -278,7 +276,6 @@ AC_ARG_WITH([libmlm],
 AS_CASE([x"${with_libmlm}"],
     [xyes], [
         search_libmlm="yes"
-        with_libmlm=""
         ],
     [xno],
         [search_libmlm="no"])
@@ -304,7 +301,7 @@ AS_IF([test x"${search_libmlm}" = xyes], [
         malamute_synthetic_cflags=""
         malamute_synthetic_libs="-lmlm"
 
-        if test -n "${with_libmlm}"; then
+        if test -n "${with_libmlm}" && x"${with_libmlm}" != xyes && x"${with_libmlm}" != xno; then
             if test -r "${with_libmlm}/include/malamute.h"; then
                 malamute_synthetic_cflags="-I${with_libmlm}/include"
                 malamute_synthetic_libs="-L${with_libmlm}/lib -lmlm"
@@ -361,7 +358,6 @@ AC_ARG_WITH([libfty_proto],
 AS_CASE([x"${with_libfty_proto}"],
     [xyes], [
         search_libfty_proto="yes"
-        with_libfty_proto=""
         ],
     [xno],
         [search_libfty_proto="no"])
@@ -387,7 +383,7 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
         fty_proto_synthetic_cflags=""
         fty_proto_synthetic_libs="-lftyproto"
 
-        if test -n "${with_libfty_proto}"; then
+        if test -n "${with_libfty_proto}" && x"${with_libfty_proto}" != xyes && x"${with_libfty_proto}" != xno; then
             if test -r "${with_libfty_proto}/include/ftyproto.h"; then
                 fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
                 fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lftyproto"
@@ -444,7 +440,6 @@ AC_ARG_WITH([lua],
 AS_CASE([x"${with_lua}"],
     [xyes], [
         search_lua="yes"
-        with_lua=""
         ],
     [xno],
         [search_lua="no"])
@@ -467,7 +462,7 @@ AS_IF([test x"${search_lua}" = xyes], [
         lua_5_1_redhat_synthetic_cflags=""
         lua_5_1_redhat_synthetic_libs="-llua"
 
-        if test -n "${with_lua}"; then
+        if test -n "${with_lua}" && x"${with_lua}" != xyes && x"${with_lua}" != xno; then
             if test -r "${with_lua}/include/lua.h"; then
                 lua_5_1_redhat_synthetic_cflags="-I${with_lua}/include"
                 lua_5_1_redhat_synthetic_libs="-L${with_lua}/lib -llua"
@@ -525,7 +520,6 @@ AC_ARG_WITH([lua5.1],
 AS_CASE([x"${with_lua5_1}"],
     [xyes], [
         search_lua5_1="yes"
-        with_lua5_1=""
         ],
     [xno],
         [search_lua5_1="no"])
@@ -548,7 +542,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
         lua_5_1_debian_synthetic_cflags=""
         lua_5_1_debian_synthetic_libs="-llua"
 
-        if test -n "${with_lua5_1}"; then
+        if test -n "${with_lua5_1}" && x"${with_lua5_1}" != xyes && x"${with_lua5_1}" != xno; then
             if test -r "${with_lua5_1}/include/lua.h"; then
                 lua_5_1_debian_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_5_1_debian_synthetic_libs="-L${with_lua5_1}/lib -llua"
@@ -606,7 +600,6 @@ AC_ARG_WITH([lua5.1],
 AS_CASE([x"${with_lua5_1}"],
     [xyes], [
         search_lua5_1="yes"
-        with_lua5_1=""
         ],
     [xno],
         [search_lua5_1="no"])
@@ -629,7 +622,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
         lua_synthetic_cflags=""
         lua_synthetic_libs="-llua"
 
-        if test -n "${with_lua5_1}"; then
+        if test -n "${with_lua5_1}" && x"${with_lua5_1}" != xyes && x"${with_lua5_1}" != xno; then
             if test -r "${with_lua5_1}/include/lua.h"; then
                 lua_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_synthetic_libs="-L${with_lua5_1}/lib -llua"
@@ -687,7 +680,6 @@ AC_ARG_WITH([cxxtools],
 AS_CASE([x"${with_cxxtools}"],
     [xyes], [
         search_cxxtools="yes"
-        with_cxxtools=""
         ],
     [xno],
         [search_cxxtools="no"])
@@ -713,7 +705,7 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
         cxxtools_synthetic_cflags=""
         cxxtools_synthetic_libs="-lcxxtools"
 
-        if test -n "${with_cxxtools}"; then
+        if test -n "${with_cxxtools}" && x"${with_cxxtools}" != xyes && x"${with_cxxtools}" != xno; then
             if test -r "${with_cxxtools}/include/cxxtools/allocator.h"; then
                 cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
                 cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
