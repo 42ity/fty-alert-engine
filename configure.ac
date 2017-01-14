@@ -103,7 +103,7 @@ search_libzmq="yes"
 AC_ARG_WITH([libzmq],
     [
         AS_HELP_STRING([--with-libzmq],
-        [Optionally specify libzmq prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify libzmq prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_libzmq="yes"
@@ -185,7 +185,7 @@ search_libczmq="yes"
 AC_ARG_WITH([libczmq],
     [
         AS_HELP_STRING([--with-libczmq],
-        [Optionally specify libczmq prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify libczmq prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_libczmq="yes"
@@ -267,7 +267,7 @@ search_libmlm="yes"
 AC_ARG_WITH([libmlm],
     [
         AS_HELP_STRING([--with-libmlm],
-        [Optionally specify libmlm prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify libmlm prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_libmlm="yes"
@@ -349,7 +349,7 @@ search_libfty_proto="yes"
 AC_ARG_WITH([libfty_proto],
     [
         AS_HELP_STRING([--with-libfty_proto],
-        [Optionally specify libfty_proto prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify libfty_proto prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_libfty_proto="yes"
@@ -431,7 +431,7 @@ search_lua="no"
 AC_ARG_WITH([lua],
     [
         AS_HELP_STRING([--with-lua],
-        [Optionally specify lua prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify lua prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_lua="yes"
@@ -511,7 +511,7 @@ search_lua5_1="no"
 AC_ARG_WITH([lua5.1],
     [
         AS_HELP_STRING([--with-lua5.1],
-        [Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_lua5_1="yes"
@@ -591,7 +591,7 @@ search_lua5_1="no"
 AC_ARG_WITH([lua5.1],
     [
         AS_HELP_STRING([--with-lua5.1],
-        [Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_lua5_1="yes"
@@ -671,7 +671,7 @@ search_cxxtools="yes"
 AC_ARG_WITH([cxxtools],
     [
         AS_HELP_STRING([--with-cxxtools],
-        [Optionally specify cxxtools prefix (directory where its include/ and lib/ are located)])
+        [yes or no. Optionally specify cxxtools prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
         search_cxxtools="yes"
