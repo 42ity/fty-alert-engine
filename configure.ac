@@ -99,7 +99,6 @@ PREVIOUS_LIBS="${LIBS}"
 was_libzmq_check_lib_detected=no
 
 search_libzmq="yes"
-with_libzmq=""
 
 AC_ARG_WITH([libzmq],
     [
@@ -110,12 +109,13 @@ AC_ARG_WITH([libzmq],
         search_libzmq="yes"
     ],
     [])
-AS_IF([test x"${with_libzmq}" = xyes],
-    [search_libzmq="yes"
-     with_libzmq=""
-    ])
-AS_IF([test x"${with_libzmq}" = xno],
-    [search_libzmq="no"])
+AS_CASE([x"${with_libzmq}"],
+    [xyes], [
+        search_libzmq="yes"
+        with_libzmq=""
+        ],
+    [xno],
+        [search_libzmq="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -143,7 +143,7 @@ AS_IF([test x"${search_libzmq}" = xyes], [
                 libzmq_synthetic_cflags="-I${with_libzmq}/include"
                 libzmq_synthetic_libs="-L${with_libzmq}/lib -lzmq"
             else
-            AC_MSG_ERROR([Header file ${with_libzmq}/include/zmq.h not found. Please check libzmq prefix])
+            AC_MSG_ERROR([Header file ${with_libzmq}/include/zmq.h was not found. Please check libzmq prefix])
             fi
         else
             AC_CHECK_HEADER([zmq.h], [],
@@ -182,7 +182,6 @@ dnl END of enabled attempts to search for libzmq
 was_czmq_check_lib_detected=no
 
 search_libczmq="yes"
-with_libczmq=""
 
 AC_ARG_WITH([libczmq],
     [
@@ -193,12 +192,13 @@ AC_ARG_WITH([libczmq],
         search_libczmq="yes"
     ],
     [])
-AS_IF([test x"${with_libczmq}" = xyes],
-    [search_libczmq="yes"
-     with_libczmq=""
-    ])
-AS_IF([test x"${with_libczmq}" = xno],
-    [search_libczmq="no"])
+AS_CASE([x"${with_libczmq}"],
+    [xyes], [
+        search_libczmq="yes"
+        with_libczmq=""
+        ],
+    [xno],
+        [search_libczmq="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -226,7 +226,7 @@ AS_IF([test x"${search_libczmq}" = xyes], [
                 czmq_synthetic_cflags="-I${with_libczmq}/include"
                 czmq_synthetic_libs="-L${with_libczmq}/lib -lczmq"
             else
-            AC_MSG_ERROR([Header file ${with_libczmq}/include/czmq.h not found. Please check libczmq prefix])
+            AC_MSG_ERROR([Header file ${with_libczmq}/include/czmq.h was not found. Please check libczmq prefix])
             fi
         else
             AC_CHECK_HEADER([czmq.h], [],
@@ -265,7 +265,6 @@ dnl END of enabled attempts to search for libczmq
 was_malamute_check_lib_detected=no
 
 search_libmlm="yes"
-with_libmlm=""
 
 AC_ARG_WITH([libmlm],
     [
@@ -276,12 +275,13 @@ AC_ARG_WITH([libmlm],
         search_libmlm="yes"
     ],
     [])
-AS_IF([test x"${with_libmlm}" = xyes],
-    [search_libmlm="yes"
-     with_libmlm=""
-    ])
-AS_IF([test x"${with_libmlm}" = xno],
-    [search_libmlm="no"])
+AS_CASE([x"${with_libmlm}"],
+    [xyes], [
+        search_libmlm="yes"
+        with_libmlm=""
+        ],
+    [xno],
+        [search_libmlm="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -309,7 +309,7 @@ AS_IF([test x"${search_libmlm}" = xyes], [
                 malamute_synthetic_cflags="-I${with_libmlm}/include"
                 malamute_synthetic_libs="-L${with_libmlm}/lib -lmlm"
             else
-            AC_MSG_ERROR([Header file ${with_libmlm}/include/malamute.h not found. Please check libmlm prefix])
+            AC_MSG_ERROR([Header file ${with_libmlm}/include/malamute.h was not found. Please check libmlm prefix])
             fi
         else
             AC_CHECK_HEADER([malamute.h], [],
@@ -348,7 +348,6 @@ dnl END of enabled attempts to search for libmlm
 was_fty_proto_check_lib_detected=no
 
 search_libfty_proto="yes"
-with_libfty_proto=""
 
 AC_ARG_WITH([libfty_proto],
     [
@@ -359,12 +358,13 @@ AC_ARG_WITH([libfty_proto],
         search_libfty_proto="yes"
     ],
     [])
-AS_IF([test x"${with_libfty_proto}" = xyes],
-    [search_libfty_proto="yes"
-     with_libfty_proto=""
-    ])
-AS_IF([test x"${with_libfty_proto}" = xno],
-    [search_libfty_proto="no"])
+AS_CASE([x"${with_libfty_proto}"],
+    [xyes], [
+        search_libfty_proto="yes"
+        with_libfty_proto=""
+        ],
+    [xno],
+        [search_libfty_proto="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -392,7 +392,7 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
                 fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
                 fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lftyproto"
             else
-            AC_MSG_ERROR([Header file ${with_libfty_proto}/include/ftyproto.h not found. Please check libfty_proto prefix])
+            AC_MSG_ERROR([Header file ${with_libfty_proto}/include/ftyproto.h was not found. Please check libfty_proto prefix])
             fi
         else
             AC_CHECK_HEADER([ftyproto.h], [],
@@ -431,7 +431,6 @@ dnl END of enabled attempts to search for libfty_proto
 was_lua_5_1_redhat_check_lib_detected=no
 
 search_lua="no"
-with_lua=""
 
 AC_ARG_WITH([lua],
     [
@@ -442,12 +441,13 @@ AC_ARG_WITH([lua],
         search_lua="yes"
     ],
     [])
-AS_IF([test x"${with_lua}" = xyes],
-    [search_lua="yes"
-     with_lua=""
-    ])
-AS_IF([test x"${with_lua}" = xno],
-    [search_lua="no"])
+AS_CASE([x"${with_lua}"],
+    [xyes], [
+        search_lua="yes"
+        with_lua=""
+        ],
+    [xno],
+        [search_lua="no"])
 
 
 AS_IF([test x"${search_lua}" = xyes], [
@@ -472,7 +472,7 @@ AS_IF([test x"${search_lua}" = xyes], [
                 lua_5_1_redhat_synthetic_cflags="-I${with_lua}/include"
                 lua_5_1_redhat_synthetic_libs="-L${with_lua}/lib -llua"
             else
-            AC_MSG_WARN([Header file ${with_lua}/include/lua.h not found. Please check lua prefix])
+            AC_MSG_WARN([Header file ${with_lua}/include/lua.h was not found. Please check lua prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
@@ -512,7 +512,6 @@ dnl END of enabled attempts to search for lua
 was_lua_5_1_debian_check_lib_detected=no
 
 search_lua5_1="no"
-with_lua5_1=""
 
 AC_ARG_WITH([lua5.1],
     [
@@ -523,12 +522,13 @@ AC_ARG_WITH([lua5.1],
         search_lua5_1="yes"
     ],
     [])
-AS_IF([test x"${with_lua5_1}" = xyes],
-    [search_lua5_1="yes"
-     with_lua5_1=""
-    ])
-AS_IF([test x"${with_lua5_1}" = xno],
-    [search_lua5_1="no"])
+AS_CASE([x"${with_lua5_1}"],
+    [xyes], [
+        search_lua5_1="yes"
+        with_lua5_1=""
+        ],
+    [xno],
+        [search_lua5_1="no"])
 
 
 AS_IF([test x"${search_lua5_1}" = xyes], [
@@ -553,7 +553,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
                 lua_5_1_debian_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_5_1_debian_synthetic_libs="-L${with_lua5_1}/lib -llua"
             else
-            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
+            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h was not found. Please check lua5.1 prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
@@ -593,7 +593,6 @@ dnl END of enabled attempts to search for lua5_1
 was_lua_check_lib_detected=no
 
 search_lua5_1="no"
-with_lua5_1=""
 
 AC_ARG_WITH([lua5.1],
     [
@@ -604,12 +603,13 @@ AC_ARG_WITH([lua5.1],
         search_lua5_1="yes"
     ],
     [])
-AS_IF([test x"${with_lua5_1}" = xyes],
-    [search_lua5_1="yes"
-     with_lua5_1=""
-    ])
-AS_IF([test x"${with_lua5_1}" = xno],
-    [search_lua5_1="no"])
+AS_CASE([x"${with_lua5_1}"],
+    [xyes], [
+        search_lua5_1="yes"
+        with_lua5_1=""
+        ],
+    [xno],
+        [search_lua5_1="no"])
 
 
 AS_IF([test x"${search_lua5_1}" = xyes], [
@@ -634,7 +634,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
                 lua_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_synthetic_libs="-L${with_lua5_1}/lib -llua"
             else
-            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
+            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h was not found. Please check lua5.1 prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
@@ -674,7 +674,6 @@ dnl END of enabled attempts to search for lua5_1
 was_cxxtools_check_lib_detected=no
 
 search_cxxtools="yes"
-with_cxxtools=""
 
 AC_ARG_WITH([cxxtools],
     [
@@ -685,12 +684,13 @@ AC_ARG_WITH([cxxtools],
         search_cxxtools="yes"
     ],
     [])
-AS_IF([test x"${with_cxxtools}" = xyes],
-    [search_cxxtools="yes"
-     with_cxxtools=""
-    ])
-AS_IF([test x"${with_cxxtools}" = xno],
-    [search_cxxtools="no"])
+AS_CASE([x"${with_cxxtools}"],
+    [xyes], [
+        search_cxxtools="yes"
+        with_cxxtools=""
+        ],
+    [xno],
+        [search_cxxtools="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -718,7 +718,7 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
                 cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
                 cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
             else
-            AC_MSG_ERROR([Header file ${with_cxxtools}/include/cxxtools/allocator.h not found. Please check cxxtools prefix])
+            AC_MSG_ERROR([Header file ${with_cxxtools}/include/cxxtools/allocator.h was not found. Please check cxxtools prefix])
             fi
         else
             AC_CHECK_HEADER([cxxtools/allocator.h], [],
