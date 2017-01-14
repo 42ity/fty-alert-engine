@@ -41,6 +41,16 @@
         debian_name="liblua5.1-0-dev" redhat_name=""
         test = "lua_close"
     />
+    <use project = "lua" libname = "lua5.1" prefix="lua"
+        optional = "1" am_lib_macro = "LUA_5_1"
+        min_major = "5" min_minor = "1" mit_patch = "0"
+        debian_name="liblua5.1-0-dev" redhat_name=""
+        test = "lua_close">
+            <linkname>lua</linkname>
+            <linkname>lua5.2</linkname>
+            <pkgconfig>lua</pkgconfig>
+            <pkgconfig>lua5.3</pkgconfig>
+    </use>
     <!-- alert engine uses patched cxxtools, point to 42ity fork instead -->
     <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
         repository = "https://github.com/42ity/cxxtools"

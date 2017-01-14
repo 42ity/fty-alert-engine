@@ -318,6 +318,16 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] || [ 
         echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
     fi
 
+    # Start of recipe for dependency: lua
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list liblua5.1-0-dev >/dev/null 2>&1) || \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions lua >/dev/null 2>&1) \
+    ; then
+        echo ""
+        echo "WARNING: Can not build prerequisite 'lua'" >&2
+        echo "because neither tarball nor repository sources are known for it," >&2
+        echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
+    fi
+
     # Start of recipe for dependency: cxxtools
     if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list cxxtools-dev >/dev/null 2>&1) || \
            (command -v brew >/dev/null 2>&1 && brew ls --versions cxxtools >/dev/null 2>&1) \
