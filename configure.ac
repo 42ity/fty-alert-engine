@@ -73,9 +73,25 @@ else
     AM_CONDITIONAL(WITH_GCOV, false)
 fi
 
+# Set pkgconfigdir
+AC_ARG_WITH([pkgconfigdir], AS_HELP_STRING([--with-pkgconfigdir=PATH],
+    [Path to the pkgconfig directory [[LIBDIR/pkgconfig]]]),
+    [pkgconfigdir="$withval"], [pkgconfigdir='${libdir}/pkgconfig'])
+AC_SUBST([pkgconfigdir])
+
+# Use the provided pkgconfigdir not only to write our pkg-config data,
+# but also as an additional location to look for other packages metadata.
+AS_IF([test -n "${pkgconfigdir}" -a -d "${pkgconfigdir}"],
+    [AS_IF([test -z "${PKG_CONFIG_PATH}"],
+        [PKG_CONFIG_PATH="${pkgconfigdir}"],
+        [PKG_CONFIG_PATH="${pkgconfigdir}:${PKG_CONFIG_PATH}"])
+     export PKG_CONFIG_PATH
+    ])
+
 # Will be used to add flags to pkg-config useful when apps want to statically link
 PKGCFG_LIBS_PRIVATE=""
 
+# Archive user supplied flags
 PREVIOUS_CFLAGS="${CFLAGS}"
 PREVIOUS_LIBS="${LIBS}"
 
@@ -83,7 +99,7 @@ PREVIOUS_LIBS="${LIBS}"
 was_libzmq_check_lib_detected=no
 
 search_libzmq="yes"
-with_libzmq = ""
+with_libzmq=""
 
 AC_ARG_WITH([libzmq],
     [
@@ -95,11 +111,11 @@ AC_ARG_WITH([libzmq],
     ],
     [])
 AS_IF([test x"${with_libzmq}" = xyes],
-    [search_libzmq = "yes"
-     with_libzmq = ""
+    [search_libzmq="yes"
+     with_libzmq=""
     ])
 AS_IF([test x"${with_libzmq}" = xno],
-    [search_libzmq = "no"])
+    [search_libzmq="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -107,6 +123,10 @@ AS_IF([test x"${search_libzmq}" = xno],
     [AC_MSG_WARN([Required dependency on libzmq was explicitly disabled during configuration by '--with-libzmq=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_libzmq}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
@@ -162,7 +182,7 @@ dnl END of enabled attempts to search for libzmq
 was_czmq_check_lib_detected=no
 
 search_libczmq="yes"
-with_libczmq = ""
+with_libczmq=""
 
 AC_ARG_WITH([libczmq],
     [
@@ -174,11 +194,11 @@ AC_ARG_WITH([libczmq],
     ],
     [])
 AS_IF([test x"${with_libczmq}" = xyes],
-    [search_libczmq = "yes"
-     with_libczmq = ""
+    [search_libczmq="yes"
+     with_libczmq=""
     ])
 AS_IF([test x"${with_libczmq}" = xno],
-    [search_libczmq = "no"])
+    [search_libczmq="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -186,6 +206,10 @@ AS_IF([test x"${search_libczmq}" = xno],
     [AC_MSG_WARN([Required dependency on czmq was explicitly disabled during configuration by '--with-libczmq=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_libczmq}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
@@ -241,7 +265,7 @@ dnl END of enabled attempts to search for libczmq
 was_malamute_check_lib_detected=no
 
 search_libmlm="yes"
-with_libmlm = ""
+with_libmlm=""
 
 AC_ARG_WITH([libmlm],
     [
@@ -253,11 +277,11 @@ AC_ARG_WITH([libmlm],
     ],
     [])
 AS_IF([test x"${with_libmlm}" = xyes],
-    [search_libmlm = "yes"
-     with_libmlm = ""
+    [search_libmlm="yes"
+     with_libmlm=""
     ])
 AS_IF([test x"${with_libmlm}" = xno],
-    [search_libmlm = "no"])
+    [search_libmlm="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -265,6 +289,10 @@ AS_IF([test x"${search_libmlm}" = xno],
     [AC_MSG_WARN([Required dependency on malamute was explicitly disabled during configuration by '--with-libmlm=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_libmlm}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
@@ -320,7 +348,7 @@ dnl END of enabled attempts to search for libmlm
 was_fty_proto_check_lib_detected=no
 
 search_libfty_proto="yes"
-with_libfty_proto = ""
+with_libfty_proto=""
 
 AC_ARG_WITH([libfty_proto],
     [
@@ -332,11 +360,11 @@ AC_ARG_WITH([libfty_proto],
     ],
     [])
 AS_IF([test x"${with_libfty_proto}" = xyes],
-    [search_libfty_proto = "yes"
-     with_libfty_proto = ""
+    [search_libfty_proto="yes"
+     with_libfty_proto=""
     ])
 AS_IF([test x"${with_libfty_proto}" = xno],
-    [search_libfty_proto = "no"])
+    [search_libfty_proto="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -344,6 +372,10 @@ AS_IF([test x"${search_libfty_proto}" = xno],
     [AC_MSG_WARN([Required dependency on fty_proto was explicitly disabled during configuration by '--with-libfty_proto=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_libfty_proto}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
@@ -399,7 +431,7 @@ dnl END of enabled attempts to search for libfty_proto
 was_lua_5_1_redhat_check_lib_detected=no
 
 search_lua="no"
-with_lua = ""
+with_lua=""
 
 AC_ARG_WITH([lua],
     [
@@ -411,14 +443,18 @@ AC_ARG_WITH([lua],
     ],
     [])
 AS_IF([test x"${with_lua}" = xyes],
-    [search_lua = "yes"
-     with_lua = ""
+    [search_lua="yes"
+     with_lua=""
     ])
 AS_IF([test x"${with_lua}" = xno],
-    [search_lua = "no"])
+    [search_lua="no"])
 
 
 AS_IF([test x"${search_lua}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([lua_5_1_redhat], [lua >= 5.1.0],
     [
         AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used])
@@ -476,7 +512,7 @@ dnl END of enabled attempts to search for lua
 was_lua_5_1_debian_check_lib_detected=no
 
 search_lua5_1="no"
-with_lua5_1 = ""
+with_lua5_1=""
 
 AC_ARG_WITH([lua5.1],
     [
@@ -488,14 +524,18 @@ AC_ARG_WITH([lua5.1],
     ],
     [])
 AS_IF([test x"${with_lua5_1}" = xyes],
-    [search_lua5_1 = "yes"
-     with_lua5_1 = ""
+    [search_lua5_1="yes"
+     with_lua5_1=""
     ])
 AS_IF([test x"${with_lua5_1}" = xno],
-    [search_lua5_1 = "no"])
+    [search_lua5_1="no"])
 
 
 AS_IF([test x"${search_lua5_1}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([lua_5_1_debian], [lua5.1 >= 5.1.0],
     [
         AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
@@ -553,7 +593,7 @@ dnl END of enabled attempts to search for lua5_1
 was_lua_check_lib_detected=no
 
 search_lua5_1="no"
-with_lua5_1 = ""
+with_lua5_1=""
 
 AC_ARG_WITH([lua5.1],
     [
@@ -565,14 +605,18 @@ AC_ARG_WITH([lua5.1],
     ],
     [])
 AS_IF([test x"${with_lua5_1}" = xyes],
-    [search_lua5_1 = "yes"
-     with_lua5_1 = ""
+    [search_lua5_1="yes"
+     with_lua5_1=""
     ])
 AS_IF([test x"${with_lua5_1}" = xno],
-    [search_lua5_1 = "no"])
+    [search_lua5_1="no"])
 
 
 AS_IF([test x"${search_lua5_1}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],
     [
         AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
@@ -630,7 +674,7 @@ dnl END of enabled attempts to search for lua5_1
 was_cxxtools_check_lib_detected=no
 
 search_cxxtools="yes"
-with_cxxtools = ""
+with_cxxtools=""
 
 AC_ARG_WITH([cxxtools],
     [
@@ -642,11 +686,11 @@ AC_ARG_WITH([cxxtools],
     ],
     [])
 AS_IF([test x"${with_cxxtools}" = xyes],
-    [search_cxxtools = "yes"
-     with_cxxtools = ""
+    [search_cxxtools="yes"
+     with_cxxtools=""
     ])
 AS_IF([test x"${with_cxxtools}" = xno],
-    [search_cxxtools = "no"])
+    [search_cxxtools="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -654,6 +698,10 @@ AS_IF([test x"${search_cxxtools}" = xno],
     [AC_MSG_WARN([Required dependency on cxxtools was explicitly disabled during configuration by '--with-cxxtools=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_cxxtools}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
     PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
@@ -921,12 +969,6 @@ AM_COND_IF([ENABLE_FTY_ALERT_ENGINE_SELFTEST], [AC_MSG_NOTICE([ENABLE_FTY_ALERT_
 # Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(perror gettimeofday memset getifaddrs)
-
-# Set pkgconfigdir
-AC_ARG_WITH([pkgconfigdir], AS_HELP_STRING([--with-pkgconfigdir=PATH],
-    [Path to the pkgconfig directory [[LIBDIR/pkgconfig]]]),
-    [pkgconfigdir="$withval"], [pkgconfigdir='${libdir}/pkgconfig'])
-AC_SUBST([pkgconfigdir])
 
 
 # enable specific system integration features
