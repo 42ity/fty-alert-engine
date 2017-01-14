@@ -159,7 +159,7 @@ AS_IF([test x"${search_libzmq}" = xyes], [
             [AC_MSG_ERROR([cannot link with -lzmq, install libzmq])])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for libzmq
-    AS_CASE(["x${was_libzmq_check_lib_detected}"]
+    AS_CASE(["x${was_libzmq_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${libzmq_CFLAGS} ${CFLAGS}"
                 LIBS="${libzmq_LIBS} ${LIBS}"
@@ -242,7 +242,7 @@ AS_IF([test x"${search_libczmq}" = xyes], [
             [AC_MSG_ERROR([cannot link with -lczmq, install libczmq])])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
-    AS_CASE(["x${was_czmq_check_lib_detected}"]
+    AS_CASE(["x${was_czmq_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${czmq_CFLAGS} ${CFLAGS}"
                 LIBS="${czmq_LIBS} ${LIBS}"
@@ -325,7 +325,7 @@ AS_IF([test x"${search_libmlm}" = xyes], [
             [AC_MSG_ERROR([cannot link with -lmlm, install libmlm])])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
-    AS_CASE(["x${was_malamute_check_lib_detected}"]
+    AS_CASE(["x${was_malamute_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${malamute_CFLAGS} ${CFLAGS}"
                 LIBS="${malamute_LIBS} ${LIBS}"
@@ -408,7 +408,7 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
             [AC_MSG_ERROR([cannot link with -lftyproto, install libfty_proto])])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
-    AS_CASE(["x${was_fty_proto_check_lib_detected}"]
+    AS_CASE(["x${was_fty_proto_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${fty_proto_CFLAGS} ${CFLAGS}"
                 LIBS="${fty_proto_LIBS} ${LIBS}"
@@ -489,7 +489,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua
-    AS_CASE(["x${was_lua_5_1_redhat_check_lib_detected}"]
+    AS_CASE(["x${was_lua_5_1_redhat_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${lua_5_1_redhat_CFLAGS} ${CFLAGS}"
                 LIBS="${lua_5_1_redhat_LIBS} ${LIBS}"
@@ -570,7 +570,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
             [])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
-    AS_CASE(["x${was_lua_5_1_debian_check_lib_detected}"]
+    AS_CASE(["x${was_lua_5_1_debian_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${lua_5_1_debian_CFLAGS} ${CFLAGS}"
                 LIBS="${lua_5_1_debian_LIBS} ${LIBS}"
@@ -651,7 +651,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
             [])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
-    AS_CASE(["x${was_lua_check_lib_detected}"]
+    AS_CASE(["x${was_lua_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${lua_CFLAGS} ${CFLAGS}"
                 LIBS="${lua_LIBS} ${LIBS}"
@@ -734,7 +734,7 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
             [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
     ])
 dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
-    AS_CASE(["x${was_cxxtools_check_lib_detected}"]
+    AS_CASE(["x${was_cxxtools_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
                 LIBS="${cxxtools_LIBS} ${LIBS}"
