@@ -143,11 +143,11 @@ AS_IF([test x"${search_libzmq}" = xyes], [
                 libzmq_synthetic_cflags="-I${with_libzmq}/include"
                 libzmq_synthetic_libs="-L${with_libzmq}/lib -lzmq"
             else
-                AC_MSG_ERROR([${with_libzmq}/include/zmq.h not found. Please check libzmq prefix])
+            AC_MSG_ERROR([Header file ${with_libzmq}/include/zmq.h not found. Please check libzmq prefix])
             fi
         else
             AC_CHECK_HEADER([zmq.h], [],
-                AC_MSG_ERROR([${with_libzmq}/include/zmq.h not found in default search paths])
+            AC_MSG_ERROR([Header file zmq.h was not found in default search paths])
                 )
         fi
 
@@ -226,11 +226,11 @@ AS_IF([test x"${search_libczmq}" = xyes], [
                 czmq_synthetic_cflags="-I${with_libczmq}/include"
                 czmq_synthetic_libs="-L${with_libczmq}/lib -lczmq"
             else
-                AC_MSG_ERROR([${with_libczmq}/include/czmq.h not found. Please check libczmq prefix])
+            AC_MSG_ERROR([Header file ${with_libczmq}/include/czmq.h not found. Please check libczmq prefix])
             fi
         else
             AC_CHECK_HEADER([czmq.h], [],
-                AC_MSG_ERROR([${with_libczmq}/include/czmq.h not found in default search paths])
+            AC_MSG_ERROR([Header file czmq.h was not found in default search paths])
                 )
         fi
 
@@ -309,11 +309,11 @@ AS_IF([test x"${search_libmlm}" = xyes], [
                 malamute_synthetic_cflags="-I${with_libmlm}/include"
                 malamute_synthetic_libs="-L${with_libmlm}/lib -lmlm"
             else
-                AC_MSG_ERROR([${with_libmlm}/include/malamute.h not found. Please check libmlm prefix])
+            AC_MSG_ERROR([Header file ${with_libmlm}/include/malamute.h not found. Please check libmlm prefix])
             fi
         else
             AC_CHECK_HEADER([malamute.h], [],
-                AC_MSG_ERROR([${with_libmlm}/include/malamute.h not found in default search paths])
+            AC_MSG_ERROR([Header file malamute.h was not found in default search paths])
                 )
         fi
 
@@ -392,11 +392,11 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
                 fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
                 fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lftyproto"
             else
-                AC_MSG_ERROR([${with_libfty_proto}/include/ftyproto.h not found. Please check libfty_proto prefix])
+            AC_MSG_ERROR([Header file ${with_libfty_proto}/include/ftyproto.h not found. Please check libfty_proto prefix])
             fi
         else
             AC_CHECK_HEADER([ftyproto.h], [],
-                AC_MSG_ERROR([${with_libfty_proto}/include/ftyproto.h not found in default search paths])
+            AC_MSG_ERROR([Header file ftyproto.h was not found in default search paths])
                 )
         fi
 
@@ -472,11 +472,11 @@ AS_IF([test x"${search_lua}" = xyes], [
                 lua_5_1_redhat_synthetic_cflags="-I${with_lua}/include"
                 lua_5_1_redhat_synthetic_libs="-L${with_lua}/lib -llua"
             else
-                AC_MSG_ERROR([${with_lua}/include/lua.h not found. Please check lua prefix])
+            AC_MSG_WARN([Header file ${with_lua}/include/lua.h not found. Please check lua prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
-                AC_MSG_ERROR([${with_lua}/include/lua.h not found in default search paths])
+            AC_MSG_WARN([Header file lua.h was not found in default search paths])
                 )
         fi
 
@@ -553,11 +553,11 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
                 lua_5_1_debian_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_5_1_debian_synthetic_libs="-L${with_lua5_1}/lib -llua"
             else
-                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
+            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
-                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found in default search paths])
+            AC_MSG_WARN([Header file lua.h was not found in default search paths])
                 )
         fi
 
@@ -634,11 +634,11 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
                 lua_synthetic_cflags="-I${with_lua5_1}/include"
                 lua_synthetic_libs="-L${with_lua5_1}/lib -llua"
             else
-                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
+            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h not found. Please check lua5.1 prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
-                AC_MSG_ERROR([${with_lua5.1}/include/lua.h not found in default search paths])
+            AC_MSG_WARN([Header file lua.h was not found in default search paths])
                 )
         fi
 
@@ -718,11 +718,11 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
                 cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
                 cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
             else
-                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools/allocator.h not found. Please check cxxtools prefix])
+            AC_MSG_ERROR([Header file ${with_cxxtools}/include/cxxtools/allocator.h not found. Please check cxxtools prefix])
             fi
         else
             AC_CHECK_HEADER([cxxtools/allocator.h], [],
-                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools/allocator.h not found in default search paths])
+            AC_MSG_ERROR([Header file cxxtools/allocator.h was not found in default search paths])
                 )
         fi
 
