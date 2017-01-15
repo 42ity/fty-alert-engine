@@ -110,11 +110,8 @@ AC_ARG_WITH([libzmq],
     ],
     [])
 AS_CASE([x"${with_libzmq}"],
-    [xyes], [
-        search_libzmq="yes"
-        ],
-    [xno],
-        [search_libzmq="no"])
+    [xyes], [search_libzmq="yes"],
+    [xno],  [search_libzmq="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -172,7 +169,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libzmq
                 AC_SUBST([libzmq_LIBS],[${libzmq_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_ERROR([Cannot find libzmq 0.0.0 or higher, and no compilability tests were defined either])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libzmq 0.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libzmq
@@ -192,11 +189,8 @@ AC_ARG_WITH([libczmq],
     ],
     [])
 AS_CASE([x"${with_libczmq}"],
-    [xyes], [
-        search_libczmq="yes"
-        ],
-    [xno],
-        [search_libczmq="no"])
+    [xyes], [search_libczmq="yes"],
+    [xno],  [search_libczmq="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -254,7 +248,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
                 AC_SUBST([czmq_LIBS],[${czmq_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_ERROR([Cannot find libczmq 0.0.0 or higher, and no compilability tests were defined either])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libczmq 0.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libczmq
@@ -274,11 +268,8 @@ AC_ARG_WITH([libmlm],
     ],
     [])
 AS_CASE([x"${with_libmlm}"],
-    [xyes], [
-        search_libmlm="yes"
-        ],
-    [xno],
-        [search_libmlm="no"])
+    [xyes], [search_libmlm="yes"],
+    [xno],  [search_libmlm="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -336,7 +327,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
                 AC_SUBST([malamute_LIBS],[${malamute_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_ERROR([Cannot find libmlm 0.0.0 or higher, and no compilability tests were defined either])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libmlm 0.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libmlm
@@ -356,11 +347,8 @@ AC_ARG_WITH([libfty_proto],
     ],
     [])
 AS_CASE([x"${with_libfty_proto}"],
-    [xyes], [
-        search_libfty_proto="yes"
-        ],
-    [xno],
-        [search_libfty_proto="no"])
+    [xyes], [search_libfty_proto="yes"],
+    [xno],  [search_libfty_proto="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -418,7 +406,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
                 AC_SUBST([fty_proto_LIBS],[${fty_proto_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_ERROR([Cannot find libfty_proto 0.0.0 or higher, and no compilability tests were defined either])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libfty_proto 0.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libfty_proto
@@ -438,11 +426,8 @@ AC_ARG_WITH([lua],
     ],
     [])
 AS_CASE([x"${with_lua}"],
-    [xyes], [
-        search_lua="yes"
-        ],
-    [xno],
-        [search_lua="no"])
+    [xyes], [search_lua="yes"],
+    [xno],  [search_lua="no"])
 
 
 AS_IF([test x"${search_lua}" = xyes], [
@@ -479,7 +464,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 was_lua_5_1_redhat_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used])
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used (as -llua)])
             ],
             [])
     ])
@@ -498,7 +483,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for lua
                 AC_SUBST([lua_5_1_redhat_LIBS],[${lua_5_1_redhat_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_WARN([Cannot find lua 5.1.0 or higher, and no compilability tests were defined either])
+            AC_MSG_WARN([Cannot find pkg-config metadata for lua 5.1.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for lua
@@ -518,11 +503,8 @@ AC_ARG_WITH([lua5.1],
     ],
     [])
 AS_CASE([x"${with_lua5_1}"],
-    [xyes], [
-        search_lua5_1="yes"
-        ],
-    [xno],
-        [search_lua5_1="no"])
+    [xyes], [search_lua5_1="yes"],
+    [xno],  [search_lua5_1="no"])
 
 
 AS_IF([test x"${search_lua5_1}" = xyes], [
@@ -559,7 +541,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
             [
                 was_lua_5_1_debian_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used (as -llua)])
             ],
             [])
     ])
@@ -578,7 +560,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
                 AC_SUBST([lua_5_1_debian_LIBS],[${lua_5_1_debian_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_WARN([Cannot find lua5.1 5.1.0 or higher, and no compilability tests were defined either])
+            AC_MSG_WARN([Cannot find pkg-config metadata for lua5.1 5.1.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for lua5_1
@@ -598,11 +580,8 @@ AC_ARG_WITH([lua5.1],
     ],
     [])
 AS_CASE([x"${with_lua5_1}"],
-    [xyes], [
-        search_lua5_1="yes"
-        ],
-    [xno],
-        [search_lua5_1="no"])
+    [xyes], [search_lua5_1="yes"],
+    [xno],  [search_lua5_1="no"])
 
 
 AS_IF([test x"${search_lua5_1}" = xyes], [
@@ -617,7 +596,23 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
         was_lua_check_lib_detected=pkgcfg
     ],
     [
-        AC_MSG_NOTICE([Package lua5.1 not found with needed constraints; falling back to defined compilability tests])
+        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua])
+        PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
+            [
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+                was_lua_check_lib_detected=pkgcfg
+            ],
+            [
+        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.3])
+        PKG_CHECK_MODULES([lua], [lua5.3 >= 5.1.0],
+            [
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+                was_lua_check_lib_detected=pkgcfg
+            ],
+            [
+        AC_MSG_NOTICE([Packages lua5.1 lua lua5.3 not found with needed constraints; falling back to defined compilability tests])
 
         lua_synthetic_cflags=""
         lua_synthetic_libs="-llua"
@@ -639,7 +634,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
             [
                 was_lua_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
+                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used (as -llua)])
             ],
             [])
     ])
@@ -658,7 +653,9 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
                 AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_WARN([Cannot find lua5.1 5.1.0 or higher, and no compilability tests were defined either])
+            AC_MSG_WARN([Cannot find pkg-config metadata for lua5.1 5.1.0 or higher])
+        ])
+        ])
     ])
 ])
 dnl END of enabled attempts to search for lua5_1
@@ -678,11 +675,8 @@ AC_ARG_WITH([cxxtools],
     ],
     [])
 AS_CASE([x"${with_cxxtools}"],
-    [xyes], [
-        search_cxxtools="yes"
-        ],
-    [xno],
-        [search_cxxtools="no"])
+    [xyes], [search_cxxtools="yes"],
+    [xno],  [search_cxxtools="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
@@ -740,7 +734,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
                 AC_SUBST([cxxtools_LIBS],[${cxxtools_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_ERROR([Cannot find cxxtools 0.0.0 or higher, and no compilability tests were defined either])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for cxxtools 0.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for cxxtools
