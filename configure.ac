@@ -416,9 +416,9 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
 dnl END of enabled attempts to search for libfty_proto
 
 
-was_lua_5_1_redhat_check_lib_detected=no
+was_lua_check_lib_detected=no
 
-search_lua="no"
+search_lua="yes"
 
 AC_ARG_WITH([lua],
     [
@@ -433,206 +433,72 @@ AS_CASE([x"${with_lua}"],
     [xyes], [search_lua="yes"],
     [xno],  [search_lua="no"])
 
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_lua}" = xno],
+    [AC_MSG_WARN([Required dependency on lua was explicitly disabled during configuration by '--with-lua=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_lua}" = xyes], [
     # Archive previously detected and supplied flags
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
-    PKG_CHECK_MODULES([lua_5_1_redhat], [lua >= 5.1.0],
+    PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
     [
-        AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used])
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_redhat_LIBS"
-        was_lua_5_1_redhat_check_lib_detected=pkgcfg
-    ],
-    [
-        AC_MSG_NOTICE([Package lua not found with needed constraints; falling back to defined compilability tests])
-
-        lua_5_1_redhat_synthetic_cflags=""
-        lua_5_1_redhat_synthetic_libs="-llua"
-
-        if test -n "${with_lua}" && test x"${with_lua}" != xyes && test x"${with_lua}" != xno; then
-            if test -r "${with_lua}/include/lua.h"; then
-                lua_5_1_redhat_synthetic_cflags="-I${with_lua}/include"
-                lua_5_1_redhat_synthetic_libs="-L${with_lua}/lib -llua"
-            else
-            AC_MSG_WARN([Header file ${with_lua}/include/lua.h was not found. Please check lua prefix])
-            fi
-        else
-            AC_CHECK_HEADER([lua.h], [],
-            AC_MSG_WARN([Header file lua.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([lua], [lua_close],
-            [
-                was_lua_5_1_redhat_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua library is to be used (as -llua)])
-            ],
-            [])
-    ])
-
-dnl END of PKG_CHECK_MODULES and/or direct tests for lua
-    AS_CASE(["x${was_lua_5_1_redhat_check_lib_detected}"],
-        [xpkgcfg], [
-                CFLAGS="${lua_5_1_redhat_CFLAGS} ${CFLAGS}"
-                LIBS="${lua_5_1_redhat_LIBS} ${LIBS}"
-            ],
-        [xyes], [
-                CFLAGS="${lua_5_1_redhat_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${lua_5_1_redhat_synthetic_libs} ${LDFLAGS}"
-                LIBS="${lua_5_1_redhat_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([lua_5_1_redhat_CFLAGS],[${lua_5_1_redhat_synthetic_cflags}])
-                AC_SUBST([lua_5_1_redhat_LIBS],[${lua_5_1_redhat_synthetic_libs}])
-            ],
-        [xno], [
-            AC_MSG_WARN([Cannot find pkg-config metadata for lua 5.1.0 or higher])
-    ])
-])
-dnl END of enabled attempts to search for lua
-
-
-was_lua_5_1_debian_check_lib_detected=no
-
-search_lua5_1="no"
-
-AC_ARG_WITH([lua5.1],
-    [
-        AS_HELP_STRING([--with-lua5.1],
-        [yes or no. Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
-    ],
-    [
-        search_lua5_1="yes"
-    ],
-    [])
-AS_CASE([x"${with_lua5_1}"],
-    [xyes], [search_lua5_1="yes"],
-    [xno],  [search_lua5_1="no"])
-
-
-AS_IF([test x"${search_lua5_1}" = xyes], [
-    # Archive previously detected and supplied flags
-    PRE_SEARCH_CFLAGS="${CFLAGS}"
-    PRE_SEARCH_LIBS="${LIBS}"
-
-    PKG_CHECK_MODULES([lua_5_1_debian], [lua5.1 >= 5.1.0],
-    [
-        AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_debian_LIBS"
-        was_lua_5_1_debian_check_lib_detected=pkgcfg
-    ],
-    [
-        AC_MSG_NOTICE([Package lua5.1 not found with needed constraints; falling back to defined compilability tests])
-
-        lua_5_1_debian_synthetic_cflags=""
-        lua_5_1_debian_synthetic_libs="-llua"
-
-        if test -n "${with_lua5_1}" && test x"${with_lua5_1}" != xyes && test x"${with_lua5_1}" != xno; then
-            if test -r "${with_lua5_1}/include/lua.h"; then
-                lua_5_1_debian_synthetic_cflags="-I${with_lua5_1}/include"
-                lua_5_1_debian_synthetic_libs="-L${with_lua5_1}/lib -llua"
-            else
-            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h was not found. Please check lua5.1 prefix])
-            fi
-        else
-            AC_CHECK_HEADER([lua.h], [],
-            AC_MSG_WARN([Header file lua.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([lua], [lua_close],
-            [
-                was_lua_5_1_debian_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used (as -llua)])
-            ],
-            [])
-    ])
-
-dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
-    AS_CASE(["x${was_lua_5_1_debian_check_lib_detected}"],
-        [xpkgcfg], [
-                CFLAGS="${lua_5_1_debian_CFLAGS} ${CFLAGS}"
-                LIBS="${lua_5_1_debian_LIBS} ${LIBS}"
-            ],
-        [xyes], [
-                CFLAGS="${lua_5_1_debian_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${lua_5_1_debian_synthetic_libs} ${LDFLAGS}"
-                LIBS="${lua_5_1_debian_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([lua_5_1_debian_CFLAGS],[${lua_5_1_debian_synthetic_cflags}])
-                AC_SUBST([lua_5_1_debian_LIBS],[${lua_5_1_debian_synthetic_libs}])
-            ],
-        [xno], [
-            AC_MSG_WARN([Cannot find pkg-config metadata for lua5.1 5.1.0 or higher])
-    ])
-])
-dnl END of enabled attempts to search for lua5_1
-
-
-was_lua_check_lib_detected=no
-
-search_lua5_1="no"
-
-AC_ARG_WITH([lua5.1],
-    [
-        AS_HELP_STRING([--with-lua5.1],
-        [yes or no. Optionally specify lua5.1 prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
-    ],
-    [
-        search_lua5_1="yes"
-    ],
-    [])
-AS_CASE([x"${with_lua5_1}"],
-    [xyes], [search_lua5_1="yes"],
-    [xno],  [search_lua5_1="no"])
-
-
-AS_IF([test x"${search_lua5_1}" = xyes], [
-    # Archive previously detected and supplied flags
-    PRE_SEARCH_CFLAGS="${CFLAGS}"
-    PRE_SEARCH_LIBS="${LIBS}"
-
-    PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],
-    [
-        AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used])
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
         was_lua_check_lib_detected=pkgcfg
     ],
     [
+        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.2])
+        PKG_CHECK_MODULES([lua], [lua5.2 >= 5.1.0],
+            [
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+                was_lua_check_lib_detected=pkgcfg
+            ],
+            [
+        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua52])
+        PKG_CHECK_MODULES([lua], [lua52 >= 5.1.0],
+            [
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+                was_lua_check_lib_detected=pkgcfg
+            ],
+            [
+        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.1])
+        PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],
+            [
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+                was_lua_check_lib_detected=pkgcfg
+            ],
+            [
+        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua51])
+        PKG_CHECK_MODULES([lua], [lua51 >= 5.1.0],
+            [
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
+                was_lua_check_lib_detected=pkgcfg
+            ],
+            [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua])
         PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
             [
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
                 was_lua_check_lib_detected=pkgcfg
             ],
             [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.3])
-        PKG_CHECK_MODULES([lua], [lua5.3 >= 5.1.0],
-            [
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The lua5.1 library is to be used])
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-                was_lua_check_lib_detected=pkgcfg
-            ],
-            [
-        AC_MSG_NOTICE([Packages lua5.1 lua lua5.3 not found with needed constraints; falling back to defined compilability tests])
+        AC_MSG_NOTICE([Packages lua lua5.2 lua52 lua5.1 lua51 lua not found with needed constraints; falling back to defined compilability tests])
 
         lua_synthetic_cflags=""
         lua_synthetic_libs="-llua"
 
-        if test -n "${with_lua5_1}" && test x"${with_lua5_1}" != xyes && test x"${with_lua5_1}" != xno; then
-            if test -r "${with_lua5_1}/include/lua.h"; then
-                lua_synthetic_cflags="-I${with_lua5_1}/include"
-                lua_synthetic_libs="-L${with_lua5_1}/lib -llua"
+        if test -n "${with_lua}" && test x"${with_lua}" != xyes && test x"${with_lua}" != xno; then
+            if test -r "${with_lua}/include/lua.h"; then
+                lua_synthetic_cflags="-I${with_lua}/include"
+                lua_synthetic_libs="-L${with_lua}/lib -llua"
             else
-            AC_MSG_WARN([Header file ${with_lua5.1}/include/lua.h was not found. Please check lua5.1 prefix])
+            AC_MSG_ERROR([Header file ${with_lua}/include/lua.h was not found. Please check lua prefix])
             fi
         else
             AC_CHECK_HEADER([lua.h], [],
-            AC_MSG_WARN([Header file lua.h was not found in default search paths])
+            AC_MSG_ERROR([Header file lua.h was not found in default search paths])
                 )
         fi
 
@@ -640,14 +506,16 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
             [
                 was_lua_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-                AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used (as -llua)])
             ],
-            [])
+            [AC_MSG_ERROR([cannot link with -llua, install lua])])
+        ])
+        ])
+        ])
         ])
         ])
     ])
 
-dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
+dnl END of PKG_CHECK_MODULES and/or direct tests for lua
     AS_CASE(["x${was_lua_check_lib_detected}"],
         [xpkgcfg], [
                 CFLAGS="${lua_CFLAGS} ${CFLAGS}"
@@ -662,10 +530,10 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
                 AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_WARN([Cannot find pkg-config metadata for lua5.1 5.1.0 or higher])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for lua 5.1.0 or higher])
     ])
 ])
-dnl END of enabled attempts to search for lua5_1
+dnl END of enabled attempts to search for lua
 
 
 was_cxxtools_check_lib_detected=no
