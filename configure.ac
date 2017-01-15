@@ -154,6 +154,7 @@ AS_IF([test x"${search_libzmq}" = xyes], [
             ],
             [AC_MSG_ERROR([cannot link with -lzmq, install libzmq])])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for libzmq
     AS_CASE(["x${was_libzmq_check_lib_detected}"],
         [xpkgcfg], [
@@ -233,6 +234,7 @@ AS_IF([test x"${search_libczmq}" = xyes], [
             ],
             [AC_MSG_ERROR([cannot link with -lczmq, install libczmq])])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
     AS_CASE(["x${was_czmq_check_lib_detected}"],
         [xpkgcfg], [
@@ -312,6 +314,7 @@ AS_IF([test x"${search_libmlm}" = xyes], [
             ],
             [AC_MSG_ERROR([cannot link with -lmlm, install libmlm])])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
     AS_CASE(["x${was_malamute_check_lib_detected}"],
         [xpkgcfg], [
@@ -391,6 +394,7 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
             ],
             [AC_MSG_ERROR([cannot link with -lftyproto, install libfty_proto])])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
     AS_CASE(["x${was_fty_proto_check_lib_detected}"],
         [xpkgcfg], [
@@ -468,6 +472,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             ],
             [])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua
     AS_CASE(["x${was_lua_5_1_redhat_check_lib_detected}"],
         [xpkgcfg], [
@@ -545,6 +550,7 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
             ],
             [])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
     AS_CASE(["x${was_lua_5_1_debian_check_lib_detected}"],
         [xpkgcfg], [
@@ -637,7 +643,10 @@ AS_IF([test x"${search_lua5_1}" = xyes], [
                 AC_DEFINE(HAVE_LUA_5_1, 1, [The optional lua5.1 library is to be used (as -llua)])
             ],
             [])
+        ])
+        ])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
     AS_CASE(["x${was_lua_check_lib_detected}"],
         [xpkgcfg], [
@@ -654,8 +663,6 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for lua5_1
             ],
         [xno], [
             AC_MSG_WARN([Cannot find pkg-config metadata for lua5.1 5.1.0 or higher])
-        ])
-        ])
     ])
 ])
 dnl END of enabled attempts to search for lua5_1
@@ -719,6 +726,7 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
             ],
             [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
     ])
+
 dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
     AS_CASE(["x${was_cxxtools_check_lib_detected}"],
         [xpkgcfg], [
