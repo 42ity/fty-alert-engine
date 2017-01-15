@@ -123,10 +123,13 @@ AS_IF([test x"${search_libzmq}" = xyes], [
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
+    found_pkgconfig=""
+    found_linkname=""
     PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
         was_libzmq_check_lib_detected=pkgcfg
+        found_pkgconfig="libzmq"
     ],
     [
         AC_MSG_NOTICE([Package libzmq not found; falling back to defined compilability tests])
@@ -151,6 +154,7 @@ AS_IF([test x"${search_libzmq}" = xyes], [
             [
                 was_libzmq_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lzmq"
+                found_linkname="zmq"
             ],
             [AC_MSG_ERROR([cannot link with -lzmq, install libzmq])])
     ])
@@ -158,10 +162,12 @@ AS_IF([test x"${search_libzmq}" = xyes], [
 dnl END of PKG_CHECK_MODULES and/or direct tests for libzmq
     AS_CASE(["x${was_libzmq_check_lib_detected}"],
         [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_libzmq],[${found_pkgconfig}])
                 CFLAGS="${libzmq_CFLAGS} ${CFLAGS}"
                 LIBS="${libzmq_LIBS} ${LIBS}"
             ],
         [xyes], [
+                AC_SUBST([pkgconfig_name_libzmq],[${found_linkname}])
                 CFLAGS="${libzmq_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${libzmq_synthetic_libs} ${LDFLAGS}"
                 LIBS="${libzmq_synthetic_libs} ${LIBS}"
@@ -170,6 +176,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libzmq
                 AC_SUBST([libzmq_LIBS],[${libzmq_synthetic_libs}])
             ],
         [xno], [
+                AC_SUBST([pkgconfig_name_libzmq],[libzmq])
             AC_MSG_ERROR([Cannot find pkg-config metadata for libzmq 0.0.0 or higher])
     ])
 ])
@@ -203,10 +210,13 @@ AS_IF([test x"${search_libczmq}" = xyes], [
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
+    found_pkgconfig=""
+    found_linkname=""
     PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
         was_czmq_check_lib_detected=pkgcfg
+        found_pkgconfig="libczmq"
     ],
     [
         AC_MSG_NOTICE([Package libczmq not found; falling back to defined compilability tests])
@@ -231,6 +241,7 @@ AS_IF([test x"${search_libczmq}" = xyes], [
             [
                 was_czmq_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lczmq"
+                found_linkname="czmq"
             ],
             [AC_MSG_ERROR([cannot link with -lczmq, install libczmq])])
     ])
@@ -238,10 +249,12 @@ AS_IF([test x"${search_libczmq}" = xyes], [
 dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
     AS_CASE(["x${was_czmq_check_lib_detected}"],
         [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_libczmq],[${found_pkgconfig}])
                 CFLAGS="${czmq_CFLAGS} ${CFLAGS}"
                 LIBS="${czmq_LIBS} ${LIBS}"
             ],
         [xyes], [
+                AC_SUBST([pkgconfig_name_libczmq],[${found_linkname}])
                 CFLAGS="${czmq_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${czmq_synthetic_libs} ${LDFLAGS}"
                 LIBS="${czmq_synthetic_libs} ${LIBS}"
@@ -250,6 +263,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
                 AC_SUBST([czmq_LIBS],[${czmq_synthetic_libs}])
             ],
         [xno], [
+                AC_SUBST([pkgconfig_name_libczmq],[libczmq])
             AC_MSG_ERROR([Cannot find pkg-config metadata for libczmq 0.0.0 or higher])
     ])
 ])
@@ -283,10 +297,13 @@ AS_IF([test x"${search_libmlm}" = xyes], [
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
+    found_pkgconfig=""
+    found_linkname=""
     PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
         was_malamute_check_lib_detected=pkgcfg
+        found_pkgconfig="libmlm"
     ],
     [
         AC_MSG_NOTICE([Package libmlm not found; falling back to defined compilability tests])
@@ -311,6 +328,7 @@ AS_IF([test x"${search_libmlm}" = xyes], [
             [
                 was_malamute_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmlm"
+                found_linkname="mlm"
             ],
             [AC_MSG_ERROR([cannot link with -lmlm, install libmlm])])
     ])
@@ -318,10 +336,12 @@ AS_IF([test x"${search_libmlm}" = xyes], [
 dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
     AS_CASE(["x${was_malamute_check_lib_detected}"],
         [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_libmlm],[${found_pkgconfig}])
                 CFLAGS="${malamute_CFLAGS} ${CFLAGS}"
                 LIBS="${malamute_LIBS} ${LIBS}"
             ],
         [xyes], [
+                AC_SUBST([pkgconfig_name_libmlm],[${found_linkname}])
                 CFLAGS="${malamute_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${malamute_synthetic_libs} ${LDFLAGS}"
                 LIBS="${malamute_synthetic_libs} ${LIBS}"
@@ -330,6 +350,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
                 AC_SUBST([malamute_LIBS],[${malamute_synthetic_libs}])
             ],
         [xno], [
+                AC_SUBST([pkgconfig_name_libmlm],[libmlm])
             AC_MSG_ERROR([Cannot find pkg-config metadata for libmlm 0.0.0 or higher])
     ])
 ])
@@ -363,10 +384,13 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
+    found_pkgconfig=""
+    found_linkname=""
     PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
         was_fty_proto_check_lib_detected=pkgcfg
+        found_pkgconfig="libfty_proto"
     ],
     [
         AC_MSG_NOTICE([Package libfty_proto not found; falling back to defined compilability tests])
@@ -391,6 +415,7 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
             [
                 was_fty_proto_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lftyproto"
+                found_linkname="ftyproto"
             ],
             [AC_MSG_ERROR([cannot link with -lftyproto, install libfty_proto])])
     ])
@@ -398,10 +423,12 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
     AS_CASE(["x${was_fty_proto_check_lib_detected}"],
         [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_libfty_proto],[${found_pkgconfig}])
                 CFLAGS="${fty_proto_CFLAGS} ${CFLAGS}"
                 LIBS="${fty_proto_LIBS} ${LIBS}"
             ],
         [xyes], [
+                AC_SUBST([pkgconfig_name_libfty_proto],[${found_linkname}])
                 CFLAGS="${fty_proto_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${fty_proto_synthetic_libs} ${LDFLAGS}"
                 LIBS="${fty_proto_synthetic_libs} ${LIBS}"
@@ -410,6 +437,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
                 AC_SUBST([fty_proto_LIBS],[${fty_proto_synthetic_libs}])
             ],
         [xno], [
+                AC_SUBST([pkgconfig_name_libfty_proto],[libfty_proto])
             AC_MSG_ERROR([Cannot find pkg-config metadata for libfty_proto 0.0.0 or higher])
     ])
 ])
@@ -443,10 +471,13 @@ AS_IF([test x"${search_lua}" = xyes], [
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
+    found_pkgconfig=""
+    found_linkname=""
     PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
         was_lua_check_lib_detected=pkgcfg
+        found_pkgconfig="lua"
     ],
     [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.2])
@@ -454,6 +485,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
                 was_lua_check_lib_detected=pkgcfg
+                found_pkgconfig="lua5.2"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua52])
@@ -461,6 +493,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
                 was_lua_check_lib_detected=pkgcfg
+                found_pkgconfig="lua52"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.1])
@@ -468,6 +501,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
                 was_lua_check_lib_detected=pkgcfg
+                found_pkgconfig="lua5.1"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua51])
@@ -475,6 +509,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
                 was_lua_check_lib_detected=pkgcfg
+                found_pkgconfig="lua51"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua])
@@ -482,6 +517,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
                 was_lua_check_lib_detected=pkgcfg
+                found_pkgconfig="lua"
             ],
             [
         AC_MSG_NOTICE([Packages lua lua5.2 lua52 lua5.1 lua51 lua not found with needed constraints; falling back to defined compilability tests])
@@ -506,6 +542,7 @@ AS_IF([test x"${search_lua}" = xyes], [
             [
                 was_lua_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
+                found_linkname="lua"
             ],
             [AC_MSG_ERROR([cannot link with -llua, install lua])])
         ])
@@ -518,10 +555,12 @@ AS_IF([test x"${search_lua}" = xyes], [
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua
     AS_CASE(["x${was_lua_check_lib_detected}"],
         [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_lua],[${found_pkgconfig}])
                 CFLAGS="${lua_CFLAGS} ${CFLAGS}"
                 LIBS="${lua_LIBS} ${LIBS}"
             ],
         [xyes], [
+                AC_SUBST([pkgconfig_name_lua],[${found_linkname}])
                 CFLAGS="${lua_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${lua_synthetic_libs} ${LDFLAGS}"
                 LIBS="${lua_synthetic_libs} ${LIBS}"
@@ -530,6 +569,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for lua
                 AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
             ],
         [xno], [
+                AC_SUBST([pkgconfig_name_lua],[lua])
             AC_MSG_ERROR([Cannot find pkg-config metadata for lua 5.1.0 or higher])
     ])
 ])
@@ -563,10 +603,13 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
+    found_pkgconfig=""
+    found_linkname=""
     PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
         was_cxxtools_check_lib_detected=pkgcfg
+        found_pkgconfig="cxxtools"
     ],
     [
         AC_MSG_NOTICE([Package cxxtools not found; falling back to defined compilability tests])
@@ -591,6 +634,7 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
             [
                 was_cxxtools_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lcxxtools"
+                found_linkname="cxxtools"
             ],
             [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
     ])
@@ -598,10 +642,12 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
 dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
     AS_CASE(["x${was_cxxtools_check_lib_detected}"],
         [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_cxxtools],[${found_pkgconfig}])
                 CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
                 LIBS="${cxxtools_LIBS} ${LIBS}"
             ],
         [xyes], [
+                AC_SUBST([pkgconfig_name_cxxtools],[${found_linkname}])
                 CFLAGS="${cxxtools_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${cxxtools_synthetic_libs} ${LDFLAGS}"
                 LIBS="${cxxtools_synthetic_libs} ${LIBS}"
@@ -610,6 +656,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
                 AC_SUBST([cxxtools_LIBS],[${cxxtools_synthetic_libs}])
             ],
         [xno], [
+                AC_SUBST([pkgconfig_name_cxxtools],[cxxtools])
             AC_MSG_ERROR([Cannot find pkg-config metadata for cxxtools 0.0.0 or higher])
     ])
 ])
