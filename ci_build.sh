@@ -299,12 +299,12 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] || [ 
         cd "${BASE_PWD}"
     fi
 
-    # Start of recipe for dependency: lua
+    # Start of recipe for dependency: lua-5.1
     if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list liblua5.1-0-dev >/dev/null 2>&1) || \
-           (command -v brew >/dev/null 2>&1 && brew ls --versions lua >/dev/null 2>&1) \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions lua-5.1 >/dev/null 2>&1) \
     ; then
         echo ""
-        echo "WARNING: Can not build prerequisite 'lua'" >&2
+        echo "WARNING: Can not build prerequisite 'lua-5.1'" >&2
         echo "because neither tarball nor repository sources are known for it," >&2
         echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
     fi

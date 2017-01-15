@@ -444,7 +444,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
 dnl END of enabled attempts to search for libfty_proto
 
 
-was_lua_check_lib_detected=no
+was_lua_5_1_check_lib_detected=no
 
 search_lua="yes"
 
@@ -464,7 +464,7 @@ AS_CASE([x"${with_lua}"],
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
 AS_IF([test x"${search_lua}" = xno],
-    [AC_MSG_WARN([Required dependency on lua was explicitly disabled during configuration by '--with-lua=no'; subsequent full build of fty-alert-engine may fail])])
+    [AC_MSG_WARN([Required dependency on lua_5_1 was explicitly disabled during configuration by '--with-lua=no'; subsequent full build of fty-alert-engine may fail])])
 
 AS_IF([test x"${search_lua}" = xyes], [
     # Archive previously detected and supplied flags
@@ -473,62 +473,62 @@ AS_IF([test x"${search_lua}" = xyes], [
 
     found_pkgconfig=""
     found_linkname=""
-    PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
+    PKG_CHECK_MODULES([lua_5_1], [lua >= 5.1.0],
     [
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-        was_lua_check_lib_detected=pkgcfg
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_LIBS"
+        was_lua_5_1_check_lib_detected=pkgcfg
         found_pkgconfig="lua"
     ],
     [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.2])
-        PKG_CHECK_MODULES([lua], [lua5.2 >= 5.1.0],
+        PKG_CHECK_MODULES([lua_5_1], [lua5.2 >= 5.1.0],
             [
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-                was_lua_check_lib_detected=pkgcfg
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_LIBS"
+                was_lua_5_1_check_lib_detected=pkgcfg
                 found_pkgconfig="lua5.2"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua52])
-        PKG_CHECK_MODULES([lua], [lua52 >= 5.1.0],
+        PKG_CHECK_MODULES([lua_5_1], [lua52 >= 5.1.0],
             [
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-                was_lua_check_lib_detected=pkgcfg
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_LIBS"
+                was_lua_5_1_check_lib_detected=pkgcfg
                 found_pkgconfig="lua52"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.1])
-        PKG_CHECK_MODULES([lua], [lua5.1 >= 5.1.0],
+        PKG_CHECK_MODULES([lua_5_1], [lua5.1 >= 5.1.0],
             [
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-                was_lua_check_lib_detected=pkgcfg
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_LIBS"
+                was_lua_5_1_check_lib_detected=pkgcfg
                 found_pkgconfig="lua5.1"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua51])
-        PKG_CHECK_MODULES([lua], [lua51 >= 5.1.0],
+        PKG_CHECK_MODULES([lua_5_1], [lua51 >= 5.1.0],
             [
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-                was_lua_check_lib_detected=pkgcfg
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_LIBS"
+                was_lua_5_1_check_lib_detected=pkgcfg
                 found_pkgconfig="lua51"
             ],
             [
         AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua])
-        PKG_CHECK_MODULES([lua], [lua >= 5.1.0],
+        PKG_CHECK_MODULES([lua_5_1], [lua >= 5.1.0],
             [
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_LIBS"
-                was_lua_check_lib_detected=pkgcfg
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $lua_5_1_LIBS"
+                was_lua_5_1_check_lib_detected=pkgcfg
                 found_pkgconfig="lua"
             ],
             [
         AC_MSG_NOTICE([Packages lua lua5.2 lua52 lua5.1 lua51 lua not found with needed constraints; falling back to defined compilability tests])
 
-        lua_synthetic_cflags=""
-        lua_synthetic_libs="-llua"
+        lua_5_1_synthetic_cflags=""
+        lua_5_1_synthetic_libs="-llua"
 
         if test -n "${with_lua}" && test x"${with_lua}" != xyes && test x"${with_lua}" != xno; then
             if test -r "${with_lua}/include/lua.h"; then
-                lua_synthetic_cflags="-I${with_lua}/include"
-                lua_synthetic_libs="-L${with_lua}/lib -llua"
+                lua_5_1_synthetic_cflags="-I${with_lua}/include"
+                lua_5_1_synthetic_libs="-L${with_lua}/lib -llua"
             else
             AC_MSG_ERROR([Header file ${with_lua}/include/lua.h was not found. Please check lua prefix])
             fi
@@ -540,7 +540,7 @@ AS_IF([test x"${search_lua}" = xyes], [
 
         AC_CHECK_LIB([lua], [lua_close],
             [
-                was_lua_check_lib_detected=yes
+                was_lua_5_1_check_lib_detected=yes
                 PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
                 found_linkname="lua"
             ],
@@ -553,20 +553,20 @@ AS_IF([test x"${search_lua}" = xyes], [
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for lua
-    AS_CASE(["x${was_lua_check_lib_detected}"],
+    AS_CASE(["x${was_lua_5_1_check_lib_detected}"],
         [xpkgcfg], [
                 AC_SUBST([pkgconfig_name_lua],[${found_pkgconfig}])
-                CFLAGS="${lua_CFLAGS} ${CFLAGS}"
-                LIBS="${lua_LIBS} ${LIBS}"
+                CFLAGS="${lua_5_1_CFLAGS} ${CFLAGS}"
+                LIBS="${lua_5_1_LIBS} ${LIBS}"
             ],
         [xyes], [
                 AC_SUBST([pkgconfig_name_lua],[${found_linkname}])
-                CFLAGS="${lua_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${lua_synthetic_libs} ${LDFLAGS}"
-                LIBS="${lua_synthetic_libs} ${LIBS}"
+                CFLAGS="${lua_5_1_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${lua_5_1_synthetic_libs} ${LDFLAGS}"
+                LIBS="${lua_5_1_synthetic_libs} ${LIBS}"
 
-                AC_SUBST([lua_CFLAGS],[${lua_synthetic_cflags}])
-                AC_SUBST([lua_LIBS],[${lua_synthetic_libs}])
+                AC_SUBST([lua_5_1_CFLAGS],[${lua_5_1_synthetic_cflags}])
+                AC_SUBST([lua_5_1_LIBS],[${lua_5_1_synthetic_libs}])
             ],
         [xno], [
                 AC_SUBST([pkgconfig_name_lua],[lua])

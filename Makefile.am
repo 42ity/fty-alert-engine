@@ -20,12 +20,12 @@ AM_CPPFLAGS = \
     ${czmq_CFLAGS} \
     ${malamute_CFLAGS} \
     ${fty_proto_CFLAGS} \
-    ${lua_CFLAGS} \
+    ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_LIBS} ${cxxtools_LIBS}
+project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc
@@ -47,7 +47,7 @@ EXTRA_DIST += \
     Findczmq.cmake \
     Findmalamute.cmake \
     Findfty_proto.cmake \
-    Findlua.cmake \
+    Findlua_5_1.cmake \
     Findcxxtools.cmake \
     CMakeLists.txt
 endif
