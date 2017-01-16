@@ -36,7 +36,7 @@ static const char *ENDPOINT = "ipc://@/malamute";
 int main (int argc, char** argv)
 {
     bool set_verbose = false;
-    char* fty_log_level = getenv ("FTY_LOG_LEVEL");
+    char* fty_log_level = getenv ("BIOS_LOG_LEVEL");
     if (argc == 2 && streq (argv[1], "-v")) {
         set_verbose = true;
     }
