@@ -22,46 +22,6 @@
         test = "fty_proto_test">
         <use project = "malamute"/>
     </use>
-    <!-- Note: the optional flag causes "configure" script to not fail
-         if pkg-config metadata (or tests) do not succeed on a distro;
-         the project build would fail if no LUA-5.1 library if present.
-         This also causes some duplicates in generated code, but these
-         "should" be harmless in practice. Also, these packages are not
-         generated into the list of "required" for a build in spec/dsc
-         files and have to be plugged there manually. -->
-<!--
-    <use project = "lua-5.1-redhat" libname = "lua" prefix="lua"
-        optional = "1" am_lib_macro = "LUA_5_1"
-        min_major = "5" min_minor = "1" mit_patch = "0"
-        debian_name="" redhat_name="lua-devel"
-        test = "lua_close"
-    />
-    <use project = "lua-5.1-debian" libname = "lua5.1" prefix="lua"
-        optional = "1" am_lib_macro = "LUA_5_1"
-        min_major = "5" min_minor = "1" mit_patch = "0"
-        debian_name="liblua5.1-0-dev" redhat_name=""
-        test = "lua_close"
-    />
--->
-
-<!--
-    <use project = "lua" libname = "lua" prefix="lua"
-        optional = "0" am_lib_macro = "LUA_5_1"
-        min_major = "5" min_minor = "1" min_patch = "0"
-        debian_name="liblua5.1-0-dev" redhat_name="lua-devel"
-        test = "lua_close">
-            <linkname>lua5.2</linkname>
-            <linkname>lua52</linkname>
-            <linkname>lua5.1</linkname>
-            <linkname>lua51</linkname>
-            <linkname>lua</linkname>
-            <pkgconfig>lua5.2</pkgconfig>
-            <pkgconfig>lua52</pkgconfig>
-            <pkgconfig>lua5.1</pkgconfig>
-            <pkgconfig>lua51</pkgconfig>
-            <pkgconfig>lua</pkgconfig>
-    </use>
--->
 
     <use project = "lua-5.1" />
 
