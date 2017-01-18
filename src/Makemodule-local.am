@@ -4,7 +4,9 @@ EXTRA_DIST += \
 	src/thresholdrulesimple.h \
 	src/thresholdruledevice.h \
 	src/regexrule.h \
-	testrules/*.rule
+	testrules/*.rule \
+	src/warranty.rule
+
 
 CLEANFILES += \
 	src/*.rule
@@ -40,3 +42,6 @@ clean-local-check:
 	        rm -rf "$(abs_top_builddir)/testrules" ; \
 	    fi; \
 	 fi
+
+all-local: src/warranty.rule.in
+	cp src/warranty.rule.in src/warranty.rule
