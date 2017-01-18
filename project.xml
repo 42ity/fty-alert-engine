@@ -37,9 +37,7 @@
     <class name = "rule" private="1" selftest = "0">Rule</class>
     <class name = "thresholdrulecomplex" private="1" selftest = "0">ThresholdRuleComplex</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
-    <main name = "fty-alert-engine" service = "1" no_config = "1" >
+    <main name = "fty-alert-engine" service = "1">
         Daemon evaluating rules and producing alerts
-        <extra type = "x-rules" path = "/var/lib/fty/fty_alert_engine" name = "warranty.rule" />
-        <extra type = "systemd-tmpfiles" />
     </main>
 </project>

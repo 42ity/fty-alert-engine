@@ -1,0 +1,15 @@
+<!--
+Installation model
+
+    1. by path & name
+    path - absolute path to the file
+    name - file name
+
+    2. type
+    * systemd-tmpfiles  - install $(project.name) to /usr/lib/systemd/tmpfiles.d/
+     -->
+
+<install>
+    <item type = "systemd-tmpfiles" />
+    <item path = "/var/lib/fty/fty_alert_engine" name = "warranty.rule" />
+</install>
