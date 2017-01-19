@@ -11,5 +11,5 @@ Installation model
 
 <install>
     <item type = "systemd-tmpfiles" />
-    <item path = "/var/lib/fty/fty_alert_engine" name = "warranty.rule" />
+    <item path = "/var/lib/fty/fty-alert-engine" name = "warranty.rule" />
 </install>
