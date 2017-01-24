@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_alert_engine_classes - private header file
 
-    Copyright (C) 2014 - 2015 Eaton                                        
+    Copyright (C) 2014 - 2017 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -31,6 +31,34 @@
 
 //  External API
 #include "../include/fty_alert_engine.h"
+
+//  Extra headers
+
+//  Opaque class structures to allow forward references
+#ifndef METRICLIST_T_DEFINED
+typedef struct _metriclist_t metriclist_t;
+#define METRICLIST_T_DEFINED
+#endif
+#ifndef ALERTCONFIGURATION_T_DEFINED
+typedef struct _alertconfiguration_t alertconfiguration_t;
+#define ALERTCONFIGURATION_T_DEFINED
+#endif
+#ifndef LUARULE_T_DEFINED
+typedef struct _luarule_t luarule_t;
+#define LUARULE_T_DEFINED
+#endif
+#ifndef PUREALERT_T_DEFINED
+typedef struct _purealert_t purealert_t;
+#define PUREALERT_T_DEFINED
+#endif
+#ifndef RULE_T_DEFINED
+typedef struct _rule_t rule_t;
+#define RULE_T_DEFINED
+#endif
+#ifndef THRESHOLDRULECOMPLEX_T_DEFINED
+typedef struct _thresholdrulecomplex_t thresholdrulecomplex_t;
+#define THRESHOLDRULECOMPLEX_T_DEFINED
+#endif
 
 //  Internal API
 #include "metriclist.h"
