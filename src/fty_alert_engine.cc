@@ -23,9 +23,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "fty_alert_engine.h"
 
-// path to the directory, where rules are stored. Attention: without last slash!
-static const char *PATH = "/var/lib/bios/alert_agent";
-
 // agents name
 static const char *AGENT_NAME = "fty-alert-engine";
 
@@ -49,10 +46,10 @@ int main (int argc, char** argv)
         zstr_sendx (ag_server, "VERBOSE", NULL);
     zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_server, "CONFIG", PATH, NULL);
-    // TODO add constants from libftyproto!!
-    zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
-    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
-    zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
+    zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
 
 
     //  Accept and print any message back from server
