@@ -24,9 +24,9 @@ extern int agent_alert_verbose;
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
+#include <algorithm>
 
 #include "alertconfiguration.h"
-
 
 #include "metriclist.h"
 #include "normalrule.h"
@@ -147,7 +147,7 @@ std::set <std::string> AlertConfiguration::
             // read rule from the file
             std::ifstream f(d.path() + "/" + fn);
             zsys_debug1 ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
-            std::unique_ptr<Rule> rule;
+            std::shared_ptr<Rule> rule;
             int rv = readRule (f, rule);
             if ( rv != 0 ) {
                 // rule can't be read correctly from the file
@@ -261,6 +261,44 @@ int AlertConfiguration::
 }
 
 int AlertConfiguration::
+    removeRulesForAsset (
+        const std::string &asset_name,
+        std::vector <PureAlert> &alertsToSend)
+{
+    for (auto &oneRuleAlerts : _alerts)
+    {
+        if (oneRuleAlerts.first->_element == asset_name) {
+            std::string rule_name = oneRuleAlerts.first->name ();
+            // remove rule from persistent storage
+            int rv = oneRuleAlerts.first->remove (getPersistencePath());
+            if (rv != 0) {
+                zsys_error ("rule '%s' could not be removed", rule_name.c_str());
+                return -1;
+            }
+            // resolve found alerts
+            for (auto &oneAlert : oneRuleAlerts.second) {
+                oneAlert._status = ALERT_RESOLVED;
+                oneAlert._description = "Rule changed";
+                // put them into the list of alerts that changed
+                alertsToSend.push_back (oneAlert);
+            }
+            // clear cache
+            oneRuleAlerts.second.clear ();
+            // remove rule
+            oneRuleAlerts.first.reset ();
+        }
+    }
+
+    // remove all entries concerning 'asset_name'
+    _alerts.erase (std::remove_if (_alerts.begin(),
+                                _alerts.end(),
+                                [&asset_name] (std::pair <RulePtr, std::vector<PureAlert>> elem) {  return (elem.first->_element == asset_name); }
+                                ),
+                    _alerts.end());
+    return 0;
+}
+
+int AlertConfiguration::
     updateRule (
         std::istream &newRuleString,
         const std::string &old_name,
@@ -341,7 +379,7 @@ int AlertConfiguration::
     rule_to_update->second.clear();
     // remove old rule
     rule_to_update->first.reset ();
-    // remove entire entiry
+    // remove entire entry
     _alerts.erase (rule_to_update);
 
     // find new topics to subscribe

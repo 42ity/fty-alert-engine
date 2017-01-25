@@ -94,7 +94,7 @@ enum RULE_RESULT {
 };
 
 class Rule;
-typedef std::unique_ptr<Rule> RulePtr;
+typedef std::shared_ptr<Rule> RulePtr;
 
 /*
  * \brief General representation for rules
