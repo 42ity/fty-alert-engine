@@ -55,6 +55,10 @@ int agent_alert_verbose = 0;
 #include "fty_alert_engine.h"
 #include "fty_alert_engine_classes.h"
 
+// path to the directory where templates are stored. Attention: without last slash!
+// (changed from /usr/share/bios/fty-autoconfig/)
+static const char *TEMPLATES = "/usr/share/fty/fty-alert-engine";
+
 static void
 list_rules(
     mlm_client_t *client,
@@ -469,15 +473,15 @@ type_subtype2type_name (const char *type, const char *subtype)
 }
 
 static std::vector <std::string>
-loadTemplates (const char *type, const char *subtype)
+loadTemplates (const char *templates_dir, const char *type, const char *subtype)
 {
     std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (TEMPLATES)){
-        zsys_info ("Rule templates '%s' dir does not exist", TEMPLATES);
+    if (!cxxtools::Directory::exists (templates_dir)){
+        zsys_info ("Rule templates '%s' dir does not exist", templates_dir);
         return templates;
     }
     std::string type_name = type_subtype2type_name (type, subtype);
-    cxxtools::Directory d (TEMPLATES);
+    cxxtools::Directory d (templates_dir);
     for ( const auto &fn : d) {
         if ( fn.find(type_name.c_str())!= std::string::npos){
             zsys_debug("match %s", fn.c_str());
@@ -505,13 +509,14 @@ replaceTokens( const std::string &text, const std::string &pattern, const std::s
 static bool
 generateRulesForAsset (
         mlm_client_t *client,
+        const char *templates_dir,
         const char *type,
         const char *subtype,
         const char *name,
         AlertConfiguration alertConfiguration)
 {
     bool result = true;
-    std::vector <std::string> templates = loadTemplates (type, subtype);
+    std::vector <std::string> templates = loadTemplates (templates_dir, type, subtype);
     for ( auto &templat : templates) {
         std::string rule = replaceTokens (templat,"__name__",name);
         zsys_debug("creating rule :\n %s", rule.c_str());
@@ -680,7 +685,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 if (streq (operation, FTY_PROTO_ASSET_OP_CREATE)) {
                     const char *type = fty_proto_aux_string (bmessage, "type", NULL);
                     const char *subtype = fty_proto_aux_string (bmessage, "subtype", NULL);
-                    generateRulesForAsset (client, type, subtype, name, alertConfiguration);
+                    generateRulesForAsset (client, TEMPLATES, type, subtype, name, alertConfiguration);
                 }
                 else if (streq (operation, FTY_PROTO_ASSET_OP_UPDATE)) {
                     // delete correspoding rules, mark all alerts corresponding to this asset as resolved
@@ -688,7 +693,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                     // generate new rules
                     const char *type = fty_proto_aux_string (bmessage, "type", NULL);
                     const char *subtype = fty_proto_aux_string (bmessage, "subtype", NULL);
-                    generateRulesForAsset (client, type, subtype, name, alertConfiguration);
+                    generateRulesForAsset (client, TEMPLATES, type, subtype, name, alertConfiguration);
                     // re-evaluate all rules
                     alertConfiguration.evaluateRulesForAsset (client, name, cache);
                 }

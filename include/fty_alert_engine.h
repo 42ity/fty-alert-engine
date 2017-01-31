@@ -30,8 +30,4 @@
 // path to the directory, where rules are stored. Attention: without last slash!
 #define PATH "/var/lib/bios/alert_agent"
 
-// path to the directory where templates are stored. Attention: without last slash!
-// (changed from /usr/share/bios/fty-autoconfig/)
-#define TEMPLATES "/usr/share/fty/fty-alert-engine"
-
 #endif
