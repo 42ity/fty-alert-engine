@@ -501,11 +501,32 @@ replaceTokens( const std::string &text, const std::string &pattern, const std::s
     return result;
 }
 
+//go through all the rule templates, create rules correspoding to the new asset
+static bool
+generateRulesForAsset (
+        mlm_client_t *client,
+        const char *type,
+        const char *subtype,
+        const char *name,
+        AlertConfiguration alertConfiguration)
+{
+    bool result = true;
+    std::vector <std::string> templates = loadTemplates (type, subtype);
+    for ( auto &templat : templates) {
+        std::string rule = replaceTokens (templat,"__name__",name);
+        zsys_debug("creating rule :\n %s", rule.c_str());
+        result &= add_rule (client, rule.c_str(), alertConfiguration);
+    }
+
+    return result;
+}
+
 void
 fty_alert_engine_server (zsock_t *pipe, void* args)
 {
     MetricList cache; // need to track incoming measurements
     AlertConfiguration alertConfiguration;
+    std::vector <PureAlert> alertsToSend;
     char *name = (char*) args;
 
     mlm_client_t *client = mlm_client_new ();
@@ -653,38 +674,30 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
             }
             else
             if (fty_proto_id (bmessage) == FTY_PROTO_ASSET) {
-                const char *type = fty_proto_aux_string (bmessage, "type", NULL);
-                const char *subtype = fty_proto_aux_string (bmessage, "subtype", NULL);
                 const char *name = fty_proto_name (bmessage);
                 const char *operation = fty_proto_operation (bmessage);
 
                 if (streq (operation, FTY_PROTO_ASSET_OP_CREATE)) {
-                    //go through all the rule templates
-                    //create rules correspoding to the new asset
-                    bool result = true;
-                    std::vector <std::string> templates = loadTemplates (type, subtype);
-                    for ( auto &templat : templates) {
-                        std::string rule = replaceTokens (templat,"__name__",name);
-                        zsys_debug("creating rule :\n %s", rule.c_str());
-                        result &= add_rule (client, rule.c_str(), alertConfiguration);
-                    }
+                    const char *type = fty_proto_aux_string (bmessage, "type", NULL);
+                    const char *subtype = fty_proto_aux_string (bmessage, "subtype", NULL);
+                    generateRulesForAsset (client, type, subtype, name, alertConfiguration);
                 }
                 else if (streq (operation, FTY_PROTO_ASSET_OP_UPDATE)) {
-
-                    // change properties of asset in the cache
+                    // delete correspoding rules, mark all alerts corresponding to this asset as resolved
+                    alertConfiguration.removeRulesForAsset (name, alertsToSend);
+                    // generate new rules
+                    const char *type = fty_proto_aux_string (bmessage, "type", NULL);
+                    const char *subtype = fty_proto_aux_string (bmessage, "subtype", NULL);
+                    generateRulesForAsset (client, type, subtype, name, alertConfiguration);
+                    // re-evaluate all rules
+                    alertConfiguration.evaluateRulesForAsset (client, name, cache);
                 }
-                else if (streq (operation, FTY_PROTO_ASSET_OP_DELETE)) {
-                    // delete asset from the cache
-                    // delete correspoding rules
-                    // mark all alerts corresponding to this asset as resolved
-                }
-                else if (streq (operation, FTY_PROTO_ASSET_OP_RETIRE)) {
-                    // delete asset from the cache
-                    // delete correspoding rules
-                    // mark all alerts corresponding to this asset as resolved
+                else if (streq (operation, FTY_PROTO_ASSET_OP_DELETE) || streq (operation, FTY_PROTO_ASSET_OP_RETIRE)) {
+                    // delete correspoding rules, mark all alerts corresponding to this asset as resolved
+                    alertConfiguration.removeRulesForAsset (name, alertsToSend);
                 }
                 else if (streq (operation, FTY_PROTO_ASSET_OP_INVENTORY)) {
-                    // change properties of asset in the cache
+                    // do nothing (yet)
                 }
                 else
                     zsys_error ("received asset message for asset '%s' with invalid operation %s, ignore message", name, operation);
