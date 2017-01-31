@@ -25,6 +25,8 @@ extern int agent_alert_verbose;
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
 #include <algorithm>
+#include <fty_proto.h>
+#include <malamute.h>
 
 #include "alertconfiguration.h"
 
@@ -296,6 +298,92 @@ int AlertConfiguration::
                                 ),
                     _alerts.end());
     return 0;
+}
+
+static std::string
+makeActionList(
+    const std::vector <std::string> &actions)
+{
+    std::string s;
+    bool first = true;
+    for (const auto& oneAction : actions) {
+        if (first) {
+            s.append (oneAction);
+            first = false;
+        }
+        else {
+            s.append ("/").append (oneAction);
+        }
+    }
+    return s;
+}
+
+static void
+send_alerts(
+    mlm_client_t *client,
+    const std::vector <PureAlert> &alertsToSend,
+    const std::string &rule_name)
+{
+    for ( const auto &alert : alertsToSend )
+    {
+        // create 3*ttl minutes alert TTL
+        zhash_t *aux = zhash_new();
+        zhash_autofree (aux);
+        zhash_insert (aux, "TTL", (void*) std::to_string (alert._ttl).c_str ());
+
+        zmsg_t *msg = fty_proto_encode_alert (
+            aux,
+            rule_name.c_str(),
+            alert._element.c_str(),
+            alert._status.c_str(),
+            alert._severity.c_str(),
+            alert._description.c_str(),
+            ::time (NULL),
+            makeActionList(alert._actions).c_str()
+        );
+        if( msg ) {
+            std::string atopic = rule_name + "/"
+                + alert._severity + "@"
+                + alert._element;
+            mlm_client_send (client, atopic.c_str(), &msg);
+            zsys_debug1 ("mlm_client_send (subject = '%s')", atopic.c_str());
+        }
+        zhash_destroy (&aux);
+    }
+}
+
+void AlertConfiguration::
+    evaluateRulesForAsset (
+        mlm_client_t *client,
+        const std::string &asset_name,
+        const MetricList &knownMetricValues)
+{
+    for (auto &oneRuleAlerts : _alerts)
+    {
+        auto &rule = oneRuleAlerts.first;
+        if (rule->_element == asset_name) {
+            try {
+                PureAlert pureAlert;
+                int rv = rule->evaluate (knownMetricValues, pureAlert);
+                if ( rv != 0 ) {
+                    zsys_error (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
+                    continue;
+                }
+
+                PureAlert alertToSend;
+                rv = updateAlert (rule, pureAlert, alertToSend);
+                if ( rv == -1 ) {
+                    zsys_debug1 (" ### alert updated, nothing to send");
+                    // nothing to send
+                    continue;
+                }
+                send_alerts (client, {alertToSend}, rule->name ());
+            }
+            catch ( const std::exception &e) {
+                zsys_error ("CANNOT evaluate rule, because '%s'", e.what());
+            }
+        }
+    }
 }
 
 int AlertConfiguration::
