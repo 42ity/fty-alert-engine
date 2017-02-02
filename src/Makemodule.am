@@ -14,6 +14,7 @@ pkgconfig_DATA = src/libfty_alert_engine.pc
 
 include_HEADERS = \
     include/fty_alert_engine.h \
+    include/fty_alert_engine_configurator.h \
     include/fty_alert_engine_server.h \
     include/fty_alert_engine_library.h
 
@@ -24,6 +25,7 @@ src_libfty_alert_engine_la_SOURCES = \
     src/purealert.cc \
     src/rule.cc \
     src/thresholdrulecomplex.cc \
+    src/fty_alert_engine_configurator.cc \
     src/fty_alert_engine_server.cc \
     src/platform.h
 

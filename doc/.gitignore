@@ -11,6 +11,8 @@
 *.xml7
 
 # Ignore the source doc texts generated from program sources
+fty_alert_engine_configurator.txt
+fty_alert_engine_configurator.doc
 fty_alert_engine_server.txt
 fty_alert_engine_server.doc
 fty-alert-engine.txt
