@@ -1,6 +1,7 @@
 # Travis CI script
 # This is a skeleton created by zproject.
 # You can add hand-written code here.
+### Note: Customized after generation
 
 language: c
 
@@ -54,7 +55,7 @@ addons:
 #    - libzmq3-dev
 #    - libczmq-dev
 #    - libmlm-dev
-#    - libfty_proto-dev
+#    - libfty-proto-dev
     - liblua5.1-0-dev
 #    - cxxtools-dev
 
