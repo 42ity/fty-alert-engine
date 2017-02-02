@@ -37,6 +37,7 @@ typedef struct {
 static test_item_t
 all_tests [] = {
 // Tests for stable public classes:
+    { "fty_alert_engine_configurator", fty_alert_engine_configurator_test },
     { "fty_alert_engine_server", fty_alert_engine_server_test },
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
     { "private_classes", fty_alert_engine_private_selftest },
@@ -98,13 +99,14 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("7");
+            puts ("8");
             return 0;
         }
         else
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
+            puts ("    fty_alert_engine_configurator\t\t- stable");
             puts ("    fty_alert_engine_server\t\t- stable");
             puts ("    private_classes\t- draft");
             return 0;

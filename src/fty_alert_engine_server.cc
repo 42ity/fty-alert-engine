@@ -34,6 +34,7 @@
 #include <math.h>
 #include <functional>
 #include <algorithm>
+#include <cxxtools/directory.h>
 
 int agent_alert_verbose = 0;
 
@@ -48,11 +49,11 @@ int agent_alert_verbose = 0;
 
 #include "alertconfiguration.h"
 
-#define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
 
 #include "fty_alert_engine.h"
 #include "fty_alert_engine_classes.h"
+
 
 static void
 list_rules(
@@ -204,7 +205,7 @@ send_alerts(
     send_alerts (client, alertsToSend, rule->name());
 }
 
-static void
+static bool
 add_rule(
     mlm_client_t *client,
     const char *json_representation,
@@ -225,7 +226,7 @@ add_rule(
         zmsg_addstr (reply, "ALREADY_EXISTS");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
+        return false;
     }
     case 0:
     {
@@ -249,7 +250,7 @@ add_rule(
 
         // send updated alert
         send_alerts (client, alertsToSend, new_rule_it->first);
-        return;
+        return true;
     }
     case -5:
     {
@@ -259,7 +260,7 @@ add_rule(
         zmsg_addstr (reply, "BAD_LUA");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
+        return false;
     }
     case -6:
     {
@@ -269,7 +270,7 @@ add_rule(
         zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
+        return false;
     }
     default:
         // error during the rule creation
@@ -278,7 +279,7 @@ add_rule(
         zmsg_addstr (reply, "BAD_JSON");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
+        return false;
     }
 }
 static void
@@ -455,9 +456,17 @@ evaluate_metric(
     }
 }
 
+
 void
 fty_alert_engine_server (zsock_t *pipe, void* args)
 {
+    // conceptual question - how to share an object between two actors?
+    // AlertConfiguration:
+    // 1. fty-alert-engine-configurator will be a full-fledged class wrapping the AlertConfiguration, receiving messages for it
+    // 2. we will have another actor wrapping the alertConfiguration class
+    // MetricList:
+    // 1. fty-alert-engine-server will receive a read-cache message and send it to fty-alert-engine mailbox
+    // 2. MetricList will be wrapped by an actor
     MetricList cache; // need to track incoming measurements
     AlertConfiguration alertConfiguration;
     char *name = (char*) args;
@@ -568,7 +577,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 zsys_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 continue;
             }
-            if ( fty_proto_id(bmessage) == FTY_PROTO_METRIC )  {
+            if ( fty_proto_id(bmessage) == FTY_PROTO_METRIC ) {
                 // process as metric message
                 const char *type = fty_proto_type(bmessage);
                 const char *element_src = fty_proto_element_src(bmessage);
@@ -605,8 +614,6 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
             }
-            fty_proto_destroy (&bmessage);
-        }
         // According RFC we expect here a messages
         // with the topic:
         //   * RULE_SUBJECT
@@ -653,7 +660,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
         else {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
-            //  * METIC_UNAVAILABLE
+            //  * METRIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
             if (streq (command, "METRICUNAVAILABLE")) {
                 char *metrictopic = zmsg_popstr (zmessage);
@@ -669,6 +676,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 zsys_error ("%s: Unexcepted message received", name);
             }
             zstr_free (&command);
+        }
         }
         zmsg_destroy (&zmessage);
     }
@@ -707,7 +715,6 @@ s_readall (const char* filename) {
     return NULL;
 }
 
-
 void
 fty_alert_engine_server_test (bool verbose)
 {
@@ -728,11 +735,11 @@ fty_alert_engine_server_test (bool verbose)
 
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
-    mlm_client_set_producer (producer, "METRICS");
+    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
-    mlm_client_set_consumer (consumer, "_ALERTS_SYS", ".*");
+    mlm_client_set_consumer (consumer, FTY_PROTO_STREAM_ALERTS_SYS, ".*");
 
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
@@ -741,9 +748,10 @@ fty_alert_engine_server_test (bool verbose)
     if (verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
-    zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
-    zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 

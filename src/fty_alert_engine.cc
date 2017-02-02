@@ -23,15 +23,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "fty_alert_engine.h"
 
-// path to the directory, where rules are stored. Attention: without last slash!
-static const char *PATH = "/var/lib/bios/alert_agent";
-
 // agents name
 static const char *AGENT_NAME = "fty-alert-engine";
+static const char *CONFIGURATOR_NAME = "fty-alert-engine-configurator";
 
 // malamute endpoint
 static const char *ENDPOINT = "ipc://@/malamute";
 
+// path to the directory where templates are stored. Attention: without last slash!
+// (changed from /usr/share/bios/fty-autoconfig/)
+static const char *TEMPLATES = "/usr/share/fty/fty-alert-engine";
 
 int main (int argc, char** argv)
 {
@@ -44,16 +45,21 @@ int main (int argc, char** argv)
         set_verbose = true;
     }
 
+    zactor_t *ag_configurator = zactor_new (fty_alert_engine_configurator, (void*) CONFIGURATOR_NAME);
+    if (set_verbose)
+        zstr_sendx (ag_configurator, "VERBOSE", NULL);
+    zstr_sendx (ag_configurator, "CONNECT", ENDPOINT, NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", TEMPLATES, NULL);
+    zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+
     zactor_t *ag_server = zactor_new (fty_alert_engine_server, (void*) AGENT_NAME);
     if (set_verbose)
         zstr_sendx (ag_server, "VERBOSE", NULL);
     zstr_sendx (ag_server, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_server, "CONFIG", PATH, NULL);
-    // TODO add constants from libftyproto!!
-    zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
-    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
-    zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
-
+    zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
 
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license

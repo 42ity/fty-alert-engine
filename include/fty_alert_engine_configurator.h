@@ -1,7 +1,7 @@
 /*  =========================================================================
-    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
+    fty_alert_engine_configurator - Configurator for fty-alert-engine
 
-    Copyright (C) 2014 - 2017 Eaton                                        
+    Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -19,15 +19,26 @@
     =========================================================================
 */
 
-#ifndef FTY_ALERT_ENGINE_H_H_INCLUDED
-#define FTY_ALERT_ENGINE_H_H_INCLUDED
+#ifndef FTY_ALERT_ENGINE_CONFIGURATOR_H_INCLUDED
+#define FTY_ALERT_ENGINE_CONFIGURATOR_H_INCLUDED
 
-//  Include the project library file
-#include "fty_alert_engine_library.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-//  Add your own public definitions here, if you need them
+//  @interface
+//  fty_alert_engine_configurator actor function
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_configurator (zsock_t *pipe, void *args);
 
-// path to the directory, where rules are stored. Attention: without last slash!
-#define PATH "/var/lib/bios/alert_agent"
+//  Self test of this class
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_configurator_test (bool verbose);
+
+//  @end
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -71,11 +71,14 @@
 
 //  Opaque class structures to allow forward references
 //  These classes are stable or legacy and built in all releases
+typedef struct _fty_alert_engine_configurator_t fty_alert_engine_configurator_t;
+#define FTY_ALERT_ENGINE_CONFIGURATOR_T_DEFINED
 typedef struct _fty_alert_engine_server_t fty_alert_engine_server_t;
 #define FTY_ALERT_ENGINE_SERVER_T_DEFINED
 
 
 //  Public classes, each with its own header file
+#include "fty_alert_engine_configurator.h"
 #include "fty_alert_engine_server.h"
 
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
