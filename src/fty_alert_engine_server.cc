@@ -460,71 +460,6 @@ evaluate_metric(
     }
 }
 
-static std::string
-type_subtype2type_name (const char *type, const char *subtype)
-{
-    std::string type_name;
-    std::string prefix ("__");
-    if (subtype != NULL)
-        type_name = prefix + type + '_' + subtype + prefix;
-    else
-        type_name = prefix + type + prefix;
-    return type_name;
-}
-
-static std::vector <std::string>
-loadTemplates (const char *templates_dir, const char *type, const char *subtype)
-{
-    std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (templates_dir)){
-        zsys_info ("Rule templates '%s' dir does not exist", templates_dir);
-        return templates;
-    }
-    std::string type_name = type_subtype2type_name (type, subtype);
-    cxxtools::Directory d (templates_dir);
-    for ( const auto &fn : d) {
-        if ( fn.find(type_name.c_str())!= std::string::npos){
-            zsys_debug("match %s", fn.c_str());
-            // read the template rule from the file
-            std::ifstream f(d.path() + "/" + fn);
-            std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            templates.push_back(str);
-        }
-    }
-    return templates;
-}
-
-static std::string
-replaceTokens( const std::string &text, const std::string &pattern, const std::string &replacement) {
-    std::string result = text;
-    size_t pos = 0;
-    while( ( pos = result.find(pattern, pos) ) != std::string::npos){
-        result.replace(pos, pattern.length(), replacement);
-        pos += replacement.length();
-    }
-    return result;
-}
-
-//go through all the rule templates, create rules correspoding to the new asset
-static bool
-generateRulesForAsset (
-        mlm_client_t *client,
-        const char *templates_dir,
-        const char *type,
-        const char *subtype,
-        const char *name,
-        AlertConfiguration alertConfiguration)
-{
-    bool result = true;
-    std::vector <std::string> templates = loadTemplates (templates_dir, type, subtype);
-    for ( auto &templat : templates) {
-        std::string rule = replaceTokens (templat,"__name__",name);
-        zsys_debug("creating rule :\n %s", rule.c_str());
-        result &= add_rule (client, rule.c_str(), alertConfiguration);
-    }
-
-    return result;
-}
 
 void
 fty_alert_engine_server (zsock_t *pipe, void* args)
@@ -755,7 +690,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
         else {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
-            //  * METIC_UNAVAILABLE
+            //  * METRIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
             if (streq (command, "METRICUNAVAILABLE")) {
                 char *metrictopic = zmsg_popstr (zmessage);

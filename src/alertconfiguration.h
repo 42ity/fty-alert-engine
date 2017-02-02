@@ -106,6 +106,15 @@ public:
     }
 
     /*
+     * \brief Sets a path to rule templates
+     *
+     * \param[in] path - a directory where rule templates are stored
+     */
+    void setTemplatesDir (const char *templates_path) {
+        _templates_path = templates_path;
+    }
+
+    /*
      * \brief Adds a rule to the configuration
      *
      * alertsToSend must be sent in the order from the first element to the last element
@@ -128,17 +137,31 @@ public:
         iterator &it);
 
     /*
-     * \brief Remove all rules for a given asset
+     * \brief Generate rules for a given asset
+     *
+     * \param[in] client - Malamute client
+     * \param[in] templates_dir - path to rule templates
+     * \param[in] type - asset type
+     * \param[in] subtype - asset subtype (if applicable)
+     * \param[in] name - name of the asset
+     *
+     */
+    bool generateRulesForAsset (
+        mlm_client_t *client,
+        const std::string &type,
+        const std::string &subtype,
+        const std::string &name);
+
+    /*
+     * \brief Resolve all alerts for a given asset
      *
      * alertsToSend must be sent in the order from the first element to the last element
      *
-     * \param[in] asset_name - old name of the rule
-     * \param[out] alertsToSend - alerts that where affected by new rule
+     * \param[in] asset_name - name of the asset
+     * \param[out] alertsToSend - alerts that were resolved
      *
-     * \return -1 rule could not be deleted from disk
-     *          0 if all rules were successfully deleted
      */
-    int removeRulesForAsset (
+    void resolveAlertsForAsset (
             const std::string &asset_name,
             std::vector <PureAlert> &alertsToSend);
     
@@ -147,11 +170,23 @@ public:
      *
      * alertsToSend must be sent in the order from the first element to the last element
      *
-     * \param[in] asset_name - old name of the rule
-     * \param[out] alertsToSend - alerts that where affected by new rule
+     * \param[in] asset_name - name of the asset
+     * \param[out] alertsToSend - alerts that were affected by removal of the rules
      *
      * \return -1 rule could not be deleted from disk
      *          0 if all rules were successfully deleted
+     */
+    int removeRulesForAsset (
+            const std::string &asset_name,
+            std::vector <PureAlert> &alertsToSend);
+
+    /*
+     * \brief Re-evaluate all rules for a given asset from metric cache
+     *
+     * \param[in] client - Malamute client
+     * \param[in] asset_name - name of the asset
+     * \param[in] knownMetricValues - metric values used for evaluation
+     *
      */
     void evaluateRulesForAsset (
             mlm_client_t *client,
@@ -248,6 +283,9 @@ private:
 
     // directory, where rules are stored
     std::string _path;
+
+    // directory where rule templates are stored
+    std::string _templates_path;
 };
 
 #endif // SRC_ALERTCONFIGURATION_H
