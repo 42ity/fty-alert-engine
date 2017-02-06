@@ -21,8 +21,6 @@ extern int agent_alert_verbose;
 #define zsys_debug1(...) \
     do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 
-#define RULES_SUBJECT "rfc-evaluator-rules"
-
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
@@ -264,6 +262,44 @@ int AlertConfiguration::
     return 0;
 }
 
+int AlertConfiguration::
+    removeRulesForAsset (
+        const std::string &asset_name,
+        std::vector <PureAlert> &alertsToSend)
+{
+    for (auto &oneRuleAlerts : _alerts)
+    {
+        if (oneRuleAlerts.first->_element == asset_name) {
+            std::string rule_name = oneRuleAlerts.first->name ();
+            // remove rule from persistent storage
+            int rv = oneRuleAlerts.first->remove (getPersistencePath());
+            if (rv != 0) {
+                zsys_error ("rule '%s' could not be removed", rule_name.c_str());
+                return -1;
+            }
+            // resolve found alerts
+            for (auto &oneAlert : oneRuleAlerts.second) {
+                oneAlert._status = ALERT_RESOLVED;
+                oneAlert._description = "Rule changed";
+                // put them into the list of alerts that changed
+                alertsToSend.push_back (oneAlert);
+            }
+            // clear cache
+            oneRuleAlerts.second.clear ();
+            // remove rule
+            oneRuleAlerts.first.reset ();
+        }
+    }
+
+    // remove all entries concerning 'asset_name'
+    _alerts.erase (std::remove_if (_alerts.begin(),
+                                _alerts.end(),
+                                [&asset_name] (std::pair <RulePtr, std::vector<PureAlert>> elem) {  return (elem.first->_element == asset_name); }
+                                ),
+                    _alerts.end());
+    return 0;
+}
+
 static std::string
 makeActionList(
     const std::vector <std::string> &actions)
@@ -315,193 +351,6 @@ send_alerts(
         zhash_destroy (&aux);
     }
 }
-static std::string
-type_subtype2type_name (const std::string &type, const std::string &subtype)
-{
-    std::string type_name;
-    std::string prefix ("__");
-    if (subtype.c_str () != NULL)
-        type_name = prefix + type + '_' + subtype + prefix;
-    else
-        type_name = prefix + type + prefix;
-    return type_name;
-}
-
-static std::vector <std::string>
-loadTemplates (const std::string &templates_dir, const std::string &type, const std::string &subtype)
-{
-    std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (templates_dir)){
-        zsys_info ("Rule templates '%s' dir does not exist", templates_dir.c_str ());
-        return templates;
-    }
-    std::string type_name = type_subtype2type_name (type, subtype);
-    cxxtools::Directory d (templates_dir);
-    for ( const auto &fn : d) {
-        if ( fn.find(type_name.c_str())!= std::string::npos){
-            zsys_debug("match %s", fn.c_str());
-            // read the template rule from the file
-            std::ifstream f(d.path() + "/" + fn);
-            std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            templates.push_back(str);
-        }
-    }
-    return templates;
-}
-
-static std::string
-replaceTokens( const std::string &text, const std::string &pattern, const std::string &replacement) {
-    std::string result = text;
-    size_t pos = 0;
-    while( ( pos = result.find(pattern, pos) ) != std::string::npos){
-        result.replace(pos, pattern.length(), replacement);
-        pos += replacement.length();
-    }
-    return result;
-}
-
-//go through all the rule templates, create rules correspoding to the new asset
-bool AlertConfiguration::
-    generateRulesForAsset (
-        mlm_client_t *client,
-        const std::string &type,
-        const std::string &subtype,
-        const std::string &name)
-{
-    bool result = true;
-    std::set <std::string> newSubjectsToSubscribe;
-    std::vector <PureAlert> alertsToSend;
-    AlertConfiguration::iterator new_rule_it;
-    std::vector <std::string> templates = loadTemplates (_templates_path, type, subtype);
-    for ( auto &templat : templates) {
-        std::string rule = replaceTokens (templat,"__name__",name);
-        zsys_debug("creating rule :\n %s", rule.c_str());
-        std::istringstream newRule (rule.c_str ());
-        int rv = addRule (newRule,
-                        newSubjectsToSubscribe,
-                        alertsToSend,
-                        new_rule_it);
-        zmsg_t *reply = zmsg_new ();
-        switch (rv) {
-        case -2:
-        {
-            // rule exists
-            zsys_debug1 ("rule already exists");
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "ALREADY_EXISTS");
-
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-            result &= false;
-        }
-        case 0:
-        {
-            // rule was created succesfully
-            /* TODO: WIP, don't delete
-            zsys_debug1 ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-            zsys_debug1 ("alertsToSend count = %d", alertsToSend.size() );
-            for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                zsys_debug1 ("Registering to receive '%s'", interestedSubject.c_str());
-                mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-                zsys_debug1("Registering finished");
-            }
-            */
-
-            // send a reply back
-            zsys_debug1 ("rule added correctly");
-            zmsg_addstr (reply, "OK");
-            zmsg_addstr (reply, rule.c_str ());
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-
-            // send updated alert
-            send_alerts (client, alertsToSend, new_rule_it->first->name ());
-            result &= true;
-        }
-        case -5:
-        {
-            zsys_debug1 ("rule has bad lua");
-            // error during the rule creation (lua)
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "BAD_LUA");
-
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-            result &= false;
-        }
-        case -6:
-        {
-            zsys_debug1 ("internal error");
-            // error during the rule creation (lua)
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
-
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-            result &= false;
-        }
-        default:
-            // error during the rule creation
-            zsys_debug1 ("default bad json");
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "BAD_JSON");
-
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-            result &= false;
-        }
-    }
-
-    return result;
-}
-int AlertConfiguration::
-    removeRulesForAsset (
-        const std::string &asset_name,
-        std::vector <PureAlert> &alertsToSend)
-{
-    for (auto &oneRuleAlerts : _alerts)
-    {
-        if (oneRuleAlerts.first->_element == asset_name) {
-            std::string rule_name = oneRuleAlerts.first->name ();
-            // remove rule from persistent storage
-            int rv = oneRuleAlerts.first->remove (getPersistencePath());
-            if (rv != 0) {
-                zsys_error ("rule '%s' could not be removed", rule_name.c_str());
-                return -1;
-            }
-            // resolve found alerts
-            for (auto &oneAlert : oneRuleAlerts.second) {
-                oneAlert._status = ALERT_RESOLVED;
-                oneAlert._description = "Rule changed";
-                // put them into the list of alerts that changed
-                alertsToSend.push_back (oneAlert);
-            }
-            // clear cache
-            oneRuleAlerts.second.clear ();
-            // remove rule
-            oneRuleAlerts.first.reset ();
-        }
-    }
-
-    // remove all entries concerning 'asset_name'
-    _alerts.erase (std::remove_if (_alerts.begin(),
-                                _alerts.end(),
-                                [&asset_name] (std::pair <RulePtr, std::vector<PureAlert>> elem) {  return (elem.first->_element == asset_name); }
-                                ),
-                    _alerts.end());
-    return 0;
-}
-
-void AlertConfiguration::
-    resolveAlertsForAsset (
-        const std::string &asset_name,
-        std::vector <PureAlert> &alertsToSend)
-{
-    for (auto &oneRuleAlerts : _alerts)
-        if (oneRuleAlerts.first->_element == asset_name)
-            for (auto &oneAlert : oneRuleAlerts.second) {
-                oneAlert._status = ALERT_RESOLVED;
-                oneAlert._description = "Rule changed";
-                // put them into the list of alerts that changed
-                alertsToSend.push_back (oneAlert);
-            }
-}
-
 
 void AlertConfiguration::
     evaluateRulesForAsset (
