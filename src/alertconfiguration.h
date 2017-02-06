@@ -128,21 +128,6 @@ public:
         iterator &it);
 
     /*
-     * \brief Remove all rules for a given asset
-     *
-     * alertsToSend must be sent in the order from the first element to the last element
-     *
-     * \param[in] asset_name - old name of the rule
-     * \param[out] alertsToSend - alerts that where affected by new rule
-     *
-     * \return -1 rule could not be deleted from disk
-     *          0 if all rules were successfully deleted
-     */
-    int removeRulesForAsset (
-            const std::string &asset_name,
-            std::vector <PureAlert> &alertsToSend);
-    
-    /*
      * \brief Updates existing rule in the configuration
      *
      * alertsToSend must be sent in the order from the first element to the last element

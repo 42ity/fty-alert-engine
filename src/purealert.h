@@ -85,6 +85,6 @@ class PureAlert{
     void print(void) const;
 };
 
-typedef std::shared_ptr<PureAlert> PureAlertPtr;
+typedef std::unique_ptr<PureAlert> PureAlertPtr;
 
 #endif // SRC_PURE_ALERT_H_
