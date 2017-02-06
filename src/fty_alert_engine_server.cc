@@ -34,7 +34,6 @@
 #include <math.h>
 #include <functional>
 #include <algorithm>
-#include <cxxtools/directory.h>
 
 int agent_alert_verbose = 0;
 
@@ -205,7 +204,7 @@ send_alerts(
     send_alerts (client, alertsToSend, rule->name());
 }
 
-static bool
+static void
 add_rule(
     mlm_client_t *client,
     const char *json_representation,
@@ -226,7 +225,7 @@ add_rule(
         zmsg_addstr (reply, "ALREADY_EXISTS");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return false;
+        return;
     }
     case 0:
     {
@@ -250,7 +249,7 @@ add_rule(
 
         // send updated alert
         send_alerts (client, alertsToSend, new_rule_it->first);
-        return true;
+        return;
     }
     case -5:
     {
@@ -260,7 +259,7 @@ add_rule(
         zmsg_addstr (reply, "BAD_LUA");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return false;
+        return;
     }
     case -6:
     {
@@ -270,7 +269,7 @@ add_rule(
         zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return false;
+        return;
     }
     default:
         // error during the rule creation
@@ -279,7 +278,7 @@ add_rule(
         zmsg_addstr (reply, "BAD_JSON");
 
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return false;
+        return;
     }
 }
 static void
@@ -456,51 +455,6 @@ evaluate_metric(
     }
 }
 
-static std::string
-type_subtype2type_name (const char *type, const char *subtype)
-{
-    std::string type_name;
-    std::string prefix ("__");
-    if (subtype != NULL)
-        type_name = prefix + type + '_' + subtype + prefix;
-    else
-        type_name = prefix + type + prefix;
-    return type_name;
-}
-
-static std::vector <std::string>
-loadTemplates (const char *type, const char *subtype)
-{
-    std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (TEMPLATES)){
-        zsys_info ("Rule templates '%s' dir does not exist", TEMPLATES);
-        return templates;
-    }
-    std::string type_name = type_subtype2type_name (type, subtype);
-    cxxtools::Directory d (TEMPLATES);
-    for ( const auto &fn : d) {
-        if ( fn.find(type_name.c_str())!= std::string::npos){
-            zsys_debug("match %s", fn.c_str());
-            // read the template rule from the file
-            std::ifstream f(d.path() + "/" + fn);
-            std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            templates.push_back(str);
-        }
-    }
-    return templates;
-}
-
-static std::string
-replaceTokens( const std::string &text, const std::string &pattern, const std::string &replacement) {
-    std::string result = text;
-    size_t pos = 0;
-    while( ( pos = result.find(pattern, pos) ) != std::string::npos){
-        result.replace(pos, pattern.length(), replacement);
-        pos += replacement.length();
-    }
-    return result;
-}
-
 void
 fty_alert_engine_server (zsock_t *pipe, void* args)
 {
@@ -650,44 +604,6 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 cache.addMetric (m);
                 cache.removeOldMetrics();
                 evaluate_metric(client, m, cache, alertConfiguration);
-            }
-            else
-            if (fty_proto_id (bmessage) == FTY_PROTO_ASSET) {
-                const char *type = fty_proto_aux_string (bmessage, "type", NULL);
-                const char *subtype = fty_proto_aux_string (bmessage, "subtype", NULL);
-                const char *name = fty_proto_name (bmessage);
-                const char *operation = fty_proto_operation (bmessage);
-
-                if (streq (operation, FTY_PROTO_ASSET_OP_CREATE)) {
-                    //go through all the rule templates
-                    //create rules correspoding to the new asset
-                    bool result = true;
-                    std::vector <std::string> templates = loadTemplates (type, subtype);
-                    for ( auto &templat : templates) {
-                        std::string rule = replaceTokens (templat,"__name__",name);
-                        zsys_debug("creating rule :\n %s", rule.c_str());
-                        result &= add_rule (client, rule.c_str(), alertConfiguration);
-                    }
-                }
-                else if (streq (operation, FTY_PROTO_ASSET_OP_UPDATE)) {
-
-                    // change properties of asset in the cache
-                }
-                else if (streq (operation, FTY_PROTO_ASSET_OP_DELETE)) {
-                    // delete asset from the cache
-                    // delete correspoding rules
-                    // mark all alerts corresponding to this asset as resolved
-                }
-                else if (streq (operation, FTY_PROTO_ASSET_OP_RETIRE)) {
-                    // delete asset from the cache
-                    // delete correspoding rules
-                    // mark all alerts corresponding to this asset as resolved
-                }
-                else if (streq (operation, FTY_PROTO_ASSET_OP_INVENTORY)) {
-                    // change properties of asset in the cache
-                }
-                else
-                    zsys_error ("received asset message for asset '%s' with invalid operation %s, ignore message", name, operation);
             }
             fty_proto_destroy (&bmessage);
         }
