@@ -14,6 +14,9 @@ pkgconfig_DATA = src/libfty_alert_engine.pc
 
 include_HEADERS = \
     include/fty_alert_engine.h \
+    include/filesystem.h \
+    include/utils.h \
+    include/autoconfig.h \
     include/fty_alert_engine_server.h \
     include/fty_alert_engine_library.h
 
@@ -24,6 +27,11 @@ src_libfty_alert_engine_la_SOURCES = \
     src/purealert.cc \
     src/rule.cc \
     src/thresholdrulecomplex.cc \
+    src/filesystem.cc \
+    src/utils.cc \
+    src/autoconfig.cc \
+    src/ruleconfigurator.cc \
+    src/templateruleconfigurator.cc \
     src/fty_alert_engine_server.cc \
     src/platform.h
 
@@ -62,7 +70,8 @@ bin_PROGRAMS += src/fty-alert-engine
 src_fty_alert_engine_CPPFLAGS = ${AM_CPPFLAGS}
 src_fty_alert_engine_LDADD = ${program_libs}
 src_fty_alert_engine_SOURCES = src/fty_alert_engine.cc
-src_fty_alert_engine_config_DATA = src/fty-alert-engine.cfg
+src_fty_alert_engine_config_DATA =
+src_fty_alert_engine_config_DATA += src/fty-alert-engine.cfg
 src_fty_alert_engine_configdir = $(sysconfdir)/fty-alert-engine
 if WITH_SYSTEMD_UNITS
 systemdsystemunit_DATA += src/fty-alert-engine.service
