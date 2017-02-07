@@ -98,13 +98,16 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("7");
+            puts ("12");
             return 0;
         }
         else
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
+            puts ("    filesystem\t\t- stable");
+            puts ("    utils\t\t- stable");
+            puts ("    autoconfig\t\t- stable");
             puts ("    fty_alert_engine_server\t\t- stable");
             puts ("    private_classes\t- draft");
             return 0;

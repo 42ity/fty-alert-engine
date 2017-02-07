@@ -59,6 +59,14 @@ typedef struct _rule_t rule_t;
 typedef struct _thresholdrulecomplex_t thresholdrulecomplex_t;
 #define THRESHOLDRULECOMPLEX_T_DEFINED
 #endif
+#ifndef RULECONFIGURATOR_T_DEFINED
+typedef struct _ruleconfigurator_t ruleconfigurator_t;
+#define RULECONFIGURATOR_T_DEFINED
+#endif
+#ifndef TEMPLATERULECONFIGURATOR_T_DEFINED
+typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
+#define TEMPLATERULECONFIGURATOR_T_DEFINED
+#endif
 
 //  Internal API
 #include "metriclist.h"
@@ -67,6 +75,8 @@ typedef struct _thresholdrulecomplex_t thresholdrulecomplex_t;
 #include "purealert.h"
 #include "rule.h"
 #include "thresholdrulecomplex.h"
+#include "ruleconfigurator.h"
+#include "templateruleconfigurator.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ALERT_ENGINE_BUILD_DRAFT_API
@@ -100,6 +110,16 @@ FTY_ALERT_ENGINE_PRIVATE void
 //  Self test of this class.
 FTY_ALERT_ENGINE_PRIVATE void
     thresholdrulecomplex_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    ruleconfigurator_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    templateruleconfigurator_test (bool verbose);
 
 //  Self test for private classes
 FTY_ALERT_ENGINE_PRIVATE void
