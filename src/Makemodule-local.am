@@ -5,8 +5,10 @@ EXTRA_DIST += \
 	src/thresholdruledevice.h \
 	src/regexrule.h \
 	testrules/*.rule \
-	src/warranty.rule.in
+	src/warranty.rule.in \
+    include/preproc.h
 
+AM_CPPFLAGS += -I$(abs_top_srcdir)/include
 
 CLEANFILES += \
 	src/*.rule
