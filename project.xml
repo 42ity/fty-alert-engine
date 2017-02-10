@@ -10,7 +10,7 @@
 
     <target name = "debian" />
     <target name = "redhat" />
-    <target name = "travis" travis_distcheck  = "1" />
+    <target name = "travis" />
 
     <include filename = "license.xml" />
     <version major = "1" minor = "0" patch = "0" />
@@ -36,6 +36,11 @@
     <class name = "purealert" private="1" selftest = "0">PureAlert</class>
     <class name = "rule" private="1" selftest = "0">Rule</class>
     <class name = "thresholdrulecomplex" private="1" selftest = "0">ThresholdRuleComplex</class>
+    <class name = "filesystem" state = "stable">Filesystem</class>
+    <class name = "utils" state = "stable">Utils</class>
+    <class name = "Autoconfig" state = "stable">Autoconfig</class>
+    <class name = "RuleConfigurator" private = "1" selftest = "0">Rule Configurator</class>
+    <class name = "TemplateRuleConfigurator" private="1" selftest="0">Template rule configurator</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
     <main name = "fty-alert-engine" service = "1">
         Daemon evaluating rules and producing alerts

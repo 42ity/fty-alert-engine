@@ -59,6 +59,8 @@ EXTRA_DIST += \
     src/purealert.h \
     src/rule.h \
     src/thresholdrulecomplex.h \
+    src/ruleconfigurator.h \
+    src/templateruleconfigurator.h \
     src/fty_alert_engine_classes.h
 
 include $(srcdir)/src/Makemodule.am
