@@ -152,7 +152,6 @@ class Autoconfig {
         int _exitStatus = 0;
         int _timeout = 2000;
         std::string _agentName;
-
 };
 #ifdef __cplusplus
 }

@@ -174,6 +174,19 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                     zsys_debug1 ("%s: VERBOSE received", name);
                     agent_alert_verbose = true;
                 }
+                else
+                    if (streq (cmd, "TEMPLATES_DIR")) {
+                        zsys_debug1 ("TEMPLATES_DIR received");
+                        char* dirname = zmsg_popstr (msg);
+                        if (dirname) {
+                            Autoconfig::RuleFilePath = strdup (dirname);
+                        }
+                        else {
+                            zsys_error ("%s: in TEMPLATES_DIR command next frame is missing", name);
+                        }
+                        zstr_free (&dirname);
+                    }
+
             zstr_free (&cmd);
             zmsg_destroy (&msg);
             continue;
@@ -204,6 +217,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
             zmsg_destroy (&message);
         }
+
     }
     zpoller_destroy (&poller);
 }
