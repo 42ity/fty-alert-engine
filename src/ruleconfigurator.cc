@@ -131,7 +131,7 @@ std::string escape (const std::string& before) {
 
 std::string jsonify (double t)
 {
-    if (isnan(t))
+    if (std::isnan(t))
         return "null";
     return std::to_string (t);
 }
