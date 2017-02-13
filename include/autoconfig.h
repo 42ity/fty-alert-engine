@@ -111,7 +111,7 @@ class Autoconfig {
         virtual void onReply( zmsg_t **message ) { zmsg_destroy( message ); };
         void onPoll ();
 
-        void main (); 
+        void main (zsock_t *pipe, char *name); 
         bool connect(const char * endpoint, const char *stream = NULL,
                 const char *pattern = NULL) {
             if( endpoint == NULL || _agentName.empty() ) return false;
@@ -137,7 +137,8 @@ class Autoconfig {
             }
             return true;
         };
-        int run() { onStart(); main(); onEnd(); return _exitStatus; }
+        void run(zsock_t *pipe, char *name) { onStart(); main(pipe, name); onEnd(); }
+        void autoconfig (zsock_t *pipe, void *args);
     private:
         void handleReplies( zmsg_t *message );
         void setPollingInterval();

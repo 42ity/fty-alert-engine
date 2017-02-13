@@ -40,6 +40,11 @@
 
 #include "autoconfig.h"
 
+extern int agent_alert_verbose;
+
+#define zsys_debug1(...) \
+    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
+
 #define AUTOCONFIG "AUTOCONFIG"
 
 // malamute endpoint
@@ -114,21 +119,23 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
 }
 
 
-void Autoconfig::main () 
+void Autoconfig::main (zsock_t *pipe, char *name)
 {   
-    zsock_t *pipe = msgpipe();  
-    if (!pipe) {
+    zsock_t *client_pipe = msgpipe();
+    if (!client_pipe) {
         zsys_error ("msgpipe () failed");
         return;
     }
 
-    zpoller_t *poller = zpoller_new (pipe, NULL);
+    zpoller_t *poller = zpoller_new (pipe, client_pipe, NULL);
     if (!poller) {
         zsys_error ("zpoller_new () failed");
         return;
     }
 
     _timestamp = zclock_mono ();
+    zsock_signal (pipe, 0);
+
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, _timeout);
         if (which == NULL) {
@@ -150,7 +157,27 @@ void Autoconfig::main ()
         if (now - _timestamp >= _timeout) {
             onPoll ();
             _timestamp = zclock_mono ();
-        }   
+        }
+
+        if (which == pipe) {
+            zmsg_t *msg = zmsg_recv (pipe);
+            char *cmd = zmsg_popstr (msg);
+
+            if (streq (cmd, "$TERM")) {
+                zsys_debug1 ("%s: $TERM received", name);
+                zstr_free (&cmd);
+                zmsg_destroy (&msg);
+                break;
+            }
+            else
+                if (streq (cmd, "VERBOSE")) {
+                    zsys_debug1 ("%s: VERBOSE received", name);
+                    agent_alert_verbose = true;
+                }
+            zstr_free (&cmd);
+            zmsg_destroy (&msg);
+            continue;
+        }
 
         zmsg_t *message = recv ();
         if (!message) {
@@ -198,7 +225,7 @@ Autoconfig::onSend (fty_proto_t **message)
         zsys_debug("extracting attibutes from asset message failed.");
         return;
     }   
-    zsys_debug("Decoded asset message - device name = '%s', type = '%" PRIu32 "', subtype = '%" PRIu32"', operation = '%" PRIi8"'",
+    zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name, info.type, info.subtype, info.operation);
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
     _configurableDevices.emplace (std::make_pair (device_name, info));
@@ -309,17 +336,16 @@ void Autoconfig::saveState()
     save_agent_info(json );
 }
     
-int main( UNUSED_PARAM int argc, UNUSED_PARAM char *argv[] )
+void autoconfig (zsock_t *pipe, void *args )
 {   
-    int result = 1;
+    char *name = (char *)args;
     zsys_info ("autoconfig agent started");
     Autoconfig agent( AUTOCONFIG );
     if( agent.connect( ENDPOINT, FTY_PROTO_STREAM_ASSETS, ".*" ) ) {
-        result = agent.run();
+        agent.run(pipe, name);
     } else {
         zsys_error ("autoconfig agent could not connect to message bus");
     }
-    zsys_info ("autoconfig agent exited with code %i\n", result);
-    return result;
+    zsys_info ("autoconfig agent exited");
 }   
 
