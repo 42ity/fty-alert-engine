@@ -47,6 +47,7 @@ int agent_alert_verbose = 0;
 #include "regexrule.h"
 
 #include "alertconfiguration.h"
+#include "autoconfig.h"
 
 #define METRICS_STREAM "METRICS"
 #define RULES_SUBJECT "rfc-evaluator-rules"
@@ -1732,8 +1733,260 @@ fty_alert_engine_server_test (bool verbose)
     // # 7 clean up
     mlm_client_destroy (&metric_unavailable);
 
+    // # 26 - # 29 : test autoconfig
+
+    mlm_client_t *asset_producer = mlm_client_new ();
+    mlm_client_connect (asset_producer, endpoint, 1000, "asset_producer");
+    mlm_client_set_producer (asset_producer, FTY_PROTO_STREAM_ASSETS);
+
+    zactor_t *ag_configurator = zactor_new (autoconfig, (void*) "test-autoconfig");
+    if (verbose)
+            zstr_send (ag_configurator, "VERBOSE");
+    zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", "src/templates", NULL);
+    zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", "alert-agent", NULL);
+    zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
+
+    // # 26.1 catch message 'create asset', check that we created rules
+
+    aux = zhash_new ();
+    zhash_autofree (aux);
+    zhash_insert (aux, "type", (void *) "datacenter");
+    zhash_insert (aux, "priority", (void *) "P1");
+    m = fty_proto_encode_asset (aux,
+            "test",
+            FTY_PROTO_ASSET_OP_CREATE,
+            NULL);
+    assert (m);
+    rv = mlm_client_send (asset_producer, "datacenter.@test", &m);
+    assert ( rv == 0 );
+
+    zclock_sleep (6000);
+
+    char *average_humidity = s_readall ((std::string ("src") + "/average.humidity@test.rule").c_str ());
+    assert (average_humidity);
+    char *average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
+    assert (average_temperature);
+    char *realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
+    assert (realpower_default);
+    char *phase_imbalance = s_readall ((std::string ("src") + "/phase_imbalance@test.rule").c_str ());
+    assert (phase_imbalance);
+
+    // # 26.2 force an alert
+    m = fty_proto_encode_metric (
+        NULL, "average.temperature", "test", "1000", "C", 60);
+    assert (m);
+    rv = mlm_client_send (producer, "average.temperature@test", &m);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
+    assert (brecv);
+    int ttl = fty_proto_aux_number (brecv, "TTL", -1);
+    assert (ttl != -1);
+    assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
+    assert (streq (fty_proto_element_src (brecv), "test"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv);
+
+    // # 27.1 update the created asset, check that we have the rules, wait for 3*ttl,
+    // refresh the metric, check that we still have the alert
+
+    zhash_t *aux2 = zhash_new ();
+    zhash_autofree (aux2);
+    zhash_insert (aux2, "type", (void *) "row");
+    zhash_insert (aux2, "priority", (void *) "P2");
+    m = fty_proto_encode_asset (aux2,
+                    "test",
+                    FTY_PROTO_ASSET_OP_UPDATE,
+                    NULL);
+    assert (m);
+    rv = mlm_client_send (asset_producer, "row.@test", &m);
+    assert ( rv == 0 );
+
+    average_humidity = s_readall ((std::string ("src") + "/average.humidity@test.rule").c_str ());
+    assert (average_humidity);
+    average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
+    assert (average_temperature);
+
+    // TODO: now inapplicable rules should be deleted in the future
+    /* realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
+    phase_imbalance = s_readall ((std::string ("src") + "/phase.imbalance@test.rule").c_str ());
+    assert (realpower_default == NULL && phase_imbalance == NULL);
+
+    zstr_free (&realpower_default);
+    zstr_free (&phase_imbalance);*/
+
+    zstr_free (&average_humidity);
+    zstr_free (&average_temperature);
+
+    poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
+    assert (poller);
+    which = zpoller_wait (poller, 3*ttl);
+
+    m = fty_proto_encode_metric (
+        NULL, "average.temperature", "test", "1000", "C", 60);
+    assert (m);
+    rv = mlm_client_send (producer, "average.temperature@test", &m);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert ( is_fty_proto (recv));
+    if ( verbose ) {
+            brecv = fty_proto_decode (&recv);
+            fty_proto_destroy (&brecv);
+            assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
+            assert (streq (fty_proto_element_src (brecv), "test"));
+            assert (streq (fty_proto_state (brecv), "ACTIVE"));
+            assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+            zsys_debug ("Alert was sent: SUCCESS");
+        }
+
+    zmsg_destroy (&recv);
+    zpoller_destroy (&poller);
+
+    // # 28 update the created asset to something completely different, check that alert is resolved
+    // and that we deleted old rules and created new
+
+    /* zhash_t *aux3 = zhash_new ();
+    zhash_autofree (aux3);
+    zhash_insert (aux3, "type", (void *) "device");
+    zhash_insert (aux3, "subtype", (void *) "epdu");
+    m = fty_proto_encode_asset (aux3,
+                    "test",
+                    FTY_PROTO_ASSET_OP_UPDATE,
+                    NULL);
+    assert (m);
+    rv = mlm_client_send (asset_producer, "device.epdu@test", &m);
+    assert ( rv == 0 );
+
+    poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
+    assert (poller);
+    which = zpoller_wait (poller, 3*ttl2);
+    assert ( which != NULL );
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert ( is_fty_proto (recv));
+    if ( verbose ) {
+            brecv = fty_proto_decode (&recv);
+            assert (streq (fty_proto_rule (brecv), "average.temperature@test.rule"));
+            assert (streq (fty_proto_element_src (brecv), "test"));
+            assert (streq (fty_proto_state (brecv), "RESOLVED"));
+            assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+            fty_proto_destroy (&brecv);
+            zsys_debug ("Alert was sent: SUCCESS");
+        }
+    int ttl3 = fty_proto_aux_number (brecv, "TTL", -1);
+    assert (ttl3 != -1);
+    zmsg_destroy (&recv);
+    zpoller_destroy (&poller);
+
+    char *average_humidity2 = s_readall ((std::string ("src/testrules") + "/average.humidity@test.rule").c_str ());
+    char *average_temperature2 = s_readall ((std::string ("src/testrules") + "/average.temperature@test.rule").c_str ());
+    char *realpower_default2 =  s_readall ((std::string ("src/testrules") + "/realpower.default@test.rule").c_str ());
+    char *phase_imbalance2 = s_readall ((std::string ("src/testrules") + "/phase.imbalance@test.rule").c_str ());
+    assert (average_humidity2 == NULL && average_temperature2 == NULL && realpower_default2 == NULL && phase_imbalance2 == NULL);
+    zstr_free (&average_humidity2);
+    zstr_free (&average_temperature2);
+    zstr_free (&realpower_default2);
+    zstr_free (&phase_imbalance2);
+
+    char *load_1phase = s_readall ((std::string ("src/testrules") + "/load.input_1phase@test.rule").c_str ());
+    assert (load_1phase);
+    char *load_3phase = s_readall ((std::string ("src/testrules") + "/load.input_3phase@test.rule").c_str ());
+    assert (load_3phase);
+    char *section_load =  s_readall ((std::string ("src/testrules") + "/section_load@test.rule").c_str ());
+    assert (section_load);
+    char *phase_imbalance3 = s_readall ((std::string ("src/testrules") + "/phase.imbalance@test.rule").c_str ());
+    assert (phase_imbalance);
+    char *voltage_1phase = s_readall ((std::string ("src/testrules") + "/voltage.input_1phase@test.rule").c_str ());
+    assert (voltage_1phase);
+    char *voltage_3phase = s_readall ((std::string ("src/testrules") + "/voltage.input_3phase@test.rule").c_str ());
+    assert (voltage_3phase);
+
+    zstr_free (&load_1phase);
+    zstr_free (&load_3phase);
+    zstr_free (&section_load);
+    zstr_free (&phase_imbalance3);
+    zstr_free (&voltage_1phase);
+    zstr_free (&voltage_3phase); */
+
+    // # 29.1 force the alert for the updated device
+
+    /* m = fty_proto_encode_metric (
+                        NULL, "phase.imbalance", "test", "50", "%", 0);
+    assert (m);
+    rv = mlm_client_send (producer, "phase.imbalance@test", &m);
+    assert ( rv == 0 );
+
+    recv = mlm_client_recv (consumer);
+    assert (recv);
+    assert (is_fty_proto (recv));
+    brecv = fty_proto_decode (&recv);
+    assert (brecv);
+    int ttl4 = fty_proto_aux_number (brecv, "TTL", -1);
+    assert (ttl4 != -1);
+    assert (streq (fty_proto_rule (brecv), "phase.imbalance@test.rule"));
+    assert (streq (fty_proto_element_src (brecv), "test"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    fty_proto_destroy (&brecv); */
+
+    // # 29.2 delete the created asset, check that we deleted the rules and all alerts are resolved
+
+    /* m = fty_proto_encode_asset (aux3,
+                        "test",
+                        FTY_PROTO_ASSET_OP_DELETE,
+                        NULL);
+    assert (m);
+    rv = mlm_client_send (asset_producer, "device.epdu@test", &m);
+    assert ( rv == 0 );
+
+    load_1phase = s_readall ((std::string ("src/testrules") + "/load.input_1phase@test.rule").c_str ());
+    load_3phase = s_readall ((std::string ("src/testrules") + "/load.input_3phase@test.rule").c_str ());
+    section_load =  s_readall ((std::string ("src/testrules") + "/section_load@test.rule").c_str ());
+    phase_imbalance3 = s_readall ((std::string ("src/testrules") + "/phase.imbalance@test.rule").c_str ());
+    voltage_1phase = s_readall ((std::string ("src/testrules") + "/voltage.input_1phase@test.rule").c_str ());
+    voltage_3phase = s_readall ((std::string ("src/testrules") + "/voltage.input_3phase@test.rule").c_str ());
+
+    assert (load_1phase == NULL && load_3phase == NULL && section_load == NULL && phase_imbalance3 == NULL && voltage_1phase == NULL && voltage_3phase == NULL);
+
+    zstr_free (&load_1phase);
+    zstr_free (&load_3phase);
+    zstr_free (&section_load);
+    zstr_free (&phase_imbalance3);
+    zstr_free (&voltage_1phase);
+    zstr_free (&voltage_3phase);
+
+    poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
+    assert (poller);
+    which = zpoller_wait (poller, 3*ttl4);
+    assert ( which != NULL );
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert ( is_fty_proto (recv));
+    if ( verbose ) {
+            brecv = fty_proto_decode (&recv);
+            assert (streq (fty_proto_rule (brecv), "phase.imbalance@test.rule"));
+            assert (streq (fty_proto_element_src (brecv), "test"));
+            assert (streq (fty_proto_state (brecv), "RESOLVED"));
+            assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+            fty_proto_destroy (&brecv);
+            zsys_debug ("Alert was sent: SUCCESS");
+    }
+    zmsg_destroy (&recv);
+    zpoller_destroy (&poller);
+    */
+
     zclock_sleep (3000);
+    zactor_destroy (&ag_configurator);
     zactor_destroy (&ag_server);
+    mlm_client_destroy (&asset_producer);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);
     mlm_client_destroy (&producer);
