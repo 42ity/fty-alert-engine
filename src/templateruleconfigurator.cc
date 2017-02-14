@@ -33,7 +33,7 @@
 #include "autoconfig.h"
 
 bool TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
-    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%" PRIi32"', info.subtype = '%" PRIi32"')",
+    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
             name.c_str(), info.type, info.subtype);
     if (streq (info.operation, FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation, FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
@@ -87,6 +87,7 @@ bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subty
     std::string type_name = convertTypeSubType2Name(type,subtype);
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     for ( const auto &fn : d) {
+        zsys_debug ("Template name is '%s'", fn.c_str ());
         if ( fn.find(type_name.c_str())!= std::string::npos){
             return true;
         }
@@ -97,11 +98,12 @@ bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subty
 std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, const char *subtype){
     std::string name;
     std::string prefix ("__");
-    if (subtype != NULL)
+    std::string subtype_str (subtype);
+    if (!subtype_str.empty ())
         name = prefix + type + '_' + subtype + prefix;
     else
         name = prefix + type + prefix;
-    zsys_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s' = '%s')",
+    zsys_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
             type, subtype,name.c_str());
     return name;
 }

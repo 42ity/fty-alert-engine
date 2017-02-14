@@ -47,12 +47,10 @@ extern int agent_alert_verbose;
 
 #define AUTOCONFIG "AUTOCONFIG"
 
-// malamute endpoint
-static const char *ENDPOINT = "ipc://@/malamute";
-
 const char* Autoconfig::StateFilePath = "/var/lib/bios/agent-autoconfig";
-const char* Autoconfig::RuleFilePath = "/usr/share/bios/fty-autoconfig";
+const char* Autoconfig::RuleFilePath; 
 const char* Autoconfig::StateFile = "/var/lib/bios/agent-autoconfig/state";
+const char* Autoconfig::AlertEngineName;
 
 static int
 load_agent_info(std::string &info)
@@ -120,19 +118,13 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
 
 
 void Autoconfig::main (zsock_t *pipe, char *name)
-{   
-    zsock_t *client_pipe = msgpipe();
-    if (!client_pipe) {
-        zsys_error ("msgpipe () failed");
-        return;
-    }
+{
+    if( _client ) mlm_client_destroy( &_client );
+    _client = mlm_client_new ();
+    assert (_client);
 
-    zpoller_t *poller = zpoller_new (pipe, client_pipe, NULL);
-    if (!poller) {
-        zsys_error ("zpoller_new () failed");
-        return;
-    }
-
+    zpoller_t *poller = zpoller_new (pipe, msgpipe (), NULL);
+    assert (poller);
     _timestamp = zclock_mono ();
     zsock_signal (pipe, 0);
 
@@ -186,6 +178,38 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                         }
                         zstr_free (&dirname);
                     }
+                    else
+                        if (streq (cmd, "CONNECT")) {
+                            zsys_debug1 ("CONNECT received");
+                            char* endpoint = zmsg_popstr (msg);
+                            int rv = mlm_client_connect (_client, endpoint, 1000, name);
+                            if (rv == -1)
+                                zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                            zstr_free (&endpoint);
+                        }
+                        else
+                            if (streq (cmd, "CONSUMER")) {
+                                zsys_debug1 ("CONSUMER received");
+                                char* stream = zmsg_popstr (msg);
+                                char* pattern = zmsg_popstr (msg);
+                                int rv = mlm_client_set_consumer (_client, stream, pattern);
+                                if (rv == -1)
+                                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                                zstr_free (&pattern);
+                                zstr_free (&stream);
+                            }
+                            else
+                                if (streq (cmd, "ALERT_ENGINE_NAME")) {
+                                    zsys_debug1 ("ALERT_ENGINE_NAME received");
+                                char* alert_engine_name = zmsg_popstr (msg);
+                                if (alert_engine_name) {
+                                    Autoconfig::AlertEngineName = strdup (alert_engine_name);
+                                }
+                                else {
+                                    zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
+                                }
+                                zstr_free (&alert_engine_name);
+                                }
 
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -232,7 +256,7 @@ Autoconfig::onSend (fty_proto_t **message)
     AutoConfigurationInfo info; 
     const char *device_name = fty_proto_name (*message);
     info.type = fty_proto_aux_string (*message, "type", NULL);
-    info.subtype = fty_proto_aux_string (*message, "subtype", NULL);
+    info.subtype = fty_proto_aux_string (*message, "subtype", "");
     info.operation = fty_proto_operation (*message);
 
     if (info.type == NULL) {
@@ -355,11 +379,6 @@ void autoconfig (zsock_t *pipe, void *args )
     char *name = (char *)args;
     zsys_info ("autoconfig agent started");
     Autoconfig agent( AUTOCONFIG );
-    if( agent.connect( ENDPOINT, FTY_PROTO_STREAM_ASSETS, ".*" ) ) {
-        agent.run(pipe, name);
-    } else {
-        zsys_error ("autoconfig agent could not connect to message bus");
-    }
+    agent.run(pipe, name);
     zsys_info ("autoconfig agent exited");
 }   
-

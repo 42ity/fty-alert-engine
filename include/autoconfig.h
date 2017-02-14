@@ -42,6 +42,8 @@ struct AutoConfigurationInfo
     std::map <std::string, std::string> attributes;
 };
 
+void autoconfig (zsock_t *pipe, void *args);
+
 class Autoconfig {
     public:
         explicit Autoconfig (const char *agentName) {_agentName = agentName; }; 
@@ -51,7 +53,8 @@ class Autoconfig {
         static const char *StateFile; //!< file&path where Autoconfig state is saved
         static const char *StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
         static const char *RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
-        
+        static const char *AlertEngineName;
+
         int send( const char *subject, zmsg_t **msg_p ) { return mlm_client_send( _client, subject, msg_p ); };
         // replyto == sendto
         int sendto( const char *address, const char *subject, zmsg_t **send_p ) { return mlm_client_sendto( _client, address, subject, NULL, TIMEOUT, send_p ); };
@@ -138,7 +141,6 @@ class Autoconfig {
             return true;
         };
         void run(zsock_t *pipe, char *name) { onStart(); main(pipe, name); onEnd(); }
-        void autoconfig (zsock_t *pipe, void *args);
     private:
         void handleReplies( zmsg_t *message );
         void setPollingInterval();
