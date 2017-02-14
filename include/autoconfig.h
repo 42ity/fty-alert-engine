@@ -50,10 +50,10 @@ class Autoconfig {
         explicit Autoconfig (const std::string &agentName) {_agentName = agentName; }; 
         virtual ~Autoconfig() {mlm_client_destroy (&_client); };
 
-        static const char *StateFile; //!< file&path where Autoconfig state is saved
-        static const char *StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
-        static const char *RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
-        static const char *AlertEngineName;
+        static const std::string StateFile; //!< file&path where Autoconfig state is saved
+        static const std::string StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
+        static std::string RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
+        static std::string AlertEngineName;
 
         int send( const char *subject, zmsg_t **msg_p ) { return mlm_client_send( _client, subject, msg_p ); };
         // replyto == sendto

@@ -29,6 +29,7 @@
 #include "fty_alert_engine_classes.h"
 
 #include <fstream>
+#include <iostream>
 #include <string>
 
 #include <cxxtools/jsonserializer.h>
@@ -47,15 +48,15 @@ extern int agent_alert_verbose;
 
 #define AUTOCONFIG "AUTOCONFIG"
 
-const char* Autoconfig::StateFilePath = "/var/lib/bios/agent-autoconfig";
-const char* Autoconfig::RuleFilePath; 
-const char* Autoconfig::StateFile = "/var/lib/bios/agent-autoconfig/state";
-const char* Autoconfig::AlertEngineName;
+const std::string Autoconfig::StateFilePath = "/var/lib/bios/agent-autoconfig";
+std::string Autoconfig::RuleFilePath; 
+const std::string Autoconfig::StateFile = "/var/lib/bios/agent-autoconfig/state";
+std::string Autoconfig::AlertEngineName;
 
 static int
 load_agent_info(std::string &info)
 {
-    if ( !shared::is_file (Autoconfig::StateFile)) {
+    if ( !shared::is_file (Autoconfig::StateFile.c_str ())) {
         zsys_error ("not a file");
         info = "";
         return -1;
@@ -69,15 +70,15 @@ load_agent_info(std::string &info)
         f.close ();
         return 0;
     }   
-    zsys_error("Fail to read '%s'", Autoconfig::StateFile);
+    zsys_error("Fail to read '%s'", Autoconfig::StateFile.c_str ());
     return -1; 
 }
 
 static int
 save_agent_info(const std::string& json)
 {   
-    if (!shared::is_dir (Autoconfig::StateFilePath)) {
-        zsys_error ("Can't serialize state, '%s' is not directory", Autoconfig::StateFilePath);
+    if (!shared::is_dir (Autoconfig::StateFilePath.c_str ())) {
+        zsys_error ("Can't serialize state, '%s' is not directory", Autoconfig::StateFilePath.c_str ());
         return -1;
     }
     try {
@@ -171,7 +172,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                         zsys_debug1 ("TEMPLATES_DIR received");
                         char* dirname = zmsg_popstr (msg);
                         if (dirname) {
-                            Autoconfig::RuleFilePath = strdup (dirname);
+                            Autoconfig::RuleFilePath = std::string (dirname);
                         }
                         else {
                             zsys_error ("%s: in TEMPLATES_DIR command next frame is missing", name);
@@ -203,7 +204,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                                     zsys_debug1 ("ALERT_ENGINE_NAME received");
                                 char* alert_engine_name = zmsg_popstr (msg);
                                 if (alert_engine_name) {
-                                    Autoconfig::AlertEngineName = strdup (alert_engine_name);
+                                    Autoconfig::AlertEngineName = std::string (alert_engine_name);
                                 }
                                 else {
                                     zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
@@ -226,22 +227,23 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             fty_proto_t *bmessage = fty_proto_decode (&message);
             if (!bmessage ) {
                 zsys_error ("can't decode message with subject %s, ignoring", subject ());
-                zmsg_destroy (&message);
                 continue;
             }
 
             if (fty_proto_id (bmessage) == FTY_PROTO_ASSET) {
                 onSend (&bmessage);
+                fty_proto_destroy (&bmessage);
                 continue;
             }
             else {    
-                zsys_warning ("Weird zmsg received, id = '%d', command = '%s', subject = '%s', sender = '%s'",
+                zsys_warning ("Weird fty_proto msg received, id = '%d', command = '%s', subject = '%s', sender = '%s'",
                         fty_proto_id (bmessage), command (), subject (), sender ());
+                fty_proto_destroy (&bmessage);
                 continue;
             }
-            zmsg_destroy (&message);
         }
-
+        else
+            zmsg_destroy (&message);
     }
     zpoller_destroy (&poller);
 }
@@ -254,10 +256,10 @@ Autoconfig::onSend (fty_proto_t **message)
         return;  
 
     AutoConfigurationInfo info; 
-    const char *device_name = fty_proto_name (*message);
-    info.type = fty_proto_aux_string (*message, "type", NULL);
-    info.subtype = fty_proto_aux_string (*message, "subtype", "");
-    info.operation = fty_proto_operation (*message);
+    const char *device_name = strdup (fty_proto_name (*message));
+    info.type = strdup (fty_proto_aux_string (*message, "type", NULL));
+    info.subtype = strdup (fty_proto_aux_string (*message, "subtype", ""));
+    info.operation = strdup (fty_proto_operation (*message));
 
     if (info.type == NULL) {
         zsys_debug("extracting attibutes from asset message failed.");

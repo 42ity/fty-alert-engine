@@ -61,8 +61,8 @@ bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
     std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath);
+    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
+        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return templates;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);
@@ -81,7 +81,7 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
 
 bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype){
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath);
+        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return false;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);

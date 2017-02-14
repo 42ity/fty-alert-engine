@@ -126,7 +126,7 @@ std::string escape (const std::string& before) {
 
 std::string jsonify (double t)
 {
-    if (std::isnan(t))
+    if (isnan(t))
         return "null";
     return std::to_string (t);
 }
@@ -230,9 +230,9 @@ bool RuleConfigurator::sendNewRule (const std::string& rule, mlm_client_t *clien
     zmsg_t *message = zmsg_new (); 
     zmsg_addstr (message, "ADD");
     zmsg_addstr (message, rule.c_str());
-    if (mlm_client_sendto (client, Autoconfig::AlertEngineName, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
+    if (mlm_client_sendto (client, Autoconfig::AlertEngineName.c_str (), "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
         zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
-                Autoconfig::AlertEngineName, "rfc-evaluator-rules");
+                Autoconfig::AlertEngineName.c_str (), "rfc-evaluator-rules");
         return false;
     }   
     return true;

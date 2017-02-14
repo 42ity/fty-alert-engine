@@ -1759,6 +1759,7 @@ fty_alert_engine_server_test (bool verbose)
             FTY_PROTO_ASSET_OP_CREATE,
             NULL);
     assert (m);
+    zhash_destroy (&aux);
     rv = mlm_client_send (asset_producer, "datacenter.@test", &m);
     assert ( rv == 0 );
 
@@ -1773,6 +1774,10 @@ fty_alert_engine_server_test (bool verbose)
     char *phase_imbalance = s_readall ((std::string ("src") + "/phase_imbalance@test.rule").c_str ());
     assert (phase_imbalance);
 
+    zstr_free (&realpower_default);
+    zstr_free (&phase_imbalance);
+    zstr_free (&average_humidity);
+    zstr_free (&average_temperature);
     // # 26.2 force an alert
     m = fty_proto_encode_metric (
         NULL, "average.temperature", "test", "1000", "C", 60);
@@ -1805,6 +1810,7 @@ fty_alert_engine_server_test (bool verbose)
                     FTY_PROTO_ASSET_OP_UPDATE,
                     NULL);
     assert (m);
+    zhash_destroy (&aux2);
     rv = mlm_client_send (asset_producer, "row.@test", &m);
     assert ( rv == 0 );
 
@@ -1813,16 +1819,13 @@ fty_alert_engine_server_test (bool verbose)
     average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
     assert (average_temperature);
 
+    zstr_free (&average_humidity);
+    zstr_free (&average_temperature);
     // TODO: now inapplicable rules should be deleted in the future
     /* realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
     phase_imbalance = s_readall ((std::string ("src") + "/phase.imbalance@test.rule").c_str ());
-    assert (realpower_default == NULL && phase_imbalance == NULL);
+    assert (realpower_default == NULL && phase_imbalance == NULL); */
 
-    zstr_free (&realpower_default);
-    zstr_free (&phase_imbalance);*/
-
-    zstr_free (&average_humidity);
-    zstr_free (&average_temperature);
 
     poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
     assert (poller);
@@ -1839,15 +1842,14 @@ fty_alert_engine_server_test (bool verbose)
     assert ( is_fty_proto (recv));
     if ( verbose ) {
             brecv = fty_proto_decode (&recv);
-            fty_proto_destroy (&brecv);
             assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
             assert (streq (fty_proto_element_src (brecv), "test"));
             assert (streq (fty_proto_state (brecv), "ACTIVE"));
             assert (streq (fty_proto_severity (brecv), "CRITICAL"));
             zsys_debug ("Alert was sent: SUCCESS");
+            fty_proto_destroy (&brecv);
         }
 
-    zmsg_destroy (&recv);
     zpoller_destroy (&poller);
 
     // # 28 update the created asset to something completely different, check that alert is resolved
