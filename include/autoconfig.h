@@ -34,9 +34,9 @@ extern "C" {
 
 struct AutoConfigurationInfo
 {
-    const char *type;
-    const char *subtype;
-    const char *operation;
+    std::string type;
+    std::string subtype;
+    std::string operation;
     bool configured = false;
     uint64_t date = 0;
     std::map <std::string, std::string> attributes;

@@ -34,10 +34,10 @@
 
 bool TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
     zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
-            name.c_str(), info.type, info.subtype);
-    if (streq (info.operation, FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation, FTY_PROTO_ASSET_OP_UPDATE)) {
+            name.c_str(), info.type.c_str (), info.subtype.c_str ());
+    if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
-                std::vector <std::string> templates = loadTemplates(info.type, info.subtype);
+                std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
                 for ( auto &templat : templates) {
                     std::string rule=replaceTokens(templat,"__name__",name);
                     zsys_debug("sending rule :\n %s", rule.c_str());
@@ -46,17 +46,17 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
                 return result;
     }
-    else if (streq (info.operation, FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation, FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation, FTY_PROTO_ASSET_OP_INVENTORY)) {
-        zsys_warning ("TODO: known operation '%s' without implemented action", info.operation);
+    else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)) {
+        zsys_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
     } 
     else
-        zsys_error ("Unknown operation '%s' on asset '%s'", info.operation, name.c_str ());
+        zsys_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
     return true;
 
 }
 
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
-        return checkTemplate(info.type, info.subtype);
+        return checkTemplate(info.type.c_str (), info.subtype.c_str ());
 }           
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){

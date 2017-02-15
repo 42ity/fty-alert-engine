@@ -256,17 +256,17 @@ Autoconfig::onSend (fty_proto_t **message)
         return;  
 
     AutoConfigurationInfo info; 
-    const char *device_name = strdup (fty_proto_name (*message));
-    info.type = strdup (fty_proto_aux_string (*message, "type", NULL));
-    info.subtype = strdup (fty_proto_aux_string (*message, "subtype", ""));
-    info.operation = strdup (fty_proto_operation (*message));
+    std::string device_name (fty_proto_name (*message));
+    info.type.assign (fty_proto_aux_string (*message, "type", ""));
+    info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
+    info.operation.assign (fty_proto_operation (*message));
 
-    if (info.type == NULL) {
+    if (info.type.empty ()) {
         zsys_debug("extracting attibutes from asset message failed.");
         return;
     }   
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
-            device_name, info.type, info.subtype, info.operation);
+            device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
     _configurableDevices.emplace (std::make_pair (device_name, info));
     saveState ();
