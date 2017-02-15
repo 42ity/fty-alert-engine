@@ -174,14 +174,14 @@ send_alerts(
         
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
+            ::time (NULL),
+            alert._ttl,
             rule_name.c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
             alert._severity.c_str(),
             alert._description.c_str(),
-            ::time (NULL),
-            makeActionList(alert._actions).c_str(),
-            alert._ttl
+            makeActionList(alert._actions).c_str()
         );
         if( msg ) {
             std::string atopic = rule_name + "/"
@@ -931,7 +931,7 @@ fty_alert_engine_server_test (bool verbose)
 
     //Test case #5: generate alert - below the treshold
     zmsg_t *m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "20", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "20", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -946,7 +946,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #6: generate alert - resolved
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "42", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "42", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -960,7 +960,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #6: generate alert - high warning
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "52", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "52", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -977,7 +977,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #7: generate alert - high critical
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "62", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "62", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -994,7 +994,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #8: generate alert - resolved again
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "42", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "42", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1010,7 +1010,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #9: generate alert - high again
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "62", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "62", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1027,7 +1027,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #11: generate alert - high again
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "62", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "62", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
 
@@ -1046,7 +1046,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #12: generate alert - resolved
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "42", "X", 0, time (NULL));
+            NULL, time (NULL), 0, "abc", "fff", "42", "X");
     mlm_client_send (producer, "abc@fff", &m);
 
 
@@ -1085,7 +1085,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // #13.2 evaluate metric
     m = fty_proto_encode_metric (
-            NULL, "status.ups", "5PX1500-01", "1032.000", "", ::time (NULL), ::time (NULL));
+            NULL, ::time (NULL), ::time (NULL), "status.ups", "5PX1500-01", "1032.000", "");
     mlm_client_send (producer, "status.ups@5PX1500-01", &m);
 
     // Test case #14: add new rule, but with lua syntax error
@@ -1131,7 +1131,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #15.2: evaluate it
     m = fty_proto_encode_metric (
-            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL), ::time (NULL));
+            NULL, ::time (NULL), ::time (NULL), "status.ups", "ROZ.UPS33", "42.00", "");
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1148,7 +1148,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #15.3: evaluate it again
     m = fty_proto_encode_metric (
-            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL), ::time (NULL));
+            NULL, ::time (NULL), ::time (NULL), "status.ups", "ROZ.UPS33", "42.00", "");
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1273,7 +1273,7 @@ fty_alert_engine_server_test (bool verbose)
     zsys_info ("######## Test case #19 evaluate some rule (type: pattern)");
     //      1. OK
     m = fty_proto_encode_metric (
-            NULL, "end_warranty_date", "UPS_pattern_rule", "100", "some description", 24*60*60, ::time (NULL));
+            NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "100", "some description");
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     //      1.1. No ALERT should be generated
@@ -1287,7 +1287,7 @@ fty_alert_engine_server_test (bool verbose)
 
     //      2. LOW_WARNING
     m = fty_proto_encode_metric (
-            NULL, "end_warranty_date", "UPS_pattern_rule", "20", "some description", 24*60*60, ::time (NULL));
+            NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "20", "some description");
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1302,7 +1302,7 @@ fty_alert_engine_server_test (bool verbose)
 
     //      3. LOW_CRITICAL
     m = fty_proto_encode_metric (
-            NULL, "end_warranty_date", "UPS_pattern_rule", "2", "some description", 24*60*60, ::time (NULL));
+            NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "2", "some description");
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1400,7 +1400,7 @@ fty_alert_engine_server_test (bool verbose)
     //      21.3  check that alert is not generated
 
     m = fty_proto_encode_metric (
-            NULL, "device_metric", "ggg", "100", "", 600, ::time (NULL));
+            NULL, ::time (NULL), 600, "device_metric", "ggg", "100", "");
     mlm_client_send (producer, "device_metric@ggg", &m);
 
     poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
@@ -1529,7 +1529,7 @@ fty_alert_engine_server_test (bool verbose)
     // # 1 as there were no alerts, lets create one :)
     // # 1.1 send metric
     m = fty_proto_encode_metric (
-            NULL, "metrictouch", "assettouch", "10", "X", 0, ::time (NULL));
+            NULL, ::time (NULL), 0, "metrictouch", "assettouch", "10", "X");
     assert (m);
     rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
     assert ( rv == 0 );
@@ -1652,7 +1652,7 @@ fty_alert_engine_server_test (bool verbose)
     // # 3 Generate alert on the First rule
     // # 3.1 Send metric
     m = fty_proto_encode_metric (
-            NULL, "metrictouch1", "element1", "100", "X", 0, ::time (NULL));
+            NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
     assert (m);
     rv = mlm_client_send (producer, "metrictouch1@element1", &m);
     assert ( rv == 0 );
@@ -1672,7 +1672,7 @@ fty_alert_engine_server_test (bool verbose)
     // # 4 Generate alert on the Second rule
     // # 4.1 Send metric
     m = fty_proto_encode_metric (
-            NULL, "metrictouch2", "element2", "80", "X", 0, ::time (NULL));
+            NULL, ::time (NULL), 0, "metrictouch2", "element2", "80", "X");
     assert (m);
     rv = mlm_client_send (producer, "metrictouch2@element2", &m);
     assert ( rv == 0 );
@@ -1773,7 +1773,7 @@ fty_alert_engine_server_test (bool verbose)
     zstr_free (&average_temperature);
     // # 26.2 force an alert
     m = fty_proto_encode_metric (
-        NULL, "average.temperature", "test", "1000", "C", 60, ::time (NULL));
+        NULL, ::time (NULL), 60, "average.temperature", "test", "1000", "C");
     assert (m);
     rv = mlm_client_send (producer, "average.temperature@test", &m);
     assert ( rv == 0 );
@@ -1825,7 +1825,7 @@ fty_alert_engine_server_test (bool verbose)
     which = zpoller_wait (poller, 3*ttl);
 
     m = fty_proto_encode_metric (
-        NULL, "average.temperature", "test", "1000", "C", 60, ::time (NULL));
+        NULL, ::time (NULL), 60, "average.temperature", "test", "1000", "C");
     assert (m);
     rv = mlm_client_send (producer, "average.temperature@test", &m);
     assert ( rv == 0 );
