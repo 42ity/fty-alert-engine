@@ -34,13 +34,15 @@ extern "C" {
 
 struct AutoConfigurationInfo
 {
-    const char *type;
-    const char *subtype;
-    const char *operation;
+    std::string type;
+    std::string subtype;
+    std::string operation;
     bool configured = false;
     uint64_t date = 0;
     std::map <std::string, std::string> attributes;
 };
+
+void autoconfig (zsock_t *pipe, void *args);
 
 class Autoconfig {
     public:
@@ -48,10 +50,11 @@ class Autoconfig {
         explicit Autoconfig (const std::string &agentName) {_agentName = agentName; }; 
         virtual ~Autoconfig() {mlm_client_destroy (&_client); };
 
-        static const char *StateFile; //!< file&path where Autoconfig state is saved
-        static const char *StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
-        static const char *RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
-        
+        static const std::string StateFile; //!< file&path where Autoconfig state is saved
+        static const std::string StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
+        static std::string RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
+        static std::string AlertEngineName;
+
         int send( const char *subject, zmsg_t **msg_p ) { return mlm_client_send( _client, subject, msg_p ); };
         // replyto == sendto
         int sendto( const char *address, const char *subject, zmsg_t **send_p ) { return mlm_client_sendto( _client, address, subject, NULL, TIMEOUT, send_p ); };
@@ -111,7 +114,7 @@ class Autoconfig {
         virtual void onReply( zmsg_t **message ) { zmsg_destroy( message ); };
         void onPoll ();
 
-        void main (); 
+        void main (zsock_t *pipe, char *name); 
         bool connect(const char * endpoint, const char *stream = NULL,
                 const char *pattern = NULL) {
             if( endpoint == NULL || _agentName.empty() ) return false;
@@ -137,7 +140,7 @@ class Autoconfig {
             }
             return true;
         };
-        int run() { onStart(); main(); onEnd(); return _exitStatus; }
+        void run(zsock_t *pipe, char *name) { onStart(); main(pipe, name); onEnd(); }
     private:
         void handleReplies( zmsg_t *message );
         void setPollingInterval();
@@ -151,7 +154,6 @@ class Autoconfig {
         int _exitStatus = 0;
         int _timeout = 2000;
         std::string _agentName;
-
 };
 #ifdef __cplusplus
 }

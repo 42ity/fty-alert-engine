@@ -44,11 +44,6 @@
 #include "autoconfig.h"
 #include "ruleconfigurator.h"
 
-// agents name
-static const char *AGENT_NAME = "fty-alert-engine";
-
-//using namespace utils::json;
-
 // General template for whether type T (a standard container) is iterable
 // We deliberatelly don't want to solve this for general case (we don't need it)
 // If we ever need a general is_container - http://stackoverflow.com/a/9407521
@@ -131,7 +126,7 @@ std::string escape (const std::string& before) {
 
 std::string jsonify (double t)
 {
-    if (std::isnan(t))
+    if (isnan(t))
         return "null";
     return std::to_string (t);
 }
@@ -235,9 +230,9 @@ bool RuleConfigurator::sendNewRule (const std::string& rule, mlm_client_t *clien
     zmsg_t *message = zmsg_new (); 
     zmsg_addstr (message, "ADD");
     zmsg_addstr (message, rule.c_str());
-    if (mlm_client_sendto (client, AGENT_NAME, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
+    if (mlm_client_sendto (client, Autoconfig::AlertEngineName.c_str (), "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
         zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
-                AGENT_NAME, "rfc-evaluator-rules");
+                Autoconfig::AlertEngineName.c_str (), "rfc-evaluator-rules");
         return false;
     }   
     return true;
