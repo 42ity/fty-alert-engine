@@ -171,19 +171,17 @@ send_alerts(
     for ( const auto &alert : alertsToSend )
     {
         // create 3*ttl minutes alert TTL
-        zhash_t *aux = zhash_new();
-        zhash_autofree (aux);
-        zhash_insert (aux, "TTL", (void*) std::to_string (alert._ttl).c_str ());
         
         zmsg_t *msg = fty_proto_encode_alert (
-            aux,
+            NULL,
             rule_name.c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
             alert._severity.c_str(),
             alert._description.c_str(),
             ::time (NULL),
-            makeActionList(alert._actions).c_str()
+            makeActionList(alert._actions).c_str(),
+            alert._ttl
         );
         if( msg ) {
             std::string atopic = rule_name + "/"
@@ -192,7 +190,6 @@ send_alerts(
             mlm_client_send (client, atopic.c_str(), &msg);
             zsys_debug1 ("mlm_client_send (subject = '%s')", atopic.c_str());
         }
-        zhash_destroy (&aux);
     }
 }
 
@@ -572,7 +569,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
             if ( fty_proto_id(bmessage) == FTY_PROTO_METRIC )  {
                 // process as metric message
                 const char *type = fty_proto_type(bmessage);
-                const char *element_src = fty_proto_element_src(bmessage);
+                const char * name = fty_proto_name (bmessage);
                 const char *value = fty_proto_value(bmessage);
                 const char *unit = fty_proto_unit(bmessage);
                 uint32_t ttl = fty_proto_ttl(bmessage);
@@ -600,7 +597,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
 
                 // Update cache with new value
-                MetricInfo m (element_src, type, unit, dvalue, timestamp, "", ttl);
+                MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
                 fty_proto_destroy(&bmessage);
                 cache.addMetric (m);
                 cache.removeOldMetrics();
@@ -934,7 +931,7 @@ fty_alert_engine_server_test (bool verbose)
 
     //Test case #5: generate alert - below the treshold
     zmsg_t *m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "20", "X", 0);
+            NULL, "abc", "fff", "20", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -942,14 +939,14 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     fty_proto_t *brecv = fty_proto_decode (&recv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
 
     // Test case #6: generate alert - resolved
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "42", "X", 0);
+            NULL, "abc", "fff", "42", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -957,13 +954,13 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "RESOLVED"));
     fty_proto_destroy (&brecv);
 
     // Test case #6: generate alert - high warning
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "52", "X", 0);
+            NULL, "abc", "fff", "52", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -973,14 +970,14 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "WARNING"));
     fty_proto_destroy (&brecv);
 
     // Test case #7: generate alert - high critical
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "62", "X", 0);
+            NULL, "abc", "fff", "62", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -990,14 +987,14 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
 
     // Test case #8: generate alert - resolved again
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "42", "X", 0);
+            NULL, "abc", "fff", "42", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1007,13 +1004,13 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "RESOLVED"));
     fty_proto_destroy (&brecv);
 
     // Test case #9: generate alert - high again
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "62", "X", 0);
+            NULL, "abc", "fff", "62", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1023,14 +1020,14 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
 
     // Test case #11: generate alert - high again
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "62", "X", 0);
+            NULL, "abc", "fff", "62", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
 
@@ -1042,14 +1039,14 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
 
     // Test case #12: generate alert - resolved
     m = fty_proto_encode_metric (
-            NULL, "abc", "fff", "42", "X", 0);
+            NULL, "abc", "fff", "42", "X", 0, time (NULL));
     mlm_client_send (producer, "abc@fff", &m);
 
 
@@ -1061,7 +1058,7 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "simplethreshold"));
-    assert (streq (fty_proto_element_src (brecv), "fff"));
+    assert (streq (fty_proto_name (brecv), "fff"));
     assert (streq (fty_proto_state (brecv), "RESOLVED"));
     fty_proto_destroy (&brecv);
 
@@ -1088,7 +1085,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // #13.2 evaluate metric
     m = fty_proto_encode_metric (
-            NULL, "status.ups", "5PX1500-01", "1032.000", "", ::time (NULL));
+            NULL, "status.ups", "5PX1500-01", "1032.000", "", ::time (NULL), ::time (NULL));
     mlm_client_send (producer, "status.ups@5PX1500-01", &m);
 
     // Test case #14: add new rule, but with lua syntax error
@@ -1134,7 +1131,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // Test case #15.2: evaluate it
     m = fty_proto_encode_metric (
-            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL));
+            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL), ::time (NULL));
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1144,14 +1141,14 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "too_high-ROZ.ePDU13"));
-    assert (streq (fty_proto_element_src (brecv), "ePDU13"));
+    assert (streq (fty_proto_name (brecv), "ePDU13"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
 
     // Test case #15.3: evaluate it again
     m = fty_proto_encode_metric (
-            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL));
+            NULL, "status.ups", "ROZ.UPS33", "42.00", "", ::time (NULL), ::time (NULL));
     mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1161,7 +1158,7 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "too_high-ROZ.ePDU13"));
-    assert (streq (fty_proto_element_src (brecv), "ePDU13"));
+    assert (streq (fty_proto_name (brecv), "ePDU13"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
@@ -1276,7 +1273,7 @@ fty_alert_engine_server_test (bool verbose)
     zsys_info ("######## Test case #19 evaluate some rule (type: pattern)");
     //      1. OK
     m = fty_proto_encode_metric (
-            NULL, "end_warranty_date", "UPS_pattern_rule", "100", "some description", 24*60*60);
+            NULL, "end_warranty_date", "UPS_pattern_rule", "100", "some description", 24*60*60, ::time (NULL));
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     //      1.1. No ALERT should be generated
@@ -1290,7 +1287,7 @@ fty_alert_engine_server_test (bool verbose)
 
     //      2. LOW_WARNING
     m = fty_proto_encode_metric (
-            NULL, "end_warranty_date", "UPS_pattern_rule", "20", "some description", 24*60*60);
+            NULL, "end_warranty_date", "UPS_pattern_rule", "20", "some description", 24*60*60, ::time (NULL));
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1298,14 +1295,14 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (streq (fty_proto_rule (brecv), "warranty"));
-    assert (streq (fty_proto_element_src (brecv), "UPS_pattern_rule"));
+    assert (streq (fty_proto_name (brecv), "UPS_pattern_rule"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "WARNING"));
     fty_proto_destroy (&brecv);
 
     //      3. LOW_CRITICAL
     m = fty_proto_encode_metric (
-            NULL, "end_warranty_date", "UPS_pattern_rule", "2", "some description", 24*60*60);
+            NULL, "end_warranty_date", "UPS_pattern_rule", "2", "some description", 24*60*60, ::time (NULL));
     mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
     recv = mlm_client_recv (consumer);
@@ -1313,7 +1310,7 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (streq (fty_proto_rule (brecv), "warranty"));
-    assert (streq (fty_proto_element_src (brecv), "UPS_pattern_rule"));
+    assert (streq (fty_proto_name (brecv), "UPS_pattern_rule"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
@@ -1401,13 +1398,9 @@ fty_alert_engine_server_test (bool verbose)
     zmsg_destroy (&recv);
 
     //      21.3  check that alert is not generated
-    zhash_t *aux = zhash_new ();
-    zhash_autofree (aux);
-    zhash_insert(aux, "time", (char *) std::to_string(::time(NULL)).c_str());
 
     m = fty_proto_encode_metric (
-            aux, "device_metric", "ggg", "100", "", 600);
-    zhash_destroy (&aux);
+            NULL, "device_metric", "ggg", "100", "", 600, ::time (NULL));
     mlm_client_send (producer, "device_metric@ggg", &m);
 
     poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
@@ -1536,7 +1529,7 @@ fty_alert_engine_server_test (bool verbose)
     // # 1 as there were no alerts, lets create one :)
     // # 1.1 send metric
     m = fty_proto_encode_metric (
-            NULL, "metrictouch", "assettouch", "10", "X", 0);
+            NULL, "metrictouch", "assettouch", "10", "X", 0, ::time (NULL));
     assert (m);
     rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
     assert ( rv == 0 );
@@ -1548,7 +1541,7 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "rule_to_touch"));
-    assert (streq (fty_proto_element_src (brecv), "assettouch"));
+    assert (streq (fty_proto_name (brecv), "assettouch"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
@@ -1580,7 +1573,7 @@ fty_alert_engine_server_test (bool verbose)
     if ( verbose ) {
         brecv = fty_proto_decode (&recv);
         assert (streq (fty_proto_rule (brecv), "rule_to_touch"));
-        assert (streq (fty_proto_element_src (brecv), "assettouch"));
+        assert (streq (fty_proto_name (brecv), "assettouch"));
         assert (streq (fty_proto_state (brecv), "RESOVLED"));
         assert (streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
@@ -1659,7 +1652,7 @@ fty_alert_engine_server_test (bool verbose)
     // # 3 Generate alert on the First rule
     // # 3.1 Send metric
     m = fty_proto_encode_metric (
-            NULL, "metrictouch1", "element1", "100", "X", 0);
+            NULL, "metrictouch1", "element1", "100", "X", 0, ::time (NULL));
     assert (m);
     rv = mlm_client_send (producer, "metrictouch1@element1", &m);
     assert ( rv == 0 );
@@ -1671,7 +1664,7 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "rule_to_metrictouch1"));
-    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_name (brecv), "element3"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
@@ -1679,7 +1672,7 @@ fty_alert_engine_server_test (bool verbose)
     // # 4 Generate alert on the Second rule
     // # 4.1 Send metric
     m = fty_proto_encode_metric (
-            NULL, "metrictouch2", "element2", "80", "X", 0);
+            NULL, "metrictouch2", "element2", "80", "X", 0, ::time (NULL));
     assert (m);
     rv = mlm_client_send (producer, "metrictouch2@element2", &m);
     assert ( rv == 0 );
@@ -1691,7 +1684,7 @@ fty_alert_engine_server_test (bool verbose)
     brecv = fty_proto_decode (&recv);
     assert (brecv);
     assert (streq (fty_proto_rule (brecv), "rule_to_metrictouch2"));
-    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_name (brecv), "element3"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "WARNING"));
     fty_proto_destroy (&brecv);
@@ -1717,7 +1710,7 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_name (brecv), "element3"));
     assert (streq (fty_proto_state (brecv), "RESOLVED"));
     fty_proto_destroy (&brecv);
 
@@ -1726,7 +1719,7 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (brecv);
-    assert (streq (fty_proto_element_src (brecv), "element3"));
+    assert (streq (fty_proto_name (brecv), "element3"));
     assert (streq (fty_proto_state (brecv), "RESOLVED"));
     fty_proto_destroy (&brecv);
 
@@ -1750,7 +1743,7 @@ fty_alert_engine_server_test (bool verbose)
 
     // # 26.1 catch message 'create asset', check that we created rules
 
-    aux = zhash_new ();
+    zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     zhash_insert (aux, "type", (void *) "datacenter");
     zhash_insert (aux, "priority", (void *) "P1");
@@ -1780,7 +1773,7 @@ fty_alert_engine_server_test (bool verbose)
     zstr_free (&average_temperature);
     // # 26.2 force an alert
     m = fty_proto_encode_metric (
-        NULL, "average.temperature", "test", "1000", "C", 60);
+        NULL, "average.temperature", "test", "1000", "C", 60, ::time (NULL));
     assert (m);
     rv = mlm_client_send (producer, "average.temperature@test", &m);
     assert ( rv == 0 );
@@ -1790,10 +1783,10 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (brecv);
-    int ttl = fty_proto_aux_number (brecv, "TTL", -1);
+    int ttl = fty_proto_ttl (brecv);
     assert (ttl != -1);
     assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
-    assert (streq (fty_proto_element_src (brecv), "test"));
+    assert (streq (fty_proto_name (brecv), "test"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv);
@@ -1832,7 +1825,7 @@ fty_alert_engine_server_test (bool verbose)
     which = zpoller_wait (poller, 3*ttl);
 
     m = fty_proto_encode_metric (
-        NULL, "average.temperature", "test", "1000", "C", 60);
+        NULL, "average.temperature", "test", "1000", "C", 60, ::time (NULL));
     assert (m);
     rv = mlm_client_send (producer, "average.temperature@test", &m);
     assert ( rv == 0 );
@@ -1843,7 +1836,7 @@ fty_alert_engine_server_test (bool verbose)
     if ( verbose ) {
             brecv = fty_proto_decode (&recv);
             assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
-            assert (streq (fty_proto_element_src (brecv), "test"));
+            assert (streq (fty_proto_name (brecv), "test"));
             assert (streq (fty_proto_state (brecv), "ACTIVE"));
             assert (streq (fty_proto_severity (brecv), "CRITICAL"));
             zsys_debug ("Alert was sent: SUCCESS");
@@ -1877,13 +1870,13 @@ fty_alert_engine_server_test (bool verbose)
     if ( verbose ) {
             brecv = fty_proto_decode (&recv);
             assert (streq (fty_proto_rule (brecv), "average.temperature@test.rule"));
-            assert (streq (fty_proto_element_src (brecv), "test"));
+            assert (streq (fty_proto_name (brecv), "test"));
             assert (streq (fty_proto_state (brecv), "RESOLVED"));
             assert (streq (fty_proto_severity (brecv), "CRITICAL"));
             fty_proto_destroy (&brecv);
             zsys_debug ("Alert was sent: SUCCESS");
         }
-    int ttl3 = fty_proto_aux_number (brecv, "TTL", -1);
+    int ttl3 = fty_proto_ttl (brecv);
     assert (ttl3 != -1);
     zmsg_destroy (&recv);
     zpoller_destroy (&poller);
@@ -1931,10 +1924,10 @@ fty_alert_engine_server_test (bool verbose)
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
     assert (brecv);
-    int ttl4 = fty_proto_aux_number (brecv, "TTL", -1);
+    int ttl4 = fty_proto_ttl (brecv);
     assert (ttl4 != -1);
     assert (streq (fty_proto_rule (brecv), "phase.imbalance@test.rule"));
-    assert (streq (fty_proto_element_src (brecv), "test"));
+    assert (streq (fty_proto_name (brecv), "test"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
     fty_proto_destroy (&brecv); */
@@ -1975,7 +1968,7 @@ fty_alert_engine_server_test (bool verbose)
     if ( verbose ) {
             brecv = fty_proto_decode (&recv);
             assert (streq (fty_proto_rule (brecv), "phase.imbalance@test.rule"));
-            assert (streq (fty_proto_element_src (brecv), "test"));
+            assert (streq (fty_proto_name (brecv), "test"));
             assert (streq (fty_proto_state (brecv), "RESOLVED"));
             assert (streq (fty_proto_severity (brecv), "CRITICAL"));
             fty_proto_destroy (&brecv);
