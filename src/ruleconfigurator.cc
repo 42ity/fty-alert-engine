@@ -44,24 +44,19 @@
 #include "autoconfig.h"
 #include "ruleconfigurator.h"
 
-// agents name
-static const char *AGENT_NAME = "fty-alert-engine";
-
-//using namespace utils::json;
-
 // General template for whether type T (a standard container) is iterable
 // We deliberatelly don't want to solve this for general case (we don't need it)
 // If we ever need a general is_container - http://stackoverflow.com/a/9407521
 template <typename T>
 struct is_iterable {
     static const bool value = false;
-};    
+};
 
 // Partial specialization for std::vector
 template <typename T,typename Alloc>
 struct is_iterable<std::vector <T,Alloc> > {
     static const bool value = true;
-};    
+};
 
 // Partial specialization for std::list
 template <typename T,typename Alloc>
@@ -90,7 +85,7 @@ std::string escape (const char *string) {
      *  \n
      *  \r
      *  \t
-     *  \u four-hex-digits 
+     *  \u four-hex-digits
      * ------------------------------
      */
 
@@ -101,10 +96,10 @@ std::string escape (const char *string) {
         }
         else if (c =='\b') {
             after.append ("\\\\b");
-        }   
+        }
         else if (c =='\f') {
             after.append ("\\\\f");
-        }   
+        }
         else if (c == '\n') {
             after.append ("\\\\n");
         }
@@ -121,17 +116,17 @@ std::string escape (const char *string) {
         else {
             after += c;
         }
-    }       
+    }
     return after;
-}       
+}
 
 std::string escape (const std::string& before) {
     return escape (before.c_str ());
-}   
+}
 
 std::string jsonify (double t)
 {
-    if (isnan(t))
+    if (std::isnan(t))
         return "null";
     return std::to_string (t);
 }
@@ -142,9 +137,9 @@ std::string jsonify (T t) {
     try {
         return escape (std::to_string (t));
     } catch (...) {
-        return ""; 
+        return "";
     }
-}   
+}
 
 // TODO: doxy
 // basically, these are property "jsonifyrs"; you supply any json-ifiable type pair and it creates a valid, properly escaped property (key:value) pair out of it.
@@ -156,9 +151,9 @@ std::string jsonify (const T& t) {
     try {
         return std::string ("\"").append (escape (t)).append ("\"");
     } catch (...) {
-        return ""; 
+        return "";
     }
-}   
+}
 
 template <typename T
 , typename std::enable_if<is_iterable<T>::value>::type* = nullptr>
@@ -171,16 +166,16 @@ std::string jsonify (const T& t) {
                 result += jsonify (item);
                 first = false;
             }
-            else { 
+            else {
                 result += ", " + jsonify (item);
-            }   
-        }       
+            }
+        }
         result += " ]";
         return result;
     } catch (...) {
         return "[]";
     }
-}       
+}
 
 template <typename S
 , typename std::enable_if<std::is_convertible<S, std::string>::value>::type* = nullptr
@@ -232,14 +227,14 @@ bool RuleConfigurator::sendNewRule (const std::string& rule, mlm_client_t *clien
 {
     if (!client)
         return false;
-    zmsg_t *message = zmsg_new (); 
+    zmsg_t *message = zmsg_new ();
     zmsg_addstr (message, "ADD");
     zmsg_addstr (message, rule.c_str());
-    if (mlm_client_sendto (client, AGENT_NAME, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
+    if (mlm_client_sendto (client, Autoconfig::AlertEngineName.c_str (), "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
         zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
-                AGENT_NAME, "rfc-evaluator-rules");
+                Autoconfig::AlertEngineName.c_str (), "rfc-evaluator-rules");
         return false;
-    }   
+    }
     return true;
 }
 
@@ -309,7 +304,7 @@ std::string RuleConfigurator::makeSingleRule (
         const std::string& element_name,
         //                          value_name   value
         const std::vector <std::pair<std::string, std::string>>& values,
-        //                           result_name               actions       severity     description 
+        //                           result_name               actions       severity     description
         const std::vector <std::tuple<std::string, std::vector <std::string>, std::string, std::string>>& results,
         const std::string& evaluation)
 {
@@ -331,7 +326,7 @@ std::string RuleConfigurator::makeSingleRule (
 
     // results
     std::string result_results = "[ ";
-    first = true; 
+    first = true;
     for (const auto& item : results) {
         if (first) {
             result_results += makeSingleRule_results (item);
@@ -339,8 +334,8 @@ std::string RuleConfigurator::makeSingleRule (
         }
         else {
             result_results += ", " + makeSingleRule_results (item);
-        }   
-    }   
+        }
+    }
     result_results += " ]";
 
 
@@ -355,7 +350,7 @@ std::string RuleConfigurator::makeSingleRule (
         + jsonify ("evaluation", evaluation) + "}\n"
         "}";
 
-    return result;   
+    return result;
 
 }
 
@@ -366,5 +361,5 @@ std::string RuleConfigurator::makeSingleRule_results (std::tuple<std::string, st
     result += jsonify ("severity", std::get<2> (one_result)) + ", ";
     result += jsonify ("description", std::get<3> (one_result)) + " }}";
     return result;
-}   
+}
 

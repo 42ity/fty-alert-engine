@@ -33,11 +33,11 @@
 #include "autoconfig.h"
 
 bool TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
-    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%" PRIi32"', info.subtype = '%" PRIi32"')",
-            name.c_str(), info.type, info.subtype);
-    if (streq (info.operation, FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation, FTY_PROTO_ASSET_OP_UPDATE)) {
+    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
+            name.c_str(), info.type.c_str (), info.subtype.c_str ());
+    if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
-                std::vector <std::string> templates = loadTemplates(info.type, info.subtype);
+                std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
                 for ( auto &templat : templates) {
                     std::string rule=replaceTokens(templat,"__name__",name);
                     zsys_debug("sending rule :\n %s", rule.c_str());
@@ -46,23 +46,23 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
                 return result;
     }
-    else if (streq (info.operation, FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation, FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation, FTY_PROTO_ASSET_OP_INVENTORY)) {
-        zsys_warning ("TODO: known operation '%s' without implemented action", info.operation);
+    else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)) {
+        zsys_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
     } 
     else
-        zsys_error ("Unknown operation '%s' on asset '%s'", info.operation, name.c_str ());
+        zsys_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
     return true;
 
 }
 
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
-        return checkTemplate(info.type, info.subtype);
+        return checkTemplate(info.type.c_str (), info.subtype.c_str ());
 }           
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
     std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath);
+    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
+        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return templates;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);
@@ -81,12 +81,13 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
 
 bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype){
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath);
+        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return false;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     for ( const auto &fn : d) {
+        zsys_debug ("Template name is '%s'", fn.c_str ());
         if ( fn.find(type_name.c_str())!= std::string::npos){
             return true;
         }
@@ -97,11 +98,12 @@ bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subty
 std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, const char *subtype){
     std::string name;
     std::string prefix ("__");
-    if (subtype != NULL)
+    std::string subtype_str (subtype);
+    if (!subtype_str.empty ())
         name = prefix + type + '_' + subtype + prefix;
     else
         name = prefix + type + prefix;
-    zsys_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s' = '%s')",
+    zsys_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
             type, subtype,name.c_str());
     return name;
 }

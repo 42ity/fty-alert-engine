@@ -90,7 +90,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     std::vector<double> values;
     for ( const auto &metric : _metrics ) {
         double value = metricList.find (metric);
-        if ( isnan (value) ) {
+        if ( std::isnan (value) ) {
             //zsys_debug1("Don't have everything for '%s' yet\n", _name.c_str());
             return RULE_RESULT_UNKNOWN;
         }
