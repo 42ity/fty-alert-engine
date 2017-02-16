@@ -726,11 +726,11 @@ fty_alert_engine_server_test (bool verbose)
 
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
-    mlm_client_set_producer (producer, "METRICS");
+    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
-    mlm_client_set_consumer (consumer, "_ALERTS_SYS", ".*");
+    mlm_client_set_consumer (consumer, FTY_PROTO_STREAM_ALERTS_SYS, ".*");
 
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
@@ -739,9 +739,9 @@ fty_alert_engine_server_test (bool verbose)
     if (verbose)
         zstr_send (ag_server, "VERBOSE");
     zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (ag_server, "CONSUMER", "METRICS", ".*", NULL);
-    zstr_sendx (ag_server, "CONSUMER", "_METRICS_UNAVAILABLE", ".*", NULL);
-    zstr_sendx (ag_server, "PRODUCER", "_ALERTS_SYS", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+    zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx (ag_server, "CONFIG", "src/", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
@@ -768,24 +768,24 @@ fty_alert_engine_server_test (bool verbose)
     zmsg_destroy (&recv);
     }
     // Test case #2.0: add new rule
-//    {
-//    zmsg_t *rule = zmsg_new();
-//    zmsg_addstrf (rule, "%s", "ADD");
-//    char* simplethreshold_rule = s_readall ("testrules/simplethreshold3.rule");
-//    assert (simplethreshold_rule);
-//    zmsg_addstrf (rule, "%s", simplethreshold_rule);
-//    zstr_free (&simplethreshold_rule);
-//    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
-//
-//    recv = mlm_client_recv (ui);
-//
-//    assert (zmsg_size (recv) == 2);
-//    foo = zmsg_popstr (recv);
-//    assert (streq (foo, "OK"));
-//    zstr_free (&foo);
-//    // does not make a sense to call streq on two json documents
-//    zmsg_destroy (&recv);
-//    }
+    {
+    zmsg_t *rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* simplethreshold_rule = s_readall ("testrules/simplethreshold3.rule");
+    assert (simplethreshold_rule);
+    zmsg_addstrf (rule, "%s", simplethreshold_rule);
+    zstr_free (&simplethreshold_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    zmsg_t *recv = mlm_client_recv (ui);
+
+    assert (zmsg_size (recv) == 2);
+    char *foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+    }
     // Test case #2.1: add new rule
     {
     zmsg_t *rule = zmsg_new();
@@ -997,7 +997,7 @@ fty_alert_engine_server_test (bool verbose)
 
     zmsg_t *recv = mlm_client_recv (ui);
     
-    assert (zmsg_size (recv) == 5);
+    assert (zmsg_size (recv) == 6);
     char *foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
     zstr_free (&foo);
@@ -1285,7 +1285,7 @@ fty_alert_engine_server_test (bool verbose)
     assert ( recv != NULL );
     assert (is_fty_proto (recv));
     fty_proto_t *brecv = fty_proto_decode (&recv);
-    assert (streq (fty_proto_rule (brecv), "warranty"));
+    assert (streq (fty_proto_rule (brecv), "warranty2"));
     assert (streq (fty_proto_name (brecv), "UPS_pattern_rule"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "WARNING"));
@@ -1300,7 +1300,7 @@ fty_alert_engine_server_test (bool verbose)
     assert ( recv != NULL );
     assert (is_fty_proto (recv));
     brecv = fty_proto_decode (&recv);
-    assert (streq (fty_proto_rule (brecv), "warranty"));
+    assert (streq (fty_proto_rule (brecv), "warranty2"));
     assert (streq (fty_proto_name (brecv), "UPS_pattern_rule"));
     assert (streq (fty_proto_state (brecv), "ACTIVE"));
     assert (streq (fty_proto_severity (brecv), "CRITICAL"));
@@ -1310,28 +1310,6 @@ fty_alert_engine_server_test (bool verbose)
     zstr_free (&pattern_rule);
     zmsg_destroy (&recv);
     }
-    // Test case #20 update some rule (type: pattern)
-    // #### commented out on purpose
-/*  ACE: need help. here is some memory leak in the memcheck, cannot find
-    {
-    rule = zmsg_new();
-    zmsg_addstrf (rule, "%s", "ADD");
-    pattern_rule = s_readall ("testrules/pattern.rule");
-    assert (pattern_rule);
-    zmsg_addstrf (rule, "%s", pattern_rule);
-    zmsg_addstrf (rule, "%s", "warranty");
-    zstr_free (&pattern_rule);
-    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
-    recv = mlm_client_recv (ui);
-
-    assert (zmsg_size (recv) == 2);
-    foo = zmsg_popstr (recv);
-    assert (streq (foo, "OK"));
-    zstr_free (&foo);
-    // does not make a sense to call streq on two json documents
-    zmsg_destroy (&recv);
-    }
-*/
     // Test case #21:   Thresholds imported from devices
     {
     //      21.1.1  add existing rule: devicethreshold
@@ -1777,58 +1755,55 @@ fty_alert_engine_server_test (bool verbose)
     }
     // # 27.1 update the created asset, check that we have the rules, wait for 3*ttl,
     // refresh the metric, check that we still have the alert
-//    {
-//    zhash_t *aux2 = zhash_new ();
-//    zhash_autofree (aux2);
-//    zhash_insert (aux2, "type", (void *) "row");
-//    zhash_insert (aux2, "priority", (void *) "P2");
-//    zmsg_t *m = fty_proto_encode_asset (aux2,
-//                    "test",
-//                    FTY_PROTO_ASSET_OP_UPDATE,
-//                    NULL);
-//    assert (m);
-//    zhash_destroy (&aux2);
-//    int rv = mlm_client_send (asset_producer, "row.@test", &m);
-//    assert ( rv == 0 );
-//
-//    char *average_humidity = s_readall ((std::string ("src") + "/average.humidity@test.rule").c_str ());
-//    assert (average_humidity);
-//    char *average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
-//    assert (average_temperature);
-//
-//    zstr_free (&average_humidity);
-//    zstr_free (&average_temperature);
-//    // TODO: now inapplicable rules should be deleted in the future
-//    /* realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
-//    phase_imbalance = s_readall ((std::string ("src") + "/phase.imbalance@test.rule").c_str ());
-//    assert (realpower_default == NULL && phase_imbalance == NULL); */
-//
-//    int ttl = 60;
-//    zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
-//    assert (poller);
-//    zpoller_wait (poller, 3*ttl);
-//
-//    m = fty_proto_encode_metric (
-//        NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-//    assert (m);
-//    rv = mlm_client_send (producer, "average.temperature@test", &m);
-//    assert ( rv == 0 );
-//
-//    zmsg_t *recv = mlm_client_recv (consumer);
-//    assert ( recv != NULL );
-//    assert ( is_fty_proto (recv));
-//    if ( verbose ) {
-//            fty_proto_t *brecv = fty_proto_decode (&recv);
-//            assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
-//            assert (streq (fty_proto_name (brecv), "test"));
-//            assert (streq (fty_proto_state (brecv), "ACTIVE"));
-//            assert (streq (fty_proto_severity (brecv), "CRITICAL"));
-//            zsys_debug ("Alert was sent: SUCCESS");
-//            fty_proto_destroy (&brecv);
-//        }
-//
-//    zpoller_destroy (&poller);
-//    }
+    {
+    zhash_t *aux2 = zhash_new ();
+    zhash_autofree (aux2);
+    zhash_insert (aux2, "type", (void *) "row");
+    zhash_insert (aux2, "priority", (void *) "P2");
+    zmsg_t *m = fty_proto_encode_asset (aux2,
+                    "test",
+                    FTY_PROTO_ASSET_OP_UPDATE,
+                    NULL);
+    assert (m);
+    zhash_destroy (&aux2);
+    int rv = mlm_client_send (asset_producer, "row.@test", &m);
+    assert ( rv == 0 );
+
+    zclock_sleep (6000);
+
+    char *average_humidity = s_readall ((std::string ("src") + "/average.humidity@test.rule").c_str ());
+    assert (average_humidity);
+    char *average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
+    assert (average_temperature);
+
+    zstr_free (&average_humidity);
+    zstr_free (&average_temperature);
+    // TODO: now inapplicable rules should be deleted in the future
+    /* realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
+    phase_imbalance = s_readall ((std::string ("src") + "/phase.imbalance@test.rule").c_str ());
+    assert (realpower_default == NULL && phase_imbalance == NULL); */
+
+    int ttl = 60;
+    zclock_sleep (3*ttl);
+    m = fty_proto_encode_metric (
+        NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
+    assert (m);
+    rv = mlm_client_send (producer, "average.temperature@test", &m);
+    assert ( rv == 0 );
+
+    zmsg_t *recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert ( is_fty_proto (recv));
+    fty_proto_t *brecv = fty_proto_decode (&recv);
+    assert (streq (fty_proto_rule (brecv), "average.temperature@test"));
+    assert (streq (fty_proto_name (brecv), "test"));
+    assert (streq (fty_proto_state (brecv), "ACTIVE"));
+    assert (streq (fty_proto_severity (brecv), "CRITICAL"));
+    if ( verbose ) {
+            zsys_debug ("Alert was sent: SUCCESS");
+        }
+    fty_proto_destroy (&brecv);
+    }
     // # 28 update the created asset to something completely different, check that alert is resolved
     // and that we deleted old rules and created new
 
@@ -1965,6 +1940,32 @@ fty_alert_engine_server_test (bool verbose)
     zpoller_destroy (&poller);
     }
     */
+    // Test case #20 update some rule (type: pattern)
+    {
+    zmsg_t *rule = zmsg_new();
+    zmsg_addstrf (rule, "%s", "ADD");
+    char *pattern_rule = s_readall ("testrules/pattern.rule");
+    assert (pattern_rule);
+    zmsg_addstrf (rule, "%s", pattern_rule);
+    zmsg_addstrf (rule, "%s", "warranty2");
+    zstr_free (&pattern_rule);
+    mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+    zmsg_t *recv = mlm_client_recv (ui);
+    assert (zmsg_size (recv) == 2);
+    char *foo = zmsg_popstr (recv);
+    assert (streq (foo, "OK"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
+
+    // recieve an alert
+    recv = mlm_client_recv (consumer);
+    assert ( recv != NULL );
+    assert (is_fty_proto (recv));
+    fty_proto_t *brecv = fty_proto_decode (&recv);
+    fty_proto_destroy (&brecv);
+    }
 
     zclock_sleep (3000);
     zactor_destroy (&ag_configurator);
