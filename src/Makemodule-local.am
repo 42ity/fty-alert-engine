@@ -4,10 +4,10 @@ EXTRA_DIST += \
 	src/thresholdrulesimple.h \
 	src/thresholdruledevice.h \
 	src/regexrule.h \
-	testrules/*.rule \
+	testrules \
 	src/warranty.rule.in \
-    src/templates/*.rule \
-    include/preproc.h
+	src/templates \
+	include/preproc.h
 
 AM_CPPFLAGS += -I$(abs_top_srcdir)/include
 
@@ -36,6 +36,15 @@ $(abs_top_builddir)/testrules: $(abs_top_srcdir)/testrules
 	    cp -r "$<" "$@" ; \
 	 fi
 
+check-local: $(abs_top_builddir)/src/templates
+
+$(abs_top_builddir)/src/templates: $(abs_top_srcdir)/src/templates
+	@if test "$@" != "$<" ; then \
+	    echo "  COPYDIR  src/templates"; \
+	    rm -rf "$@"; \
+	    cp -r "$<" "$@" ; \
+	 fi
+
 clean-local: clean-local-check
 .PHONY: clean-local-check
 clean-local-check:
@@ -43,6 +52,10 @@ clean-local-check:
 	    if test -d "$(abs_top_builddir)/testrules" ; then \
 	        chmod -R u+w "$(abs_top_builddir)/testrules" ; \
 	        rm -rf "$(abs_top_builddir)/testrules" ; \
+	    fi; \
+	    if test -d "$(abs_top_builddir)/src/templates" ; then \
+	        chmod -R u+w "$(abs_top_builddir)/src/templates" ; \
+	        rm -rf "$(abs_top_builddir)/src/templates" ; \
 	    fi; \
 	 fi
 
