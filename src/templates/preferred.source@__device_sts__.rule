@@ -1,0 +1,12 @@
+{
+    "single" : {
+        "rule_name"     :   "sts_preferred_source",
+        "target"        :   ["input.source@__name__", "input.source.preferred@__name__"],
+        "element"       :   "UPS1-LAB",
+        "values"        :   [ ],
+        "results"       :   [
+             {"high_critical"  : { "action" : ["EMAIL","SMS"], "description" : "The STS is not using preferred input feed" }},
+        ],
+        "evaluation"    : "function main(input, preferred) if input ~= preferred then return HIGH_CRITICAL end return OK end"
+    }
+}
