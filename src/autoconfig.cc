@@ -242,8 +242,32 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                 continue;
             }
         }
-        else
+        else {
+            // this should be a message from ALERT_ENGINE_NAME
+            if (streq (sender (), Autoconfig::AlertEngineName.c_str ())) {
+                char *reply = zmsg_popstr (message);
+                if (streq (reply, "OK")) {
+                    char *details = zmsg_popstr (message);
+                    zsys_debug ("Received OK for rule '%s'", details);
+                    zstr_free (&details);
+                }
+                else {
+                    if (streq (reply, "ERROR")) {
+                        char *details = zmsg_popstr (message);
+                        zsys_warning ("Received ERORR : '%s'", details);
+                        zstr_free (&details);
+                    }
+                    else
+                        zsys_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
+                            command (), subject (), sender ());  
+                }
+                zstr_free (&reply);
+            }
+            else
+                zsys_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
+                        command (), subject (), sender ());  
             zmsg_destroy (&message);
+        }
     }
     zpoller_destroy (&poller);
 }
