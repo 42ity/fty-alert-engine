@@ -29,6 +29,9 @@ static const char *PATH = "/var/lib/bios/alert_agent";
 // agents name
 static const char *AGENT_NAME = "fty-alert-engine";
 
+// autoconfig name
+static const char *AUTOCONFIG_NAME = "fty-autoconfig";
+
 // malamute endpoint
 static const char *ENDPOINT = "ipc://@/malamute";
 
@@ -53,6 +56,14 @@ int main (int argc, char** argv)
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
 
+    zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
+
+    if (set_verbose)
+        zstr_sendx (ag_configurator, "VERBOSE", NULL);
+    zstr_sendx (ag_configurator, "CONNECT", ENDPOINT, NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL);
+    zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", AGENT_NAME, NULL);
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license
     while (true) {

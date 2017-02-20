@@ -1,6 +1,6 @@
 {
     "pattern" : {
-        "rule_name"     :   "warranty",
+        "rule_name"     :   "warranty2",
         "target"        :   "^end_warranty_date@.+",
         "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"} ],
         "results"       :   [
