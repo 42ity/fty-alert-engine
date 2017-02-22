@@ -314,10 +314,9 @@ void Autoconfig::onPoll( )
 
         if ((&iTemplateRuleConfigurator)->isApplicable (it.second))
             device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, client ());
-        else { 
+        else  
             zsys_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
-            continue;
-        }
+        
         if (device_configured) {
             zsys_debug ("Device '%s' configured successfully", it.first.c_str ());
             it.second.configured = true;
