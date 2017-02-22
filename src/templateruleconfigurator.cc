@@ -99,10 +99,10 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, 
     std::string name;
     std::string prefix ("__");
     std::string subtype_str (subtype);
-    if (!subtype_str.empty ())
-        name = prefix + type + '_' + subtype + prefix;
-    else
+    if (subtype_str.empty () || (subtype_str.compare ("unknown")))
         name = prefix + type + prefix;
+    else
+        name = prefix + type + '_' + subtype + prefix;
     zsys_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
             type, subtype,name.c_str());
     return name;
