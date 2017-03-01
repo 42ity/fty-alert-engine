@@ -43,6 +43,7 @@ struct AutoConfigurationInfo
 };
 
 void autoconfig (zsock_t *pipe, void *args);
+void autoconfig_test (bool verbose);
 
 class Autoconfig {
     public:

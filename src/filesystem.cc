@@ -93,5 +93,11 @@ std::string basename(const std::string& path) {
     return path.substr(pos+1);
 }
 
-
 } // namespace shared
+
+void
+filesystem_test (bool verbose)
+{
+    printf (" * filesystem: ");
+    printf ("OK\n");
+}

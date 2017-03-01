@@ -198,3 +198,9 @@ join (const char **str_arr, const char *separator) {
 
 } // namespace utils
 
+void
+utils_test (bool verbose)
+{
+    printf (" * utils: ");
+    printf ("OK\n");
+}

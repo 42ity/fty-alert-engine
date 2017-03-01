@@ -407,3 +407,10 @@ void autoconfig (zsock_t *pipe, void *args )
     agent.run(pipe, name);
     zsys_info ("autoconfig agent exited");
 }
+
+void
+autoconfig_test (bool verbose)
+{
+    printf (" * autoconfig: ");
+    printf ("OK\n");
+}

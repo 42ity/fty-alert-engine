@@ -120,7 +120,6 @@ std::string join (const char **str_arr, const char *separator);
 
 } // namespace utils
 
+void utils_test (bool verbose);
+
 #endif // SRC_SHARED_UTILS_PLUSPLUS_H__
-
-
-

@@ -87,4 +87,6 @@ std::string basename(const std::string& path);
 
 } // namespace shared
 
+void filesystem_test (bool verbose);
+
 #endif
