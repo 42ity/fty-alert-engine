@@ -46,7 +46,7 @@ bool is_dir( const char  *path ) {
 
 std::vector<std::string> items_in_directory( const char *path ) {
     std::vector<std::string> result;
-    
+
     DIR * dir = opendir( path );
     if(dir) {
         struct dirent* entry;
@@ -61,7 +61,7 @@ std::vector<std::string> items_in_directory( const char *path ) {
 std::vector<std::string> files_in_directory( const char *path ) {
     std::vector<std::string> result;
     std::string spath = path; spath += path_separator();
-    
+
     for( auto it : items_in_directory( path ) ) {
         if( is_file( (spath + it).c_str() ) ) result.push_back(it);
     }

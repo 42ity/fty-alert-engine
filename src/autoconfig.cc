@@ -49,7 +49,7 @@ extern int agent_alert_verbose;
 #define AUTOCONFIG "AUTOCONFIG"
 
 const std::string Autoconfig::StateFilePath = "/var/lib/bios/agent-autoconfig";
-std::string Autoconfig::RuleFilePath; 
+std::string Autoconfig::RuleFilePath;
 const std::string Autoconfig::StateFile = "/var/lib/bios/agent-autoconfig/state";
 std::string Autoconfig::AlertEngineName;
 
@@ -69,14 +69,14 @@ load_agent_info(std::string &info)
         f.read (&info[0], info.size());
         f.close ();
         return 0;
-    }   
+    }
     zsys_error("Fail to read '%s'", Autoconfig::StateFile.c_str ());
-    return -1; 
+    return -1;
 }
 
 static int
 save_agent_info(const std::string& json)
-{   
+{
     if (!shared::is_dir (Autoconfig::StateFilePath.c_str ())) {
         zsys_error ("Can't serialize state, '%s' is not directory", Autoconfig::StateFilePath.c_str ());
         return -1;
@@ -90,12 +90,12 @@ save_agent_info(const std::string& json)
     catch (const std::exception& e) {
         zsys_error ("Can't serialize state, %s", e.what());
         return -1;
-    }   
+    }
     return 0;
-}   
-        
+}
+
 inline void operator<<= (cxxtools::SerializationInfo& si, const AutoConfigurationInfo& info)
-{   
+{
     si.setTypeName("AutoConfigurationInfo");
     si.addMember("type") <<= info.type;
     si.addMember("subtype") <<= info.subtype;
@@ -103,10 +103,10 @@ inline void operator<<= (cxxtools::SerializationInfo& si, const AutoConfiguratio
     si.addMember("configured") <<= info.configured;
     si.addMember("date") <<= std::to_string (info.date);
     si.addMember("attributes") <<= info.attributes;
-}   
-    
+}
+
 inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfigurationInfo& info)
-{   
+{
     std::string temp;
     si.getMember("configured") >>= info.configured;
     si.getMember("type") >>= temp;
@@ -144,7 +144,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             _timestamp = zclock_mono ();
             zsys_warning ("zpoller_wait () returned NULL while at the same time zpoller_terminated == 0, zsys_interrupted == 0, zpoller_expired == 0");
             continue;
-        }       
+        }
 
         int64_t now = zclock_mono ();
         if (now - _timestamp >= _timeout) {
@@ -235,7 +235,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                 fty_proto_destroy (&bmessage);
                 continue;
             }
-            else {    
+            else {
                 zsys_warning ("Weird fty_proto msg received, id = '%d', command = '%s', subject = '%s', sender = '%s'",
                         fty_proto_id (bmessage), command (), subject (), sender ());
                 fty_proto_destroy (&bmessage);
@@ -259,13 +259,13 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                     }
                     else
                         zsys_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
-                            command (), subject (), sender ());  
+                            command (), subject (), sender ());
                 }
                 zstr_free (&reply);
             }
             else
                 zsys_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
-                        command (), subject (), sender ());  
+                        command (), subject (), sender ());
             zmsg_destroy (&message);
         }
     }
@@ -275,11 +275,11 @@ void Autoconfig::main (zsock_t *pipe, char *name)
 
 void
 Autoconfig::onSend (fty_proto_t **message)
-{   
+{
     if (!message || ! *message)
-        return;  
+        return;
 
-    AutoConfigurationInfo info; 
+    AutoConfigurationInfo info;
     std::string device_name (fty_proto_name (*message));
     info.type.assign (fty_proto_aux_string (*message, "type", ""));
     info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
@@ -288,7 +288,7 @@ Autoconfig::onSend (fty_proto_t **message)
     if (info.type.empty ()) {
         zsys_debug("extracting attibutes from asset message failed.");
         return;
-    }   
+    }
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
@@ -298,7 +298,7 @@ Autoconfig::onSend (fty_proto_t **message)
 }
 
 void Autoconfig::onPoll( )
-{   
+{
     static TemplateRuleConfigurator iTemplateRuleConfigurator;
 
     bool save = false;
@@ -314,9 +314,9 @@ void Autoconfig::onPoll( )
 
         if ((&iTemplateRuleConfigurator)->isApplicable (it.second))
             device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, client ());
-        else  
+        else
             zsys_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
-        
+
         if (device_configured) {
             zsys_debug ("Device '%s' configured successfully", it.first.c_str ());
             it.second.configured = true;
@@ -326,19 +326,19 @@ void Autoconfig::onPoll( )
             zsys_debug ("Device '%s' NOT configured yet.", it.first.c_str ());
         }
         it.second.date = zclock_mono ();
-    }   
+    }
 
     if (save) {
         cleanupState();
         saveState();
-    }   
+    }
     setPollingInterval();
-}   
+}
 
 // autoconfig agent private methods
-    
+
 void Autoconfig::setPollingInterval( )
-{   
+{
     _timeout = -1;
     for( auto &it : _configurableDevices) {
         if( ! it.second.configured ) {
@@ -351,10 +351,10 @@ void Autoconfig::setPollingInterval( )
                 // we failed to configure some device
                 // let's try after one minute again
                 _timeout = 60000;
-            }   
-        }   
+            }
+        }
     }
-}             
+}
 
 void Autoconfig::loadState()
 {
@@ -380,15 +380,15 @@ void Autoconfig::cleanupState()
     for( auto it = _configurableDevices.cbegin(); it != _configurableDevices.cend() ; ) {
         if( it->second.configured ) {
             _configurableDevices.erase(it++);
-        } else { 
+        } else {
             ++it;
         }
-    }   
+    }
     zsys_debug ("Size after cleanup '%zu'", _configurableDevices.size ());
 }
-    
+
 void Autoconfig::saveState()
-{           
+{
     std::ostringstream stream;
     cxxtools::JsonSerializer serializer(stream);
     zsys_debug ("size = '%zu'",_configurableDevices.size ());
@@ -398,12 +398,12 @@ void Autoconfig::saveState()
     zsys_debug (json.c_str ());
     save_agent_info(json );
 }
-    
+
 void autoconfig (zsock_t *pipe, void *args )
-{   
+{
     char *name = (char *)args;
     zsys_info ("autoconfig agent started");
     Autoconfig agent( AUTOCONFIG );
     agent.run(pipe, name);
     zsys_info ("autoconfig agent exited");
-}   
+}

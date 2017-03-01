@@ -46,8 +46,8 @@ void autoconfig (zsock_t *pipe, void *args);
 
 class Autoconfig {
     public:
-        explicit Autoconfig (const char *agentName) {_agentName = agentName; }; 
-        explicit Autoconfig (const std::string &agentName) {_agentName = agentName; }; 
+        explicit Autoconfig (const char *agentName) {_agentName = agentName; };
+        explicit Autoconfig (const std::string &agentName) {_agentName = agentName; };
         virtual ~Autoconfig() {mlm_client_destroy (&_client); };
 
         static const std::string StateFile; //!< file&path where Autoconfig state is saved
@@ -61,35 +61,35 @@ class Autoconfig {
         int sendfor( const char *address, const char *subject, zmsg_t **send_p ) { return mlm_client_sendfor( _client, address, subject, NULL, TIMEOUT, send_p ); };
         zmsg_t * recv( ) { return mlm_client_recv( _client ); };
         zmsg_t * recv_wait( int timeout )
-        { 
+        {
             if(!_client) {
                 return NULL;
-            }   
+            }
 
             zsock_t *pipe = mlm_client_msgpipe(_client);
             if (!pipe) {
                 return NULL;
-            }   
+            }
 
             zmsg_t *zmsg = NULL;
             zsock_t *which = NULL;
             zpoller_t *poller = zpoller_new(pipe, NULL);
             if (!poller) {
                 return NULL;
-            }   
+            }
 
             which = (zsock_t *) zpoller_wait (poller, timeout);
             if (which) {
                 zmsg = mlm_client_recv (_client);
-            }   
+            }
             zpoller_destroy (&poller);
 
             if (!zmsg) {
                 return NULL;
-            }   
+            }
             return zmsg;
         }
-        
+
         int set_producer( const char *stream ) { return mlm_client_set_producer( _client, stream ); };
         int set_consumer( const char *stream, const char *pattern ) { return mlm_client_set_consumer( _client, stream, pattern ); };
         const char * command( ) { return mlm_client_command( _client ); };
@@ -114,7 +114,7 @@ class Autoconfig {
         virtual void onReply( zmsg_t **message ) { zmsg_destroy( message ); };
         void onPoll ();
 
-        void main (zsock_t *pipe, char *name); 
+        void main (zsock_t *pipe, char *name);
         bool connect(const char * endpoint, const char *stream = NULL,
                 const char *pattern = NULL) {
             if( endpoint == NULL || _agentName.empty() ) return false;
