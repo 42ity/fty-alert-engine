@@ -4,15 +4,6 @@ EXTRA_DIST += \
 	src/thresholdrulesimple.h \
 	src/thresholdruledevice.h \
 	src/regexrule.h \
-	src/warranty.rule.in \
 	include/preproc.h
 
 AM_CPPFLAGS += -I$(abs_top_srcdir)/include
-
-# TODO: .rule.in => .rule? Really?
-# Note: This is "installed", not part of selftest data.
-all-local: $(abs_top_srcdir)/src/warranty.rule.in
-	test -f $(abs_top_builddir)/src/warranty.rule || cp $(abs_top_srcdir)/src/warranty.rule.in $(abs_top_builddir)/src/warranty.rule
-
-CLEANFILES += \
-	src/warranty.rule
