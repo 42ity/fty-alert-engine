@@ -709,11 +709,22 @@ s_readall (const char* filename) {
 void
 fty_alert_engine_server_test (bool verbose)
 {
+    // Note: If your selftest reads SCMed fixture data, please keep it in
+    // src/selftest-ro; if your test creates filesystem objects, please
+    // do so under src/selftest-rw. They are defined below along with a
+    // usecase (asert) to make compilers happy.
+    const char *SELFTEST_DIR_RO = "src/selftest-ro";
+    const char *SELFTEST_DIR_RW = "src/selftest-rw";
+    assert (SELFTEST_DIR_RO);
+    assert (SELFTEST_DIR_RW);
+    std::string str_SELFTEST_DIR_RO = std::string(SELFTEST_DIR_RO);
+    std::string str_SELFTEST_DIR_RW = std::string(SELFTEST_DIR_RW);
+
     printf (" * fty_alert_engine_server: ");
     if (verbose)
         printf ("\n");
 
-    int r = system ("rm -f src/*.rule");
+    int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
     assert (r == 0); // to make gcc @ CentOS 7 happy
 
     //  @selftest
@@ -742,7 +753,7 @@ fty_alert_engine_server_test (bool verbose)
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
     zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
-    zstr_sendx (ag_server, "CONFIG", "src/", NULL);
+    zstr_sendx (ag_server, "CONFIG", (str_SELFTEST_DIR_RW + "/").c_str(), NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // Test case #1: list w/o rules
@@ -771,7 +782,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char* simplethreshold_rule = s_readall ("testrules/simplethreshold3.rule");
+    char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold3.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -790,7 +801,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char* simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
+    char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -809,7 +820,7 @@ fty_alert_engine_server_test (bool verbose)
     //                 update simplethreshold2 with new name simplethreshold
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    simplethreshold_rule = s_readall ("testrules/simplethreshold2.rule");
+    simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold2.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -826,7 +837,7 @@ fty_alert_engine_server_test (bool verbose)
 
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
+    simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -969,7 +980,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char *simplethreshold_rule = s_readall ("testrules/simplethreshold.rule");
+    char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -1058,7 +1069,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char* onbattery_rule = s_readall ("testrules/onbattery-5PX1500-01.rule");
+    char* onbattery_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/onbattery-5PX1500-01.rule").c_str());
     assert (onbattery_rule);
     zmsg_addstrf (rule, "%s", onbattery_rule);
     zstr_free (&onbattery_rule);
@@ -1081,7 +1092,7 @@ fty_alert_engine_server_test (bool verbose)
     zmsg_t *rule = zmsg_new();
     assert(rule);
     zmsg_addstrf (rule, "%s", "ADD");
-    char* complexthreshold_rule_lua_error = s_readall ("testrules/complexthreshold_lua_error.rule");
+    char* complexthreshold_rule_lua_error = s_readall ((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
     assert (complexthreshold_rule_lua_error);
     zmsg_addstrf (rule, "%s", complexthreshold_rule_lua_error);
     zstr_free (&complexthreshold_rule_lua_error);
@@ -1102,7 +1113,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char* toohigh_rule = s_readall ("testrules/too_high-ROZ.ePDU13.rule");
+    char* toohigh_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/too_high-ROZ.ePDU13.rule").c_str());
     assert (toohigh_rule);
     zmsg_addstrf (rule, "%s", toohigh_rule);
     zstr_free (&toohigh_rule);
@@ -1155,7 +1166,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char* rule_with_trash = s_readall ("testrules/rule_with_trash.rule");
+    char* rule_with_trash = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_with_trash.rule").c_str());
     assert (rule_with_trash);
     zmsg_addstrf (rule, "%s", rule_with_trash);
     zstr_free (&rule_with_trash);
@@ -1205,7 +1216,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char *simplethreshold_rule = s_readall ("testrules/check_update_threshold_simple.rule");
+    char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -1223,7 +1234,7 @@ fty_alert_engine_server_test (bool verbose)
     // 2.
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    simplethreshold_rule = s_readall ("testrules/check_update_threshold_simple2.rule");
+    simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple2.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstrf (rule, "%s", simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -1246,7 +1257,7 @@ fty_alert_engine_server_test (bool verbose)
     zsys_info ("######## Test case #18 add some rule (type: pattern)");
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char* pattern_rule = s_readall ("testrules/pattern.rule");
+    char* pattern_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
     assert (pattern_rule);
     zmsg_addstrf (rule, "%s", pattern_rule);
     zstr_free (&pattern_rule);
@@ -1315,7 +1326,7 @@ fty_alert_engine_server_test (bool verbose)
     //      21.1.1  add existing rule: devicethreshold
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char *devicethreshold_rule = s_readall ("testrules/devicethreshold.rule");
+    char *devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold.rule").c_str());
     assert (devicethreshold_rule);
     zmsg_addstrf (rule, "%s", devicethreshold_rule);
     zstr_free (&devicethreshold_rule);
@@ -1333,7 +1344,7 @@ fty_alert_engine_server_test (bool verbose)
     //      21.1.2  add existing rule second time: devicethreshold
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    devicethreshold_rule = s_readall ("testrules/devicethreshold2.rule");
+    devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
     assert (devicethreshold_rule);
     zmsg_addstrf (rule, "%s", devicethreshold_rule);
     zstr_free (&devicethreshold_rule);
@@ -1354,7 +1365,7 @@ fty_alert_engine_server_test (bool verbose)
     //      21.2  update existing rule
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    devicethreshold_rule = s_readall ("testrules/devicethreshold2.rule");
+    devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
     assert (devicethreshold_rule);
     zmsg_addstrf (rule, "%s", devicethreshold_rule);
     zstr_free (&devicethreshold_rule);
@@ -1391,7 +1402,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstr (rule, "ADD");
-    char *simplethreshold_rule = s_readall ("testrules/simplethreshold_string_value1.rule");
+    char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstr (rule, simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -1412,7 +1423,7 @@ fty_alert_engine_server_test (bool verbose)
     // 22-2 : "20AA"
     rule = zmsg_new();
     zmsg_addstr (rule, "ADD");
-    simplethreshold_rule = s_readall ("testrules/simplethreshold_string_value2.rule");
+    simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
     assert (simplethreshold_rule);
     zmsg_addstr (rule, simplethreshold_rule);
     zstr_free (&simplethreshold_rule);
@@ -1454,7 +1465,7 @@ fty_alert_engine_server_test (bool verbose)
     // 24.1 Create a rule we are going to test against
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char *rule_to_touch = s_readall ("testrules/rule_to_touch.rule");
+    char *rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_touch.rule").c_str());
     assert (rule_to_touch);
     zmsg_addstrf (rule, "%s", rule_to_touch);
     zstr_free (&rule_to_touch);
@@ -1581,7 +1592,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char *rule_to_touch = s_readall ("testrules/rule_to_metrictouch1.rule");
+    char *rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch1.rule").c_str());
     assert (rule_to_touch);
     zmsg_addstrf (rule, "%s", rule_to_touch);
     zstr_free (&rule_to_touch);
@@ -1599,7 +1610,7 @@ fty_alert_engine_server_test (bool verbose)
     // 25.2 Add Second rule
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    rule_to_touch = s_readall ("testrules/rule_to_metrictouch2.rule");
+    rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch2.rule").c_str());
     assert (rule_to_touch);
     zmsg_addstrf (rule, "%s", rule_to_touch);
     zstr_free (&rule_to_touch);
@@ -1697,7 +1708,7 @@ fty_alert_engine_server_test (bool verbose)
     if (verbose)
             zstr_send (ag_configurator, "VERBOSE");
     zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);
-    zstr_sendx (ag_configurator, "TEMPLATES_DIR", "src/templates", NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", "alert-agent", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
@@ -1719,13 +1730,13 @@ fty_alert_engine_server_test (bool verbose)
 
     zclock_sleep (6000);
 
-    char *average_humidity = s_readall ((std::string ("src") + "/average.humidity@test.rule").c_str ());
+    char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str());
     assert (average_humidity);
-    char *average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
+    char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str());
     assert (average_temperature);
-    char *realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
+    char *realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str());
     assert (realpower_default);
-    char *phase_imbalance = s_readall ((std::string ("src") + "/phase_imbalance@test.rule").c_str ());
+    char *phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str());
     assert (phase_imbalance);
 
     zstr_free (&realpower_default);
@@ -1771,16 +1782,16 @@ fty_alert_engine_server_test (bool verbose)
 
     zclock_sleep (6000);
 
-    char *average_humidity = s_readall ((std::string ("src") + "/average.humidity@test.rule").c_str ());
+    char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str());
     assert (average_humidity);
-    char *average_temperature = s_readall ((std::string ("src") + "/average.temperature@test.rule").c_str ());
+    char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str());
     assert (average_temperature);
 
     zstr_free (&average_humidity);
     zstr_free (&average_temperature);
     // TODO: now inapplicable rules should be deleted in the future
-    /* realpower_default =  s_readall ((std::string ("src") + "/realpower.default@test.rule").c_str ());
-    phase_imbalance = s_readall ((std::string ("src") + "/phase.imbalance@test.rule").c_str ());
+    /* realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str());
+    phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str());
     assert (realpower_default == NULL && phase_imbalance == NULL); */
 
     int ttl = 60;
@@ -1841,27 +1852,27 @@ fty_alert_engine_server_test (bool verbose)
     zmsg_destroy (&recv);
     zpoller_destroy (&poller);
 
-    char *average_humidity2 = s_readall ((std::string ("src/testrules") + "/average.humidity@test.rule").c_str ());
-    char *average_temperature2 = s_readall ((std::string ("src/testrules") + "/average.temperature@test.rule").c_str ());
-    char *realpower_default2 =  s_readall ((std::string ("src/testrules") + "/realpower.default@test.rule").c_str ());
-    char *phase_imbalance2 = s_readall ((std::string ("src/testrules") + "/phase.imbalance@test.rule").c_str ());
+    char *average_humidity2 = s_readall ((str_SELFTEST_DIR_RO + "/average.humidity@test.rule").c_str());
+    char *average_temperature2 = s_readall ((str_SELFTEST_DIR_RO + "/average.temperature@test.rule").c_str());
+    char *realpower_default2 =  s_readall ((str_SELFTEST_DIR_RO + "/realpower.default@test.rule").c_str());
+    char *phase_imbalance2 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str());
     assert (average_humidity2 == NULL && average_temperature2 == NULL && realpower_default2 == NULL && phase_imbalance2 == NULL);
     zstr_free (&average_humidity2);
     zstr_free (&average_temperature2);
     zstr_free (&realpower_default2);
     zstr_free (&phase_imbalance2);
 
-    char *load_1phase = s_readall ((std::string ("src/testrules") + "/load.input_1phase@test.rule").c_str ());
+    char *load_1phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_1phase@test.rule").c_str());
     assert (load_1phase);
-    char *load_3phase = s_readall ((std::string ("src/testrules") + "/load.input_3phase@test.rule").c_str ());
+    char *load_3phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_3phase@test.rule").c_str());
     assert (load_3phase);
-    char *section_load =  s_readall ((std::string ("src/testrules") + "/section_load@test.rule").c_str ());
+    char *section_load =  s_readall ((str_SELFTEST_DIR_RO + "/section_load@test.rule").c_str());
     assert (section_load);
-    char *phase_imbalance3 = s_readall ((std::string ("src/testrules") + "/phase.imbalance@test.rule").c_str ());
+    char *phase_imbalance3 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str());
     assert (phase_imbalance);
-    char *voltage_1phase = s_readall ((std::string ("src/testrules") + "/voltage.input_1phase@test.rule").c_str ());
+    char *voltage_1phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_1phase@test.rule").c_str());
     assert (voltage_1phase);
-    char *voltage_3phase = s_readall ((std::string ("src/testrules") + "/voltage.input_3phase@test.rule").c_str ());
+    char *voltage_3phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_3phase@test.rule").c_str());
     assert (voltage_3phase);
 
     zstr_free (&load_1phase);
@@ -1904,12 +1915,12 @@ fty_alert_engine_server_test (bool verbose)
     rv = mlm_client_send (asset_producer, "device.epdu@test", &m);
     assert ( rv == 0 );
 
-    load_1phase = s_readall ((std::string ("src/testrules") + "/load.input_1phase@test.rule").c_str ());
-    load_3phase = s_readall ((std::string ("src/testrules") + "/load.input_3phase@test.rule").c_str ());
-    section_load =  s_readall ((std::string ("src/testrules") + "/section_load@test.rule").c_str ());
-    phase_imbalance3 = s_readall ((std::string ("src/testrules") + "/phase.imbalance@test.rule").c_str ());
-    voltage_1phase = s_readall ((std::string ("src/testrules") + "/voltage.input_1phase@test.rule").c_str ());
-    voltage_3phase = s_readall ((std::string ("src/testrules") + "/voltage.input_3phase@test.rule").c_str ());
+    load_1phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_1phase@test.rule").c_str());
+    load_3phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_3phase@test.rule").c_str());
+    section_load =  s_readall ((str_SELFTEST_DIR_RO + "/section_load@test.rule").c_str());
+    phase_imbalance3 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str());
+    voltage_1phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_1phase@test.rule").c_str());
+    voltage_3phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_3phase@test.rule").c_str());
 
     assert (load_1phase == NULL && load_3phase == NULL && section_load == NULL && phase_imbalance3 == NULL && voltage_1phase == NULL && voltage_3phase == NULL);
 
@@ -1944,7 +1955,7 @@ fty_alert_engine_server_test (bool verbose)
     {
     zmsg_t *rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
-    char *pattern_rule = s_readall ("testrules/pattern.rule");
+    char *pattern_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
     assert (pattern_rule);
     zmsg_addstrf (rule, "%s", pattern_rule);
     zmsg_addstrf (rule, "%s", "warranty2");

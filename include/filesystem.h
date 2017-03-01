@@ -72,7 +72,7 @@ std::vector<std::string> files_in_directory( const char *path );
  * \param mode (rights)
  * \param create parent directories if needed
  *
- * In case of failure also errno is set, see "man 3 mkdir" for details. 
+ * In case of failure also errno is set, see "man 3 mkdir" for details.
  */
 bool mkdir_if_needed(const char *path, mode_t mode = 0x755, bool create_parent=true );
 
@@ -86,5 +86,7 @@ bool mkdir_if_needed(const char *path, mode_t mode = 0x755, bool create_parent=t
 std::string basename(const std::string& path);
 
 } // namespace shared
+
+void filesystem_test (bool verbose);
 
 #endif
