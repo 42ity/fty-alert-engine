@@ -4,60 +4,6 @@ EXTRA_DIST += \
 	src/thresholdrulesimple.h \
 	src/thresholdruledevice.h \
 	src/regexrule.h \
-	testrules \
-	src/warranty.rule.in \
-	src/templates \
 	include/preproc.h
 
 AM_CPPFLAGS += -I$(abs_top_srcdir)/include
-
-CLEANFILES += \
-	src/*.rule
-
-# src/check_update_threshold_simple.rule
-# src/device_threshold_test.rule
-# src/onbattery-5PX1500-01.rule
-# "src/realpower.default@\305\275lu\305\245ou\304\215k\303\275 K\305\257\305\210.rule"
-# src/rule_to_metrictouch1.rule
-# src/rule_to_metrictouch2.rule
-# src/rule_to_touch.rule
-# src/rule_with_trash.rule
-# src/simplethreshold.rule
-# src/simplethreshold2.rule
-# src/too_high-ROZ.ePDU13.rule
-# src/warranty.rule
-
-check-local: $(abs_top_builddir)/testrules
-
-$(abs_top_builddir)/testrules: $(abs_top_srcdir)/testrules
-	@if test "$@" != "$<" ; then \
-	    echo "  COPYDIR  testrules"; \
-	    rm -rf "$@"; \
-	    cp -r "$<" "$@" ; \
-	 fi
-
-check-local: $(abs_top_builddir)/src/templates
-
-$(abs_top_builddir)/src/templates: $(abs_top_srcdir)/src/templates
-	@if test "$@" != "$<" ; then \
-	    echo "  COPYDIR  src/templates"; \
-	    rm -rf "$@"; \
-	    cp -r "$<" "$@" ; \
-	 fi
-
-clean-local: clean-local-check
-.PHONY: clean-local-check
-clean-local-check:
-	@if test "$(abs_top_builddir)" != "$(abs_top_srcdir)" ; then \
-	    if test -d "$(abs_top_builddir)/testrules" ; then \
-	        chmod -R u+w "$(abs_top_builddir)/testrules" ; \
-	        rm -rf "$(abs_top_builddir)/testrules" ; \
-	    fi; \
-	    if test -d "$(abs_top_builddir)/src/templates" ; then \
-	        chmod -R u+w "$(abs_top_builddir)/src/templates" ; \
-	        rm -rf "$(abs_top_builddir)/src/templates" ; \
-	    fi; \
-	 fi
-
-all-local: $(abs_top_srcdir)/src/warranty.rule.in
-	test -f $(abs_top_builddir)/src/warranty.rule || cp $(abs_top_srcdir)/src/warranty.rule.in $(abs_top_builddir)/src/warranty.rule
