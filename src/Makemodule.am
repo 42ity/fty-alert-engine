@@ -87,12 +87,11 @@ src_fty_alert_engine_selftest_SOURCES = src/fty_alert_engine_selftest.cc
 endif #ENABLE_FTY_ALERT_ENGINE_SELFTEST
 
 # define custom target for all products of /src
-src:
-	src/fty-alert-engine \
-	src/fty_alert_engine_selftest \
-	src/libfty_alert_engine.la
+src: \
+		src/fty-alert-engine \
+		src/fty_alert_engine_selftest \
+		src/libfty_alert_engine.la
 
-	cd $(srcdir); gsl -target:- project.xml
 
 # Directories with test fixtures optionally provided by the project,
 # and with volatile RW data possibly created by a selftest program.
@@ -118,15 +117,27 @@ $(abs_top_builddir)/$(SELFTEST_DIR_RO): $(abs_top_srcdir)/$(SELFTEST_DIR_RO)
 		fi
 
 CLEANFILES += $(abs_top_builddir)/$(SELFTEST_DIR_RW)/*
+
+# Note that this syntax dists the whole directory - including subdirs (if any)
 EXTRA_DIST += $(SELFTEST_DIR_RO)
 
-clean-local: clean-local-selftest-ro
+clean-local: clean-local-selftest-ro clean-local-selftest-rw
 .PHONY: clean-local-selftest-ro
 clean-local-selftest-ro:
-	if test "$(abs_top_builddir)" != "$(abs_top_srcdir)" ; then \
+	@if test "$(abs_top_builddir)" != "$(abs_top_srcdir)" ; then \
 		if test -d "$(abs_top_builddir)/$(SELFTEST_DIR_RO)" ; then \
-		chmod -R u+w "$(abs_top_builddir)/$(SELFTEST_DIR_RO)" ; \
-		rm -rf "$(abs_top_builddir)/$(SELFTEST_DIR_RO)" ; \
+			chmod -R u+w "$(abs_top_builddir)/$(SELFTEST_DIR_RO)" ; \
+			rm -rf "$(abs_top_builddir)/$(SELFTEST_DIR_RO)" ; \
+		fi; \
+	fi
+
+# Unlike CLEANFILES setting above, this one whould also wipe created subdirs
+.PHONY: clean-local-selftest-rw
+clean-local-selftest-rw:
+	@if test "$(abs_top_builddir)" != "$(abs_top_srcdir)" ; then \
+		if test -d "$(abs_top_builddir)/$(SELFTEST_DIR_RW)" ; then \
+			chmod -R u+w "$(abs_top_builddir)/$(SELFTEST_DIR_RW)" ; \
+			rm -rf "$(abs_top_builddir)/$(SELFTEST_DIR_RW)" ; \
 		fi; \
 	fi
 
