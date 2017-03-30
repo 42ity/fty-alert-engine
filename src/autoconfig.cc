@@ -48,9 +48,9 @@ extern int agent_alert_verbose;
 
 #define AUTOCONFIG "AUTOCONFIG"
 
-const std::string Autoconfig::StateFilePath = "/var/lib/bios/agent-autoconfig";
+const std::string Autoconfig::StateFilePath = "/var/lib/fty/fty-autoconfig";
 std::string Autoconfig::RuleFilePath;
-const std::string Autoconfig::StateFile = "/var/lib/bios/agent-autoconfig/state";
+const std::string Autoconfig::StateFile = "/var/lib/fty/fty-autoconfig/state";
 std::string Autoconfig::AlertEngineName;
 
 static int
