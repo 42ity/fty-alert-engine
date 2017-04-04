@@ -254,7 +254,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                 else {
                     if (streq (reply, "ERROR")) {
                         char *details = zmsg_popstr (message);
-                        zsys_error ("Received ERORR : '%s'", details);
+                        zsys_error ("Received ERROR : '%s'", details);
                         zstr_free (&details);
                     }
                     else
