@@ -34,7 +34,7 @@ void dtos (double number, std::streamsize precision, std::string& result) {
     result.assign (stream.str ());
 }
 
-bool 
+bool
 stobiosf (const std::string& string, int32_t& integer, int8_t& scale) {
     // Note: Shall performance __really__ become an issue, consider
     // http://stackoverflow.com/questions/1205506/calculating-a-round-order-of-magnitude
@@ -100,7 +100,7 @@ stobiosf (const std::string& string, int32_t& integer, int8_t& scale) {
         sum = sum - fraction_part;
     else
         sum = sum + fraction_part;
-    
+
     if ( sum > std::numeric_limits<int32_t>::max ()) {
         return false;
     }
@@ -184,7 +184,7 @@ join (const char **str_arr, uint32_t length, const char *separator) {
 std::string
 join (const char **str_arr, const char *separator) {
     std::string result;
-    if (!str_arr || !*str_arr || !separator) 
+    if (!str_arr || !*str_arr || !separator)
         return result;
     result.append (str_arr[0]);
     uint32_t i = 1;
@@ -198,3 +198,9 @@ join (const char **str_arr, const char *separator) {
 
 } // namespace utils
 
+void
+utils_test (bool verbose)
+{
+    printf (" * utils: ");
+    printf ("OK\n");
+}

@@ -37,6 +37,9 @@ typedef struct {
 static test_item_t
 all_tests [] = {
 // Tests for stable public classes:
+    { "filesystem", filesystem_test },
+    { "utils", utils_test },
+    { "autoconfig", autoconfig_test },
     { "fty_alert_engine_server", fty_alert_engine_server_test },
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
     { "private_classes", fty_alert_engine_private_selftest },
