@@ -55,6 +55,7 @@ AC_PROG_AWK
 PKG_PROG_PKG_CONFIG
 
 # Code coverage
+AC_MSG_CHECKING([whether to enable GCov])
 AC_ARG_WITH(gcov, [AS_HELP_STRING([--with-gcov=yes/no],
                   [With GCC Code Coverage reporting])],
                   [FTY_ALERT_ENGINE_GCOV="$withval"])
@@ -66,8 +67,27 @@ if test "x${FTY_ALERT_ENGINE_GCOV}" == "xyes"; then
         CFLAGS="${CFLAGS} ${FTY_ALERT_ENGINE_ORIG_CFLAGS}"
     fi
     AM_CONDITIONAL(WITH_GCOV, true)
+    AC_MSG_RESULT([yes])
 else
     AM_CONDITIONAL(WITH_GCOV, false)
+    AC_MSG_RESULT([no])
+fi
+
+# Memory mis-use detection
+AC_MSG_CHECKING([whether to enable ASan])
+AC_ARG_ENABLE(address-sanitizer, [AS_HELP_STRING([--enable-address-sanitizer=yes/no],
+                  [Build with GCC Address Sanitizer instrumentation])],
+                  [FTY_ALERT_ENGINE_ASAN="$enableval"])
+
+if test "x${FTY_ALERT_ENGINE_ASAN}" == "xyes"; then
+    CFLAGS="${CFLAGS} -fsanitize=address"
+    CXXFLAGS="${CXXFLAGS} -fsanitize=address"
+
+    AM_CONDITIONAL(ENABLE_ASAN, true)
+    AC_MSG_RESULT([yes])
+else
+    AM_CONDITIONAL(ENABLE_ASAN, false)
+    AC_MSG_RESULT([no])
 fi
 
 # Set pkgconfigdir
@@ -209,7 +229,7 @@ AS_IF([test x"${search_libczmq}" = xyes], [
 
     found_pkgconfig=""
     found_linkname=""
-    PKG_CHECK_MODULES([czmq], [libczmq >= 3.0.0],
+    PKG_CHECK_MODULES([czmq], [libczmq >= 3.0.2],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
         was_czmq_check_lib_detected=pkgcfg
@@ -261,7 +281,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libczmq
             ],
         [xno], [
                 AC_SUBST([pkgconfig_name_libczmq],[libczmq])
-            AC_MSG_ERROR([Cannot find pkg-config metadata for libczmq 3.0.0 or higher])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libczmq 3.0.2 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libczmq
@@ -296,14 +316,14 @@ AS_IF([test x"${search_libmlm}" = xyes], [
 
     found_pkgconfig=""
     found_linkname=""
-    PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
+    PKG_CHECK_MODULES([malamute], [libmlm >= 1.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
         was_malamute_check_lib_detected=pkgcfg
         found_pkgconfig="libmlm"
     ],
     [
-        AC_MSG_NOTICE([Package libmlm not found; falling back to defined compilability tests])
+        AC_MSG_NOTICE([Package libmlm not found with needed constraints; falling back to defined compilability tests])
 
         malamute_synthetic_cflags=""
         malamute_synthetic_libs="-lmlm"
@@ -348,7 +368,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
             ],
         [xno], [
                 AC_SUBST([pkgconfig_name_libmlm],[libmlm])
-            AC_MSG_ERROR([Cannot find pkg-config metadata for libmlm 0.0.0 or higher])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libmlm 1.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libmlm
@@ -383,22 +403,22 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
 
     found_pkgconfig=""
     found_linkname=""
-    PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 0.0.0],
+    PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 1.0.0],
     [
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
         was_fty_proto_check_lib_detected=pkgcfg
         found_pkgconfig="libfty_proto"
     ],
     [
-        AC_MSG_NOTICE([Package libfty_proto not found; falling back to defined compilability tests])
+        AC_MSG_NOTICE([Package libfty_proto not found with needed constraints; falling back to defined compilability tests])
 
         fty_proto_synthetic_cflags=""
-        fty_proto_synthetic_libs="-lftyproto"
+        fty_proto_synthetic_libs="-lfty_proto"
 
         if test -n "${with_libfty_proto}" && test x"${with_libfty_proto}" != xyes && test x"${with_libfty_proto}" != xno; then
             if test -r "${with_libfty_proto}/include/ftyproto.h"; then
                 fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
-                fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lftyproto"
+                fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lfty_proto"
             else
             AC_MSG_ERROR([Header file ${with_libfty_proto}/include/ftyproto.h was not found. Please check libfty_proto prefix])
             fi
@@ -408,13 +428,13 @@ AS_IF([test x"${search_libfty_proto}" = xyes], [
                 )
         fi
 
-        AC_CHECK_LIB([ftyproto], [fty_proto_test],
+        AC_CHECK_LIB([fty_proto], [fty_proto_test],
             [
                 was_fty_proto_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lftyproto"
-                found_linkname="ftyproto"
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lfty_proto"
+                found_linkname="fty_proto"
             ],
-            [AC_MSG_ERROR([cannot link with -lftyproto, install libfty_proto])])
+            [AC_MSG_ERROR([cannot link with -lfty_proto, install libfty_proto])])
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
@@ -435,7 +455,7 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
             ],
         [xno], [
                 AC_SUBST([pkgconfig_name_libfty_proto],[libfty_proto])
-            AC_MSG_ERROR([Cannot find pkg-config metadata for libfty_proto 0.0.0 or higher])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libfty_proto 1.0.0 or higher])
     ])
 ])
 dnl END of enabled attempts to search for libfty_proto
