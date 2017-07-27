@@ -33,7 +33,7 @@ Version:        1.0.0
 Release:        1
 Summary:        42ity service evaluating rules written in lua and producing alerts
 License:        GPL-2.0+
-URL:            https://42ity.org/
+URL:            https://42ity.org
 Source0:        %{name}-%{version}.tar.gz
 Group:          System/Libraries
 # Note: ghostscript is required by graphviz which is required by
