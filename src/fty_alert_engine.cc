@@ -54,6 +54,7 @@ int main (int argc, char** argv)
     zstr_sendx (ag_server, "CONFIG", PATH, NULL);
     zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
+    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_SENSOR, ".*", NULL);
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
 
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
