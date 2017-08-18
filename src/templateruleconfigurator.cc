@@ -48,14 +48,14 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
                     if (i.first == "logical_asset")
                         logical_asset = i.second;
                     else
-                    if (i.first == "severity")
+                    if (i.first == "alarm_severity")
                         severity = i.second;
                     else
                     if (i.first == "normal_state")
                         normal_state = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__"," __port__", "__logicalasset__", "__severity__","__normalstate__"};
+                std::vector <std::string> patterns = {"__name__","__port__", "__logicalasset__", "__severity__","__normalstate__"};
                 std::vector <std::string> replacements = {name, port, logical_asset, severity, normal_state};
 
                 for ( auto &templat : templates) {
@@ -135,10 +135,8 @@ TemplateRuleConfigurator::replaceTokens (
     const std::vector <std::string> &replacements) const
 {
     assert (patterns.size () == replacements.size());
-
     int i = 0;
     std::string result = text;
-
 
     for ( auto &p : patterns)
     {
