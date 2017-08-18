@@ -39,15 +39,24 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
                 bool result = true;
                 std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
 
-                std::string port;
+                std::string port, logical_asset, severity, normal_state;
                 for (auto &i : info.attributes)
                 {
                     if (i.first == "port")
                         port = "GPI" + i.second;
+                    else
+                    if (i.first == "logical_asset")
+                        logical_asset = i.second;
+                    else
+                    if (i.first == "severity")
+                        severity = i.second;
+                    else
+                    if (i.first == "normal_state")
+                        normal_state = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__"," __port__"};
-                std::vector <std::string> replacements = {name, port};
+                std::vector <std::string> patterns = {"__name__"," __port__", "__logicalasset__", "__severity__","__normalstate__"};
+                std::vector <std::string> replacements = {name, port, logical_asset, severity, normal_state};
 
                 for ( auto &templat : templates) {
                     std::string rule=replaceTokens(templat, patterns , replacements);
