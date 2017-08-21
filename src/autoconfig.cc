@@ -1,21 +1,21 @@
 /*  =========================================================================
     autoconfig - Autoconfig
 
-    Copyright (C) 2014 - 2017 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2017 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -243,8 +243,9 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
         }
         else {
-            // this should be a message from ALERT_ENGINE_NAME
-            if (streq (sender (), Autoconfig::AlertEngineName.c_str ())) {
+            // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
+            if (streq (sender (), "fty-alert-engine") ||
+                streq (sender (), "fty-alert-flexible")) {
                 char *reply = zmsg_popstr (message);
                 if (streq (reply, "OK")) {
                     char *details = zmsg_popstr (message);
@@ -264,8 +265,8 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                 zstr_free (&reply);
             }
             else
-                zsys_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
-                        command (), subject (), sender ());
+                zsys_warning ("Message from unknown sender received: sender = '%s', command = '%s', subject = '%s'.",
+                              sender (), command (), subject ());
             zmsg_destroy (&message);
         }
     }
