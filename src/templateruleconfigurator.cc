@@ -1,21 +1,21 @@
 /*  =========================================================================
     templateruleconfigurator - Template rule configurator
 
-    Copyright (C) 2014 - 2017 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2017 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -38,17 +38,37 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
                 std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
+
+                std::string port, logical_asset, severity, normal_state;
+                for (auto &i : info.attributes)
+                {
+                    if (i.first == "port")
+                        port = "GPI" + i.second;
+                    else
+                    if (i.first == "logical_asset")
+                        logical_asset = i.second;
+                    else
+                    if (i.first == "alarm_severity")
+                        severity = i.second;
+                    else
+                    if (i.first == "normal_state")
+                        normal_state = i.second;
+                }
+
+                std::vector <std::string> patterns = {"__name__","__port__", "__logicalasset__", "__severity__","__normalstate__"};
+                std::vector <std::string> replacements = {name, port, logical_asset, severity, normal_state};
+
                 for ( auto &templat : templates) {
-                    std::string rule=replaceTokens(templat,"__name__",name);
+                    std::string rule=replaceTokens(templat, patterns , replacements);
                     zsys_debug("sending rule :\n %s", rule.c_str());
                     result &= sendNewRule(rule,client);
-                }   
+                }
 
                 return result;
     }
     else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)) {
         zsys_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
-    } 
+    }
     else
         zsys_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
     return true;
@@ -57,7 +77,7 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
         return checkTemplate(info.type.c_str (), info.subtype.c_str ());
-}           
+}
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
     std::vector <std::string> templates;
@@ -75,9 +95,9 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
             std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
             templates.push_back(str);
         }
-    }       
+    }
     return templates;
-}           
+}
 
 bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype){
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
@@ -94,7 +114,7 @@ bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subty
     }
     return false;
 }
-                                                               
+
 std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, const char *subtype){
     std::string name;
     std::string prefix ("__");
@@ -108,13 +128,25 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, 
     return name;
 }
 
-std::string TemplateRuleConfigurator::replaceTokens( const std::string &text, const std::string &pattern, const std::string &replacement) const{
+std::string
+TemplateRuleConfigurator::replaceTokens (
+    const std::string &text,
+    const std::vector <std::string> &patterns,
+    const std::vector <std::string> &replacements) const
+{
+    assert (patterns.size () == replacements.size());
+    int i = 0;
     std::string result = text;
-    size_t pos = 0;
-    while( ( pos = result.find(pattern, pos) ) != std::string::npos){
-        result.replace(pos, pattern.length(), replacement);
-        pos += replacement.length();
+
+    for ( auto &p : patterns)
+    {
+        size_t pos = 0;
+        while (( pos = result.find (p, pos)) != std::string::npos){
+            result.replace (pos, p.length(), replacements.at (i));
+            pos += replacements.at (i).length ();
+        }
+        ++i;
     }
+
     return result;
 }
-

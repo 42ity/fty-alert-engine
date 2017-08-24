@@ -243,8 +243,9 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
         }
         else {
-            // this should be a message from ALERT_ENGINE_NAME
-            if (streq (sender (), Autoconfig::AlertEngineName.c_str ())) {
+            // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
+            if (streq (sender (), "fty-alert-engine") ||
+                streq (sender (), "fty-alert-flexible")) {
                 char *reply = zmsg_popstr (message);
                 if (streq (reply, "OK")) {
                     char *details = zmsg_popstr (message);
@@ -264,8 +265,8 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                 zstr_free (&reply);
             }
             else
-                zsys_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
-                        command (), subject (), sender ());
+                zsys_warning ("Message from unknown sender received: sender = '%s', command = '%s', subject = '%s'.",
+                              sender (), command (), subject ());
             zmsg_destroy (&message);
         }
     }
