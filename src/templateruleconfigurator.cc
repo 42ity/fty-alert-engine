@@ -93,8 +93,8 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
 // model  "DCS001"
 bool
-TemplateRuleConfigurator::isModelOk (const std::string model,
-                                     const std::string templat)
+TemplateRuleConfigurator::isModelOk (const std::string& model,
+                                     const std::string& templat)
 {
     if (templat.find (model) != std::string::npos)
         return true;
