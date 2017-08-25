@@ -39,7 +39,7 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
                 bool result = true;
                 std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
 
-                std::string port, logical_asset, severity, normal_state;
+                std::string port, logical_asset, severity, normal_state, model;
                 for (auto &i : info.attributes)
                 {
                     if (i.first == "port")
@@ -53,15 +53,30 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
                     else
                     if (i.first == "normal_state")
                         normal_state = i.second;
+                    else
+                    if (i.first == "model")
+                        model = i.second;
                 }
 
                 std::vector <std::string> patterns = {"__name__","__port__", "__logicalasset__", "__severity__","__normalstate__"};
                 std::vector <std::string> replacements = {name, port, logical_asset, severity, normal_state};
 
                 for ( auto &templat : templates) {
-                    std::string rule=replaceTokens(templat, patterns , replacements);
-                    zsys_debug("sending rule :\n %s", rule.c_str());
-                    result &= sendNewRule(rule,client);
+                    if (info.subtype == "sensorgpio")
+                    {
+                        if (TemplateRuleConfigurator::isModelOk (model, templat))
+                        {
+                            std::string rule=replaceTokens(templat, patterns , replacements);
+                            zsys_debug("sending rule for gpio:\n %s", rule.c_str());
+                            result &= sendNewRule(rule,client);
+                        }
+                    }
+                    else
+                    {
+                        std::string rule=replaceTokens(templat, patterns , replacements);
+                        zsys_debug("sending rule :\n %s", rule.c_str());
+                        result &= sendNewRule(rule,client);
+                    }
                 }
 
                 return result;
@@ -75,8 +90,20 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
 }
 
+
+// model  "DCS001"
+bool
+TemplateRuleConfigurator::isModelOk (const std::string model,
+                                     const std::string templat)
+{
+    if (templat.find (model) != std::string::npos)
+        return true;
+    else
+        return false;
+}
+
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
-        return checkTemplate(info.type.c_str (), info.subtype.c_str ());
+    return checkTemplate(info.type.c_str (), info.subtype.c_str ());
 }
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){

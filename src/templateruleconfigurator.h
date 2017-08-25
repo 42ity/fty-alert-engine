@@ -47,6 +47,7 @@ class TemplateRuleConfigurator : public RuleConfigurator {
         std::string replaceTokens( const std::string &text,
                                    const std::vector <std::string> &patterns,
                                    const std::vector <std::string> &replacements) const;
+        bool isModelOk (const std::string model, const std::string templat);
 };
 
 
