@@ -32,21 +32,26 @@
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 
-bool TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
+bool
+TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
     zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
             name.c_str(), info.type.c_str (), info.subtype.c_str ());
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
-                std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
+                std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
 
-                std::string port, logical_asset, severity, normal_state, model;
+                std::string port, logical_asset, severity, normal_state, model, ename_la ;
+
                 for (auto &i : info.attributes)
                 {
                     if (i.first == "port")
                         port = "GPI" + i.second;
                     else
                     if (i.first == "logical_asset")
+                    {
                         logical_asset = i.second;
+                        ename_la = TemplateRuleConfigurator::reqEname (logical_asset, client);
+                    }
                     else
                     if (i.first == "alarm_severity")
                         severity = i.second;
@@ -58,8 +63,11 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
                         model = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__","__port__", "__logicalasset__", "__severity__","__normalstate__"};
-                std::vector <std::string> replacements = {name, port, logical_asset, severity, normal_state};
+                if (ename_la.empty ())
+                    ename_la = logical_asset;
+
+                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__severity__", "__normalstate__"};
+                std::vector <std::string> replacements = {name, port, ename_la, severity, normal_state};
 
                 for ( auto &templat : templates) {
                     if (info.subtype == "sensorgpio")
@@ -90,8 +98,38 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
 }
 
+std::string
+TemplateRuleConfigurator::reqEname (const std::string& iname,
+                                    mlm_client_t *client)
+{
+    std::string ename;
+    std::string subj = "ENAME_FROM_INAME";
 
-// model  "DCS001"
+    zmsg_t *req = zmsg_new ();
+    zmsg_addstr (req, iname.c_str());
+
+    int rv = mlm_client_sendto (client, "asset-agent", subj.c_str(), NULL, 5000, &req);
+    if (rv != 0)
+        zsys_error ("reqEname: mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
+                    "agent-asset", subj.c_str ());
+
+    zmsg_t *rep = mlm_client_recv (client);
+    assert (rep);
+    char *status = zmsg_popstr (rep);
+    if (streq (status, "OK"))
+    {
+        char *c_ename = zmsg_popstr(rep);
+        ename = c_ename;
+    }
+    else
+    {
+        zsys_error ("reqEname: %s for asset %s", zmsg_popstr (rep), iname.c_str());
+        ename = "";
+    }
+    zmsg_destroy (&rep);
+    return ename;
+}
+
 bool
 TemplateRuleConfigurator::isModelOk (const std::string& model,
                                      const std::string& templat)

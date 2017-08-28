@@ -48,6 +48,8 @@ class TemplateRuleConfigurator : public RuleConfigurator {
                                    const std::vector <std::string> &patterns,
                                    const std::vector <std::string> &replacements) const;
         bool isModelOk (const std::string &model, const std::string &templat);
+        std::string reqEname (const std::string& iname,
+                              mlm_client_t *client);
 };
 
 
