@@ -107,7 +107,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     }
     if ( status == RULE_RESULT_OK ) {
         // When alert is resolved, it doesn't have new severity!!!!
-        pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everithing is ok", _element, "OK", {""});
+        pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everything is ok", _element, "OK", {""});
         pureAlert.print();
         return 0;
     }
