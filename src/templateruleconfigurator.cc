@@ -89,7 +89,28 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
 
                 return result;
     }
-    else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)) {
+    else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE))  {
+        if (info.subtype == "sensorgpio" || info.subtype == "gpi" || info.subtype == "gpo") {
+            // don't do anything
+            return true;
+        }
+        else {
+            const char *dest = Autoconfig::AlertEngineName.c_str ();
+
+            // delete all rules for this asset
+            zmsg_t *message = zmsg_new ();
+            zmsg_addstr (message, "DELETEALL");
+            zmsg_addstr (message, name.c_str());
+
+            if (mlm_client_sendto (client, dest, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
+                zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
+                            dest, "rfc-evaluator-rules");
+                return false;
+            }
+            return true;
+        }
+    }
+    else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)) {
         zsys_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
     }
     else

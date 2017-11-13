@@ -24,6 +24,7 @@ extern int agent_alert_verbose;
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
+#include <algorithm>
 
 #include "alertconfiguration.h"
 
@@ -358,6 +359,44 @@ int AlertConfiguration::
     // reevaluate rule for every known metric
     //  ( requires more sophisticated approach: need to refactor evaluate back
     //  for 2 params + some logic here )
+    return 0;
+}
+
+int AlertConfiguration::deleteAllRules
+    (const std::string &element,
+    std::map <std::string, std::vector <PureAlert>> &alertsToSend)
+{
+    // clean up what we can without touching the iterator
+    auto rule_to_remove = _alerts.begin();
+    while ( rule_to_remove != _alerts.end() ) {
+        if ( rule_to_remove->first->element () == element ) {
+            // delete from disk
+            int rv = rule_to_remove->first->remove (getPersistencePath());
+            std::string rule_removed_name = rule_to_remove->first->name ();
+            if ( rv != 0 ) {
+                zsys_error ("Error while removing rule %s", rule_removed_name.c_str ());
+                return -1;
+            }
+            // resolve found alerts
+            for ( auto &oneAlert : rule_to_remove->second ) {
+                oneAlert._status = ALERT_RESOLVED;
+                oneAlert._description = "Rule deleted";
+                // put them into the list of alerts that changed
+                alertsToSend[rule_removed_name].push_back (oneAlert);
+            }
+            // clear the cache
+            rule_to_remove->second.clear();
+        }
+        ++rule_to_remove;
+    }
+
+    //delete rules from memory
+    auto new_end = std::remove_if (_alerts.begin (),
+                                   _alerts.end (),
+                                    [element] (std::pair < RulePtr, std::vector<PureAlert> > const &alert) {
+                                        return (alert.first->element () == element);
+                                    });
+    _alerts.erase (new_end, _alerts.end ());
     return 0;
 }
 

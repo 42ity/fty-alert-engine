@@ -110,6 +110,8 @@ public:
     std::string rule_class (void) const { return _rule_class; }
     void rule_class (const std::string &rule_class) { _rule_class = rule_class; }
 
+    std::string element (void) const { return _element; }
+
     virtual int fill(const cxxtools::SerializationInfo &si) = 0;
 
     virtual void globalVariables (const std::map<std::string,double> &vars) {

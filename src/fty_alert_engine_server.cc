@@ -171,7 +171,7 @@ send_alerts(
     for ( const auto &alert : alertsToSend )
     {
         // create 3*ttl minutes alert TTL
-        
+
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
             ::time (NULL),
@@ -349,6 +349,24 @@ update_rule(
         zmsg_addstr (reply, "BAD_JSON");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
+    }
+}
+
+static void
+delete_all_rules
+    (mlm_client_t *client,
+     const char *element,
+     AlertConfiguration &ac)
+{
+    std::map <std::string, std::vector <PureAlert>> alertsToSend;
+    int rv = ac.deleteAllRules (element, alertsToSend);
+    if (!rv) {
+        std::for_each (alertsToSend.begin (),
+                        alertsToSend.end (),
+                        // reference skipped because for_each doesn't like it
+                        [client](std::pair <std::string, std::vector <PureAlert> > alerts) {
+                            send_alerts (client, alerts.second, alerts.first);
+                        });
     }
 }
 
@@ -640,6 +658,8 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                     }
                 } else if (streq (command, "TOUCH") ) {
                     touch_rule (client, param, alertConfiguration, true);
+                } else if (streq (command, "DELETEALL")) {
+                    delete_all_rules (client, param, alertConfiguration);
                 }
                 else {
                     zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
@@ -1007,7 +1027,7 @@ fty_alert_engine_server_test (bool verbose)
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
 
     zmsg_t *recv = mlm_client_recv (ui);
-    
+
     assert (zmsg_size (recv) == 6);
     char *foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
@@ -1251,7 +1271,7 @@ fty_alert_engine_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
     }
-    // ######## Test case #18 
+    // ######## Test case #18
     // 18.1 add some rule (type: pattern)
     {
     zsys_info ("######## Test case #18 add some rule (type: pattern)");
@@ -1714,7 +1734,7 @@ fty_alert_engine_server_test (bool verbose)
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // # 26.1 catch message 'create asset', check that we created rules
-    { 
+    {
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     zhash_insert (aux, "type", (void *) "datacenter");
@@ -1880,7 +1900,7 @@ fty_alert_engine_server_test (bool verbose)
     zstr_free (&section_load);
     zstr_free (&phase_imbalance3);
     zstr_free (&voltage_1phase);
-    zstr_free (&voltage_3phase); 
+    zstr_free (&voltage_3phase);
     } */
 
     // # 29.1 force the alert for the updated device
