@@ -7,3 +7,42 @@ EXTRA_DIST += \
 	include/preproc.h
 
 AM_CPPFLAGS += -I$(abs_top_srcdir)/include
+
+template_ruledir = $(datadir)/bios/fty-autoconfig
+RULE_TEMPLATES = \
+	src/rule_templates/average.humidity@__datacenter__.rule \
+	src/rule_templates/average.temperature@__datacenter__.rule \
+	src/rule_templates/average.humidity@__rack__.rule \
+	src/rule_templates/average.temperature@__rack__.rule \
+	src/rule_templates/average.humidity@__row__.rule \
+	src/rule_templates/average.temperature@__row__.rule \
+	src/rule_templates/charge.battery@__device_ups__.rule \
+	src/rule_templates/load.default@__device_ups__.rule \
+	src/rule_templates/load.input_1phase@__device_epdu__.rule \
+	src/rule_templates/load.input_3phase@__device_epdu__.rule \
+	src/rule_templates/lowbattery@__device_ups__.rule \
+	src/rule_templates/onbattery@__device_ups__.rule \
+	src/rule_templates/onbypass@__device_ups__.rule \
+	src/rule_templates/phase_imbalance@__datacenter__.rule \
+	src/rule_templates/phase_imbalance@__device_epdu__.rule \
+	src/rule_templates/phase_imbalance@__device_ups__.rule \
+	src/rule_templates/phase_imbalance@__rack__.rule \
+	src/rule_templates/realpower.default_1phase@__rack__.rule \
+	src/rule_templates/realpower.default@__datacenter__.rule \
+	src/rule_templates/section_load@__device_epdu__.rule \
+	src/rule_templates/temperature.default@__device_ups__.rule \
+	src/rule_templates/voltage.input_1phase@__device_epdu__.rule \
+	src/rule_templates/voltage.input_1phase@__device_ups__.rule \
+	src/rule_templates/voltage.input_3phase@__device_epdu__.rule \
+	src/rule_templates/voltage.input_3phase@__device_ups__.rule \
+	src/rule_templates/sts-frequency@__device_sts__.rule \
+	src/rule_templates/sts-preferred-source@__device_sts__.rule \
+	src/rule_templates/sts-voltage@__device_sts__.rule \
+	src/rule_templates/door-contact.state-change@__device_sensorgpio__.rule \
+	src/rule_templates/vibration-sensor.state-change@__device_sensorgpio__.rule \
+	src/rule_templates/water-leak-detector.state-change@__device_sensorgpio__.rule \
+	src/rule_templates/smoke-detector.state-change@__device_sensorgpio__.rule \
+	src/rule_templates/pir-motion-detector.state-change@__device_sensorgpio__.rule
+
+template_rule_DATA =	$(RULE_TEMPLATES)
+EXTRA_DIST +=		$(RULE_TEMPLATES)
