@@ -120,7 +120,6 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
 
 void Autoconfig::main (zsock_t *pipe, char *name)
 {
-    std::map <std::string, std::string> containers;
     if( _client ) mlm_client_destroy( &_client );
     _client = mlm_client_new ();
     assert (_client);
