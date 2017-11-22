@@ -12,9 +12,9 @@
                               {"high_warning"   :   "27"},
                               {"high_critical"  :   "30"} ],
         "results"       :   [
-            {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "Temperature in rack is critically low" }},
-            {"low_warning"   : { "action" : ["EMAIL","SMS"], "severity" : "WARNING", "description" : "Temperature in rack is low"  }},
-            {"high_warning"  : { "action" : ["EMAIL","SMS"], "severity" : "WARNING", "description" : "Temperature in rack is high" }},
-            {"high_critical" : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "Temperature in rack is critically high" }} ]
+            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Temperature in rack is critically low" }},
+            {"low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Temperature in rack is low"  }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Temperature in rack is high" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Temperature in rack is critically high" }} ]
     }
 }

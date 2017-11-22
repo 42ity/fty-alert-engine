@@ -7,8 +7,8 @@
     "models"	    : ["DCS001"],
     "types" 	    : ["sensorgpio", "rackcontroller"],
     "results"       :  {
-        "high_critical"  : { "action" : ["EMAIL","SMS"] },
-        "high_warning"   : { "action" : ["EMAIL"] }
+        "high_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }] },
+        "high_warning"   : { "action" : [{ "action": "EMAIL" }] }
     },
     "evaluation"    : "
         function main(current_state)
