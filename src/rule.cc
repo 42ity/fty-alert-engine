@@ -117,7 +117,24 @@ si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& membe
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 {
-    si.getMember("action") >>= outcome._actions;
+    const cxxtools::SerializationInfo &actions = si.getMember("action");
+    outcome._actions.clear();
+    outcome._actions.reserve(actions.memberCount());
+    for ( const auto &a : actions) {
+        outcome._actions.resize(outcome._actions.size() + 1);
+        switch (a.category()) {
+        case cxxtools::SerializationInfo::Value:
+            // old-style format ["EMAIL", "SMS"]
+            a >>= outcome._actions.back();
+            break;
+        case cxxtools::SerializationInfo::Object:
+            // [{"action": "EMAIL"}, {"action": "SMS"}]
+            a.getMember("action") >>= outcome._actions.back();
+            break;
+        default:
+            throw std::runtime_error("Invalid format of action");
+        }
+    }
     si.getMember("description") >>= outcome._description;
 }
 
