@@ -121,15 +121,28 @@ void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
     outcome._actions.clear();
     outcome._actions.reserve(actions.memberCount());
     for ( const auto &a : actions) {
-        outcome._actions.resize(outcome._actions.size() + 1);
+        std::string type, res;
         switch (a.category()) {
         case cxxtools::SerializationInfo::Value:
             // old-style format ["EMAIL", "SMS"]
+            outcome._actions.resize(outcome._actions.size() + 1);
             a >>= outcome._actions.back();
             break;
         case cxxtools::SerializationInfo::Object:
             // [{"action": "EMAIL"}, {"action": "SMS"}]
-            a.getMember("action") >>= outcome._actions.back();
+            a.getMember("action") >>= type;
+            if (type == "EMAIL" || type == "SMS") {
+                res = type;
+            } else if (type == "GPO_INTERACTION") {
+                std::string asset, mode;
+                a.getMember("asset") >>= asset;
+                a.getMember("mode") >>= mode;
+                res = type + ":" + asset + ":" + mode;
+            } else {
+                zsys_warning("Unknown action type: \"%s\"", type.c_str());
+                res = type;
+            }
+            outcome._actions.push_back(res);
             break;
         default:
             throw std::runtime_error("Invalid format of action");
