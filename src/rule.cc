@@ -113,15 +113,6 @@ si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& membe
 }
 
 /*
- * \brief Serialzation of outcome
- */
-void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
-{
-    si.addMember("action") <<= outcome._actions;
-    si.addMember("description") <<= outcome._description;
-}
-
-/*
  * \brief Deserialzation of outcome
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)

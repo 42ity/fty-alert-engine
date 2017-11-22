@@ -69,11 +69,6 @@ struct Outcome {
 static const char *text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown" };
 
 /*
- * \brief Serialzation of outcome
- */
-void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome);
-
-/*
  * \brief Deserialzation of outcome
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome);
