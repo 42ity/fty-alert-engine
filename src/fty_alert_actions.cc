@@ -423,6 +423,12 @@ void
 action_alert_repeat(fty_alert_actions_t *self, s_alert_cache *alert_item)
 {
     zsys_debug("fty_alert_actions: action_alert_repeat called");
+    if (streq (fty_proto_state (alert_item->alert_msg), "ACK-PAUSE") ||
+            streq (fty_proto_state (alert_item->alert_msg), "ACK-IGNORE") ||
+            streq (fty_proto_state (alert_item->alert_msg), "ACK-SILENCE")) {
+        zsys_debug("fty_alert_actions: alert on %s acked, won't repeat alerts", fty_proto_name(alert_item->alert_msg));
+        return;
+    }
     const char *action = (const char *) fty_proto_action_first(alert_item->alert_msg);
     while (NULL != action) {
         char *action_dup = strdup(action);
@@ -585,7 +591,9 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
     s_alert_cache *search;
     const char *rule = fty_proto_rule (alert);
     search = (s_alert_cache *) zhash_lookup(self->alerts_cache, rule);
-    if (streq (fty_proto_state (alert), "ACTIVE")) {
+    if (streq (fty_proto_state (alert), "ACTIVE") || streq (fty_proto_state (alert), "ACK-WIP") ||
+            streq (fty_proto_state (alert), "ACK-PAUSE") || streq (fty_proto_state (alert), "ACK-IGNORE") ||
+            streq (fty_proto_state (alert), "ACK-SILENCE")) {
         zsys_debug("fty_alert_actions: receieved ACTIVE alarm with subject %s", subject);
         if (NULL == search) {
             // create new alert object in cache
