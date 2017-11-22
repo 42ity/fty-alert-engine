@@ -32,36 +32,50 @@
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 
-bool TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
-    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
-            name.c_str(), info.type.c_str (), info.subtype.c_str ());
+bool
+TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &ename_la, mlm_client_t *client){
+    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')  ename %s",
+                name.c_str(), info.type.c_str (), info.subtype.c_str (), ename_la.c_str ());
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
-                std::vector <std::string> templates = loadTemplates(info.type.c_str (), info.subtype.c_str ());
+                std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
 
-                std::string port, logical_asset, severity, normal_state;
+                std::string port, severity, normal_state, model;
+
                 for (auto &i : info.attributes)
                 {
                     if (i.first == "port")
                         port = "GPI" + i.second;
-                    else
-                    if (i.first == "logical_asset")
-                        logical_asset = i.second;
                     else
                     if (i.first == "alarm_severity")
                         severity = i.second;
                     else
                     if (i.first == "normal_state")
                         normal_state = i.second;
+                    else
+                    if (i.first == "model")
+                        model = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__","__port__", "__logicalasset__", "__severity__","__normalstate__"};
-                std::vector <std::string> replacements = {name, port, logical_asset, severity, normal_state};
+                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__severity__", "__normalstate__"};
+                std::vector <std::string> replacements = {name, port, ename_la, severity, normal_state};
 
                 for ( auto &templat : templates) {
-                    std::string rule=replaceTokens(templat, patterns , replacements);
-                    zsys_debug("sending rule :\n %s", rule.c_str());
-                    result &= sendNewRule(rule,client);
+                    if (info.subtype == "sensorgpio")
+                    {
+                        if (TemplateRuleConfigurator::isModelOk (model, templat))
+                        {
+                            std::string rule=replaceTokens(templat, patterns , replacements);
+                            zsys_debug("sending rule for gpio:\n %s", rule.c_str());
+                            result &= sendNewRule(rule,client);
+                        }
+                    }
+                    else
+                    {
+                        std::string rule=replaceTokens(templat, patterns , replacements);
+                        zsys_debug("sending rule :\n %s", rule.c_str());
+                        result &= sendNewRule(rule,client);
+                    }
                 }
 
                 return result;
@@ -75,8 +89,18 @@ bool TemplateRuleConfigurator::configure (const std::string& name, const AutoCon
 
 }
 
+bool
+TemplateRuleConfigurator::isModelOk (const std::string& model,
+                                     const std::string& templat)
+{
+    if (templat.find (model) != std::string::npos)
+        return true;
+    else
+        return false;
+}
+
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
-        return checkTemplate(info.type.c_str (), info.subtype.c_str ());
+    return checkTemplate(info.type.c_str (), info.subtype.c_str ());
 }
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){

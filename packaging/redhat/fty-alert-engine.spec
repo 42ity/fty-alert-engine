@@ -28,6 +28,7 @@
 %else
 %define DRAFTS no
 %endif
+%define SYSTEMD_UNIT_DIR %(pkg-config --variable=systemdsystemunitdir systemd)
 Name:           fty-alert-engine
 Version:        1.0.0
 Release:        1
@@ -100,6 +101,7 @@ This package contains development files for fty-alert-engine: 42ity service eval
 %{_mandir}/man7/*
 
 %prep
+
 %setup -q
 
 %build
@@ -120,7 +122,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg
-/usr/lib/systemd/system/fty-alert-engine.service
+%{SYSTEMD_UNIT_DIR}/fty-alert-engine.service
 %dir %{_sysconfdir}/fty-alert-engine
 %if 0%{?suse_version} > 1315
 %post

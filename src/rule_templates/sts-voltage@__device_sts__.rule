@@ -1,0 +1,25 @@
+{ "flexible" :
+  {
+    "name"          : "sts-voltage@__name__",
+    "description"   : "The voltage is out of tolerance",
+    "metrics"       : ["status.input.1.voltage", "status.input.2.voltage"],
+    "assets"         : ["__name__"],
+    "results"       :  {
+        "high_warning"  : { "action" : ["EMAIL"] }
+    },
+    "evaluation"    : "
+         function main(i1, i2)
+             if i1 == 'good' and i2 == 'good' then
+                 return OK, 'Voltage status of both inputs of ' .. NAME .. ' are good.'
+             end
+             if i1 == 'good' then
+                 return WARNING, 'Input 2 voltage status of ' .. NAME .. ' is out of tolerance (' .. i2 .. ')!'
+             end
+             if i2 == 'good' then
+                 return WARNING, 'Input 1 voltage status of ' .. NAME .. ' is out of tolerance (' .. i1 .. ')!'
+             end
+             return WARNING, 'Voltage status of both inputs are out of tolerance (' .. i1 .. ', ' .. i2 .. ')!'
+         end
+    "
+  }
+}

@@ -69,6 +69,7 @@ typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 #endif
 
 //  Internal API
+
 #include "metriclist.h"
 #include "alertconfiguration.h"
 #include "luarule.h"
@@ -85,41 +86,6 @@ typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 //  Self test of this class.
 FTY_ALERT_ENGINE_PRIVATE void
     metriclist_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    alertconfiguration_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    luarule_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    purealert_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    rule_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    thresholdrulecomplex_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    ruleconfigurator_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    templateruleconfigurator_test (bool verbose);
 
 //  Self test for private classes
 FTY_ALERT_ENGINE_PRIVATE void

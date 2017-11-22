@@ -144,22 +144,16 @@ get_rule(
 }
 
 
-static std::string
+// XXX: Store the actions as zlist_t internally to avoid useless copying
+zlist_t *
 makeActionList(
     const std::vector <std::string> &actions)
 {
-    std::string s;
-    bool first = true;
+    zlist_t *res = zlist_new();
     for (const auto& oneAction : actions) {
-        if (first) {
-            s.append (oneAction);
-            first = false;
-        }
-        else {
-            s.append ("/").append (oneAction);
-        }
+        zlist_append(res, const_cast<char*>(oneAction.c_str()));
     }
-    return s;
+    return res;
 }
 
 static void
@@ -171,7 +165,8 @@ send_alerts(
     for ( const auto &alert : alertsToSend )
     {
         // create 3*ttl minutes alert TTL
-        
+
+        zlist_t *actions = makeActionList(alert._actions);
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
             ::time (NULL),
@@ -181,8 +176,9 @@ send_alerts(
             alert._status.c_str(),
             alert._severity.c_str(),
             alert._description.c_str(),
-            makeActionList(alert._actions).c_str()
+            actions
         );
+        zlist_destroy(&actions);
         if( msg ) {
             std::string atopic = rule_name + "/"
                 + alert._severity + "@"
