@@ -169,10 +169,10 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes)
 {
     /*
-        "results":[ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
-                    {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
-                    {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
-                    {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ]
+        "results":[ {"low_critical"  : { "action" : [{ "action": "EMAIL"},{ "action": "SMS"}], "description" : "WOW low critical description" }},
+                    {"low_warning"   : { "action" : [{ "action": "EMAIL"}], "description" : "wow LOW warning description"}},
+                    {"high_warning"  : { "action" : [{ "action": "EMAIL"}], "description" : "wow high WARNING description" }},
+                    {"high_critical" : { "action" : [{ "action": "EMAIL"}], "description" : "wow high critical DESCTIPRION" } } ]
     */
     for ( const auto &oneElement : si ) { // iterate through the array
         auto outcomeName = oneElement.getMember(0).name();
