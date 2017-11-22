@@ -42,6 +42,58 @@
 #define FTY_ASSET_AGENT_ADDRESS         "asset-agent"
 #define FTY_SENSOR_GPIO_AGENT_ADDRESS   "fty-email"
 
+
+//  Some stuff for testing purposes
+//  to access test variables other than testing, use corresponding macro
+#define TEST_VARS \
+    zlist_t *testing_recv = NULL; \
+    int testing_send = 0; \
+    char *testing_uuid = NULL;
+    char *testing_subject = NULL;
+#ifdef __GNUC__
+    #define unlikely(x) __builtin_expect(0 != x, 0)
+#else
+    #define unlikely(x) (0 != x)
+#endif
+#define mlm_client_recv(...) \
+    (unlikely(testing) ? ((zmsg_t *)zlist_pop(testing_recv)) : mlm_client_recv(__VA_ARGS__))
+#define mlm_client_sendtox(...) \
+    (unlikely(testing) ? (testing_send) : mlm_client_sendtox(__VA_ARGS__))
+#define mlm_client_sendto(...)  \
+    (unlikely(testing) ? (testing_send) : mlm_client_sendto(__VA_ARGS__))
+#define zuuid_str_canonical(...) \
+    (unlikely(testing) ? (testing_uuid) : zuuid_str_canonical(__VA_ARGS__))
+#define mlm_client_subject(...) \
+    (unlikely(testing) ? (testing_subject) : mlm_client_subject(__VA_ARGS__))
+#define CLEAN_RECV { \
+        zmsg_t *l = (zmsg_t *) zlist_first(testing_recv); \
+        while (NULL != l) { \
+            zmsg_destroy(&l); \
+            l = (zmsg_t *) zlist_next(testing_recv); \
+        } \
+        zlist_destroy(&testing_recv); \
+    }
+#define INIT_RECV { \
+        testing_recv = zlist_new(); \
+    }
+#define MSG_TO_RECV(x) { \
+        zlist_append(testing_recv, x); \
+    }
+#define SET_SEND(x) { \
+        testing_send = x; \
+    }
+#define SET_UUID(x) { \
+        testing_uuid = x; \
+    }
+#define GET_UUID \
+    (testing_uuid)
+#define SET_SUBJECT(x) { \
+        testing_subject = x; \
+    }
+int testing = 0;
+TEST_VARS
+
+
 char verbose = 0;
 static const std::map <std::pair <std::string, uint8_t>, uint32_t> times = {
     { {"CRITICAL", 1}, 5  * 60},
@@ -192,6 +244,13 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
                 c = NULL;
             }
             zstr_free(&rcv_uuid);
+        }
+        else {
+            zsys_warning("fty_alert_actions: no response from ASSET AGENT, ignoring this alert.");
+            zmsg_destroy(&reply_msg);
+            fty_proto_destroy(&msg);
+            free(c);
+            c = NULL;
         }
         zuuid_destroy (&uuid);
     } else {
@@ -790,16 +849,20 @@ void
 fty_alert_actions_test (bool verbose)
 {
     printf (" * fty_alert_actions: ");
+    testing = 1;
+    SET_SUBJECT((char *)"testing");
 
     //  @selftest
     // test 1, simple create/destroy self test
     {
+    zsys_debug("fty_alert_actions: test 1");
     fty_alert_actions_t *self = fty_alert_actions_new ();
     assert (self);
     fty_alert_actions_destroy (&self);
     }
     // test 2, check alert interval calculation
     {
+    zsys_debug("fty_alert_actions: test 2");
     s_alert_cache *cache = (s_alert_cache *) malloc(sizeof(s_alert_cache));
     cache->alert_msg = fty_proto_new(FTY_PROTO_ALERT);
     cache->related_asset = fty_proto_new(FTY_PROTO_ASSET);
@@ -846,6 +909,7 @@ fty_alert_actions_test (bool verbose)
     }
     // test 3, simple create/destroy cache item test without need to send ASSET_DETAILS
     {
+    zsys_debug("fty_alert_actions: test 3");
     fty_alert_actions_t *self = fty_alert_actions_new ();
     assert (self);
     fty_proto_t *asset = fty_proto_new(FTY_PROTO_ASSET);
@@ -861,6 +925,33 @@ fty_alert_actions_test (bool verbose)
 
     fty_proto_destroy(&asset);
     fty_alert_actions_destroy (&self);
+    }
+    // test 4, simple create/destroy cache item test with need to send ASSET_DETAILS
+    {
+    zsys_debug("fty_alert_actions: test 4");
+    SET_UUID((char *)"uuid-test");
+    zhash_t *aux = zhash_new();
+    zhash_t *ext = zhash_new();
+    zmsg_t *resp_msg = fty_proto_encode_asset(aux, "myasset-2", "update", ext);
+    zmsg_pushstr(resp_msg, GET_UUID);
+    assert(resp_msg);
+    INIT_RECV;
+    MSG_TO_RECV(resp_msg);
+    SET_SEND(0);
+    fty_alert_actions_t *self = fty_alert_actions_new ();
+    assert (self);
+    fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
+    assert (msg);
+    fty_proto_set_name(msg, "myasset-2");
+
+    s_alert_cache *cache = new_alert_cache_item(self, msg);
+    assert(cache);
+    delete_alert_cache_item(cache);
+
+    fty_alert_actions_destroy (&self);
+    zhash_destroy(&aux);
+    zhash_destroy(&ext);
+    CLEAN_RECV;
     }
     //  @end
     printf ("OK\n");
