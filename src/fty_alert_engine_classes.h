@@ -83,9 +83,6 @@ typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 #ifndef FTY_ALERT_ENGINE_BUILD_DRAFT_API
 
 //  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ALERT_ENGINE_PRIVATE void
-    metriclist_test (bool verbose);
 
 //  Self test for private classes
 FTY_ALERT_ENGINE_PRIVATE void

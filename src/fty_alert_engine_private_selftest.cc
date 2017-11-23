@@ -38,7 +38,6 @@ void
 fty_alert_engine_private_selftest (bool verbose)
 {
 // Tests for stable private classes:
-    metriclist_test (verbose);
 }
 /*
 ################################################################################
