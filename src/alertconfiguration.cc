@@ -484,3 +484,173 @@ int AlertConfiguration::
     zsys_error ("Cannot acknowledge alert, because it doesn't exist");
     return -4;
 }
+
+static bool double_equals(double d1, double d2)
+{
+    return std::abs(d1 - d2) < std::numeric_limits<double>::epsilon() * std::abs(d1 + d2 + 1);
+}
+
+void alertconfiguration_test (bool verbose)
+{
+    const std::string dir("src/selftest-ro/testrules/");
+    std::unique_ptr<Rule> rule;
+    std::vector<std::string> action_EMAIL = {"EMAIL"};
+    std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
+
+    printf (" * alertconfiguration: ");
+    if (verbose)
+        printf ("\n");
+    {
+    if (verbose)
+        printf ("######## pattern.rule\n");
+    std::ifstream f(dir + "pattern.rule");
+    assert(readRule(f, rule) == 0);
+    assert(rule->whoami() == "pattern");
+    assert(rule->name() == "warranty2");
+    assert(rule->rule_class() == "");
+    assert(rule->_element == "");
+    assert(rule->getNeededTopics() == std::vector<std::string>{"^end_warranty_date@.+"});
+    std::map<std::string, double> vars = rule->getGlobalVariables();
+    assert(double_equals(vars["low_warning"],   60.0));
+    assert(double_equals(vars["low_critical"],  10.0));
+    assert(double_equals(vars["high_warning"],   0.0));
+    assert(double_equals(vars["high_critical"],  0.0));
+
+    assert(rule->_outcomes["low_warning"]._description == "Warranty for device will expire in less than 60 days");
+    assert(rule->_outcomes["low_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["low_critical"]._description == "Warranty for device will expire in less than 10 days");
+    assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["low_critical"]._actions == action_EMAIL);
+
+    assert(rule->code() == "function main(value) if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= low_warning ) then return LOW_WARNING end return OK end");
+    }
+    {
+    if (verbose)
+        printf ("######## simplethreshold.rule\n");
+    std::ifstream f(dir + "simplethreshold.rule");
+    assert(readRule(f, rule) == 0);
+    assert(rule->whoami() == "threshold");
+    assert(rule->name() == "simplethreshold");
+    assert(rule->rule_class() == "example class");
+    assert(rule->_element == "fff");
+    assert(rule->getNeededTopics() == std::vector<std::string>{"abc@fff"});
+    std::map<std::string, double> vars = rule->getGlobalVariables();
+    assert(double_equals(vars["low_warning"],   40.0));
+    assert(double_equals(vars["low_critical"],  30.0));
+    assert(double_equals(vars["high_warning"],  50.0));
+    assert(double_equals(vars["high_critical"], 60.0));
+
+    assert(rule->_outcomes["low_warning"]._description == "wow LOW warning description");
+    assert(rule->_outcomes["low_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["low_critical"]._description == "WOW low critical description");
+    assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["low_critical"]._actions == action_EMAIL_SMS);
+
+    assert(rule->_outcomes["high_warning"]._description == "wow high WARNING description");
+    assert(rule->_outcomes["high_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["high_critical"]._description == "wow high critical DESCTIPRION");
+    assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["high_critical"]._actions == action_EMAIL);
+    }
+    {
+    if (verbose)
+        printf ("######## devicethreshold.rule\n");
+    std::ifstream f(dir + "devicethreshold.rule");
+    assert(readRule(f, rule) == 0);
+    assert(rule->whoami() == "threshold");
+    assert(rule->name() == "device_threshold_test");
+    assert(rule->rule_class() == "");
+    assert(rule->_element == "ggg");
+    assert(rule->getNeededTopics().size() == 0);
+    std::map<std::string, double> vars = rule->getGlobalVariables();
+    assert(double_equals(vars["low_warning"],   40.0));
+    assert(double_equals(vars["low_critical"],  30.0));
+    assert(double_equals(vars["high_warning"],  50.0));
+    assert(double_equals(vars["high_critical"], 60.0));
+
+    assert(rule->_outcomes["low_warning"]._description == "wow LOW warning description");
+    assert(rule->_outcomes["low_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["low_critical"]._description == "WOW low critical description");
+    assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["low_critical"]._actions == action_EMAIL_SMS);
+
+    assert(rule->_outcomes["high_warning"]._description == "wow high WARNING description");
+    assert(rule->_outcomes["high_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["high_critical"]._description == "wow high critical DESCTIPRION");
+    assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["high_critical"]._actions == action_EMAIL);
+    }
+    {
+    if (verbose)
+        printf ("######## complexthreshold.rule\n");
+    std::ifstream f(dir + "complexthreshold.rule");
+    assert(readRule(f, rule) == 0);
+    assert(rule->whoami() == "threshold");
+    assert(rule->name() == "complexthreshold");
+    assert(rule->rule_class() == "example class");
+    assert(rule->_element == "fff");
+    std::vector<std::string> topics = {"abc@fff1", "abc@fff2"};
+    assert(rule->getNeededTopics() == topics);
+    std::map<std::string, double> vars = rule->getGlobalVariables();
+    assert(double_equals(vars["low_warning"],   40.0));
+    assert(double_equals(vars["low_critical"],  30.0));
+    assert(double_equals(vars["high_warning"],  50.0));
+    assert(double_equals(vars["high_critical"], 60.0));
+
+    assert(rule->_outcomes["low_warning"]._description == "wow LOW warning description");
+    assert(rule->_outcomes["low_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["low_critical"]._description == "WOW low critical description");
+    assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["low_critical"]._actions == action_EMAIL_SMS);
+
+    assert(rule->_outcomes["high_warning"]._description == "wow high WARNING description");
+    assert(rule->_outcomes["high_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["high_critical"]._description == "wow high critical DESCTIPRION");
+    assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["high_critical"]._actions == action_EMAIL);
+    }
+    {
+    if (verbose)
+        printf ("######## single.rule\n");
+    std::ifstream f(dir + "single.rule");
+    assert(readRule(f, rule) == 0);
+    assert(rule->whoami() == "single");
+    assert(rule->name() == "single");
+    assert(rule->rule_class() == "");
+    assert(rule->_element == "aaa");
+    std::vector<std::string> topics = {"abc@sss1", "abc@sss2"};
+    assert(rule->getNeededTopics() == topics);
+    std::map<std::string, double> vars = rule->getGlobalVariables();
+    assert(double_equals(vars["a1"],             2.0));
+    assert(double_equals(vars["a2"],            -3.0));
+    assert(double_equals(vars["low_warning"],    0.0));
+    assert(double_equals(vars["low_critical"],   0.0));
+    assert(double_equals(vars["high_warning"],   0.0));
+    assert(double_equals(vars["high_critical"],  0.0));
+
+    assert(rule->_outcomes["high_warning"]._description == "RES r2");
+    assert(rule->_outcomes["high_warning"]._severity == "WARNING");
+    assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
+
+    assert(rule->_outcomes["high_critical"]._description == "RES r1");
+    assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
+    assert(rule->_outcomes["high_critical"]._actions == action_EMAIL_SMS);
+
+    assert(rule->code() == "function main(abc_sss1, abc_sss2) local new_value = abc_sss1*a1 + abc_sss2*a2 if  ( new_value > 0 ) then return HIGH_WARNING end if ( new_value < -10 ) then return HIGH_CRITICAL end return OK end");
+    }
+    printf ("OK\n");
+}
