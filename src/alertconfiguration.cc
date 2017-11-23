@@ -644,7 +644,8 @@ void alertconfiguration_test (bool verbose)
 
     assert(rule->_outcomes["high_warning"]._description == "RES r2");
     assert(rule->_outcomes["high_warning"]._severity == "WARNING");
-    assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
+    std::vector<std::string> action_EMAIL_GPO = {"EMAIL", "GPO_INTERACTION:sensorgpio-42:open"};
+    assert(rule->_outcomes["high_warning"]._actions == action_EMAIL_GPO);
 
     assert(rule->_outcomes["high_critical"]._description == "RES r1");
     assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
