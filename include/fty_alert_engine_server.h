@@ -29,7 +29,10 @@ extern "C" {
 
 //  @interface
 FTY_ALERT_ENGINE_EXPORT void
-fty_alert_engine_server (zsock_t *pipe, void *args);
+fty_alert_engine_stream (zsock_t *pipe, void *args);
+
+FTY_ALERT_ENGINE_EXPORT void
+fty_alert_engine_mailbox (zsock_t *pipe, void *args);
 
 //  Self test of this class
 FTY_ALERT_ENGINE_EXPORT void
