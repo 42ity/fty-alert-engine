@@ -390,6 +390,7 @@ action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
         if (NULL == action_what) {
             zsys_warning("fty_alert_actions: alert action miss command");
             action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+            free(action_dup);
             continue;
         }
         char *tmp = strtok(NULL, ":");
@@ -412,12 +413,14 @@ action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
             if (NULL == gpo_iname) {
                 zsys_warning("fty_alert_actions: GPO_ACTION miss asset iname");
                 action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+                free(action_dup);
                 continue;
             }
             char *gpo_state = strtok(NULL, ":"); // required state
             if (NULL == gpo_state) {
                 zsys_warning("fty_alert_actions: GPO_ACTION miss required state");
                 action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+                free(action_dup);
                 continue;
             }
             tmp = strtok(NULL, ":"); // required state
@@ -426,14 +429,10 @@ action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
             } else {
                 zsys_warning("fty_alert_actions: unexpected parameter received for gpo_interaction action");
             }
-            free(gpo_iname);
-            free(gpo_state);
         }
         else {
             zsys_warning("fty_alert_actions: unsupported alert action");
         }
-        free(tmp);
-        free(action_what);
         free(action_dup);
         action = (const char *) fty_proto_action_next(alert_item->alert_msg);
     }
@@ -448,6 +447,12 @@ void
 action_alert_repeat(fty_alert_actions_t *self, s_alert_cache *alert_item)
 {
     zsys_debug("fty_alert_actions: action_alert_repeat called");
+    if (streq (fty_proto_state (alert_item->alert_msg), "ACK-PAUSE") ||
+            streq (fty_proto_state (alert_item->alert_msg), "ACK-IGNORE") ||
+            streq (fty_proto_state (alert_item->alert_msg), "ACK-SILENCE")) {
+        zsys_debug("fty_alert_actions: alert on %s acked, won't repeat alerts", fty_proto_name(alert_item->alert_msg));
+        return;
+    }
     const char *action = (const char *) fty_proto_action_first(alert_item->alert_msg);
     while (NULL != action) {
         char *action_dup = strdup(action);
@@ -455,6 +460,7 @@ action_alert_repeat(fty_alert_actions_t *self, s_alert_cache *alert_item)
         if (NULL == action_what) {
             zsys_warning("fty_alert_actions: alert action miss command");
             action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+            free(action_dup);
             continue;
         }
         char *tmp = strtok(NULL, ":");
@@ -478,8 +484,6 @@ action_alert_repeat(fty_alert_actions_t *self, s_alert_cache *alert_item)
         else {
             zsys_warning("fty_alert_actions: unsupported alert action");
         }
-        free(tmp);
-        free(action_what);
         free(action_dup);
         action = (const char *) fty_proto_action_next(alert_item->alert_msg);
     }
@@ -501,6 +505,7 @@ action_resolve(fty_alert_actions_t *self, s_alert_cache *alert_item)
         if (NULL == action_what) {
             zsys_warning("fty_alert_actions: alert action miss command");
             action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+            free(action_dup);
             continue;
         }
         char *tmp = strtok(NULL, ":");
@@ -515,20 +520,20 @@ action_resolve(fty_alert_actions_t *self, s_alert_cache *alert_item)
             if (NULL == gpo_iname) {
                 zsys_warning("fty_alert_actions: GPO_ACTION miss asset iname");
                 action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+                free(action_dup);
                 continue;
             }
             char *gpo_state = strtok(NULL, ":"); // required state
             if (NULL == gpo_state) {
                 zsys_warning("fty_alert_actions: GPO_ACTION miss required state");
                 action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
+                free(action_dup);
                 continue;
             }
             // for resolve opposite values are sent
             if (0 == strcmp(gpo_state, GPO_STATE_OPEN)) {
-                free(gpo_state);
                 gpo_state = (char *) GPO_STATE_CLOSE;
             } else {
-                free(gpo_state);
                 gpo_state = (char *) GPO_STATE_OPEN;
             }
             tmp = strtok(NULL, ":"); // required state
@@ -537,13 +542,10 @@ action_resolve(fty_alert_actions_t *self, s_alert_cache *alert_item)
             } else {
                 zsys_warning("fty_alert_actions: unexpected parameter received for gpo_interaction action");
             }
-            free(gpo_iname);
         }
         else {
             zsys_warning("fty_alert_actions: unsupported alert action");
         }
-        free(tmp);
-        free(action_what);
         free(action_dup);
         action = (const char *) fty_proto_action_next(alert_item->alert_msg);
     }
@@ -610,7 +612,9 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
     s_alert_cache *search;
     const char *rule = fty_proto_rule (alert);
     search = (s_alert_cache *) zhash_lookup(self->alerts_cache, rule);
-    if (streq (fty_proto_state (alert), "ACTIVE")) {
+    if (streq (fty_proto_state (alert), "ACTIVE") || streq (fty_proto_state (alert), "ACK-WIP") ||
+            streq (fty_proto_state (alert), "ACK-PAUSE") || streq (fty_proto_state (alert), "ACK-IGNORE") ||
+            streq (fty_proto_state (alert), "ACK-SILENCE")) {
         zsys_debug("fty_alert_actions: receieved ACTIVE alarm with subject %s", subject);
         if (NULL == search) {
             // create new alert object in cache

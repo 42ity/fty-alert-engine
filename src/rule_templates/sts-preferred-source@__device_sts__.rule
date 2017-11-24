@@ -5,7 +5,7 @@
     "metrics"       : ["input.source", "input.source.preferred"],
     "assets"        : ["__name__"],
     "results"       :  {
-        "high_warning"  : { "action" : ["EMAIL"] }
+        "high_warning"  : { "action" : [{ "action": "EMAIL" }] }
     },
     "evaluation"    : "
          function main(input, preferred)

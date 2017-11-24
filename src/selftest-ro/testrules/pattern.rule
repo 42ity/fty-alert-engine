@@ -4,8 +4,8 @@
         "target"        :   "^end_warranty_date@.+",
         "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"} ],
         "results"       :   [
-                                {"low_critical"  : { "action" : ["EMAIL"], "description" : "Warranty for device will expire in less than 10 days" }},
-                                {"low_warning"  : { "action" : ["EMAIL"], "description" : "Warranty for device will expire in less than 60 days"}}
+                                {"low_critical"  : { "action" : [{ "action": "EMAIL" }], "description" : "Warranty for device will expire in less than 10 days" }},
+                                {"low_warning"  : { "action" : [{ "action": "EMAIL" }], "description" : "Warranty for device will expire in less than 60 days"}}
                             ],
         "evaluation"    : "function main(value) if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= low_warning ) then return LOW_WARNING end return OK end"
     }
