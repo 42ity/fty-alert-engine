@@ -1549,7 +1549,7 @@ fty_alert_engine_server_test (bool verbose)
         brecv = fty_proto_decode (&recv);
         assert (streq (fty_proto_rule (brecv), "rule_to_touch"));
         assert (streq (fty_proto_name (brecv), "assettouch"));
-        assert (streq (fty_proto_state (brecv), "RESOVLED"));
+        assert (streq (fty_proto_state (brecv), "RESOLVED"));
         assert (streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
         zsys_debug ("Alert was sent: SUCCESS");
