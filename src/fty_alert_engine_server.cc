@@ -334,7 +334,7 @@ update_rule(
         // error during the rule creation
         zsys_debug1 ("internal error");
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "Internal error - operating with storate/disk failed.");
+        zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
         mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
     }
@@ -603,7 +603,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
         }
         // According RFC we expect here a messages
         // with the topic:
-        //   * RULE_SUBJECT
+        //   * RULES_SUBJECT
         else
         if ( streq (mlm_client_subject (client), RULES_SUBJECT) ) {
             zsys_debug1 ("%s", RULES_SUBJECT);
@@ -638,7 +638,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                     touch_rule (client, param, alertConfiguration, true);
                 }
                 else {
-                    zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
+                    zsys_error ("Received unexpected message to MAILBOX with command '%s'", command);
                 }
             }
             zstr_free (&command);
@@ -647,7 +647,7 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
         else {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
-            //  * METIC_UNAVAILABLE
+            //  * METRIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
             if (streq (command, "METRICUNAVAILABLE")) {
                 char *metrictopic = zmsg_popstr (zmessage);
@@ -1003,7 +1003,7 @@ fty_alert_engine_server_test (bool verbose)
     mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
 
     zmsg_t *recv = mlm_client_recv (ui);
-    
+
     assert (zmsg_size (recv) == 6);
     char *foo = zmsg_popstr (recv);
     assert (streq (foo, "LIST"));
@@ -1248,7 +1248,7 @@ fty_alert_engine_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
     }
-    // ######## Test case #18 
+    // ######## Test case #18
     // 18.1 add some rule (type: pattern)
     {
     zsys_info ("######## Test case #18 add some rule (type: pattern)");
@@ -1555,7 +1555,7 @@ fty_alert_engine_server_test (bool verbose)
         brecv = fty_proto_decode (&recv);
         assert (streq (fty_proto_rule (brecv), "rule_to_touch"));
         assert (streq (fty_proto_name (brecv), "assettouch"));
-        assert (streq (fty_proto_state (brecv), "RESOVLED"));
+        assert (streq (fty_proto_state (brecv), "RESOLVED"));
         assert (streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
         zsys_debug ("Alert was sent: SUCCESS");
@@ -1716,7 +1716,7 @@ fty_alert_engine_server_test (bool verbose)
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // # 26.1 catch message 'create asset', check that we created rules
-    { 
+    {
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     zhash_insert (aux, "type", (void *) "datacenter");
@@ -1882,7 +1882,7 @@ fty_alert_engine_server_test (bool verbose)
     zstr_free (&section_load);
     zstr_free (&phase_imbalance3);
     zstr_free (&voltage_1phase);
-    zstr_free (&voltage_3phase); 
+    zstr_free (&voltage_3phase);
     } */
 
     // # 29.1 force the alert for the updated device
