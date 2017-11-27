@@ -112,7 +112,7 @@ public:
         _variables.insert (vars.cbegin (), vars.cend ());
     }
 
-   virtual std::map<std::string,double> getGlobalVariables (void) const {
+    std::map<std::string,double> getGlobalVariables (void) const {
         return _variables;
     }
 

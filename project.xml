@@ -34,8 +34,8 @@
         repository = "https://github.com/42ity/cxxtools"
         release = "42ity"
     />
-    <class name = "metriclist" private="1">MetricList</class>
-    <class name = "alertconfiguration" private="1" selftest = "0">alertconfiguration</class>
+    <class name = "metriclist" private="1" selftest="0">MetricList</class>
+    <class name = "alertconfiguration" private="1">alertconfiguration</class>
     <class name = "luarule" private="1" selftest = "0">luaRule</class>
     <class name = "purealert" private="1" selftest = "0">PureAlert</class>
     <class name = "rule" private="1" selftest = "0">Rule</class>

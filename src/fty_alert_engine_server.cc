@@ -1085,6 +1085,7 @@ fty_alert_engine_server_test (bool verbose)
     }
     // Test case #14: add new rule, but with lua syntax error
     {
+    zsys_info ("######## Test case #14 add new rule, but with lua syntax error");
     zmsg_t *rule = zmsg_new();
     assert(rule);
     zmsg_addstrf (rule, "%s", "ADD");
@@ -1268,7 +1269,7 @@ fty_alert_engine_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
     // 18.2 evaluate some rule (type: pattern)
-    zsys_info ("######## Test case #19 evaluate some rule (type: pattern)");
+    zsys_info ("######## Test case #18.2 evaluate some rule (type: pattern)");
     //  18.2.1. OK
     zmsg_t *m = fty_proto_encode_metric (
             NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "100", "some description");
@@ -1337,7 +1338,9 @@ fty_alert_engine_server_test (bool verbose)
     // does not make a sense to call streq on two json documents
     zmsg_destroy (&recv);
 
+
     //      21.1.2  add existing rule second time: devicethreshold
+    zsys_info ("######## Test case #21.1.2 add existing rule second time: devicethreshold");
     rule = zmsg_new();
     zmsg_addstrf (rule, "%s", "ADD");
     devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
@@ -1394,8 +1397,9 @@ fty_alert_engine_server_test (bool verbose)
     // Test 22: a simple threshold with not double value
     // actually, this "behaviour" would automatically apply to ALL rules,
     // as it is implemented in rule.class
-    // 22-1 : "AA20"
+    // 22-1 : "A40"
     {
+    zsys_info ("######## Test case #22-1 a simple threshold with not double value (A40)");
     zmsg_t *rule = zmsg_new();
     zmsg_addstr (rule, "ADD");
     char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str());
@@ -1416,7 +1420,8 @@ fty_alert_engine_server_test (bool verbose)
     zstr_free (&foo);
     zmsg_destroy (&recv);
 
-    // 22-2 : "20AA"
+    // 22-2 : "50AA"
+    zsys_info ("######## Test case #22-2 a simple threshold with not double value (50AA)");
     rule = zmsg_new();
     zmsg_addstr (rule, "ADD");
     simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
@@ -1439,6 +1444,7 @@ fty_alert_engine_server_test (bool verbose)
     }
     // test 23: touch rule, that doesn't exist
     {
+    zsys_info ("######## Test case #23: touch rule, that doesn't exist");
     zmsg_t *touch_request = zmsg_new ();
     assert (touch_request);
     zmsg_addstr (touch_request, "TOUCH");
