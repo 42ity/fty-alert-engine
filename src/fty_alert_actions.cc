@@ -329,6 +329,7 @@ send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_ema
             zsys_error ("fty_alert_actions: received invalid reply on SENDMAIL_ALERT message");
         }
         zstr_free(&rcv_uuid);
+        zmsg_destroy (&reply_msg);
     }
     zuuid_destroy (&uuid);
 }
@@ -373,6 +374,7 @@ send_gpo_action(fty_alert_actions_t *self, char *gpo_iname, char *gpo_state)
         else
             zsys_error ("fty_alert_actions: received invalid reply on GPO_INTERACTION message");
         zstr_free (&zuuid_str);
+        zmsg_destroy (&reply_msg);
     }
     zuuid_destroy (&zuuid);
 }
@@ -1648,19 +1650,19 @@ fty_alert_actions_test (bool verbose)
         zpoller_destroy (&poller);
 
         //      6. Email SHOULD be generated
-        /*msg = mlm_client_recv (email_client);
-        assert (msg);
-        assert (streq (mlm_client_subject (email_client), "SENDMAIL_ALERT"));
-        zuuid_str = zmsg_popstr (msg);
-        zmsg_destroy (&msg);
+        //msg = mlm_client_recv (email_client);
+        //assert (msg);
+        //assert (streq (mlm_client_subject (email_client), "SENDMAIL_ALERT"));
+        //zuuid_str = zmsg_popstr (msg);
+        //zmsg_destroy (&msg);
 
         //       7. send the reply to unblock the actor
-        reply = zmsg_new ();
-        zmsg_addstr (reply, zuuid_str);
-        zmsg_addstr (reply, "OK");
-        mlm_client_sendto (email_client, FTY_ALERT_ACTIONS_TEST, "SENDMAIL_ALERT", NULL, 1000, &reply);
+        //reply = zmsg_new ();
+        //zmsg_addstr (reply, zuuid_str);
+        //zmsg_addstr (reply, "OK");
+        //mlm_client_sendto (email_client, FTY_ALERT_ACTIONS_TEST, "SENDMAIL_ALERT", NULL, 1000, &reply);
 
-        zstr_free (&zuuid_str);*/
+        //zstr_free (&zuuid_str);
     }
     //test 14, on ACK-SILENCE we send only one e-mail and then stop
     {
@@ -1912,21 +1914,21 @@ fty_alert_actions_test (bool verbose)
         }
         zpoller_destroy (&poller);
         //      6. Email SHOULD be generated
-       /* msg = mlm_client_recv (email_client);
-        assert (msg);
-        if ( verbose )
-            zsys_debug ("Email was sent: SUCCESS");
-        assert (streq (mlm_client_subject (email_client), "SENDMAIL_ALERT"));
-        char *zuuid_str = zmsg_popstr (msg);
-        zmsg_destroy (&msg);
+        //msg = mlm_client_recv (email_client);
+        //assert (msg);
+        //if ( verbose )
+        //    zsys_debug ("Email was sent: SUCCESS");
+        //assert (streq (mlm_client_subject (email_client), "SENDMAIL_ALERT"));
+        //char *zuuid_str = zmsg_popstr (msg);
+        //zmsg_destroy (&msg);
 
         //       7. send the reply to unblock the actor
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, zuuid_str);
-        zmsg_addstr (reply, "OK");
-        mlm_client_sendto (email_client, FTY_ALERT_ACTIONS_TEST, "SENDMAIL_ALERT", NULL, 1000, &reply);
+        //zmsg_t *reply = zmsg_new ();
+        //zmsg_addstr (reply, zuuid_str);
+        //zmsg_addstr (reply, "OK");
+        //mlm_client_sendto (email_client, FTY_ALERT_ACTIONS_TEST, "SENDMAIL_ALERT", NULL, 1000, &reply);
 
-        zstr_free (&zuuid_str);*/
+        //zstr_free (&zuuid_str);
 
         //      8. send alert message again third time
         actions = zlist_new ();
