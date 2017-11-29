@@ -845,7 +845,7 @@ s_handle_stream_deliver_asset (fty_alert_actions_t *self, fty_proto_t **asset_p,
                     zsys_debug("fty_alert_actions: checking for alarms assigned to %s", assetname);
                 while (NULL != it) {
                     if (it->related_asset == known) {
-                        // just resolve, will be activated again
+                        // force an alert since contact info changed
                         action_alert(self, it);
                     }
                     it = (s_alert_cache *) zhash_next(self->alerts_cache);
@@ -1141,7 +1141,7 @@ fty_alert_actions_test (bool verbose)
     }
 
     // test 5, processing of alerts from stream
-    /*{
+    {
         zsys_debug("fty_alert_actions: test 5");
         SET_UUID((char *)"uuid-test");
         zhash_t *aux = zhash_new();
@@ -1326,7 +1326,8 @@ fty_alert_actions_test (bool verbose)
         //      4. check that alert disappeared
         assert ( zhash_size (self->alerts_cache) == 0 );
         fty_alert_actions_destroy (&self);
-    }*/
+        CLEAN_RECV;
+    }
     // do the rest of the tests the ugly way, since it's the least complicated option
     testing = 0;
 
