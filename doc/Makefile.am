@@ -85,7 +85,7 @@ fty-alert-engine.txt: $(top_srcdir)/src/fty_alert_engine.cc
 	"$(srcdir)/mkman" "fty_alert_engine" "$(builddir)/fty-alert-engine.txt" "$(srcdir)/.."
 
 
-clean:
+clean-local:
 	rm -f *.1 *.3 *.7 $(GENERATED_DOCS)
 
 doc: $(GENERATED_DOCS)

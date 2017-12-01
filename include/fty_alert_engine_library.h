@@ -61,6 +61,9 @@
 #       define FTY_ALERT_ENGINE_EXPORT __declspec(dllimport)
 #   endif
 #   define FTY_ALERT_ENGINE_PRIVATE
+#elif defined (__CYGWIN__)
+#   define FTY_ALERT_ENGINE_EXPORT
+#   define FTY_ALERT_ENGINE_PRIVATE
 #else
 #   define FTY_ALERT_ENGINE_EXPORT
 #   if (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER

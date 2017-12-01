@@ -1,3 +1,4 @@
+### NOTE: This file was edited to add /usr/share/bios/fty-autoconfig
 #
 #    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
@@ -28,6 +29,7 @@
 %else
 %define DRAFTS no
 %endif
+%define SYSTEMD_UNIT_DIR %(pkg-config --variable=systemdsystemunitdir systemd)
 Name:           fty-alert-engine
 Version:        1.0.0
 Release:        1
@@ -50,6 +52,7 @@ BuildRequires:  systemd
 %{?systemd_requires}
 BuildRequires:  xmlto
 BuildRequires:  gcc-c++
+BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
@@ -80,6 +83,7 @@ This package contains shared library for fty-alert-engine: 42ity service evaluat
 Summary:        42ity service evaluating rules written in lua and producing alerts
 Group:          System/Libraries
 Requires:       libfty_alert_engine0 = %{version}
+Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
@@ -121,7 +125,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg
-/usr/lib/systemd/system/fty-alert-engine.service
+%{SYSTEMD_UNIT_DIR}/fty-alert-engine.service
 %dir %{_sysconfdir}/fty-alert-engine
 /usr/share/bios/fty-autoconfig
 %if 0%{?suse_version} > 1315
