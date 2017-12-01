@@ -1,9 +1,10 @@
 { "flexible" :
   {
     "name"          : "door-contact.state-change@__name__",
-    "description"   : "GPIO status changed",
+    "description"   : "Door to __logicalasset__ is not __normalstate__",
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
+    "logical_asset" : "__logicalasset_iname__",
     "models"	    : ["DCS001"],
     "types" 	    : ["sensorgpio", "rackcontroller"],
     "results"       :  {
