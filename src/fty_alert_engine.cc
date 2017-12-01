@@ -108,5 +108,6 @@ int main(int argc, char** argv) {
     // TODO save info to persistence before I die
     zactor_destroy(&ag_server_stream);
     zactor_destroy(&ag_server_mailbox);
+    clearEvaluateMetrics();
     return 0;
 }
