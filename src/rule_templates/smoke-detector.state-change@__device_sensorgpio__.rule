@@ -1,9 +1,10 @@
 { "flexible" :
   {
     "name"          : "smoke-detector.state-change@__name__",
-    "description"   : "GPIO status changed",
+    "description"   : "Smoke detected in __logicalasset__",
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
+    "logical_asset" : "__logicalasset_iname__",
     "models"	    : ["M12"],
     "types" 	    : ["sensorgpio", "rackcontroller"],
     "results"       :  {
