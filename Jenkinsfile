@@ -1,9 +1,4 @@
 /*
- *  Note: This Jenkinsfile is amended for longer test timeouts and 'rm -rf'
- *        instead of deleteDir() due to non-ASCII filenames in tests
- */
-
-/*
     fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 
     Copyright (C) 2014 - 2017 Eaton
@@ -24,7 +19,7 @@
 */
 
 pipeline {
-                    agent { label "devel-image && x86_64" }
+                    agent { label "devel-image-ipm_1.3 && x86_64" }
     parameters {
         // Use DEFAULT_DEPLOY_BRANCH_PATTERN and DEFAULT_DEPLOY_JOB_NAME if
         // defined in this jenkins setup -- in Jenkins Management Web-GUI
@@ -101,13 +96,9 @@ pipeline {
         stage ('cppcheck') {
                     when { expression { return ( params.DO_CPPCHECK ) } }
                     steps {
-/*
-// This job generates files with non-ASCII names which upsets Jenkins remote file IO agent
                         dir("tmp") {
                             deleteDir()
                         }
-*/
-                        sh 'rm -rf tmp/'
                         sh 'cppcheck --std=c++11 --enable=all --inconclusive --xml --xml-version=2 . 2>cppcheck.xml'
                         archiveArtifacts artifacts: '**/cppcheck.xml'
                         sh 'rm -f cppcheck.xml'
@@ -115,12 +106,9 @@ pipeline {
         }
         stage ('prepare') {
                     steps {
-/*
                         dir("tmp") {
                             deleteDir()
                         }
-*/
-                        sh 'rm -rf tmp/'
                         sh './autogen.sh'
                         stash (name: 'prepped', includes: '**/*', excludes: '**/cppcheck.xml')
                     }
@@ -131,7 +119,6 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITH_DRAFT_API ) } }
                     steps {
                       dir("tmp/build-withDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'prepped'
                         sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; ./configure --enable-drafts=yes --with-docs=no'
@@ -140,7 +127,6 @@ pipeline {
                         stash (name: 'built-draft', includes: '**/*', excludes: '**/cppcheck.xml')
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -151,7 +137,6 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITHOUT_DRAFT_API ) } }
                     steps {
                       dir("tmp/build-withoutDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'prepped'
                         sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; ./configure --enable-drafts=no --with-docs=no'
@@ -160,7 +145,6 @@ pipeline {
                         stash (name: 'built-nondraft', includes: '**/*', excludes: '**/cppcheck.xml')
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -171,7 +155,6 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_DOCS ) } }
                     steps {
                       dir("tmp/build-DOCS") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'prepped'
                         sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; ./configure --enable-drafts=yes --with-docs=yes'
@@ -180,7 +163,6 @@ pipeline {
                         stash (name: 'built-docs', includes: '**/*', excludes: '**/cppcheck.xml')
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -195,16 +177,14 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITH_DRAFT_API && params.DO_TEST_CHECK ) } }
                     steps {
                       dir("tmp/test-check-withDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-draft'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:$LD_LIBRARY_PATH"; export LD_LIBRARY_PATH; make check'
                         }
                         sh 'echo "Are GitIgnores good after make check with drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -215,16 +195,14 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITHOUT_DRAFT_API && params.DO_TEST_CHECK ) } }
                     steps {
                       dir("tmp/test-check-withoutDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-nondraft'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:$LD_LIBRARY_PATH"; export LD_LIBRARY_PATH; make check'
                         }
                         sh 'echo "Are GitIgnores good after make check without drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -235,16 +213,14 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITH_DRAFT_API && params.DO_TEST_MEMCHECK ) } }
                     steps {
                       dir("tmp/test-memcheck-withDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-draft'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:$LD_LIBRARY_PATH"; export LD_LIBRARY_PATH; make memcheck && exit 0 ; echo "Re-running failed ($?) memcheck with greater verbosity" >&2 ; make VERBOSE=1 memcheck-verbose'
                         }
                         sh 'echo "Are GitIgnores good after make memcheck with drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -255,16 +231,14 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITHOUT_DRAFT_API && params.DO_TEST_MEMCHECK ) } }
                     steps {
                       dir("tmp/test-memcheck-withoutDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-nondraft'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:$LD_LIBRARY_PATH"; export LD_LIBRARY_PATH; make memcheck && exit 0 ; echo "Re-running failed ($?) memcheck with greater verbosity" >&2 ; make VERBOSE=1 memcheck-verbose'
                         }
                         sh 'echo "Are GitIgnores good after make memcheck without drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -275,16 +249,14 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITH_DRAFT_API && params.DO_TEST_DISTCHECK ) } }
                     steps {
                       dir("tmp/test-distcheck-withDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-draft'
-                        timeout (time: 35, unit: 'MINUTES') {
+                        timeout (time: 10, unit: 'MINUTES') {
                             sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:$LD_LIBRARY_PATH"; export LD_LIBRARY_PATH; make distcheck'
                         }
                         sh 'echo "Are GitIgnores good after make distcheck with drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -295,16 +267,14 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITHOUT_DRAFT_API && params.DO_TEST_DISTCHECK ) } }
                     steps {
                       dir("tmp/test-distcheck-withoutDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-nondraft'
-                        timeout (time: 35, unit: 'MINUTES') {
+                        timeout (time: 10, unit: 'MINUTES') {
                             sh 'CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:$LD_LIBRARY_PATH"; export LD_LIBRARY_PATH; make distcheck'
                         }
                         sh 'echo "Are GitIgnores good after make distcheck without drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -315,17 +285,15 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITH_DRAFT_API && params.DO_TEST_INSTALL ) } }
                     steps {
                       dir("tmp/test-install-withDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-draft'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:\${LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH; make DESTDIR="${params.USE_TEST_INSTALL_DESTDIR}/withDRAFT" install"""
                         }
                         sh """cd "${params.USE_TEST_INSTALL_DESTDIR}/withDRAFT" && find . -ls"""
                         sh 'echo "Are GitIgnores good after make install with drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -336,17 +304,15 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_WITHOUT_DRAFT_API && params.DO_TEST_INSTALL ) } }
                     steps {
                       dir("tmp/test-install-withoutDRAFT") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-nondraft'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:\${LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH; make DESTDIR="${params.USE_TEST_INSTALL_DESTDIR}/withoutDRAFT" install"""
                         }
                         sh """cd "${params.USE_TEST_INSTALL_DESTDIR}/withoutDRAFT" && find . -ls"""
                         sh 'echo "Are GitIgnores good after make install without drafts? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
@@ -357,17 +323,15 @@ pipeline {
                     when { expression { return ( params.DO_BUILD_DOCS && params.DO_TEST_INSTALL ) } }
                     steps {
                       dir("tmp/test-install-withDOCS") {
-                        sh 'rm -rf src/'
                         deleteDir()
                         unstash 'built-docs'
-                        timeout (time: 15, unit: 'MINUTES') {
+                        timeout (time: 5, unit: 'MINUTES') {
                             sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; LD_LIBRARY_PATH="`pwd`/src/.libs:\${LD_LIBRARY_PATH}"; export LD_LIBRARY_PATH; make DESTDIR="${params.USE_TEST_INSTALL_DESTDIR}/withDOCS" install"""
                         }
                         sh """cd "${params.USE_TEST_INSTALL_DESTDIR}/withDOCS" && find . -ls"""
                         sh 'echo "Are GitIgnores good after make install with Docs? (should have no output below)"; git status -s || if [ "${params.REQUIRE_GOOD_GITIGNORE}" = false ]; then echo "WARNING GitIgnore tests found newly changed or untracked files" >&2 ; exit 0 ; else echo "FAILED GitIgnore tests" >&2 ; exit 1; fi'
                         script {
                             if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                sh 'rm -rf src/'
                                 deleteDir()
                             }
                         }
