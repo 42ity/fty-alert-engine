@@ -1,3 +1,4 @@
+### NOTE: This file was edited to add /usr/share/bios/fty-autoconfig
 #
 #    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
