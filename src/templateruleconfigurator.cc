@@ -28,6 +28,7 @@
 
 #include "fty_alert_engine_classes.h"
 
+#include <algorithm>
 #include <cxxtools/directory.h>
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
@@ -47,8 +48,10 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                     if (i.first == "port")
                         port = "GPI" + i.second;
                     else
-                    if (i.first == "alarm_severity")
+                    if (i.first == "alarm_severity") {
                         severity = i.second;
+                        std::transform(severity.begin(), severity.end(), severity.begin(), ::tolower);
+                    }
                     else
                     if (i.first == "normal_state")
                         normal_state = i.second;

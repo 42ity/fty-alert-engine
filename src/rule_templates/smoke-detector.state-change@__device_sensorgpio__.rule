@@ -8,8 +8,7 @@
     "models"	    : ["M12"],
     "types" 	    : ["sensorgpio", "rackcontroller"],
     "results"       :  {
-        "high_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }] },
-        "high_warning"   : { "action" : [{ "action": "EMAIL" }] }
+        "high___severity__"   : { "action" : [{ "action": "EMAIL" }] }
     },
     "evaluation"    : "
         function main(current_state)
