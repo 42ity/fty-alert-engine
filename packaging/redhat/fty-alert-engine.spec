@@ -51,6 +51,7 @@ BuildRequires:  systemd
 %{?systemd_requires}
 BuildRequires:  xmlto
 BuildRequires:  gcc-c++
+BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
@@ -81,6 +82,7 @@ This package contains shared library for fty-alert-engine: 42ity service evaluat
 Summary:        42ity service evaluating rules written in lua and producing alerts
 Group:          System/Libraries
 Requires:       libfty_alert_engine0 = %{version}
+Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
@@ -118,6 +120,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 
 %files
 %defattr(-,root,root)
+%doc README.md
 %doc COPYING
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
