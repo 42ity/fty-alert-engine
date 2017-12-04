@@ -1,4 +1,9 @@
 /*
+ *  Note: This Jenkinsfile is amended for longer test timeouts and 'rm -rf'
+ *        instead of deleteDir() due to non-ASCII filenames in tests
+ */
+
+/*
     fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 
     Copyright (C) 2014 - 2017 Eaton

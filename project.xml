@@ -16,6 +16,8 @@
         <option name = "triggers_pollSCM" value = "H/2 * * * *" />
         <option name = "test_cppcheck" value = "1" />
         <option name = "build_docs" value = "1" />
+        <!-- Note: Jenkinsfile is amended for longer test timeouts and 'rm -rf'
+             instead of deleteDir() due to non-ASCII filenames in tests -->
     </target>
 
     <include filename = "license.xml" />
