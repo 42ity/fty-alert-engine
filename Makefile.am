@@ -63,6 +63,7 @@ EXTRA_DIST += \
     src/thresholdrulecomplex.h \
     src/ruleconfigurator.h \
     src/templateruleconfigurator.h \
+    README.md \
     src/fty_alert_engine_classes.h
 
 # NOTE: this "include" syntax is not a "make" but an "autotools" keyword,

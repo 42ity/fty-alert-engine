@@ -41,6 +41,7 @@ all_tests [] = {
     { "utils", utils_test },
     { "autoconfig", autoconfig_test },
     { "fty_alert_engine_server", fty_alert_engine_server_test },
+    { "fty_alert_actions", fty_alert_actions_test },
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
     { "private_classes", fty_alert_engine_private_selftest },
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
@@ -101,7 +102,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("12");
+            puts ("13");
             return 0;
         }
         else
@@ -112,6 +113,7 @@ main (int argc, char **argv)
             puts ("    utils\t\t- stable");
             puts ("    autoconfig\t\t- stable");
             puts ("    fty_alert_engine_server\t\t- stable");
+            puts ("    fty_alert_actions\t\t- stable");
             puts ("    private_classes\t- draft");
             return 0;
         }

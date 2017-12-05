@@ -23,7 +23,7 @@
 			{
 				"low_warning": {
 					"action": [
-						"EMAIL", "SMS"
+						{ "action": "EMAIL" }, { "action": "SMS" }
 					],
 					"severity": "low",
 					"description": "Humidity in datacenter DC-Roztoky is low"
@@ -32,7 +32,7 @@
 			{
 				"low_critical": {
 					"action": [
-						"EMAIL", "SMS"
+						{ "action": "EMAIL" }, { "action": "SMS" }
 					],
 					"severity": "high",
 					"description": "Humidity in datacenter DC-Roztoky is critically low"
@@ -41,7 +41,7 @@
 			{
 				"high_warning": {
 					"action": [
-						"EMAIL", "SMS"
+						{ "action": "EMAIL" }, { "action": "SMS" }
 					],
 					"severity": "low",
 					"description": "Humidity in datacenter DC-Roztoky is high"
@@ -50,7 +50,7 @@
 			{
 				"high_critical": {
 					"action": [
-						"EMAIL", "SMS"
+						{ "action": "EMAIL" }, { "action": "SMS" }
 					],
 					"severity": "high",
 					"description": "Humidity in datacenter DC-Roztoky is critically high"

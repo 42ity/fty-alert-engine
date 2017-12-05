@@ -113,20 +113,41 @@ si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& membe
 }
 
 /*
- * \brief Serialzation of outcome
- */
-void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome)
-{
-    si.addMember("action") <<= outcome._actions;
-    si.addMember("description") <<= outcome._description;
-}
-
-/*
  * \brief Deserialzation of outcome
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 {
-    si.getMember("action") >>= outcome._actions;
+    const cxxtools::SerializationInfo &actions = si.getMember("action");
+    outcome._actions.clear();
+    outcome._actions.reserve(actions.memberCount());
+    for ( const auto &a : actions) {
+        std::string type, res;
+        switch (a.category()) {
+        case cxxtools::SerializationInfo::Value:
+            // old-style format ["EMAIL", "SMS"]
+            outcome._actions.resize(outcome._actions.size() + 1);
+            a >>= outcome._actions.back();
+            break;
+        case cxxtools::SerializationInfo::Object:
+            // [{"action": "EMAIL"}, {"action": "SMS"}]
+            a.getMember("action") >>= type;
+            if (type == "EMAIL" || type == "SMS") {
+                res = type;
+            } else if (type == "GPO_INTERACTION") {
+                std::string asset, mode;
+                a.getMember("asset") >>= asset;
+                a.getMember("mode") >>= mode;
+                res = type + ":" + asset + ":" + mode;
+            } else {
+                zsys_warning("Unknown action type: \"%s\"", type.c_str());
+                res = type;
+            }
+            outcome._actions.push_back(res);
+            break;
+        default:
+            throw std::runtime_error("Invalid format of action");
+        }
+    }
     si.getMember("description") >>= outcome._description;
 }
 
@@ -161,10 +182,10 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
 void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes)
 {
     /*
-        "results":[ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
-                    {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
-                    {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
-                    {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ]
+        "results":[ {"low_critical"  : { "action" : [{ "action": "EMAIL"},{ "action": "SMS"}], "description" : "WOW low critical description" }},
+                    {"low_warning"   : { "action" : [{ "action": "EMAIL"}], "description" : "wow LOW warning description"}},
+                    {"high_warning"  : { "action" : [{ "action": "EMAIL"}], "description" : "wow high WARNING description" }},
+                    {"high_critical" : { "action" : [{ "action": "EMAIL"}], "description" : "wow high critical DESCTIPRION" } } ]
     */
     for ( const auto &oneElement : si ) { // iterate through the array
         auto outcomeName = oneElement.getMember(0).name();

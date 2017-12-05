@@ -273,6 +273,14 @@ void Autoconfig::main (zsock_t *pipe, char *name)
     zpoller_destroy (&poller);
 }
 
+const std::string Autoconfig::getEname (const std::string &iname)
+{
+    std::string ename;
+    auto search = _containers.find (iname); // iname | ename
+    if (search != _containers.end ())
+        ename = search->second;
+    return ename;
+}
 
 void
 Autoconfig::onSend (fty_proto_t **message)
@@ -286,8 +294,15 @@ Autoconfig::onSend (fty_proto_t **message)
     info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
     info.operation.assign (fty_proto_operation (*message));
 
+    if (streq (fty_proto_aux_string (*message, "type", ""), "datacenter") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "room") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "row") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "rack"))
+    {
+        _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+    }
     if (info.type.empty ()) {
-        zsys_debug("extracting attibutes from asset message failed.");
+        zsys_debug("extracting attributes from asset message failed.");
         return;
     }
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
@@ -314,7 +329,16 @@ void Autoconfig::onPoll( )
             return;
 
         if ((&iTemplateRuleConfigurator)->isApplicable (it.second))
-            device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, client ());
+        {
+            std::string la;
+            for (auto &i : it.second.attributes)
+            {
+                if (i.first == "logical_asset")
+                    la = i.second;
+            }
+
+            device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, Autoconfig::getEname (la), client ());
+        }
         else
             zsys_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
 

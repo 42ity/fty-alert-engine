@@ -121,13 +121,13 @@ find %{buildroot} -name '*.la' | xargs rm -f
 
 %files
 %defattr(-,root,root)
+%doc README.md
 %doc COPYING
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg
 %{SYSTEMD_UNIT_DIR}/fty-alert-engine.service
 %dir %{_sysconfdir}/fty-alert-engine
-/usr/share/bios/fty-autoconfig
 %if 0%{?suse_version} > 1315
 %post
 %systemd_post fty-alert-engine.service

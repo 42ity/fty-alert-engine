@@ -13,9 +13,9 @@
             { "high_warning"    : "1200" },
             { "high_critical"   : "1700" } ],
         "results"       :   [
-            {"low_critical"  : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "Total power in rack is critically low" }},
-            {"low_warning"   : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "Total power in rack is low" }},
-            {"high_warning"  : { "action" : ["EMAIL"], "severity" : "WARNING", "description" : "Total power in rack is high" }},
-            {"high_critical" : { "action" : ["EMAIL","SMS"], "severity" : "CRITICAL", "description" : "Total power in rack is critically high" }} ]
+            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Total power in rack is critically low" }},
+            {"low_warning"   : { "action" : [{ "action": "EMAIL" }], "severity" : "WARNING", "description" : "Total power in rack is low" }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL" }], "severity" : "WARNING", "description" : "Total power in rack is high" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Total power in rack is critically high" }} ]
     }
 }

@@ -14,7 +14,7 @@
 		}],
 		"results": [{
 			"low_critical": {
-				"action": ["EMAIL"],
+				"action": [{ "action": "EMAIL" }],
 				"description": "aaaa "
 			}
 		}, {
@@ -24,12 +24,12 @@
 			}
 		}, {
 			"high_warning": {
-				"action": ["EMAIL"],
+				"action": [{ "action": "EMAIL" }],
 				"description": "cccc"
 			}
 		}, {
 			"high_critical": {
-				"action": ["EMAIL"],
+				"action": [{ "action": "EMAIL" }],
 				"description": "dddd "
 			}
 		}],

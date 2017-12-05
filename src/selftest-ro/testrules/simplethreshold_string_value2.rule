@@ -7,9 +7,9 @@
                               {"low_warning"   : "40"},
                               {"high_warning"  : "50AA"},
                               {"high_critical" : "60"} ],
-        "results"       :   [ {"low_critical"  : { "action" : ["EMAIL","SMS"], "description" : "WOW low critical description" }},
-                              {"low_warning"   : { "action" : ["EMAIL"], "description" : "wow LOW warning description"}},
-                              {"high_warning"  : { "action" : ["EMAIL"], "description" : "wow high WARNING description" }},
-                              {"high_critical" : { "action" : ["EMAIL"], "description" : "wow high critical DESCTIPRION" } } ]
+        "results"       :   [ {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "description" : "WOW low critical description" }},
+                              {"low_warning"   : { "action" : [{ "action": "EMAIL" }], "description" : "wow LOW warning description"}},
+                              {"high_warning"  : { "action" : [{ "action": "EMAIL" }], "description" : "wow high WARNING description" }},
+                              {"high_critical" : { "action" : [{ "action": "EMAIL" }], "description" : "wow high critical DESCTIPRION" } } ]
     }
 }

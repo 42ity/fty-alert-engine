@@ -104,10 +104,3 @@ void MetricList::removeOldMetrics()
         }
     }
 }
-
-void
-metriclist_test (bool verbose)
-{
-    printf (" * metriclist: ");
-    printf ("OK\n");
-}

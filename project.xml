@@ -65,6 +65,7 @@
     <class name = "RuleConfigurator" private = "1" selftest = "0">Rule Configurator</class>
     <class name = "TemplateRuleConfigurator" private="1" selftest="0">Template rule configurator</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
+    <class name = "fty_alert_actions" state = "stable" >Actor performing actions on alert (sending notifications)</class>
     <main name = "fty-alert-engine" service = "1">
         Daemon evaluating rules and producing alerts
     </main>
