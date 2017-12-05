@@ -41,7 +41,7 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                 bool result = true;
                 std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
 
-                std::string port, severity, normal_state, model, iname_la;
+                std::string port, severity, normal_state, model, iname_la, rule_result;
 
                 for (auto &i : info.attributes)
                 {
@@ -50,7 +50,8 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                     else
                     if (i.first == "alarm_severity") {
                         severity = i.second;
-                        std::transform(severity.begin(), severity.end(), severity.begin(), ::tolower);
+                        rule_result = i.second;
+                        std::transform (rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
                     }
                     else
                     if (i.first == "normal_state")
@@ -63,8 +64,8 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                         iname_la = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__"};
-                std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state};
+                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__"};
+                std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result};
 
                 for ( auto &templat : templates) {
                     if (info.subtype == "sensorgpio")

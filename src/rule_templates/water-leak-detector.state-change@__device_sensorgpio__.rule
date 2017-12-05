@@ -8,7 +8,7 @@
     "models"	    : ["WLD012"],
     "types" 	    : ["sensorgpio", "rackcontroller"],
     "results"       :  {
-        "high___severity__"   : { "action" : [{ "action": "EMAIL" }] }
+        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
     },
     "evaluation"    : "
         function main(current_state)
