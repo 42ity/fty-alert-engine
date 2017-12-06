@@ -4,8 +4,8 @@
         "target"        :   ["status.ups@UPS1-LAB"],
         "element"       :   "UPS1-LAB",
         "values"        :   [ ],
-        "results"       :   [ {"high_critical"  : { "action" : ["EMAIL","SMS"], "description" : "low" }},
-                              {"high_warning"  : { "action" : ["EMAIL"],        "description" : "onbat"}}
+        "results"       :   [ {"high_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "description" : "low" }},
+                              {"high_warning"  : { "action" : [{ "action": "EMAIL" }],        "description" : "onbat"}}
                             ],
         "evaluation"    : "function has_bit(x,bit) mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status) if has_bit(status,7) then return HIGH_CRITICAL end if has_bit(status,5) then return HIGH_WARNING end return OK end"
     }

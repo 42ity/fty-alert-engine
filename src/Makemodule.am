@@ -18,6 +18,7 @@ include_HEADERS = \
     include/utils.h \
     include/autoconfig.h \
     include/fty_alert_engine_server.h \
+    include/fty_alert_actions.h \
     include/fty_alert_engine_library.h
 
 src_libfty_alert_engine_la_SOURCES = \
@@ -33,6 +34,7 @@ src_libfty_alert_engine_la_SOURCES = \
     src/ruleconfigurator.cc \
     src/templateruleconfigurator.cc \
     src/fty_alert_engine_server.cc \
+    src/fty_alert_actions.cc \
     src/platform.h
 
 if ENABLE_DRAFTS
