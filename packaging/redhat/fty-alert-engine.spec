@@ -1,21 +1,21 @@
 #
 #    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
-#    Copyright (C) 2014 - 2017 Eaton                                        
-#                                                                           
-#    This program is free software; you can redistribute it and/or modify   
-#    it under the terms of the GNU General Public License as published by   
-#    the Free Software Foundation; either version 2 of the License, or      
-#    (at your option) any later version.                                    
-#                                                                           
-#    This program is distributed in the hope that it will be useful,        
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-#    GNU General Public License for more details.                           
-#                                                                           
+#    Copyright (C) 2014 - 2017 Eaton
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
 # To build with draft APIs, use "--with drafts" in rpmbuild for local builds or add
@@ -51,6 +51,7 @@ BuildRequires:  systemd
 %{?systemd_requires}
 BuildRequires:  xmlto
 BuildRequires:  gcc-c++
+BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
@@ -81,6 +82,7 @@ This package contains shared library for fty-alert-engine: 42ity service evaluat
 Summary:        42ity service evaluating rules written in lua and producing alerts
 Group:          System/Libraries
 Requires:       libfty_alert_engine0 = %{version}
+Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
@@ -118,6 +120,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 
 %files
 %defattr(-,root,root)
+%doc README.md
 %doc COPYING
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*

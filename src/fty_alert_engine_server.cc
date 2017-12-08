@@ -355,13 +355,14 @@ update_rule(
             mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
         }
-        default:
-            // error during the rule creation
-            zsys_debug1("bad json default");
-            zmsg_addstr(reply, "ERROR");
-            zmsg_addstr(reply, "BAD_JSON");
-            mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+
+    default:
+        // error during the rule creation
+        zsys_debug1 ("bad json default");
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_JSON");
+        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        return;
     }
 }
 
@@ -733,6 +734,9 @@ fty_alert_engine_mailbox(zsock_t *pipe, void* args) {
         // but even so we try to decide according what we got, not from where
         if (streq(mlm_client_subject(client), RULES_SUBJECT)) {
             zsys_debug1("%s", RULES_SUBJECT);
+        // According RFC we expect here a messages
+        // with the topic:
+        //   * RULES_SUBJECT
             // Here we can have:
             //  * request for list of rules
             //  * get detailed info about the rule
@@ -1195,25 +1199,26 @@ fty_alert_engine_server_test(bool verbose) {
     }
     // Test case #14: add new rule, but with lua syntax error
     {
-        zmsg_t *rule = zmsg_new();
-        assert(rule);
-        zmsg_addstrf(rule, "%s", "ADD");
-        char* complexthreshold_rule_lua_error = s_readall((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
-        assert(complexthreshold_rule_lua_error);
-        zmsg_addstrf(rule, "%s", complexthreshold_rule_lua_error);
-        zstr_free(&complexthreshold_rule_lua_error);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+    zsys_info ("######## Test case #14 add new rule, but with lua syntax error");
+    zmsg_t *rule = zmsg_new();
+    assert(rule);
+    zmsg_addstrf (rule, "%s", "ADD");
+    char* complexthreshold_rule_lua_error = s_readall ((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
+    assert (complexthreshold_rule_lua_error);
+    zmsg_addstrf (rule, "%s", complexthreshold_rule_lua_error);
+    zstr_free (&complexthreshold_rule_lua_error);
+    mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
-        zmsg_t *recv = mlm_client_recv(ui);
-        assert(zmsg_size(recv) == 2);
-        char *foo = zmsg_popstr(recv);
-        assert(streq(foo, "ERROR"));
-        zstr_free(&foo);
-        foo = zmsg_popstr(recv);
-        assert(streq(foo, "BAD_LUA"));
-        zstr_free(&foo);
-        // does not make a sense to call streq on two json documents
-        zmsg_destroy(&recv);
+    zmsg_t *recv = mlm_client_recv (ui);
+    assert (zmsg_size (recv) == 2);
+    char *foo = zmsg_popstr (recv);
+    assert (streq (foo, "ERROR"));
+    zstr_free (&foo);
+    foo = zmsg_popstr(recv);
+    assert (streq (foo, "BAD_LUA"));
+    zstr_free (&foo);
+    // does not make a sense to call streq on two json documents
+    zmsg_destroy (&recv);
     }
     // Test case #15.1: add Radek's testing rule
     {
@@ -1357,7 +1362,7 @@ fty_alert_engine_server_test(bool verbose) {
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
     }
-    // ######## Test case #18 
+    // ######## Test case #18
     // 18.1 add some rule (type: pattern)
     {
         zsys_info("######## Test case #18 add some rule (type: pattern)");
@@ -1504,7 +1509,7 @@ fty_alert_engine_server_test(bool verbose) {
     // Test 22: a simple threshold with not double value
     // actually, this "behaviour" would automatically apply to ALL rules,
     // as it is implemented in rule.class
-    // 22-1 : "AA20"
+    // 22-1 : "A40"
     {
         zmsg_t *rule = zmsg_new();
         zmsg_addstr(rule, "ADD");
@@ -1986,7 +1991,7 @@ fty_alert_engine_server_test(bool verbose) {
     zstr_free (&section_load);
     zstr_free (&phase_imbalance3);
     zstr_free (&voltage_1phase);
-    zstr_free (&voltage_3phase); 
+    zstr_free (&voltage_3phase);
     } */
 
     // # 29.1 force the alert for the updated device

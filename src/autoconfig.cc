@@ -270,13 +270,20 @@ Autoconfig::onSend(fty_proto_t **message) {
         return;
 
     AutoConfigurationInfo info;
-    std::string device_name(fty_proto_name(*message));
-    info.type.assign(fty_proto_aux_string(*message, "type", ""));
-    info.subtype.assign(fty_proto_aux_string(*message, "subtype", ""));
-    info.operation.assign(fty_proto_operation(*message));
+    std::string device_name (fty_proto_name (*message));
+    info.type.assign (fty_proto_aux_string (*message, "type", ""));
+    info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
+    info.operation.assign (fty_proto_operation (*message));
 
-    if (info.type.empty()) {
-        zsys_debug("extracting attibutes from asset message failed.");
+    if (streq (fty_proto_aux_string (*message, "type", ""), "datacenter") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "room") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "row") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "rack"))
+    {
+        _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+    }
+    if (info.type.empty ()) {
+        zsys_debug("extracting attributes from asset message failed.");
         return;
     }
 
