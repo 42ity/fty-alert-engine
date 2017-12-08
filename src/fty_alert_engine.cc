@@ -68,16 +68,18 @@ int main(int argc, char** argv) {
 
     //autoconfig
     zactor_t *ag_configurator = zactor_new(autoconfig, (void*) AUTOCONFIG_NAME);
-    if (set_verbose)
+    if (set_verbose) {
         zstr_sendx(ag_configurator, "VERBOSE", NULL);
+    }
     zstr_sendx(ag_configurator, "CONNECT", ENDPOINT, NULL);
     zstr_sendx(ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL);
     zstr_sendx(ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(ag_configurator, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
 
     zactor_t *ag_actions = zactor_new(fty_alert_actions, (void*) ACTIONS_AGENT_NAME);
-    if (set_verbose)
+    if (set_verbose) {
         zstr_sendx(ag_actions, "VERBOSE", NULL);
+    }
     zstr_sendx(ag_actions, "CONNECT", ENDPOINT, NULL);
     zstr_sendx(ag_actions, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
@@ -108,6 +110,8 @@ int main(int argc, char** argv) {
     // TODO save info to persistence before I die
     zactor_destroy(&ag_server_stream);
     zactor_destroy(&ag_server_mailbox);
+    zactor_destroy(&ag_actions);
+    zactor_destroy(&ag_configurator);
     clearEvaluateMetrics();
     return 0;
 }

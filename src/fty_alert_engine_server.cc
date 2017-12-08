@@ -130,10 +130,7 @@ list_rules(mlm_client_t *client, const char *type, const char *ruleclass,
 }
 
 void
-get_rule(
-        mlm_client_t *client,
-        const char *name,
-        AlertConfiguration &ac) {
+get_rule(mlm_client_t *client, const char *name, AlertConfiguration &ac) {
     assert(name != NULL);
     zmsg_t *reply = zmsg_new();
     bool found = false;
@@ -164,8 +161,7 @@ get_rule(
 // XXX: Store the actions as zlist_t internally to avoid useless copying
 
 zlist_t *
-makeActionList(
-        const std::vector <std::string> &actions) {
+makeActionList(const std::vector <std::string> &actions) {
     zlist_t *res = zlist_new();
     for (const auto& oneAction : actions) {
         zlist_append(res, const_cast<char*> (oneAction.c_str()));
@@ -174,9 +170,7 @@ makeActionList(
 }
 
 void
-send_alerts(
-        mlm_client_t *client,
-        const std::vector <PureAlert> &alertsToSend,
+send_alerts(mlm_client_t *client, const std::vector <PureAlert> &alertsToSend,
         const std::string &rule_name) {
     for (const auto &alert : alertsToSend) {
         // create 3*ttl minutes alert TTL
@@ -205,17 +199,13 @@ send_alerts(
 }
 
 void
-send_alerts(
-        mlm_client_t *client,
-        const std::vector <PureAlert> &alertsToSend,
+send_alerts(mlm_client_t *client, const std::vector <PureAlert> &alertsToSend,
         const RulePtr &rule) {
     send_alerts(client, alertsToSend, rule->name());
 }
 
 void
-add_rule(
-        mlm_client_t *client,
-        const char *json_representation,
+add_rule(mlm_client_t *client, const char *json_representation,
         AlertConfiguration &ac) {
     std::istringstream f(json_representation);
     std::set <std::string> newSubjectsToSubscribe;
@@ -281,6 +271,7 @@ add_rule(
             return;
         }
         default:
+        {
             // error during the rule creation
             zsys_debug1("default bad json");
             zmsg_addstr(reply, "ERROR");
@@ -288,15 +279,13 @@ add_rule(
 
             mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
+        }
     }
 }
 
 void
-update_rule(
-        mlm_client_t *client,
-        const char *json_representation,
-        const char *rule_name,
-        AlertConfiguration &ac) {
+update_rule(mlm_client_t *client, const char *json_representation,
+        const char *rule_name, AlertConfiguration &ac) {
     std::istringstream f(json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
@@ -307,13 +296,16 @@ update_rule(
     zmsg_t *reply = zmsg_new();
     switch (rv) {
         case -2:
+        {
             zsys_debug1("rule not found");
             // ERROR rule doesn't exist
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "NOT_FOUND");
             mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
+        }
         case 0:
+        {
             // rule was updated succesfully
             /* TODO: WIP, don't delete
             zsys_debug1 ("newsubjects count = %d", newSubjectsToSubscribe.size() );
@@ -332,20 +324,25 @@ update_rule(
             // send updated alert
             send_alerts(client, alertsToSend, new_rule_it->first);
             return;
+        }
         case -5:
+        {
             zsys_debug1("rule has incorrect lua");
             // error during the rule creation (lua)
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_LUA");
             mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
+        }
         case -3:
+        {
             zsys_debug1("new rule name already exists");
             // rule with new rule name already exists
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "ALREADY_EXISTS");
             mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
+        }
         case -6:
         {
             // error during the rule creation
@@ -356,22 +353,21 @@ update_rule(
             return;
         }
 
-    default:
-        // error during the rule creation
-        zsys_debug1 ("bad json default");
-        zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "BAD_JSON");
-        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-        return;
+        default:
+        {
+            // error during the rule creation
+            zsys_debug1("bad json default");
+            zmsg_addstr(reply, "ERROR");
+            zmsg_addstr(reply, "BAD_JSON");
+            mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            return;
+        }
     }
 }
 
 void
-touch_rule(
-        mlm_client_t *client,
-        const char *rule_name,
-        AlertConfiguration &ac,
-        bool send_reply) {
+touch_rule(mlm_client_t *client, const char *rule_name,
+        AlertConfiguration &ac, bool send_reply) {
     std::vector <PureAlert> alertsToSend;
 
     mtxAlertConfig.lock();
@@ -415,9 +411,7 @@ touch_rule(
     }
 }
 
-void check_metrics(
-        mlm_client_t *client,
-        const char *metric_topic,
+void check_metrics(mlm_client_t *client, const char *metric_topic,
         AlertConfiguration &ac) {
     for (const auto &i : ac) {
         const auto &rule = i.first;
@@ -429,11 +423,8 @@ void check_metrics(
 }
 
 bool
-evaluate_metric(
-        mlm_client_t *client,
-        const MetricInfo &triggeringMetric,
-        const MetricList &knownMetricValues,
-        AlertConfiguration &ac) {
+evaluate_metric(mlm_client_t *client, const MetricInfo &triggeringMetric,
+        const MetricList &knownMetricValues, AlertConfiguration &ac) {
     // Go through all known rules, and try to evaluate them
     mtxAlertConfig.lock();
     bool isEvaluate = false;
@@ -483,11 +474,8 @@ fty_alert_engine_stream(zsock_t *pipe, void* args) {
     assert(poller);
 
     uint64_t timeout = 30000;
-
     zsock_signal(pipe, 0);
-
     int64_t timeCash = zclock_mono();
-
 
     while (!zsys_interrupted) {
 
@@ -600,7 +588,6 @@ fty_alert_engine_stream(zsock_t *pipe, void* args) {
 
                 // Update cache with new value
                 MetricInfo m(name, type, unit, dvalue, timestamp, "", ttl);
-                fty_proto_destroy(&bmessage);
                 cache.addMetric(m);
 
                 //search if this metric is already evaluated and if this metric is evaluate
@@ -734,9 +721,9 @@ fty_alert_engine_mailbox(zsock_t *pipe, void* args) {
         // but even so we try to decide according what we got, not from where
         if (streq(mlm_client_subject(client), RULES_SUBJECT)) {
             zsys_debug1("%s", RULES_SUBJECT);
-        // According RFC we expect here a messages
-        // with the topic:
-        //   * RULES_SUBJECT
+            // According RFC we expect here a messages
+            // with the topic:
+            //   * RULES_SUBJECT
             // Here we can have:
             //  * request for list of rules
             //  * get detailed info about the rule
@@ -774,7 +761,9 @@ fty_alert_engine_mailbox(zsock_t *pipe, void* args) {
             zsys_error("%s: Unexcepted mailbox message received with command : %s", name, command);
             zstr_free(&command);
         }
-        zmsg_destroy(&zmessage);
+        if (zmessage) {
+            zmsg_destroy(&zmessage);
+        }
     }
 exit:
     zpoller_destroy(&poller);
@@ -1199,26 +1188,26 @@ fty_alert_engine_server_test(bool verbose) {
     }
     // Test case #14: add new rule, but with lua syntax error
     {
-    zsys_info ("######## Test case #14 add new rule, but with lua syntax error");
-    zmsg_t *rule = zmsg_new();
-    assert(rule);
-    zmsg_addstrf (rule, "%s", "ADD");
-    char* complexthreshold_rule_lua_error = s_readall ((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
-    assert (complexthreshold_rule_lua_error);
-    zmsg_addstrf (rule, "%s", complexthreshold_rule_lua_error);
-    zstr_free (&complexthreshold_rule_lua_error);
-    mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        zsys_info("######## Test case #14 add new rule, but with lua syntax error");
+        zmsg_t *rule = zmsg_new();
+        assert(rule);
+        zmsg_addstrf(rule, "%s", "ADD");
+        char* complexthreshold_rule_lua_error = s_readall((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
+        assert(complexthreshold_rule_lua_error);
+        zmsg_addstrf(rule, "%s", complexthreshold_rule_lua_error);
+        zstr_free(&complexthreshold_rule_lua_error);
+        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
-    zmsg_t *recv = mlm_client_recv (ui);
-    assert (zmsg_size (recv) == 2);
-    char *foo = zmsg_popstr (recv);
-    assert (streq (foo, "ERROR"));
-    zstr_free (&foo);
-    foo = zmsg_popstr(recv);
-    assert (streq (foo, "BAD_LUA"));
-    zstr_free (&foo);
-    // does not make a sense to call streq on two json documents
-    zmsg_destroy (&recv);
+        zmsg_t *recv = mlm_client_recv(ui);
+        assert(zmsg_size(recv) == 2);
+        char *foo = zmsg_popstr(recv);
+        assert(streq(foo, "ERROR"));
+        zstr_free(&foo);
+        foo = zmsg_popstr(recv);
+        assert(streq(foo, "BAD_LUA"));
+        zstr_free(&foo);
+        // does not make a sense to call streq on two json documents
+        zmsg_destroy(&recv);
     }
     // Test case #15.1: add Radek's testing rule
     {
