@@ -479,7 +479,7 @@ fty_alert_engine_stream(zsock_t *pipe, void* args) {
 
     while (!zsys_interrupted) {
 
-        //clear cache every 1 min
+        //clear cache every 30 sec
         if (zclock_mono() - timeCash > 30000) {
             cache.removeOldMetrics();
             timeCash = zclock_mono();
