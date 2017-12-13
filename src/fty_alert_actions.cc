@@ -352,7 +352,7 @@ delete_alert_cache_item(void *c)
 void
 send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_email)
 {
-    zsys_debug("fty_alert_actions: sending SENDMAIL_ALERT/SENDSMS_ALERT for %s", fty_proto_name(alert_item->alert_msg));
+    zsys_debug("fty_alert_actions: sending SENDMAIL_ALERT/SENDSMS_ALERT");
     fty_proto_t *alert_dup = fty_proto_dup(alert_item->alert_msg);
     zmsg_t *email_msg = fty_proto_encode(&alert_dup);
     zuuid_t *uuid = zuuid_new ();
@@ -411,7 +411,7 @@ send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_ema
 void
 send_gpo_action(fty_alert_actions_t *self, char *gpo_iname, char *gpo_state)
 {
-    zsys_debug("fty_alert_actions: sending GPO_INTERACTION for %s", gpo_iname);
+    zsys_debug("fty_alert_actions: sending GPO_INTERACTION to %s", gpo_iname);
     zuuid_t *zuuid = zuuid_new ();
     const char *address = (self->integration_test) ? FTY_SENSOR_GPIO_AGENT_ADDRESS_TEST : FTY_SENSOR_GPIO_AGENT_ADDRESS;
     int rv = mlm_client_sendtox
@@ -460,7 +460,7 @@ send_gpo_action(fty_alert_actions_t *self, char *gpo_iname, char *gpo_state)
 void
 action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
 {
-    zsys_debug("fty_alert_actions: action_alert called");
+    zsys_debug("fty_alert_actions: action_alert called for %s", fty_proto_name(alert_item->alert_msg));
     const char *action = (const char *) fty_proto_action_first(alert_item->alert_msg);
     while (NULL != action) {
         zsys_debug ("action = %s", action);
@@ -525,7 +525,7 @@ action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
 void
 action_alert_repeat(fty_alert_actions_t *self, s_alert_cache *alert_item)
 {
-    zsys_debug("fty_alert_actions: action_alert_repeat called");
+    zsys_debug("fty_alert_actions: action_alert_repeat called for %s", fty_proto_name(alert_item->alert_msg));
     if (streq (fty_proto_state (alert_item->alert_msg), "ACK-PAUSE") ||
             streq (fty_proto_state (alert_item->alert_msg), "ACK-IGNORE") ||
             streq (fty_proto_state (alert_item->alert_msg), "ACK-SILENCE")) {
@@ -576,7 +576,7 @@ action_alert_repeat(fty_alert_actions_t *self, s_alert_cache *alert_item)
 void
 action_resolve(fty_alert_actions_t *self, s_alert_cache *alert_item)
 {
-    zsys_debug("fty_alert_actions: action_resolve called");
+    zsys_debug("fty_alert_actions: action_resolve called for %s", fty_proto_name(alert_item->alert_msg));
     const char *action = (const char *) fty_proto_action_first(alert_item->alert_msg);
     while (NULL != action) {
         char *action_dup = strdup(action);
