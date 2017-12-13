@@ -1,4 +1,4 @@
 usr/bin/fty-alert-engine
 etc/fty-alert-engine/fty-alert-engine.cfg
 lib/systemd/system/fty-alert-engine.service
-
+usr/share/bios/fty-autoconfig

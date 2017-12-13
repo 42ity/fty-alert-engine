@@ -1,9 +1,4 @@
 /*
- *  Note: This Jenkinsfile is amended for longer test timeouts and 'rm -rf'
- *        instead of deleteDir() due to non-ASCII filenames in tests
- */
-
-/*
     fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 
     Copyright (C) 2014 - 2017 Eaton
@@ -24,7 +19,7 @@
 */
 
 pipeline {
-                    agent { label "devel-image && x86_64" }
+                    agent { label "devel-image-ipm_1.3 && x86_64" }
     parameters {
         // Use DEFAULT_DEPLOY_BRANCH_PATTERN and DEFAULT_DEPLOY_JOB_NAME if
         // defined in this jenkins setup -- in Jenkins Management Web-GUI
