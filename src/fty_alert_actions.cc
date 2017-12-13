@@ -274,7 +274,7 @@ get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
     std::pair <std::string, uint8_t> key = {severity, priority};
     auto it = times.find(key);
     if (it != times.end()) {
-        return (*it).second;
+        return (*it).second * 1000;
     } else {
         return 0;
     }
@@ -978,11 +978,20 @@ fty_alert_actions(zsock_t *pipe, void* args)
     self->requestreply_timeout = 1000; // hopefully 1ms will be long enough to get input
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (self->client), NULL);
     assert (poller);
-    uint64_t timeout = 1000 * 60 * 1; // check every minute
+    uint64_t timeout = 1000 * 10 * 1; // timeout every 10 seconds
     zsock_signal (pipe, 0);
     zmsg_t *msg = NULL;
+    uint64_t check_delay = 1000 * 60 * 1; // check every minute
+    uint64_t last = zclock_mono();
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout);
+        uint64_t now = zclock_mono ();
+        if (now - last >= check_delay) {
+            zsys_debug("fty_alert_actions: performing periodic check");
+            last = now;
+            check_timed_out_alerts(self);
+            check_alerts_and_send_if_needed(self);
+        }
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
                 zsys_warning ("fty_alert_actions: zpoller_terminated () or zsys_interrupted. Shutting down.");
@@ -990,8 +999,6 @@ fty_alert_actions(zsock_t *pipe, void* args)
             }
             if (zpoller_expired (poller) && !self->integration_test) {
                 zsys_debug("fty_alert_actions: poller timeout expired");
-                check_timed_out_alerts(self);
-                check_alerts_and_send_if_needed(self);
             }
             continue;
         }
@@ -1065,39 +1072,39 @@ fty_alert_actions_test (bool verbose)
 
         fty_proto_set_severity(cache->alert_msg, "CRITICAL");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-        assert(5  * 60 == get_alert_interval(cache));
+        assert(5  * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "WARNING");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-        assert(1 * 60 * 60 == get_alert_interval(cache));
+        assert(1 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "INFO");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-        assert(8 * 60 * 60 == get_alert_interval(cache));
+        assert(8 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "CRITICAL");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-        assert(15 * 60 == get_alert_interval(cache));
+        assert(15 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "WARNING");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-        assert(4 * 60 * 60 == get_alert_interval(cache));
+        assert(4 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "INFO");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-        assert(24 * 60 * 60 == get_alert_interval(cache));
+        assert(24 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "CRITICAL");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-        assert(15 * 60 == get_alert_interval(cache));
+        assert(15 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "WARNING");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-        assert(4 * 60 * 60 == get_alert_interval(cache));
+        assert(4 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "INFO");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-        assert(24 * 60 * 60 == get_alert_interval(cache));
+        assert(24 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_destroy(&cache->alert_msg);
         fty_proto_destroy(&cache->related_asset);
