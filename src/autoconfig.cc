@@ -302,7 +302,7 @@ Autoconfig::onSend (fty_proto_t **message)
         _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
     }
     if (info.type.empty ()) {
-        zsys_debug("extracting attibutes from asset message failed.");
+        zsys_debug("extracting attributes from asset message failed.");
         return;
     }
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
