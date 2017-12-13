@@ -299,7 +299,15 @@ Autoconfig::onSend (fty_proto_t **message)
         streq (fty_proto_aux_string (*message, "type", ""), "row") ||
         streq (fty_proto_aux_string (*message, "type", ""), "rack"))
     {
-        _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+        if (info.operation != "delete") {
+            _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+        } else {
+            try {
+                _containers.erase(device_name);
+            } catch(const std::exception &e ) {
+                zsys_error( "can't erase container %s: %s", device_name.c_str(), e.what() );
+            }
+        }
     }
     if (info.type.empty ()) {
         zsys_debug("extracting attributes from asset message failed.");
@@ -308,7 +316,15 @@ Autoconfig::onSend (fty_proto_t **message)
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
-    _configurableDevices.emplace (std::make_pair (device_name, info));
+    if (info.operation != "delete") {
+        _configurableDevices.emplace (std::make_pair (device_name, info));
+    } else {
+        try {
+            _configurableDevices.erase(device_name);
+        } catch(const std::exception &e ) {
+            zsys_error( "can't erase device %s: %s", device_name.c_str(), e.what() );
+        }
+    }
     saveState ();
     setPollingInterval();
 }
