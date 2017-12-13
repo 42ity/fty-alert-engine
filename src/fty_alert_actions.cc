@@ -179,6 +179,7 @@ struct _fty_alert_actions_t {
 typedef struct {
     fty_proto_t *alert_msg;
     uint64_t    last_notification;
+    uint64_t    last_received;
     fty_proto_t *related_asset;
 } s_alert_cache;
 
@@ -293,6 +294,7 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
     s_alert_cache *c = (s_alert_cache *) malloc(sizeof (s_alert_cache));
     c->alert_msg = msg;
     c->last_notification = zclock_mono ();
+    c->last_received = c->last_notification;
     zsys_debug ("searching for %s", fty_proto_name (msg));
 
     c->related_asset = (fty_proto_t *) zhash_lookup(self->assets_cache, fty_proto_name(msg));
@@ -642,7 +644,7 @@ check_timed_out_alerts(fty_alert_actions_t *self)
     s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
     uint64_t now = zclock_mono ();
     while (NULL != it) {
-        if (fty_proto_time(it->alert_msg) + fty_proto_ttl(it->alert_msg) < now) {
+        if (it->last_received + (fty_proto_ttl(it->alert_msg) * 1000) < now) {
             zsys_debug("fty_alert_actions: found timed out alert from %s", fty_proto_name(it->alert_msg));
             action_resolve(self, it);
             zhash_delete(self->alerts_cache, zhash_cursor(self->alerts_cache));
@@ -665,6 +667,7 @@ check_alerts_and_send_if_needed(fty_alert_actions_t *self)
     while (NULL != it) {
         uint64_t notification_delay = get_alert_interval(it, self->notification_override);
         if (0 != notification_delay && (it->last_notification + notification_delay < now)) {
+            it->last_notification = zclock_mono ();
             action_alert_repeat(self, it);
         }
         it = (s_alert_cache *) zhash_next(self->alerts_cache);
@@ -710,6 +713,7 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
             action_alert(self, search);
         } else {
             zsys_debug("fty_alert_actions: known alarm, check for changes");
+            search->last_received = zclock_mono();
             char changed = 0;
             // little more complicated, update cache, alert on changes
             if (streq (fty_proto_state (search->alert_msg), "ACTIVE") &&
@@ -754,6 +758,7 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
     else if (streq (fty_proto_state (alert), "RESOLVED")) {
         zsys_debug("fty_alert_actions: receieved RESOLVED alarm with subject %s", subject);
         if (NULL != search) {
+            search->last_received = zclock_mono();
             action_resolve(self, search);
             zsys_debug("fty_alert_actions: receieved RESOLVED alarm resolved");
             zhash_delete(self->alerts_cache, rule);
