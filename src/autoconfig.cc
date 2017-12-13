@@ -299,7 +299,15 @@ Autoconfig::onSend (fty_proto_t **message)
         streq (fty_proto_aux_string (*message, "type", ""), "row") ||
         streq (fty_proto_aux_string (*message, "type", ""), "rack"))
     {
-        _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+        if (info.operation != "delete") {
+            _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+        } else {
+            try {
+                _containers.erase(device_name);
+            } catch(const std::exception &e ) {
+                zsys_error( "can't erase container %s: %s", device_name.c_str(), e.what() );
+            }
+        }
     }
     if (info.type.empty ()) {
         zsys_debug("extracting attributes from asset message failed.");
@@ -308,7 +316,15 @@ Autoconfig::onSend (fty_proto_t **message)
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
-    _configurableDevices.emplace (std::make_pair (device_name, info));
+    if (info.operation != "delete") {
+        _configurableDevices.emplace (std::make_pair (device_name, info));
+    } else {
+        try {
+            _configurableDevices.erase(device_name);
+        } catch(const std::exception &e ) {
+            zsys_error( "can't erase device %s: %s", device_name.c_str(), e.what() );
+        }
+    }
     saveState ();
     setPollingInterval();
 }
@@ -401,22 +417,18 @@ void Autoconfig::loadState()
 
 void Autoconfig::cleanupState()
 {
-    zsys_debug ("Size before cleanup '%zu'", _configurableDevices.size ());
-    for( auto it = _configurableDevices.cbegin(); it != _configurableDevices.cend() ; ) {
-        if( it->second.configured ) {
-            _configurableDevices.erase(it++);
-        } else {
-            ++it;
-        }
-    }
-    zsys_debug ("Size after cleanup '%zu'", _configurableDevices.size ());
+    zsys_debug ("State file size before cleanup '%zu'", _configurableDevices.size ());
+
+    // Just set the state file to empty
+    save_agent_info("");
+    return;
 }
 
 void Autoconfig::saveState()
 {
     std::ostringstream stream;
     cxxtools::JsonSerializer serializer(stream);
-    zsys_debug ("size = '%zu'",_configurableDevices.size ());
+    zsys_debug ("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size ());
     serializer.serialize( _configurableDevices );
     serializer.finish();
     std::string json = stream.str();
