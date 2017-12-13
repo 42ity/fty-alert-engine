@@ -401,22 +401,18 @@ void Autoconfig::loadState()
 
 void Autoconfig::cleanupState()
 {
-    zsys_debug ("Size before cleanup '%zu'", _configurableDevices.size ());
-    for( auto it = _configurableDevices.cbegin(); it != _configurableDevices.cend() ; ) {
-        if( it->second.configured ) {
-            _configurableDevices.erase(it++);
-        } else {
-            ++it;
-        }
-    }
-    zsys_debug ("Size after cleanup '%zu'", _configurableDevices.size ());
+    zsys_debug ("State file size before cleanup '%zu'", _configurableDevices.size ());
+
+    // Just set the state file to empty
+    save_agent_info("");
+    return;
 }
 
 void Autoconfig::saveState()
 {
     std::ostringstream stream;
     cxxtools::JsonSerializer serializer(stream);
-    zsys_debug ("size = '%zu'",_configurableDevices.size ());
+    zsys_debug ("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size ());
     serializer.serialize( _configurableDevices );
     serializer.finish();
     std::string json = stream.str();
