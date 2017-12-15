@@ -293,6 +293,13 @@ Autoconfig::onSend (fty_proto_t **message)
     info.type.assign (fty_proto_aux_string (*message, "type", ""));
     info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
     info.operation.assign (fty_proto_operation (*message));
+    info.update_ts.assign (fty_proto_ext_string(*message, "update_ts", ""));
+
+    if (_configurableDevices.find(device_name)!=_configurableDevices.end() &&
+            0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""),_configurableDevices[device_name].update_ts.c_str())) {
+        zsys_debug("Changed asset, updating");
+        info.configured = false;
+    }
 
     if (streq (fty_proto_aux_string (*message, "type", ""), "datacenter") ||
         streq (fty_proto_aux_string (*message, "type", ""), "room") ||
@@ -300,7 +307,7 @@ Autoconfig::onSend (fty_proto_t **message)
         streq (fty_proto_aux_string (*message, "type", ""), "rack"))
     {
         if (info.operation != "delete") {
-            _containers.emplace (device_name, fty_proto_ext_string (*message, "name", ""));
+            _containers[device_name] = fty_proto_ext_string (*message, "name", "");
         } else {
             try {
                 _containers.erase(device_name);
@@ -317,7 +324,7 @@ Autoconfig::onSend (fty_proto_t **message)
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
     if (info.operation != "delete") {
-        _configurableDevices.emplace (std::make_pair (device_name, info));
+        _configurableDevices[device_name] = info;
     } else {
         try {
             _configurableDevices.erase(device_name);
