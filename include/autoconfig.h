@@ -37,6 +37,7 @@ struct AutoConfigurationInfo
     std::string type;
     std::string subtype;
     std::string operation;
+    std::string update_ts;
     bool configured = false;
     uint64_t date = 0;
     std::map <std::string, std::string> attributes;
