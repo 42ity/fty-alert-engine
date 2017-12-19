@@ -17,8 +17,13 @@
         <option name = "test_cppcheck" value = "1" />
         <option name = "build_docs" value = "1" />
         <option name = "check_sequential" value = "0" />
+        <option name = "use_test_timeout" value = "30" />
+        <option name = "use_deleteDir_rm_first" value = "1" />
         <!-- Note: Jenkinsfile is amended for longer test timeouts and 'rm -rf'
-             instead of deleteDir() due to non-ASCII filenames in tests -->
+             before deleteDir() due to non-ASCII filenames used in tests.
+             This selftest job generates files with non-ASCII names which
+             upset the Jenkins remote file IO agent, in our version at least
+         -->
     </target>
 
     <include filename = "license.xml" />
