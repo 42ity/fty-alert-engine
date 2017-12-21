@@ -150,7 +150,7 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, 
     std::string name;
     std::string prefix ("__");
     std::string subtype_str (subtype);
-    if (subtype_str.empty () || (subtype_str == "unknown"))
+    if (subtype_str.empty () || (subtype_str == "unknown") || (subtype_str == "N_A"))
         name = prefix + type + prefix;
     else
         name = prefix + type + '_' + subtype + prefix;
