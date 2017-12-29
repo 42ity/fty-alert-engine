@@ -16,6 +16,7 @@
         <option name = "triggers_pollSCM" value = "H/2 * * * *" />
         <option name = "test_cppcheck" value = "1" />
         <option name = "build_docs" value = "1" />
+        <option name = "dist_docs" value = "1" />
         <option name = "check_sequential" value = "0" />
         <option name = "use_test_timeout" value = "30" />
         <option name = "use_deleteDir_rm_first" value = "1" />
