@@ -305,7 +305,6 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
         void *which = zpoller_wait (self->requestreply_poller, self->requestreply_timeout);
         if (which == NULL) {
             zsys_warning("fty_alert_actions: no response from ASSET AGENT, ignoring this alert.");
-            fty_proto_destroy(&msg);
             free(c);
             c = NULL;
         } else {
@@ -319,10 +318,12 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
             }
             else {
                 zsys_warning("fty_alert_actions: receieved alert for unknown asset, ignoring.");
-                zmsg_destroy(&reply_msg);
-                fty_proto_destroy(&msg);
+                if (reply_msg) {
+                    zmsg_destroy(&reply_msg);
+                }
                 free(c);
                 c = NULL;
+                // msg will be destroy by caller
             }
             zstr_free(&rcv_uuid);
         }
