@@ -18,6 +18,7 @@
         <option name = "build_docs" value = "1" />
         <option name = "dist_docs" value = "1" />
         <option name = "check_sequential" value = "0" />
+        <option name = "use_test_retry" value = "3" />
         <option name = "use_test_timeout" value = "30" />
         <option name = "use_deleteDir_rm_first" value = "1" />
         <!-- Note: Jenkinsfile is amended for longer test timeouts and 'rm -rf'
