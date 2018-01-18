@@ -35,6 +35,7 @@
 #include <functional>
 #include <algorithm>
 #include <mutex>
+#include <unordered_map>
 
 int agent_alert_verbose = 0;
 
@@ -496,6 +497,46 @@ fty_alert_engine_stream(zsock_t *pipe, void* args) {
             continue;
         }
 
+        // Drain the queue of pending METRICS stream messages before
+        // doing actual work
+
+        // METRICS messages received in this round
+        std::unordered_map<std::string, fty_proto_t*> stream_messages;
+        // Mailbox message received (if any)
+        zmsg_t *zmessage = NULL;
+        std::string subject;
+        while (which == mlm_client_msgpipe(client)) {
+            zmsg_t *zmsg = mlm_client_recv(client);
+            if (!is_fty_proto(zmsg)) {
+                zmessage = zmsg;
+                subject = mlm_client_subject(client);
+                break;
+            }
+            std::string topic = mlm_client_subject(client);
+            fty_proto_t *bmessage = fty_proto_decode(&zmsg);
+            if (!bmessage) {
+                zsys_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
+                break;
+            }
+            if (fty_proto_id(bmessage) != FTY_PROTO_METRIC) {
+                zsys_error ("%s: unsupported proto id %d for topic %s, ignoring", name, fty_proto_id(bmessage), topic.c_str());
+                fty_proto_destroy(&bmessage);
+                break;
+            }
+            auto it = stream_messages.find(topic);
+            if (it == stream_messages.end()) {
+                stream_messages.emplace(topic, bmessage);
+            } else {
+                // Discard the old METRICS update, we did not manage to process
+                // it in time.
+                zsys_warning("%s: Metrics update '%s' processed too late, discarding", name, topic.c_str());
+                fty_proto_destroy(&it->second);
+                it->second = bmessage;
+            }
+            // Check if further messages are pending
+            which = zpoller_wait(poller, 0);
+        }
+
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv(pipe);
             char *cmd = zmsg_popstr(msg);
@@ -546,70 +587,62 @@ fty_alert_engine_stream(zsock_t *pipe, void* args) {
         // and doesn't do anything if there is no messages
         // TODO: probably alert also should be send every XXX seconds,
         // even if no measurements were recieved
-        zmsg_t *zmessage = mlm_client_recv(client);
-        if (zmessage == NULL) {
-            continue;
-        }
-        std::string topic = mlm_client_subject(client);
         // from the stream  -> metrics
         // but even so we try to decide according what we got, not from where
-        if (is_fty_proto(zmessage)) {
-            fty_proto_t *bmessage = fty_proto_decode(&zmessage);
-            if (!bmessage) {
-                zsys_error("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
+
+        // process accumulated stream messages
+        for (auto element : stream_messages) {
+            std::string topic = element.first;
+            fty_proto_t *bmessage = element.second;
+            // process as metric message
+            const char *type = fty_proto_type(bmessage);
+            const char * name = fty_proto_name(bmessage);
+            const char *value = fty_proto_value(bmessage);
+            const char *unit = fty_proto_unit(bmessage);
+            uint32_t ttl = fty_proto_ttl(bmessage);
+            uint64_t timestamp = fty_proto_aux_number(bmessage, "time", ::time(NULL));
+            // TODO: 2016-04-27 ACE: fix it later, when "string" values
+            // in the metric would be considered as
+            // normal behaviour, but for now it is not supposed to be so
+            // -> generated error messages into the log
+            char *end;
+            double dvalue = strtod(value, &end);
+            if (errno == ERANGE) {
+                errno = 0;
+                zsys_error("%s: can't convert value to double #1, ignore message", name);
+                fty_proto_destroy(&bmessage);
+                continue;
+            } else if (end == value || *end != '\0') {
+                zsys_error("%s: can't convert value to double #2, ignore message", name);
+                fty_proto_destroy(&bmessage);
                 continue;
             }
-            if (fty_proto_id(bmessage) == FTY_PROTO_METRIC) {
-                // process as metric message
-                const char *type = fty_proto_type(bmessage);
-                const char * name = fty_proto_name(bmessage);
-                const char *value = fty_proto_value(bmessage);
-                const char *unit = fty_proto_unit(bmessage);
-                uint32_t ttl = fty_proto_ttl(bmessage);
-                uint64_t timestamp = fty_proto_aux_number(bmessage, "time", ::time(NULL));
-                // TODO: 2016-04-27 ACE: fix it later, when "string" values
-                // in the metric would be considered as
-                // normal behaviour, but for now it is not supposed to be so
-                // -> generated error messages into the log
-                char *end;
-                double dvalue = strtod(value, &end);
-                if (errno == ERANGE) {
-                    errno = 0;
-                    zsys_error("%s: can't convert value to double #1, ignore message", name);
-                    fty_proto_destroy(&bmessage);
-                    continue;
-                } else if (end == value || *end != '\0') {
-                    zsys_error("%s: can't convert value to double #2, ignore message", name);
-                    fty_proto_destroy(&bmessage);
-                    continue;
-                }
+            zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
 
-                zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
+            // Update cache with new value
+            MetricInfo m(name, type, unit, dvalue, timestamp, "", ttl);
+            cache.addMetric(m);
 
-                // Update cache with new value
-                MetricInfo m(name, type, unit, dvalue, timestamp, "", ttl);
-                cache.addMetric(m);
+            //search if this metric is already evaluated and if this metric is evaluate
+            std::map < std::string, bool>::iterator found = evaluateMetrics.find(m.generateTopic());
+            bool metricfound = found != evaluateMetrics.end();
+            zsys_debug1("Check metric : %s", m.generateTopic().c_str());
+            if (metricfound) {
+                zsys_debug1("This metric is knwon and %s be evaluated", found->second ? "must" : "will not");
+            }
 
-                //search if this metric is already evaluated and if this metric is evaluate
-                std::map < std::string, bool>::iterator found = evaluateMetrics.find(m.generateTopic());
-                bool metricfound = found != evaluateMetrics.end();
-                zsys_debug1("Check metric : %s", m.generateTopic().c_str());
-                if (metricfound) {
-                    zsys_debug1("This metric is knwon and %s be evaluated", found->second ? "must" : "will not");
-                }
+            if (!metricfound || found->second) {
+                bool isEvaluate = evaluate_metric(client, m, cache, alertConfiguration);
 
-                if (!metricfound || found->second) {
-                    bool isEvaluate = evaluate_metric(client, m, cache, alertConfiguration);
-
-                    //if the metric is evaluate for the first time, add to the list
-                    if (!metricfound) {
-                        zsys_debug1("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
-                        evaluateMetrics[m.generateTopic()] = isEvaluate;
-                    }
+                //if the metric is evaluate for the first time, add to the list
+                if (!metricfound) {
+                    zsys_debug1("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
+                    evaluateMetrics[m.generateTopic()] = isEvaluate;
                 }
             }
             fty_proto_destroy(&bmessage);
-        } else {
+        }
+        if (zmessage) {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
             //  * METIC_UNAVAILABLE
