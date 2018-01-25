@@ -651,11 +651,13 @@ fty_alert_engine_stream(
             double dvalue = strtod (value, &end);
             if (errno == ERANGE) {
                 errno = 0;
+                //fty_proto_print (bmessage);
                 zsys_error ("%s: can't convert value to double #1, ignore message", name);
                 fty_proto_destroy (&bmessage);
                 continue;
             }
             else if (end == value || *end != '\0') {
+                //fty_proto_print (bmessage);
                 zsys_error ("%s: can't convert value to double #2, ignore message", name);
                 fty_proto_destroy (&bmessage);
                 continue;
@@ -1627,6 +1629,10 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
 
         // 22-2 : "20AA"
+        /*
+            // 22-2 : "50AA"
+            zsys_info ("######## Test case #22-2 a simple threshold with not double value (50AA)");
+        */
         rule = zmsg_new();
         zmsg_addstr (rule, "ADD");
         simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
