@@ -63,6 +63,14 @@ static AlertConfiguration alertConfiguration;
 //Mutex to manage the alertConfiguration object access
 static std::mutex mtxAlertConfig;
 
+//map to know if a metric is evaluted or not
+static std::map<std::string, bool> evaluateMetrics;
+
+void
+clearEvaluateMetrics() {
+    evaluateMetrics.clear();
+}
+
 //static
 void
 list_rules(
@@ -454,7 +462,7 @@ check_metrics(
 }
 
 //static
-void
+bool
 evaluate_metric(
     mlm_client_t *client,
     const MetricInfo &triggeringMetric,
@@ -463,6 +471,7 @@ evaluate_metric(
 {
     // Go through all known rules, and try to evaluate them
     mtxAlertConfig.lock();
+    bool isEvaluate = false;
     for (const auto &i : ac) {
         const auto &rule = i.first;
         try {
@@ -472,7 +481,7 @@ evaluate_metric(
                 continue;
             }
             zsys_debug1 (" ### Evaluate rule '%s'", rule->name().c_str());
-
+            isEvaluate = true;
             PureAlert pureAlert;
             int rv = rule->evaluate (knownMetricValues, pureAlert);
             if ( rv != 0 ) {
@@ -494,6 +503,7 @@ evaluate_metric(
         }
     }
     mtxAlertConfig.unlock();
+    return isEvaluate;
 }
 
 void
@@ -514,7 +524,16 @@ fty_alert_engine_stream(
 
     zsock_signal (pipe, 0);
 
+    int64_t timeCash = zclock_mono();
+
     while (!zsys_interrupted) {
+
+        //clear cache every 30 sec
+        if (zclock_mono() - timeCash > 30000) {
+            cache.removeOldMetrics();
+            timeCash = zclock_mono();
+        }
+
         void *which = zpoller_wait (poller, timeout);
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
@@ -642,13 +661,13 @@ fty_alert_engine_stream(
             double dvalue = strtod (value, &end);
             if (errno == ERANGE) {
                 errno = 0;
-                fty_proto_print (bmessage);
+                //fty_proto_print (bmessage);
                 zsys_error ("%s: can't convert value to double #1, ignore message", name);
                 fty_proto_destroy (&bmessage);
                 continue;
             }
             else if (end == value || *end != '\0') {
-                fty_proto_print (bmessage);
+                //fty_proto_print (bmessage);
                 zsys_error ("%s: can't convert value to double #2, ignore message", name);
                 fty_proto_destroy (&bmessage);
                 continue;
@@ -660,11 +679,27 @@ fty_alert_engine_stream(
             MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
             fty_proto_destroy (&bmessage);
             cache.addMetric (m);
-            cache.removeOldMetrics ();
-            evaluate_metric (client, m, cache, alertConfiguration);
-/* Temporary comment-away while backporting
+
+            //search if this metric is already evaluated and if this metric is evaluate
+            std::map < std::string, bool>::iterator found = evaluateMetrics.find (m.generateTopic());
+            bool metricfound = found != evaluateMetrics.end();
+            zsys_debug1 ("Check metric : %s", m.generateTopic().c_str());
+            if (metricfound) {
+                zsys_debug1 ("This metric is known and %s be evaluated", found->second ? "must" : "will not");
+            }
+
+            if (!metricfound || found->second) {
+                bool isEvaluate = evaluate_metric (client, m, cache, alertConfiguration);
+
+                //if the metric is evaluate for the first time, add to the list
+                if (!metricfound) {
+                    zsys_debug1 ("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
+                    evaluateMetrics[m.generateTopic()] = isEvaluate;
+                }
+            }
             fty_proto_destroy (&bmessage);
         }
+/* Temporary comment-away while backporting
         // According RFC we expect here a messages
         // with the topic:
         //   * RULES_SUBJECT
@@ -709,9 +744,7 @@ fty_alert_engine_stream(
             zstr_free (&param);
         } else if (zmessage) {
 */
-            }
-            fty_proto_destroy(&bmessage);
-        } else {
+        else {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
             //  * METRIC_UNAVAILABLE
@@ -2231,6 +2264,7 @@ fty_alert_engine_server_test(
     zactor_destroy (&ag_configurator);
     zactor_destroy (&ag_server_stream);
     zactor_destroy (&ag_server_mail);
+    clearEvaluateMetrics();
     mlm_client_destroy (&asset_producer);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);

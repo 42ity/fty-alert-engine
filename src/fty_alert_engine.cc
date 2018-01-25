@@ -114,5 +114,6 @@ int main (int argc, char** argv)
     zactor_destroy (&ag_server_mailbox);
     zactor_destroy (&ag_actions);
     zactor_destroy (&ag_configurator);
+    clearEvaluateMetrics();
     return 0;
 }
