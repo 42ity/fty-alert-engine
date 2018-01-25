@@ -17,7 +17,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
- */
+*/
 
 #ifndef FTY_ALERT_ENGINE_SERVER_H_INCLUDED
 #define FTY_ALERT_ENGINE_SERVER_H_INCLUDED
@@ -27,20 +27,20 @@ extern "C" {
 #endif
 
 
-    //  @interface
-    FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_stream(zsock_t *pipe, void *args);
+//  @interface
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_stream (zsock_t *pipe, void *args);
 
-    FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_mailbox(zsock_t *pipe, void *args);
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_mailbox (zsock_t *pipe, void *args);
 
-    FTY_ALERT_ENGINE_EXPORT void
-    clearEvaluateMetrics();
+FTY_ALERT_ENGINE_EXPORT void
+    clearEvaluateMetrics ();
 
-    //  Self test of this class
-    FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_server_test(bool verbose);
-    //  @end
+//  Self test of this class
+FTY_ALERT_ENGINE_EXPORT void
+    fty_alert_engine_server_test (bool verbose);
+//  @end
 
 #ifdef __cplusplus
 }

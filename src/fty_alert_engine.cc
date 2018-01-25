@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- */
+*/
 
 /*! \file fty_alert_engine.cc
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
@@ -37,12 +37,14 @@ static const char *AUTOCONFIG_NAME = "fty-autoconfig";
 // malamute endpoint
 static const char *ENDPOINT = "ipc://@/malamute";
 
-int main(int argc, char** argv) {
+int main (int argc, char** argv)
+{
     bool set_verbose = false;
-    char* fty_log_level = getenv("BIOS_LOG_LEVEL");
-    if (argc == 2 && streq(argv[1], "-v")) {
+    char* fty_log_level = getenv ("BIOS_LOG_LEVEL");
+    if (argc == 2 && streq (argv[1], "-v")) {
         set_verbose = true;
-    } else if (fty_log_level && streq(fty_log_level, "LOG_DEBUG")) {
+    }
+    else if (fty_log_level && streq (fty_log_level, "LOG_DEBUG")) {
         set_verbose = true;
     }
 
@@ -67,23 +69,23 @@ int main(int argc, char** argv) {
 
 
     //autoconfig
-    zactor_t *ag_configurator = zactor_new(autoconfig, (void*) AUTOCONFIG_NAME);
+    zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
     if (set_verbose) {
-        zstr_sendx(ag_configurator, "VERBOSE", NULL);
+        zstr_sendx (ag_configurator, "VERBOSE", NULL);
     }
-    zstr_sendx(ag_configurator, "CONNECT", ENDPOINT, NULL);
-    zstr_sendx(ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL);
-    zstr_sendx(ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
-    zstr_sendx(ag_configurator, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
+    zstr_sendx (ag_configurator, "CONNECT", ENDPOINT, NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL);
+    zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
 
-    zactor_t *ag_actions = zactor_new(fty_alert_actions, (void*) ACTIONS_AGENT_NAME);
+    zactor_t *ag_actions = zactor_new (fty_alert_actions, (void*) ACTIONS_AGENT_NAME);
     if (set_verbose) {
-        zstr_sendx(ag_actions, "VERBOSE", NULL);
+        zstr_sendx (ag_actions, "VERBOSE", NULL);
     }
-    zstr_sendx(ag_actions, "CONNECT", ENDPOINT, NULL);
-    zstr_sendx(ag_actions, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
-    zstr_sendx(ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
-    zstr_sendx(ag_actions, "ASKFORASSETS", NULL);
+    zstr_sendx (ag_actions, "CONNECT", ENDPOINT, NULL);
+    zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+    zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
+    zstr_sendx (ag_actions, "ASKFORASSETS", NULL);
 
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license
