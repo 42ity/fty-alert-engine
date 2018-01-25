@@ -34,6 +34,7 @@
 #include <math.h>
 #include <functional>
 #include <algorithm>
+#include <mutex>
 #include <unordered_map>
 
 int agent_alert_verbose = 0;
@@ -56,7 +57,22 @@ int agent_alert_verbose = 0;
 #include "fty_alert_engine.h"
 #include "fty_alert_engine_classes.h"
 
-static void
+//object use by stream and mailbox messages
+static AlertConfiguration alertConfiguration;
+
+//Mutex to manage the alertConfiguration object access
+static std::mutex mtxAlertConfig;
+
+//map to know if a metric is evaluted or not
+static std::map<std::string, bool> evaluateMetrics;
+
+void
+clearEvaluateMetrics() {
+    evaluateMetrics.clear();
+}
+
+//static
+void
 list_rules(
     mlm_client_t *client,
     const char *type,
@@ -105,6 +121,7 @@ list_rules(
     //      >
     // >
     zsys_debug1 ("number of all rules = '%zu'", ac.size ());
+    mtxAlertConfig.lock();
     for (const auto &i : ac) {
         const auto& rule = i.first;
         if (! (filter_f (rule->whoami ()) && (rclass.empty() || rule->rule_class() == rclass)) ) {
@@ -114,38 +131,42 @@ list_rules(
         zsys_debug1 ("Adding rule  = '%s'", rule->name().c_str());
         zmsg_addstr (reply, rule->getJsonRule().c_str());
     }
+    mtxAlertConfig.unlock();
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
 }
 
-static void
+//static
+void
 get_rule(
     mlm_client_t *client,
     const char *name,
     AlertConfiguration &ac)
 {
     assert (name != NULL);
+    zmsg_t *reply = zmsg_new ();
+    bool found = false;
+
+    mtxAlertConfig.lock();
     zsys_debug1 ("number of all rules = '%zu'", ac.size ());
     for (const auto& i : ac) {
         const auto &rule = i.first;
         if (rule->hasSameNameAs (name))
         {
             zsys_debug1 ("found");
-            zmsg_t *reply = zmsg_new ();
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, rule->getJsonRule().c_str());
-
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            found = true;
+            break;
         }
     }
+    mtxAlertConfig.unlock();
 
-    zsys_debug1 ("not found");
-    zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "ERROR");
-    zmsg_addstr (reply, "NOT_FOUND");
-
+    if (!found) {
+        zsys_debug1 ("not found");
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "NOT_FOUND");
+    }
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-    return;
 }
 
 
@@ -161,7 +182,8 @@ makeActionList(
     return res;
 }
 
-static void
+//static
+void
 send_alerts(
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
@@ -194,7 +216,8 @@ send_alerts(
     }
 }
 
-static void
+//static
+void
 send_alerts(
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
@@ -203,7 +226,8 @@ send_alerts(
     send_alerts (client, alertsToSend, rule->name());
 }
 
-static void
+//static
+void
 add_rule(
     mlm_client_t *client,
     const char *json_representation,
@@ -213,7 +237,9 @@ add_rule(
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
+    mtxAlertConfig.lock();
     int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    mtxAlertConfig.unlock();
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
         case -2:
@@ -282,7 +308,8 @@ add_rule(
     }
 }
 
-static void
+//static
+void
 update_rule(
     mlm_client_t *client,
     const char *json_representation,
@@ -293,7 +320,9 @@ update_rule(
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
+    mtxAlertConfig.lock();
     int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    mtxAlertConfig.unlock();
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
         case -2:
@@ -366,7 +395,8 @@ update_rule(
     }
 }
 
-static void
+//static
+void
 touch_rule(
     mlm_client_t *client,
     const char *rule_name,
@@ -375,7 +405,9 @@ touch_rule(
 {
     std::vector <PureAlert> alertsToSend;
 
+    mtxAlertConfig.lock();
     int rv = ac.touchRule (rule_name, alertsToSend);
+    mtxAlertConfig.unlock();
     switch (rv) {
         case -1:
         {
@@ -423,12 +455,14 @@ check_metrics(
     for (const auto &i : ac) {
         const auto &rule = i.first;
         if ( rule->isTopicInteresting (metric_topic) ) {
+            //mutex is done in touch_rule
             touch_rule (client, rule->name().c_str(), ac, false);
         }
     }
 }
 
-static void
+//static
+bool
 evaluate_metric(
     mlm_client_t *client,
     const MetricInfo &triggeringMetric,
@@ -436,6 +470,8 @@ evaluate_metric(
     AlertConfiguration &ac)
 {
     // Go through all known rules, and try to evaluate them
+    mtxAlertConfig.lock();
+    bool isEvaluate = false;
     for (const auto &i : ac) {
         const auto &rule = i.first;
         try {
@@ -445,7 +481,7 @@ evaluate_metric(
                 continue;
             }
             zsys_debug1 (" ### Evaluate rule '%s'", rule->name().c_str());
-
+            isEvaluate = true;
             PureAlert pureAlert;
             int rv = rule->evaluate (knownMetricValues, pureAlert);
             if ( rv != 0 ) {
@@ -466,15 +502,16 @@ evaluate_metric(
             zsys_error ("CANNOT evaluate rule, because '%s'", e.what());
         }
     }
+    mtxAlertConfig.unlock();
+    return isEvaluate;
 }
 
 void
-fty_alert_engine_server(
+fty_alert_engine_stream(
     zsock_t *pipe,
     void* args)
 {
     MetricList cache; // need to track incoming measurements
-    AlertConfiguration alertConfiguration;
     char *name = (char*) args;
 
     mlm_client_t *client = mlm_client_new ();
@@ -484,10 +521,17 @@ fty_alert_engine_server(
     assert (poller);
 
     uint64_t timeout = 30000;
-
     zsock_signal (pipe, 0);
+    int64_t timeCash = zclock_mono();
 
     while (!zsys_interrupted) {
+
+        //clear cache every 30 sec
+        if (zclock_mono() - timeCash > 30000) {
+            cache.removeOldMetrics();
+            timeCash = zclock_mono();
+        }
+
         void *which = zpoller_wait (poller, timeout);
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
@@ -550,6 +594,172 @@ fty_alert_engine_server(
                 goto exit;
             }
             else
+            if (streq (cmd, "CONNECT")) {
+                zsys_debug1 ("CONNECT received");
+                char* endpoint = zmsg_popstr (msg);
+                int rv = mlm_client_connect (client, endpoint, 1000, name);
+                if (rv == -1)
+                    zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                zstr_free (&endpoint);
+            }
+            else
+            if (streq (cmd, "VERBOSE")) {
+                zsys_debug1 ("%s: VERBOSE received", name);
+                agent_alert_verbose = true;
+            }
+            else
+            if (streq (cmd, "PRODUCER")) {
+                zsys_debug1 ("PRODUCER received");
+                char* stream = zmsg_popstr (msg);
+                int rv = mlm_client_set_producer (client, stream);
+                if (rv == -1)
+                    zsys_error ("%s: can't set producer on stream '%s'", name, stream);
+                zstr_free (&stream);
+            }
+            else
+            if (streq (cmd, "CONSUMER")) {
+                zsys_debug1 ("CONSUMER received");
+                char* stream = zmsg_popstr (msg);
+                char* pattern = zmsg_popstr (msg);
+                int rv = mlm_client_set_consumer (client, stream, pattern);
+                if (rv == -1)
+                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                zstr_free (&pattern);
+                zstr_free (&stream);
+            }
+
+            zstr_free (&cmd);
+            zmsg_destroy (&msg);
+            continue;
+        }
+
+        // This agent is a reactive agent, it reacts only on messages
+        // and doesn't do anything if there is no messages
+        // TODO: probably alert also should be send every XXX seconds,
+        // even if no measurements were recieved
+        // from the stream  -> metrics
+        // but even so we try to decide according what we got, not from where
+
+        // process accumulated stream messages
+        for (auto element : stream_messages) {
+            std::string topic = element.first;
+            fty_proto_t *bmessage = element.second;
+            // process as metric message
+            const char *type = fty_proto_type (bmessage);
+            const char * name = fty_proto_name (bmessage);
+            const char *value = fty_proto_value (bmessage);
+            const char *unit = fty_proto_unit (bmessage);
+            uint32_t ttl = fty_proto_ttl (bmessage);
+            uint64_t timestamp = fty_proto_aux_number (bmessage, "time", ::time(NULL));
+            // TODO: 2016-04-27 ACE: fix it later, when "string" values
+            // in the metric would be considered as
+            // normal behaviour, but for now it is not supposed to be so
+            // -> generated error messages into the log
+            char *end;
+            double dvalue = strtod (value, &end);
+            if (errno == ERANGE) {
+                errno = 0;
+                //fty_proto_print (bmessage);
+                zsys_error ("%s: can't convert value to double #1, ignore message", name);
+                fty_proto_destroy (&bmessage);
+                continue;
+            }
+            else if (end == value || *end != '\0') {
+                //fty_proto_print (bmessage);
+                zsys_error ("%s: can't convert value to double #2, ignore message", name);
+                fty_proto_destroy (&bmessage);
+                continue;
+            }
+            zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
+
+            // Update cache with new value
+            MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
+            cache.addMetric (m);
+
+            //search if this metric is already evaluated and if this metric is evaluate
+            std::map < std::string, bool>::iterator found = evaluateMetrics.find (m.generateTopic());
+            bool metricfound = found != evaluateMetrics.end();
+            zsys_debug1 ("Check metric : %s", m.generateTopic().c_str());
+            if (metricfound) {
+                zsys_debug1 ("This metric is known and %s be evaluated", found->second ? "must" : "will not");
+            }
+
+            if (!metricfound || found->second) {
+                bool isEvaluate = evaluate_metric (client, m, cache, alertConfiguration);
+
+                //if the metric is evaluate for the first time, add to the list
+                if (!metricfound) {
+                    zsys_debug1 ("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
+                    evaluateMetrics[m.generateTopic()] = isEvaluate;
+                }
+            }
+            fty_proto_destroy (&bmessage);
+        }
+        if (zmessage) {
+            // Here we can have a message with arbitrary topic, but according protocol
+            // first frame must be one of the following:
+            //  * METRIC_UNAVAILABLE
+            char *command = zmsg_popstr (zmessage);
+            if (streq(command, "METRICUNAVAILABLE")) {
+                char *metrictopic = zmsg_popstr (zmessage);
+                if (metrictopic) {
+                    check_metrics (client, metrictopic, alertConfiguration);
+                } else {
+                    zsys_error ("%s: Received stream command '%s', but message has bad format", name, command);
+                }
+                zstr_free (&metrictopic);
+            } else {
+                zsys_error ("%s: Unexcepted stream message received with command : %s", name, command);
+            }
+            zstr_free (&command);
+        }
+        zmsg_destroy (&zmessage);
+    }
+exit:
+    zpoller_destroy (&poller);
+    mlm_client_destroy (&client);
+}
+
+void
+fty_alert_engine_mailbox(
+    zsock_t *pipe,
+    void* args)
+{
+    char *name = (char*) args;
+
+    mlm_client_t *client = mlm_client_new ();
+    assert (client);
+
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(client), NULL);
+    assert (poller);
+
+    uint64_t timeout = 30000;
+
+    zsock_signal (pipe, 0);
+
+    while (!zsys_interrupted) {
+        void *which = zpoller_wait (poller, timeout);
+        if (which == NULL) {
+            if (zpoller_terminated (poller) || zsys_interrupted) {
+                zsys_warning ("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
+                break;
+            }
+            if (zpoller_expired (poller)) {
+            }
+            continue;
+        }
+
+        if (which == pipe) {
+            zmsg_t *msg = zmsg_recv (pipe);
+            char *cmd = zmsg_popstr (msg);
+            zsys_debug ("Command : %s", cmd);
+            if (streq (cmd, "$TERM")) {
+                zsys_debug1 ("%s: $TERM received", name);
+                zstr_free (&cmd);
+                zmsg_destroy (&msg);
+                goto exit;
+            }
+            else
             if (streq (cmd, "VERBOSE")) {
                 zsys_debug1 ("%s: VERBOSE received", name);
                 agent_alert_verbose = true;
@@ -573,27 +783,15 @@ fty_alert_engine_server(
                 zstr_free (&stream);
             }
             else
-            if (streq (cmd, "CONSUMER")) {
-                zsys_debug1 ("CONSUMER received");
-                char* stream = zmsg_popstr (msg);
-                char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (client, stream, pattern);
-                if (rv == -1)
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
-                zstr_free (&pattern);
-                zstr_free (&stream);
-            }
-            else
             if (streq (cmd, "CONFIG")) {
                 zsys_debug1 ("CONFIG received");
                 char* filename = zmsg_popstr (msg);
-                if ( filename ) {
+                if (filename) {
                     // Read initial configuration
-                    alertConfiguration.setPath(filename);
+                    alertConfiguration.setPath (filename);
                     // XXX: somes to subscribe are returned, but not used for now
                     alertConfiguration.readConfiguration();
-                }
-                else {
+                } else {
                     zsys_error ("%s: in CONFIG command next frame is missing", name);
                 }
                 zstr_free (&filename);
@@ -607,58 +805,18 @@ fty_alert_engine_server(
         // and doesn't do anything if there is no messages
         // TODO: probably alert also should be send every XXX seconds,
         // even if no measurements were recieved
-        // There are two possible inputs and they come in different ways
-        // from the stream  -> metrics
+        zmsg_t *zmessage = mlm_client_recv (client);
+        if (zmessage == NULL) {
+            continue;
+        }
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
-
-        // process accumulated stream messages
-        for (auto element : stream_messages) {
-            std::string topic = element.first;
-            fty_proto_t *bmessage = element.second;
-            // process as metric message
-            const char *type = fty_proto_type (bmessage);
-            const char * name = fty_proto_name (bmessage);
-            const char *value = fty_proto_value (bmessage);
-            const char *unit = fty_proto_unit (bmessage);
-            uint32_t ttl = fty_proto_ttl (bmessage);
-            uint64_t timestamp = fty_proto_aux_number (bmessage, "time", ::time(NULL));
-            // TODO: 2016-04-27 ACE: fix it later, when "string" values
-            // in the metric would be considered as
-            // normal behaviour, but for now it is not supposed to be so
-            // -> generated error messages into the log
-            char *end;
-            double dvalue = strtod (value, &end);
-            if (errno == ERANGE) {
-                errno = 0;
-                fty_proto_print (bmessage);
-                zsys_error ("%s: can't convert value to double #1, ignore message", name);
-                fty_proto_destroy (&bmessage);
-                continue;
-            }
-            else if (end == value || *end != '\0') {
-                fty_proto_print (bmessage);
-                zsys_error ("%s: can't convert value to double #2, ignore message", name);
-                fty_proto_destroy (&bmessage);
-                continue;
-            }
-
-            zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
-
-            // Update cache with new value
-            MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
-            fty_proto_destroy (&bmessage);
-            cache.addMetric (m);
-            cache.removeOldMetrics ();
-            evaluate_metric (client, m, cache, alertConfiguration);
-            fty_proto_destroy (&bmessage);
-        }
-        // According RFC we expect here a messages
-        // with the topic:
-        //   * RULES_SUBJECT
-        if (zmessage && subject == RULES_SUBJECT) {
+        if (streq (mlm_client_subject(client), RULES_SUBJECT)) {
             zsys_debug1 ("%s", RULES_SUBJECT);
+            // According RFC we expect here a messages
+            // with the topic:
+            //   * RULES_SUBJECT
             // Here we can have:
             //  * request for list of rules
             //  * get detailed info about the rule
@@ -696,27 +854,14 @@ fty_alert_engine_server(
             }
             zstr_free (&command);
             zstr_free (&param);
-        } else if (zmessage) {
-            // Here we can have a message with arbitrary topic, but according protocol
-            // first frame must be one of the following:
-            //  * METRIC_UNAVAILABLE
+        } else {
             char *command = zmsg_popstr (zmessage);
-            if (streq (command, "METRICUNAVAILABLE")) {
-                char *metrictopic = zmsg_popstr (zmessage);
-                if (metrictopic) {
-                    check_metrics (client, metrictopic, alertConfiguration);
-                }
-                else {
-                    zsys_error ("%s: Received command '%s', but message has bad format", name, command);
-                }
-                zstr_free (&metrictopic);
-            }
-            else {
-                zsys_error ("%s: Unexcepted message received", name);
-            }
+            zsys_error ("%s: Unexcepted mailbox message received with command : %s", name, command);
             zstr_free (&command);
         }
-        zmsg_destroy (&zmessage);
+        if (zmessage) {
+            zmsg_destroy (&zmessage);
+        }
     }
 exit:
     zpoller_destroy (&poller);
@@ -726,7 +871,8 @@ exit:
 //  --------------------------------------------------------------------------
 //  Self test of this class.
 
-static char*
+//static
+char*
 s_readall(
     const char* filename)
 {
@@ -796,14 +942,20 @@ fty_alert_engine_server_test(
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
-    zactor_t *ag_server = zactor_new (fty_alert_engine_server, (void*) "alert-agent");
-    if (verbose)
-        zstr_send (ag_server, "VERBOSE");
-    zstr_sendx (ag_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
-    zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
-    zstr_sendx (ag_server, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
-    zstr_sendx (ag_server, "CONFIG", (str_SELFTEST_DIR_RW + "/").c_str(), NULL);
+    zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
+    zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
+    if (verbose) {
+        zstr_send (ag_server_stream, "VERBOSE");
+        zstr_send (ag_server_mail, "VERBOSE");
+    }
+    zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW + "/").c_str(), NULL);
+    zstr_sendx (ag_server_mail, "CONNECT", endpoint, NULL);
+    zstr_sendx (ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
+
+    zstr_sendx (ag_server_stream, "CONNECT", endpoint, NULL);
+    zstr_sendx (ag_server_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
+    zstr_sendx (ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
+    zstr_sendx (ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // Test case #1: list w/o rules
@@ -812,7 +964,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (command, "%s", "LIST");
         zmsg_addstrf (command, "%s", "all");
         zmsg_addstrf (command, "%s", "");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -837,7 +989,7 @@ fty_alert_engine_server_test(
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -857,7 +1009,7 @@ fty_alert_engine_server_test(
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -876,7 +1028,7 @@ fty_alert_engine_server_test(
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv (ui);
 
@@ -894,7 +1046,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
         zmsg_addstrf (rule, "%s", "simplethreshold2");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv (ui);
 
@@ -1037,7 +1189,7 @@ fty_alert_engine_server_test(
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1058,7 +1210,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (command, "%s", "LIST");
         zmsg_addstrf (command, "%s", "all");
         zmsg_addstrf (command, "%s", "");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1081,7 +1233,7 @@ fty_alert_engine_server_test(
         zmsg_t *command = zmsg_new ();
         zmsg_addstrf (command, "%s", "LIST");
         zmsg_addstrf (command, "%s", "single");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1104,7 +1256,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (command, "%s", "LIST");
         zmsg_addstrf (command, "%s", "all");
         zmsg_addstrf (command, "%s", "example class");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1130,7 +1282,7 @@ fty_alert_engine_server_test(
         assert (onbattery_rule);
         zmsg_addstrf (rule, "%s", onbattery_rule);
         zstr_free (&onbattery_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
         assert (zmsg_size (recv) == 2);
@@ -1155,7 +1307,7 @@ fty_alert_engine_server_test(
         assert (complexthreshold_rule_lua_error);
         zmsg_addstrf (rule, "%s", complexthreshold_rule_lua_error);
         zstr_free (&complexthreshold_rule_lua_error);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
         assert (zmsg_size (recv) == 2);
@@ -1177,7 +1329,7 @@ fty_alert_engine_server_test(
         assert (toohigh_rule);
         zmsg_addstrf (rule, "%s", toohigh_rule);
         zstr_free (&toohigh_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1231,7 +1383,7 @@ fty_alert_engine_server_test(
         assert (rule_with_trash);
         zmsg_addstrf (rule, "%s", rule_with_trash);
         zstr_free (&rule_with_trash);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1246,7 +1398,7 @@ fty_alert_engine_server_test(
         zmsg_t *command = zmsg_new ();
         zmsg_addstrf (command, "%s", "GET");
         zmsg_addstrf (command, "%s", "rule_with_trash");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
 
         recv = mlm_client_recv (ui);
 
@@ -1282,7 +1434,7 @@ fty_alert_engine_server_test(
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1301,7 +1453,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
         zmsg_addstrf (rule, "%s", "check_update_threshold_simple");
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         // check the result of the operation
         recv = mlm_client_recv (ui);
@@ -1324,7 +1476,7 @@ fty_alert_engine_server_test(
         assert (pattern_rule);
         zmsg_addstrf (rule, "%s", pattern_rule);
         zstr_free (&pattern_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1394,7 +1546,7 @@ fty_alert_engine_server_test(
         assert (devicethreshold_rule);
         zmsg_addstrf (rule, "%s", devicethreshold_rule);
         zstr_free (&devicethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1413,7 +1565,7 @@ fty_alert_engine_server_test(
         assert (devicethreshold_rule);
         zmsg_addstrf (rule, "%s", devicethreshold_rule);
         zstr_free (&devicethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv (ui);
 
@@ -1435,7 +1587,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (rule, "%s", devicethreshold_rule);
         zstr_free (&devicethreshold_rule);
         zmsg_addstrf (rule, "%s", "device_threshold_test"); // name of the rule
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv (ui);
 
@@ -1472,7 +1624,7 @@ fty_alert_engine_server_test(
         assert (simplethreshold_rule);
         zmsg_addstr (rule, simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1486,15 +1638,18 @@ fty_alert_engine_server_test(
         zstr_free (&foo);
         zmsg_destroy (&recv);
 
-        // 22-2 : "50AA"
-        zsys_info ("######## Test case #22-2 a simple threshold with not double value (50AA)");
+        // 22-2 : "20AA"
+        /*
+            // 22-2 : "50AA"
+            zsys_info ("######## Test case #22-2 a simple threshold with not double value (50AA)");
+        */
         rule = zmsg_new();
         zmsg_addstr (rule, "ADD");
         simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
         assert (simplethreshold_rule);
         zmsg_addstr (rule, simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv (ui);
 
@@ -1516,7 +1671,7 @@ fty_alert_engine_server_test(
         assert (touch_request);
         zmsg_addstr (touch_request, "TOUCH");
         zmsg_addstr (touch_request, "rule_to_touch_doesnt_exists");
-        int rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        int rv = mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
         assert ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (ui);
@@ -1539,7 +1694,7 @@ fty_alert_engine_server_test(
         assert (rule_to_touch);
         zmsg_addstrf (rule, "%s", rule_to_touch);
         zstr_free (&rule_to_touch);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1555,7 +1710,7 @@ fty_alert_engine_server_test(
         assert (touch_request);
         zmsg_addstr (touch_request, "TOUCH");
         zmsg_addstr (touch_request, "rule_to_touch");
-        int rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        int rv = mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
         assert ( rv == 0 );
 
         recv = mlm_client_recv (ui);
@@ -1600,7 +1755,7 @@ fty_alert_engine_server_test(
         assert (touch_request);
         zmsg_addstr (touch_request, "TOUCH");
         zmsg_addstr (touch_request, "rule_to_touch");
-        rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        rv = mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
         assert ( rv == 0 );
 
         recv = mlm_client_recv (ui);
@@ -1636,7 +1791,7 @@ fty_alert_engine_server_test(
         assert (touch_request);
         zmsg_addstr (touch_request, "TOUCH");
         zmsg_addstr (touch_request, "rule_to_touch");
-        rv = mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        rv = mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
         assert ( rv == 0 );
 
         recv = mlm_client_recv (ui);
@@ -1667,7 +1822,7 @@ fty_alert_engine_server_test(
         assert (rule_to_touch);
         zmsg_addstrf (rule, "%s", rule_to_touch);
         zstr_free (&rule_to_touch);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
 
@@ -1685,7 +1840,7 @@ fty_alert_engine_server_test(
         assert (rule_to_touch);
         zmsg_addstrf (rule, "%s", rule_to_touch);
         zstr_free (&rule_to_touch);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv (ui);
 
@@ -1783,7 +1938,7 @@ fty_alert_engine_server_test(
     zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
-    zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", "alert-agent", NULL);
+    zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", "fty-alert-engine", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // # 26.1 catch message 'create asset', check that we created rules
@@ -2036,7 +2191,7 @@ fty_alert_engine_server_test(
         zmsg_addstrf (rule, "%s", pattern_rule);
         zmsg_addstrf (rule, "%s", "warranty2");
         zstr_free (&pattern_rule);
-        mlm_client_sendto (ui, "alert-agent", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t *recv = mlm_client_recv (ui);
         assert (zmsg_size (recv) == 2);
@@ -2056,7 +2211,9 @@ fty_alert_engine_server_test(
 
     zclock_sleep (3000);
     zactor_destroy (&ag_configurator);
-    zactor_destroy (&ag_server);
+    zactor_destroy (&ag_server_stream);
+    zactor_destroy (&ag_server_mail);
+    clearEvaluateMetrics();
     mlm_client_destroy (&asset_producer);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);

@@ -179,6 +179,7 @@ struct _fty_alert_actions_t {
 typedef struct {
     fty_proto_t *alert_msg;
     uint64_t    last_notification;
+    uint64_t    last_received;
     fty_proto_t *related_asset;
 } s_alert_cache;
 
@@ -273,7 +274,7 @@ get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
     std::pair <std::string, uint8_t> key = {severity, priority};
     auto it = times.find(key);
     if (it != times.end()) {
-        return (*it).second;
+        return (*it).second * 1000;
     } else {
         return 0;
     }
@@ -293,6 +294,7 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
     s_alert_cache *c = (s_alert_cache *) malloc(sizeof (s_alert_cache));
     c->alert_msg = msg;
     c->last_notification = zclock_mono ();
+    c->last_received = c->last_notification;
     zsys_debug ("searching for %s", fty_proto_name (msg));
 
     c->related_asset = (fty_proto_t *) zhash_lookup(self->assets_cache, fty_proto_name(msg));
@@ -642,7 +644,7 @@ check_timed_out_alerts(fty_alert_actions_t *self)
     s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
     uint64_t now = zclock_mono ();
     while (NULL != it) {
-        if (fty_proto_time(it->alert_msg) + fty_proto_ttl(it->alert_msg) < now) {
+        if (it->last_received + (fty_proto_ttl(it->alert_msg) * 1000) < now) {
             zsys_debug("fty_alert_actions: found timed out alert from %s", fty_proto_name(it->alert_msg));
             action_resolve(self, it);
             zhash_delete(self->alerts_cache, zhash_cursor(self->alerts_cache));
@@ -665,6 +667,7 @@ check_alerts_and_send_if_needed(fty_alert_actions_t *self)
     while (NULL != it) {
         uint64_t notification_delay = get_alert_interval(it, self->notification_override);
         if (0 != notification_delay && (it->last_notification + notification_delay < now)) {
+            it->last_notification = zclock_mono ();
             action_alert_repeat(self, it);
         }
         it = (s_alert_cache *) zhash_next(self->alerts_cache);
@@ -710,6 +713,7 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
             action_alert(self, search);
         } else {
             zsys_debug("fty_alert_actions: known alarm, check for changes");
+            search->last_received = zclock_mono();
             char changed = 0;
             // little more complicated, update cache, alert on changes
             if (streq (fty_proto_state (search->alert_msg), "ACTIVE") &&
@@ -754,6 +758,7 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
     else if (streq (fty_proto_state (alert), "RESOLVED")) {
         zsys_debug("fty_alert_actions: receieved RESOLVED alarm with subject %s", subject);
         if (NULL != search) {
+            search->last_received = zclock_mono();
             action_resolve(self, search);
             zsys_debug("fty_alert_actions: receieved RESOLVED alarm resolved");
             zhash_delete(self->alerts_cache, rule);
@@ -973,11 +978,20 @@ fty_alert_actions(zsock_t *pipe, void* args)
     self->requestreply_timeout = 1000; // hopefully 1ms will be long enough to get input
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (self->client), NULL);
     assert (poller);
-    uint64_t timeout = 1000 * 60 * 1; // check every minute
+    uint64_t timeout = 1000 * 10 * 1; // timeout every 10 seconds
     zsock_signal (pipe, 0);
     zmsg_t *msg = NULL;
+    uint64_t check_delay = 1000 * 60 * 1; // check every minute
+    uint64_t last = zclock_mono();
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout);
+        uint64_t now = zclock_mono ();
+        if (now - last >= check_delay) {
+            zsys_debug("fty_alert_actions: performing periodic check");
+            last = now;
+            check_timed_out_alerts(self);
+            check_alerts_and_send_if_needed(self);
+        }
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
                 zsys_warning ("fty_alert_actions: zpoller_terminated () or zsys_interrupted. Shutting down.");
@@ -985,8 +999,6 @@ fty_alert_actions(zsock_t *pipe, void* args)
             }
             if (zpoller_expired (poller) && !self->integration_test) {
                 zsys_debug("fty_alert_actions: poller timeout expired");
-                check_timed_out_alerts(self);
-                check_alerts_and_send_if_needed(self);
             }
             continue;
         }
@@ -1006,13 +1018,11 @@ fty_alert_actions(zsock_t *pipe, void* args)
             continue;
         }
         // all other messages should be ignored
-        else {
-            zsys_debug ("fty_alert_actions: received message through '%s' from '%s' with subject '%s' that is ignored",
-                    mlm_client_address (self->client),
-                    mlm_client_sender (self->client),
-                    mlm_client_subject (self->client));
-            zmsg_destroy (&msg);
-        }
+        zsys_debug ("fty_alert_actions: received message through '%s' from '%s' with subject '%s' that is ignored",
+                mlm_client_address (self->client),
+                mlm_client_sender (self->client),
+                mlm_client_subject (self->client));
+        zmsg_destroy (&msg);
     }
     zpoller_destroy (&poller);
     fty_alert_actions_destroy (&self);
@@ -1060,39 +1070,39 @@ fty_alert_actions_test (bool verbose)
 
         fty_proto_set_severity(cache->alert_msg, "CRITICAL");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-        assert(5  * 60 == get_alert_interval(cache));
+        assert(5  * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "WARNING");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-        assert(1 * 60 * 60 == get_alert_interval(cache));
+        assert(1 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "INFO");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-        assert(8 * 60 * 60 == get_alert_interval(cache));
+        assert(8 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "CRITICAL");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-        assert(15 * 60 == get_alert_interval(cache));
+        assert(15 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "WARNING");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-        assert(4 * 60 * 60 == get_alert_interval(cache));
+        assert(4 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "INFO");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-        assert(24 * 60 * 60 == get_alert_interval(cache));
+        assert(24 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "CRITICAL");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-        assert(15 * 60 == get_alert_interval(cache));
+        assert(15 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "WARNING");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-        assert(4 * 60 * 60 == get_alert_interval(cache));
+        assert(4 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_set_severity(cache->alert_msg, "INFO");
         fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-        assert(24 * 60 * 60 == get_alert_interval(cache));
+        assert(24 * 60 * 60 * 1000 == get_alert_interval(cache));
 
         fty_proto_destroy(&cache->alert_msg);
         fty_proto_destroy(&cache->related_asset);
