@@ -372,7 +372,7 @@ update_rule(
             // error during the rule creation
             zsys_debug1 ("internal error");
             zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "Internal error - operating with storate/disk failed.");
+            zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
             mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
         }
