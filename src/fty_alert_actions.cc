@@ -1045,106 +1045,106 @@ fty_alert_actions_test (bool verbose)
     //  @selftest
     // test 1, simple create/destroy self test
     {
-    zsys_debug("fty_alert_actions: test 1");
-    fty_alert_actions_t *self = fty_alert_actions_new ();
-    assert (self);
-    fty_alert_actions_destroy (&self);
+        zsys_debug("fty_alert_actions: test 1");
+        fty_alert_actions_t *self = fty_alert_actions_new ();
+        assert (self);
+        fty_alert_actions_destroy (&self);
     }
 
     // test 2, check alert interval calculation
     {
-    zsys_debug("fty_alert_actions: test 2");
-    s_alert_cache *cache = (s_alert_cache *) malloc(sizeof(s_alert_cache));
-    cache->alert_msg = fty_proto_new(FTY_PROTO_ALERT);
-    cache->related_asset = fty_proto_new(FTY_PROTO_ASSET);
+        zsys_debug("fty_alert_actions: test 2");
+        s_alert_cache *cache = (s_alert_cache *) malloc(sizeof(s_alert_cache));
+        cache->alert_msg = fty_proto_new(FTY_PROTO_ALERT);
+        cache->related_asset = fty_proto_new(FTY_PROTO_ASSET);
 
-    fty_proto_set_severity(cache->alert_msg, "CRITICAL");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-    assert(5  * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "CRITICAL");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
+        assert(5  * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "WARNING");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-    assert(1 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "WARNING");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
+        assert(1 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "INFO");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-    assert(8 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "INFO");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
+        assert(8 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "CRITICAL");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-    assert(15 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "CRITICAL");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
+        assert(15 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "WARNING");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-    assert(4 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "WARNING");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
+        assert(4 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "INFO");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-    assert(24 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "INFO");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
+        assert(24 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "CRITICAL");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-    assert(15 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "CRITICAL");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
+        assert(15 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "WARNING");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-    assert(4 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "WARNING");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
+        assert(4 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "INFO");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-    assert(24 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "INFO");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
+        assert(24 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_destroy(&cache->alert_msg);
-    fty_proto_destroy(&cache->related_asset);
-    free(cache);
+        fty_proto_destroy(&cache->alert_msg);
+        fty_proto_destroy(&cache->related_asset);
+        free(cache);
     }
 
     // test 3, simple create/destroy cache item test without need to send ASSET_DETAILS
     {
-    zsys_debug("fty_alert_actions: test 3");
-    fty_alert_actions_t *self = fty_alert_actions_new ();
-    assert (self);
-    fty_proto_t *asset = fty_proto_new(FTY_PROTO_ASSET);
-    assert (asset);
-    zhash_insert(self->assets_cache, "myasset-3", asset);
-    fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
-    assert (msg);
-    fty_proto_set_name(msg, "myasset-3");
+        zsys_debug("fty_alert_actions: test 3");
+        fty_alert_actions_t *self = fty_alert_actions_new ();
+        assert (self);
+        fty_proto_t *asset = fty_proto_new(FTY_PROTO_ASSET);
+        assert (asset);
+        zhash_insert(self->assets_cache, "myasset-3", asset);
+        fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
+        assert (msg);
+        fty_proto_set_name(msg, "myasset-3");
 
-    s_alert_cache *cache = new_alert_cache_item(self, msg);
-    assert(cache);
-    delete_alert_cache_item(cache);
+        s_alert_cache *cache = new_alert_cache_item(self, msg);
+        assert(cache);
+        delete_alert_cache_item(cache);
 
-    fty_proto_destroy(&asset);
-    fty_alert_actions_destroy (&self);
+        fty_proto_destroy(&asset);
+        fty_alert_actions_destroy (&self);
     }
 
     // test 4, simple create/destroy cache item test with need to send ASSET_DETAILS
     {
-    zsys_debug("fty_alert_actions: test 4");
-    SET_UUID((char *)"uuid-test");
-    zhash_t *aux = zhash_new();
-    zhash_t *ext = zhash_new();
-    zmsg_t *resp_msg = fty_proto_encode_asset(aux, "myasset-2", FTY_PROTO_ASSET_OP_UPDATE, ext);
-    zmsg_pushstr(resp_msg, GET_UUID);
-    assert(resp_msg);
-    INIT_RECV;
-    MSG_TO_RECV(resp_msg);
-    SET_SEND(0);
-    fty_alert_actions_t *self = fty_alert_actions_new ();
-    assert (self);
-    fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
-    assert (msg);
-    fty_proto_set_name(msg, "myasset-4");
+        zsys_debug("fty_alert_actions: test 4");
+        SET_UUID((char *) "uuid-test");
+        zhash_t *aux = zhash_new();
+        zhash_t *ext = zhash_new();
+        zmsg_t *resp_msg = fty_proto_encode_asset(aux, "myasset-2", FTY_PROTO_ASSET_OP_UPDATE, ext);
+        zmsg_pushstr(resp_msg, GET_UUID);
+        assert(resp_msg);
+        INIT_RECV;
+        MSG_TO_RECV(resp_msg);
+        SET_SEND(0);
+        fty_alert_actions_t *self = fty_alert_actions_new ();
+        assert (self);
+        fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
+        assert (msg);
+        fty_proto_set_name(msg, "myasset-4");
 
-    s_alert_cache *cache = new_alert_cache_item(self, msg);
-    assert(cache);
-    delete_alert_cache_item(cache);
+        s_alert_cache *cache = new_alert_cache_item(self, msg);
+        assert(cache);
+        delete_alert_cache_item(cache);
 
-    fty_alert_actions_destroy (&self);
-    zhash_destroy(&aux);
-    zhash_destroy(&ext);
-    CLEAN_RECV;
+        fty_alert_actions_destroy (&self);
+        zhash_destroy(&aux);
+        zhash_destroy(&ext);
+        CLEAN_RECV;
     }
 
     // test 5, processing of alerts from stream

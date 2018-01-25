@@ -201,14 +201,14 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                             else
                                 if (streq (cmd, "ALERT_ENGINE_NAME")) {
                                     zsys_debug1 ("ALERT_ENGINE_NAME received");
-                                char* alert_engine_name = zmsg_popstr (msg);
-                                if (alert_engine_name) {
-                                    Autoconfig::AlertEngineName = std::string (alert_engine_name);
-                                }
-                                else {
-                                    zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
-                                }
-                                zstr_free (&alert_engine_name);
+                                    char* alert_engine_name = zmsg_popstr (msg);
+                                    if (alert_engine_name) {
+                                        Autoconfig::AlertEngineName = std::string (alert_engine_name);
+                                    }
+                                    else {
+                                        zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
+                                    }
+                                    zstr_free (&alert_engine_name);
                                 }
 
             zstr_free (&cmd);
