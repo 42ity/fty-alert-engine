@@ -905,6 +905,7 @@ s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeo
     //zsys_debug("fty_alert_actions: s_handle_pipe_deliver called");
     zmsg_t *msg = *msg_p;
     char *cmd = zmsg_popstr (msg);
+    assert(cmd);
 
     zsys_debug("fty_alert_actions: %s received", cmd);
 
