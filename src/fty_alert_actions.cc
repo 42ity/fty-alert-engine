@@ -355,7 +355,7 @@ delete_alert_cache_item(void *c)
 void
 send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_email)
 {
-    zsys_debug("fty_alert_actions: sending SENDMAIL_ALERT/SENDSMS_ALERT");
+    zsys_debug("fty_alert_actions: sending SENDMAIL_ALERT/SENDSMS_ALERT for %s", fty_proto_name(alert_item->alert_msg));
     fty_proto_t *alert_dup = fty_proto_dup(alert_item->alert_msg);
     zmsg_t *email_msg = fty_proto_encode(&alert_dup);
     zuuid_t *uuid = zuuid_new ();
@@ -937,6 +937,7 @@ s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeo
         zstr_free (&stream);
     }
     else if (streq (cmd, "ASKFORASSETS")) {
+        zsys_debug ("fty_alert_actions: asking for assets");
         zmsg_t *republish = zmsg_new ();
         int rv = mlm_client_sendto (self->client, FTY_ASSET_AGENT_ADDRESS, "REPUBLISH", NULL, 5000, &republish);
         if (rv != 0) {
@@ -944,11 +945,13 @@ s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeo
         }
     }
     else if (streq (cmd, "TESTTIMEOUT")) {
+        zsys_debug ("fty_alert_actions: setting test timeout to received value");
         char *rcvd = zmsg_popstr (msg);
         sscanf(rcvd, "%" SCNu64, &timeout);
         zstr_free (&rcvd);
     }
     else if (streq (cmd, "TESTCHECKINTERVAL")) {
+        zsys_debug ("fty_alert_actions: setting test interval for checks");
         char *rcvd = zmsg_popstr (msg);
         sscanf(rcvd, "%" SCNu64, &(self->notification_override));
         zstr_free (&rcvd);

@@ -1549,6 +1549,7 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
 
         //      21.1.2  add existing rule second time: devicethreshold
+        zsys_info ("######## Test case #21.1.2 add existing rule second time: devicethreshold");
         rule = zmsg_new();
         zmsg_addstrf (rule, "%s", "ADD");
         devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
@@ -1656,6 +1657,7 @@ fty_alert_engine_server_test(
 
     // test 23: touch rule, that doesn't exist
     {
+        zsys_info ("######## Test case #23: touch rule, that doesn't exist");
         zmsg_t *touch_request = zmsg_new ();
         assert (touch_request);
         zmsg_addstr (touch_request, "TOUCH");
