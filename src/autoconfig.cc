@@ -230,7 +230,9 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
 
             if (fty_proto_id (bmessage) == FTY_PROTO_ASSET) {
-                onSend (&bmessage);
+                if (!streq(fty_proto_operation(bmessage), FTY_PROTO_ASSET_OP_INVENTORY)) {
+                    onSend (&bmessage);
+                }
                 fty_proto_destroy (&bmessage);
                 continue;
             }
@@ -320,6 +322,12 @@ Autoconfig::onSend (fty_proto_t **message)
         zsys_debug("extracting attributes from asset message failed.");
         return;
     }
+
+    if (streq(info.type.c_str(), "datacenter") || streq(info.type.c_str(), "room") ||
+            streq(info.type.c_str(), "row") || streq(info.type.c_str(), "rack")) {
+        _containers.emplace(device_name, fty_proto_ext_string(*message, "name", ""));
+    }
+
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
