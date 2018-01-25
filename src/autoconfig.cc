@@ -163,52 +163,53 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
             else
                 if (streq (cmd, "VERBOSE")) {
-                zsys_debug1 ("%s: VERBOSE received", name);
-                agent_alert_verbose = true;
-            }
-            else
-                if (streq (cmd, "TEMPLATES_DIR")) {
-                zsys_debug1 ("TEMPLATES_DIR received");
-                char* dirname = zmsg_popstr (msg);
-                if (dirname) {
-                    Autoconfig::RuleFilePath = std::string (dirname);
-                } else {
-                    zsys_error ("%s: in TEMPLATES_DIR command next frame is missing", name);
+                    zsys_debug1 ("%s: VERBOSE received", name);
+                    agent_alert_verbose = true;
                 }
-                zstr_free (&dirname);
-            }
-            else
-                if (streq (cmd, "CONNECT")) {
-                zsys_debug1 ("CONNECT received");
-                char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (_client, endpoint, 1000, name);
-                if (rv == -1)
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
-                zstr_free (&endpoint);
-            }
-            else
-                if (streq (cmd, "CONSUMER")) {
-                zsys_debug1 ("CONSUMER received");
-                char* stream = zmsg_popstr (msg);
-                char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (_client, stream, pattern);
-                if (rv == -1)
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
-                zstr_free (&pattern);
-                zstr_free (&stream);
-            }
-            else
-                if (streq (cmd, "ALERT_ENGINE_NAME")) {
-                zsys_debug1 ("ALERT_ENGINE_NAME received");
-                char* alert_engine_name = zmsg_popstr (msg);
-                if (alert_engine_name) {
-                    Autoconfig::AlertEngineName = std::string (alert_engine_name);
-                }
-                else {
-                    zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
-                }
-                zstr_free (&alert_engine_name);
-            }
+                else
+                    if (streq (cmd, "TEMPLATES_DIR")) {
+                        zsys_debug1 ("TEMPLATES_DIR received");
+                        char* dirname = zmsg_popstr (msg);
+                        if (dirname) {
+                            Autoconfig::RuleFilePath = std::string (dirname);
+                        }
+                        else {
+                            zsys_error ("%s: in TEMPLATES_DIR command next frame is missing", name);
+                        }
+                        zstr_free (&dirname);
+                    }
+                    else
+                        if (streq (cmd, "CONNECT")) {
+                            zsys_debug1 ("CONNECT received");
+                            char* endpoint = zmsg_popstr (msg);
+                            int rv = mlm_client_connect (_client, endpoint, 1000, name);
+                            if (rv == -1)
+                                zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                            zstr_free (&endpoint);
+                        }
+                        else
+                            if (streq (cmd, "CONSUMER")) {
+                                zsys_debug1 ("CONSUMER received");
+                                char* stream = zmsg_popstr (msg);
+                                char* pattern = zmsg_popstr (msg);
+                                int rv = mlm_client_set_consumer (_client, stream, pattern);
+                                if (rv == -1)
+                                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                                zstr_free (&pattern);
+                                zstr_free (&stream);
+                            }
+                            else
+                                if (streq (cmd, "ALERT_ENGINE_NAME")) {
+                                    zsys_debug1 ("ALERT_ENGINE_NAME received");
+                                    char* alert_engine_name = zmsg_popstr (msg);
+                                    if (alert_engine_name) {
+                                        Autoconfig::AlertEngineName = std::string (alert_engine_name);
+                                    }
+                                    else {
+                                        zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
+                                    }
+                                    zstr_free (&alert_engine_name);
+                                }
 
             zstr_free (&cmd);
             zmsg_destroy (&msg);

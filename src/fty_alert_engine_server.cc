@@ -969,6 +969,7 @@ fty_alert_engine_server_test(
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
+
     // Test case #2.0: add new rule
     {
         zmsg_t *rule = zmsg_new();
@@ -988,6 +989,7 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
     }
+
     // Test case #2.1: add new rule
     {
         zmsg_t *rule = zmsg_new();
@@ -1167,6 +1169,7 @@ fty_alert_engine_server_test(
         assert(streq(fty_proto_state(brecv), "RESOLVED"));
         fty_proto_destroy(&brecv);
     }
+
     // Test case #2.2: add new rule with existing name
     {
         zmsg_t *rule = zmsg_new();
@@ -1189,6 +1192,7 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
     }
+
     // Test case #3: list rules
     {
         zmsg_t *command = zmsg_new();
@@ -1212,6 +1216,7 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
     }
+
     // Test case #4: list rules - not yet stored type
     {
         zmsg_t *command = zmsg_new();
@@ -1233,6 +1238,7 @@ fty_alert_engine_server_test(
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
+
     // Test case #4.1: list w/o rules
     {
         zmsg_t *command = zmsg_new();
@@ -1255,6 +1261,7 @@ fty_alert_engine_server_test(
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
+
     // Test case #13: segfault on onbattery
     // #13.1 ADD new rule
     {
@@ -1278,6 +1285,7 @@ fty_alert_engine_server_test(
                 NULL, ::time(NULL), ::time(NULL), "status.ups", "5PX1500-01", "1032.000", "");
         mlm_client_send(producer, "status.ups@5PX1500-01", &m);
     }
+
     // Test case #14: add new rule, but with lua syntax error
     {
         zsys_info("######## Test case #14 add new rule, but with lua syntax error");
@@ -1301,6 +1309,7 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
     }
+
     // Test case #15.1: add Radek's testing rule
     {
         zmsg_t *rule = zmsg_new();
@@ -1354,6 +1363,7 @@ fty_alert_engine_server_test(
         fty_proto_destroy(&brecv);
         zmsg_destroy(&recv);
     }
+
     // Test case #16.1: add new rule, with the trash at the end
     {
         zmsg_t *rule = zmsg_new();
@@ -1443,6 +1453,7 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
     }
+
     // ######## Test case #18
     // 18.1 add some rule (type: pattern)
     {
@@ -1513,6 +1524,7 @@ fty_alert_engine_server_test(
         zstr_free(&pattern_rule);
         zmsg_destroy(&recv);
     }
+
     // Test case #21:   Thresholds imported from devices
     {
         //      21.1.1  add existing rule: devicethreshold
@@ -1633,6 +1645,7 @@ fty_alert_engine_server_test(
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
+
     // test 23: touch rule, that doesn't exist
     {
         zmsg_t *touch_request = zmsg_new();
@@ -1652,6 +1665,7 @@ fty_alert_engine_server_test(
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
+
     // test 24: touch rule that exists
     {
         // 24.1 Create a rule we are going to test against
@@ -1779,6 +1793,7 @@ fty_alert_engine_server_test(
         }
         zpoller_destroy(&poller);
     }
+
     // test 25: metric_unavailable
     // 25.1 Create a rules we are going to test against; add First rule
     {
@@ -2143,6 +2158,7 @@ fty_alert_engine_server_test(
     zpoller_destroy (&poller);
     }
      */
+
     // Test case #20 update some rule (type: pattern)
     {
         zmsg_t *rule = zmsg_new();
