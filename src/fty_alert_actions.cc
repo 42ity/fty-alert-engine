@@ -905,19 +905,19 @@ s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeo
     //zsys_debug("fty_alert_actions: s_handle_pipe_deliver called");
     zmsg_t *msg = *msg_p;
     char *cmd = zmsg_popstr (msg);
+    assert(cmd);
+
+    zsys_debug("fty_alert_actions: %s received", cmd);
 
     if (streq (cmd, "$TERM")) {
-        zsys_debug ("fty_alert_actions: $TERM received");
         zstr_free (&cmd);
         zmsg_destroy (&msg);
         return -1;
     }
     else if (streq (cmd, "VERBOSE")) {
-        zsys_debug ("fty_alert_actions: VERBOSE received");
         verbose = 1;
     }
     else if (streq (cmd, "CONNECT")) {
-        zsys_debug ("fty_alert_actions: CONNECT received");
         char* endpoint = zmsg_popstr (msg);
         int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
         if (rv == -1)
@@ -928,7 +928,6 @@ s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeo
         zstr_free (&endpoint);
     }
     else if (streq (cmd, "CONSUMER")) {
-        zsys_debug ("fty_alert_actions: CONSUMER received");
         char* stream = zmsg_popstr (msg);
         self->integration_test = streq (stream, TEST_ALERTS) || streq (stream, TEST_ASSETS);
         char* pattern = zmsg_popstr (msg);
