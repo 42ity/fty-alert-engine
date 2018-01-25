@@ -90,30 +90,30 @@ int main (int argc, char** argv)
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license
     while (true) {
-        char *messageS = zstr_recv(ag_server_stream);
+        char *messageS = zstr_recv (ag_server_stream);
         if (messageS) {
-            puts(messageS);
-            free(messageS);
+            puts (messageS);
+            free (messageS);
         } else {
-            puts("interrupted");
+            puts ("interrupted");
             break;
         }
 
-        char *messageM = zstr_recv(ag_server_mailbox);
+        char *messageM = zstr_recv (ag_server_mailbox);
         if (messageM) {
-            puts(messageM);
-            free(messageM);
+            puts (messageM);
+            free (messageM);
         } else {
-            puts("interrupted");
+            puts ("interrupted");
             break;
         }
     }
 
     // TODO save info to persistence before I die
-    zactor_destroy(&ag_server_stream);
-    zactor_destroy(&ag_server_mailbox);
-    zactor_destroy(&ag_actions);
-    zactor_destroy(&ag_configurator);
+    zactor_destroy (&ag_server_stream);
+    zactor_destroy (&ag_server_mailbox);
+    zactor_destroy (&ag_actions);
+    zactor_destroy (&ag_configurator);
     clearEvaluateMetrics();
     return 0;
 }
