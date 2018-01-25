@@ -117,10 +117,9 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
     si.getMember("attributes")  >>= info.attributes;
 }
 
-
 void Autoconfig::main (zsock_t *pipe, char *name)
 {
-    if( _client ) mlm_client_destroy( &_client );
+    if ( _client ) mlm_client_destroy( &_client );
     _client = mlm_client_new ();
     assert (_client);
 
@@ -202,14 +201,14 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                             else
                                 if (streq (cmd, "ALERT_ENGINE_NAME")) {
                                     zsys_debug1 ("ALERT_ENGINE_NAME received");
-                                char* alert_engine_name = zmsg_popstr (msg);
-                                if (alert_engine_name) {
-                                    Autoconfig::AlertEngineName = std::string (alert_engine_name);
-                                }
-                                else {
-                                    zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
-                                }
-                                zstr_free (&alert_engine_name);
+                                    char* alert_engine_name = zmsg_popstr (msg);
+                                    if (alert_engine_name) {
+                                        Autoconfig::AlertEngineName = std::string (alert_engine_name);
+                                    }
+                                    else {
+                                        zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
+                                    }
+                                    zstr_free (&alert_engine_name);
                                 }
 
             zstr_free (&cmd);
@@ -245,7 +244,8 @@ void Autoconfig::main (zsock_t *pipe, char *name)
         else {
             // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
             if (streq (sender (), "fty-alert-engine") ||
-                streq (sender (), "fty-alert-flexible")) {
+                streq (sender (), "fty-alert-flexible"))
+            {
                 char *reply = zmsg_popstr (message);
                 if (streq (reply, "OK")) {
                     char *details = zmsg_popstr (message);
@@ -266,7 +266,7 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
             else
                 zsys_warning ("Message from unknown sender received: sender = '%s', command = '%s', subject = '%s'.",
-                              sender (), command (), subject ());
+                    sender (), command (), subject ());
             zmsg_destroy (&message);
         }
     }
@@ -311,7 +311,7 @@ Autoconfig::onSend (fty_proto_t **message)
         } else {
             try {
                 _containers.erase(device_name);
-            } catch(const std::exception &e ) {
+            } catch (const std::exception &e) {
                 zsys_error( "can't erase container %s: %s", device_name.c_str(), e.what() );
             }
         }
@@ -328,7 +328,7 @@ Autoconfig::onSend (fty_proto_t **message)
     } else {
         try {
             _configurableDevices.erase(device_name);
-        } catch(const std::exception &e ) {
+        } catch (const std::exception &e) {
             zsys_error( "can't erase device %s: %s", device_name.c_str(), e.what() );
         }
     }
@@ -388,9 +388,9 @@ void Autoconfig::onPoll( )
 void Autoconfig::setPollingInterval( )
 {
     _timeout = -1;
-    for( auto &it : _configurableDevices) {
-        if( ! it.second.configured ) {
-            if( it.second.date == 0 ) {
+    for ( auto &it : _configurableDevices) {
+        if ( ! it.second.configured ) {
+            if ( it.second.date == 0 ) {
                 // there is device that we didn't try to configure
                 // let's try to do it soon
                 _timeout = 5000;
@@ -416,11 +416,10 @@ void Autoconfig::loadState()
         _configurableDevices.clear();
         cxxtools::JsonDeserializer deserializer(in);
         deserializer.deserialize(_configurableDevices);
-    } catch(const std::exception &e ) {
+    } catch (const std::exception &e) {
         zsys_error( "can't parse state: %s", e.what() );
     }
 }
-
 
 void Autoconfig::cleanupState()
 {

@@ -290,7 +290,7 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
     assert(self);
     assert(msg);
     assert(fty_proto_name(msg));
-    s_alert_cache *c = (s_alert_cache *) malloc(sizeof(s_alert_cache));
+    s_alert_cache *c = (s_alert_cache *) malloc(sizeof (s_alert_cache));
     c->alert_msg = msg;
     c->last_notification = zclock_mono ();
     zsys_debug ("searching for %s", fty_proto_name (msg));
@@ -374,7 +374,7 @@ send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_ema
     zmsg_pushstr (email_msg, zuuid_str_canonical (uuid));
     const char *address = (self->integration_test) ? FTY_EMAIL_AGENT_ADDRESS_TEST : FTY_EMAIL_AGENT_ADDRESS;
     int rv = mlm_client_sendto (self->requestreply_client, address, subject, NULL, 5000, &email_msg);
-    if ( rv != 0) {
+    if (rv != 0) {
         zsys_error ("fty_alert_actions: cannot send %s message", subject);
         zuuid_destroy (&uuid);
         zmsg_destroy (&email_msg);
@@ -423,7 +423,7 @@ send_gpo_action(fty_alert_actions_t *self, char *gpo_iname, char *gpo_state)
                  gpo_iname,
                  gpo_state,
                  NULL);
-    if ( rv != 0) {
+    if (rv != 0) {
         zsys_error ("fty_alert_actions: cannot send GPO_INTERACTION message");
         return;
     }
@@ -716,7 +716,8 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
                 (streq (fty_proto_state (alert), "ACK-WIP") ||
                  streq (fty_proto_state (alert), "ACK-PAUSE") ||
                  streq (fty_proto_state (alert), "ACK-IGNORE") ||
-                 streq (fty_proto_state (alert), "ACK-SILENCE"))) {
+                 streq (fty_proto_state (alert), "ACK-SILENCE")))
+            {
                     changed = 1;
             }
             if (!streq(fty_proto_severity(search->alert_msg), fty_proto_severity(alert)) ||
@@ -772,7 +773,7 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
 //  Handle incoming assets through stream
 
 static void
-s_handle_stream_deliver_asset (fty_alert_actions_t *self, fty_proto_t **asset_p, const char *subject)
+s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, const char *subject)
 {
     zsys_debug("fty_alert_actions: s_handle_stream_deliver_asset called");
     assert (self);
@@ -870,7 +871,7 @@ s_handle_stream_deliver_asset (fty_alert_actions_t *self, fty_proto_t **asset_p,
 //  Handle incoming alerts through stream
 
 static void
-s_handle_stream_deliver (fty_alert_actions_t *self, zmsg_t** msg_p, const char *subject)
+s_handle_stream_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, const char *subject)
 {
     zsys_debug("fty_alert_actions: s_handle_stream_deliver called");
     assert (self);
@@ -894,7 +895,7 @@ s_handle_stream_deliver (fty_alert_actions_t *self, zmsg_t** msg_p, const char *
 //  Handle incoming alerts through pipe
 
 static int
-s_handle_pipe_deliver (fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeout)
+s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeout)
 {
     zsys_debug("fty_alert_actions: s_handle_pipe_deliver called");
     zmsg_t *msg = *msg_p;
@@ -932,21 +933,21 @@ s_handle_pipe_deliver (fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &time
         zstr_free (&pattern);
         zstr_free (&stream);
     }
-    else if (streq(cmd, "ASKFORASSETS")) {
+    else if (streq (cmd, "ASKFORASSETS")) {
         zsys_debug ("fty_alert_actions: asking for assets");
         zmsg_t *republish = zmsg_new ();
         int rv = mlm_client_sendto (self->client, FTY_ASSET_AGENT_ADDRESS, "REPUBLISH", NULL, 5000, &republish);
-        if ( rv != 0) {
+        if (rv != 0) {
             zsys_error ("fty_alert_actions: can't send REPUBLISH message");
         }
     }
-    else if (streq(cmd, "TESTTIMEOUT")) {
+    else if (streq (cmd, "TESTTIMEOUT")) {
         zsys_debug ("fty_alert_actions: setting test timeout to received value");
         char *rcvd = zmsg_popstr (msg);
         sscanf(rcvd, "%" SCNu64, &timeout);
         zstr_free (&rcvd);
     }
-    else if (streq(cmd, "TESTCHECKINTERVAL")) {
+    else if (streq (cmd, "TESTCHECKINTERVAL")) {
         zsys_debug ("fty_alert_actions: setting test interval for checks");
         char *rcvd = zmsg_popstr (msg);
         sscanf(rcvd, "%" SCNu64, &(self->notification_override));
@@ -962,7 +963,7 @@ s_handle_pipe_deliver (fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &time
 //  fty_alert_actions actor function
 
 void
-fty_alert_actions (zsock_t *pipe, void* args)
+fty_alert_actions(zsock_t *pipe, void* args)
 {
     zsys_debug("fty_alert_actions: fty_alert_actions called");
     fty_alert_actions_t *self = fty_alert_actions_new ();
@@ -1006,11 +1007,11 @@ fty_alert_actions (zsock_t *pipe, void* args)
         }
         // all other messages should be ignored
         else {
-            zsys_debug("fty_alert_actions: received message through '%s' from '%s' with subject '%s' that is ignored",
-                    mlm_client_address(self->client),
-                    mlm_client_sender(self->client),
-                    mlm_client_subject(self->client));
-            zmsg_destroy(&msg);
+            zsys_debug ("fty_alert_actions: received message through '%s' from '%s' with subject '%s' that is ignored",
+                    mlm_client_address (self->client),
+                    mlm_client_sender (self->client),
+                    mlm_client_subject (self->client));
+            zmsg_destroy (&msg);
         }
     }
     zpoller_destroy (&poller);
@@ -1044,103 +1045,106 @@ fty_alert_actions_test (bool verbose)
     //  @selftest
     // test 1, simple create/destroy self test
     {
-    zsys_debug("fty_alert_actions: test 1");
-    fty_alert_actions_t *self = fty_alert_actions_new ();
-    assert (self);
-    fty_alert_actions_destroy (&self);
+        zsys_debug("fty_alert_actions: test 1");
+        fty_alert_actions_t *self = fty_alert_actions_new ();
+        assert (self);
+        fty_alert_actions_destroy (&self);
     }
+
     // test 2, check alert interval calculation
     {
-    zsys_debug("fty_alert_actions: test 2");
-    s_alert_cache *cache = (s_alert_cache *) malloc(sizeof(s_alert_cache));
-    cache->alert_msg = fty_proto_new(FTY_PROTO_ALERT);
-    cache->related_asset = fty_proto_new(FTY_PROTO_ASSET);
+        zsys_debug("fty_alert_actions: test 2");
+        s_alert_cache *cache = (s_alert_cache *) malloc(sizeof(s_alert_cache));
+        cache->alert_msg = fty_proto_new(FTY_PROTO_ALERT);
+        cache->related_asset = fty_proto_new(FTY_PROTO_ASSET);
 
-    fty_proto_set_severity(cache->alert_msg, "CRITICAL");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-    assert(5  * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "CRITICAL");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
+        assert(5  * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "WARNING");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-    assert(1 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "WARNING");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
+        assert(1 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "INFO");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
-    assert(8 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "INFO");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)1);
+        assert(8 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "CRITICAL");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-    assert(15 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "CRITICAL");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
+        assert(15 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "WARNING");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-    assert(4 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "WARNING");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
+        assert(4 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "INFO");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
-    assert(24 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "INFO");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)3);
+        assert(24 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "CRITICAL");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-    assert(15 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "CRITICAL");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
+        assert(15 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "WARNING");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-    assert(4 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "WARNING");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
+        assert(4 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_set_severity(cache->alert_msg, "INFO");
-    fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
-    assert(24 * 60 * 60 == get_alert_interval(cache));
+        fty_proto_set_severity(cache->alert_msg, "INFO");
+        fty_proto_aux_insert(cache->related_asset, "priority", "%u", (unsigned int)5);
+        assert(24 * 60 * 60 == get_alert_interval(cache));
 
-    fty_proto_destroy(&cache->alert_msg);
-    fty_proto_destroy(&cache->related_asset);
-    free(cache);
+        fty_proto_destroy(&cache->alert_msg);
+        fty_proto_destroy(&cache->related_asset);
+        free(cache);
     }
+
     // test 3, simple create/destroy cache item test without need to send ASSET_DETAILS
     {
-    zsys_debug("fty_alert_actions: test 3");
-    fty_alert_actions_t *self = fty_alert_actions_new ();
-    assert (self);
-    fty_proto_t *asset = fty_proto_new(FTY_PROTO_ASSET);
-    assert (asset);
-    zhash_insert(self->assets_cache, "myasset-3", asset);
-    fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
-    assert (msg);
-    fty_proto_set_name(msg, "myasset-3");
+        zsys_debug("fty_alert_actions: test 3");
+        fty_alert_actions_t *self = fty_alert_actions_new ();
+        assert (self);
+        fty_proto_t *asset = fty_proto_new(FTY_PROTO_ASSET);
+        assert (asset);
+        zhash_insert(self->assets_cache, "myasset-3", asset);
+        fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
+        assert (msg);
+        fty_proto_set_name(msg, "myasset-3");
 
-    s_alert_cache *cache = new_alert_cache_item(self, msg);
-    assert(cache);
-    delete_alert_cache_item(cache);
+        s_alert_cache *cache = new_alert_cache_item(self, msg);
+        assert(cache);
+        delete_alert_cache_item(cache);
 
-    fty_proto_destroy(&asset);
-    fty_alert_actions_destroy (&self);
+        fty_proto_destroy(&asset);
+        fty_alert_actions_destroy (&self);
     }
+
     // test 4, simple create/destroy cache item test with need to send ASSET_DETAILS
     {
-    zsys_debug("fty_alert_actions: test 4");
-    SET_UUID((char *)"uuid-test");
-    zhash_t *aux = zhash_new();
-    zhash_t *ext = zhash_new();
-    zmsg_t *resp_msg = fty_proto_encode_asset(aux, "myasset-2", FTY_PROTO_ASSET_OP_UPDATE, ext);
-    zmsg_pushstr(resp_msg, GET_UUID);
-    assert(resp_msg);
-    INIT_RECV;
-    MSG_TO_RECV(resp_msg);
-    SET_SEND(0);
-    fty_alert_actions_t *self = fty_alert_actions_new ();
-    assert (self);
-    fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
-    assert (msg);
-    fty_proto_set_name(msg, "myasset-4");
+        zsys_debug("fty_alert_actions: test 4");
+        SET_UUID((char *) "uuid-test");
+        zhash_t *aux = zhash_new();
+        zhash_t *ext = zhash_new();
+        zmsg_t *resp_msg = fty_proto_encode_asset(aux, "myasset-2", FTY_PROTO_ASSET_OP_UPDATE, ext);
+        zmsg_pushstr(resp_msg, GET_UUID);
+        assert(resp_msg);
+        INIT_RECV;
+        MSG_TO_RECV(resp_msg);
+        SET_SEND(0);
+        fty_alert_actions_t *self = fty_alert_actions_new ();
+        assert (self);
+        fty_proto_t *msg = fty_proto_new(FTY_PROTO_ALERT);
+        assert (msg);
+        fty_proto_set_name(msg, "myasset-4");
 
-    s_alert_cache *cache = new_alert_cache_item(self, msg);
-    assert(cache);
-    delete_alert_cache_item(cache);
+        s_alert_cache *cache = new_alert_cache_item(self, msg);
+        assert(cache);
+        delete_alert_cache_item(cache);
 
-    fty_alert_actions_destroy (&self);
-    zhash_destroy(&aux);
-    zhash_destroy(&ext);
-    CLEAN_RECV;
+        fty_alert_actions_destroy (&self);
+        zhash_destroy(&aux);
+        zhash_destroy(&ext);
+        CLEAN_RECV;
     }
 
     // test 5, processing of alerts from stream
@@ -1162,7 +1166,7 @@ fty_alert_actions_test (bool verbose)
         zlist_t *actions = zlist_new ();
         zlist_autofree (actions);
         zlist_append (actions, (void *) "SMS");
-        zlist_append (actions, (void *)"EMAIL");
+        zlist_append (actions, (void *) "EMAIL");
         zmsg_t *msg = fty_proto_encode_alert
                         (NULL,
                          ::time (NULL),
@@ -1262,7 +1266,7 @@ fty_alert_actions_test (bool verbose)
         // + delete the asset + check that alert disappeared
 
         zsys_debug("fty_alert_actions: test 7");
-        SET_UUID((char *)"uuid-test");
+        SET_UUID((char *) "uuid-test");
         zmsg_t *resp_msg = zmsg_new ();
         zmsg_addstr(resp_msg, GET_UUID);
         zmsg_addstr(resp_msg, "OK");
@@ -1276,10 +1280,10 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info
         const char *asset_name = "ASSET1";
         zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
-        zhash_insert (ext, "contact_email", (void *)"scenario1.email@eaton.com");
-        zhash_insert (ext, "contact_name", (void *)"eaton Support team");
+        zhash_insert (ext, "contact_email", (void *) "scenario1.email@eaton.com");
+        zhash_insert (ext, "contact_name", (void *) "eaton Support team");
         zhash_insert (ext, "name", (void *) asset_name);
         zmsg_t *msg = fty_proto_encode_asset
                         (aux,
@@ -1364,10 +1368,10 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info
         const char *asset_name = "ASSET";
         zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
-        zhash_insert (ext, "contact_email", (void *)"scenario1.email@eaton.com");
-        zhash_insert (ext, "contact_name", (void *)"eaton Support team");
+        zhash_insert (ext, "contact_email", (void *) "scenario1.email@eaton.com");
+        zhash_insert (ext, "contact_name", (void *) "eaton Support team");
         zhash_insert (ext, "name", (void *) asset_name);
         zmsg_t *msg = fty_proto_encode_asset
                         (aux,
@@ -1443,10 +1447,10 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info
         const char *asset_name1 = "GPO1";
         zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
-        zhash_insert (ext, "contact_email", (void *)"scenario1.email@eaton.com");
-        zhash_insert (ext, "contact_name", (void *)"eaton Support team");
+        zhash_insert (ext, "contact_email", (void *) "scenario1.email@eaton.com");
+        zhash_insert (ext, "contact_name", (void *) "eaton Support team");
         zhash_insert (ext, "name", (void *) asset_name1);
         zmsg_t *msg = fty_proto_encode_asset
                         (aux,
@@ -1510,9 +1514,9 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info
         const char *asset_name = "ASSET2";
         zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
-        zhash_insert (ext, "contact_name", (void *)"eaton Support team");
+        zhash_insert (ext, "contact_name", (void *) "eaton Support team");
         zhash_insert (ext, "name", (void *) asset_name);
         zmsg_t *msg = fty_proto_encode_asset (aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert (msg);
@@ -1571,9 +1575,9 @@ fty_alert_actions_test (bool verbose)
         zsys_debug("fty_alert_actions: test 11");
         const char *asset_name = "ASSET3";
         zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
-        zhash_insert (ext, "contact_email", (void *)"eaton Support team");
+        zhash_insert (ext, "contact_email", (void *) "eaton Support team");
         zhash_insert (ext, "name", (void *) asset_name);
         zmsg_t *msg = fty_proto_encode_asset (aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert (msg);
@@ -1649,9 +1653,9 @@ fty_alert_actions_test (bool verbose)
         zsys_debug("fty_alert_actions: test 12");
         const char *asset_name = "ASSET4";
         zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
-        zhash_insert (ext, "contact_email", (void *)"eaton Support team");
+        zhash_insert (ext, "contact_email", (void *) "eaton Support team");
         zhash_insert (ext, "name", (void *) asset_name);
         zmsg_t *msg = fty_proto_encode_asset (aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert (msg);
@@ -1702,7 +1706,7 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info without email
         zhash_t *aux = zhash_new ();
         assert (aux);
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
         assert (ext);
         zhash_insert (ext, "name", (void *) asset_name6);
@@ -1757,7 +1761,7 @@ fty_alert_actions_test (bool verbose)
         zstr_free (&zuuid_str);
 
         //      5. send asset info one more time, but with email
-        zhash_insert (ext, "contact_email", (void *)"scenario6.email@eaton.com");
+        zhash_insert (ext, "contact_email", (void *) "scenario6.email@eaton.com");
         msg = fty_proto_encode_asset (aux, asset_name6, "update", ext);
         assert (msg);
         rv = mlm_client_send (asset_producer, "Asset message6", &msg);
@@ -1809,7 +1813,7 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info without email
         zhash_t *aux = zhash_new ();
         assert (aux);
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
         assert (ext);
         zhash_insert (ext, "name", (void *) asset_name);
@@ -1832,10 +1836,10 @@ fty_alert_actions_test (bool verbose)
                  600,
                  "Scenario7",
                  asset_name,
-                "ACTIVE",
-                "CRITICAL",
-                "ASDFKLHJH",
-                actions);
+                 "ACTIVE",
+                 "CRITICAL",
+                 "ASDFKLHJH",
+                 actions);
         assert (msg);
         mlm_client_send (alert_producer, atopic.c_str(), &msg);
         zlist_destroy (&actions);
@@ -1892,7 +1896,7 @@ fty_alert_actions_test (bool verbose)
         zstr_sendx (alert_actions, "TESTTIMEOUT", "1000", NULL);
         zstr_sendx (alert_actions, "TESTCHECKINTERVAL", "20000", NULL);
         zsys_debug ("sleeping for 20 seconds...");
-        zclock_sleep (20*1000);
+        zclock_sleep (20 * 1000);
         //      7. send an alert again
         actions = zlist_new ();
         zlist_autofree (actions);
@@ -1936,7 +1940,7 @@ fty_alert_actions_test (bool verbose)
         //      1. send asset info without email
         zhash_t *aux = zhash_new ();
         assert (aux);
-        zhash_insert (aux, "priority", (void *)"1");
+        zhash_insert (aux, "priority", (void *) "1");
         zhash_t *ext = zhash_new ();
         assert (ext);
         zhash_insert (ext, "name", (void *) asset_name8);
@@ -2018,7 +2022,7 @@ fty_alert_actions_test (bool verbose)
         zstr_free (&zuuid_str);
 
         //      5. send asset info one more time, but with email
-        zhash_insert (ext, "contact_email", (void *)"scenario8.email@eaton.com");
+        zhash_insert (ext, "contact_email", (void *) "scenario8.email@eaton.com");
         msg = fty_proto_encode_asset (aux, asset_name8, "update", ext);
         assert (msg);
         rv = mlm_client_send (asset_producer, "Asset message8", &msg);
@@ -2027,6 +2031,7 @@ fty_alert_actions_test (bool verbose)
         zhash_destroy (&aux);
         zhash_destroy (&ext);
         zclock_sleep (1000);
+
         //      6. send alert message again second
         actions = zlist_new ();
         zlist_autofree (actions);

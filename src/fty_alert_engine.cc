@@ -36,7 +36,6 @@ static const char *AUTOCONFIG_NAME = "fty-autoconfig";
 // malamute endpoint
 static const char *ENDPOINT = "ipc://@/malamute";
 
-
 int main (int argc, char** argv)
 {
     bool set_verbose = false;
@@ -58,17 +57,20 @@ int main (int argc, char** argv)
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
     zstr_sendx (ag_server, "CONSUMER", FTY_PROTO_STREAM_METRICS_SENSOR, "status.*", NULL);
 
+    //autoconfig
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
-    if (set_verbose)
+    if (set_verbose) {
         zstr_sendx (ag_configurator, "VERBOSE", NULL);
+    }
     zstr_sendx (ag_configurator, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL);
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
 
     zactor_t *ag_actions = zactor_new (fty_alert_actions, (void*) ACTIONS_AGENT_NAME);
-    if (set_verbose)
+    if (set_verbose) {
         zstr_sendx (ag_actions, "VERBOSE", NULL);
+    }
     zstr_sendx (ag_actions, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
