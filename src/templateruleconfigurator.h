@@ -22,10 +22,6 @@
 #ifndef TEMPLATERULECONFIGURATOR_H_INCLUDED
 #define TEMPLATERULECONFIGURATOR_H_INCLUDED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <string>
 #include <fstream>
 
@@ -51,10 +47,5 @@ class TemplateRuleConfigurator : public RuleConfigurator {
         bool isModelOk (const std::string &model, const std::string &templat);
 
 };
-
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

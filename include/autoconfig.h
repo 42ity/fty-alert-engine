@@ -26,10 +26,6 @@
 #include <string>
 #include <malamute.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define TIMEOUT 1000
 
 struct AutoConfigurationInfo
@@ -160,8 +156,5 @@ class Autoconfig {
         int _timeout = 2000;
         std::string _agentName;
 };
-#ifdef __cplusplus
-}
-#endif
 
 #endif
