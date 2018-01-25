@@ -521,9 +521,7 @@ fty_alert_engine_stream(
     assert (poller);
 
     uint64_t timeout = 30000;
-
     zsock_signal (pipe, 0);
-
     int64_t timeCash = zclock_mono();
 
     while (!zsys_interrupted) {
@@ -672,12 +670,10 @@ fty_alert_engine_stream(
                 fty_proto_destroy (&bmessage);
                 continue;
             }
-
             zsys_debug1("%s: Got message '%s' with value %s", name, topic.c_str(), value);
 
             // Update cache with new value
             MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
-            fty_proto_destroy (&bmessage);
             cache.addMetric (m);
 
             //search if this metric is already evaluated and if this metric is evaluate
@@ -699,68 +695,21 @@ fty_alert_engine_stream(
             }
             fty_proto_destroy (&bmessage);
         }
-/* Temporary comment-away while backporting
-        // According RFC we expect here a messages
-        // with the topic:
-        //   * RULES_SUBJECT
-        if (zmessage && subject == RULES_SUBJECT) {
-            zsys_debug1 ("%s", RULES_SUBJECT);
-            // Here we can have:
-            //  * request for list of rules
-            //  * get detailed info about the rule
-            //  * new/update rule
-            //  * touch rule
-            char *command = zmsg_popstr (zmessage);
-            char *param = zmsg_popstr (zmessage);
-            if (command && param) {
-                if (streq (command, "LIST")) {
-                    char *rule_class = zmsg_popstr (zmessage);
-                    list_rules (client, param, rule_class, alertConfiguration);
-                    zstr_free (&rule_class);
-                }
-                else if (streq (command, "GET")) {
-                    get_rule (client, param, alertConfiguration);
-                }
-                else if (streq (command, "ADD")) {
-                    if ( zmsg_size (zmessage) == 0 ) {
-                        // ADD/json
-                        add_rule (client, param, alertConfiguration);
-                    }
-                    else {
-                        // ADD/json/old_name
-                        char *param1 = zmsg_popstr (zmessage);
-                        update_rule (client, param, param1, alertConfiguration);
-                        if (param1) free (param1);
-                    }
-                }
-                else if (streq (command, "TOUCH")) {
-                    touch_rule (client, param, alertConfiguration, true);
-                }
-                else {
-                    zsys_error ("Received unexpected message to MAILBOX with command '%s'", command);
-                }
-            }
-            zstr_free (&command);
-            zstr_free (&param);
-        } else if (zmessage) {
-*/
-        else {
+        if (zmessage) {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
             //  * METRIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
-            if (streq (command, "METRICUNAVAILABLE")) {
+            if (streq(command, "METRICUNAVAILABLE")) {
                 char *metrictopic = zmsg_popstr (zmessage);
                 if (metrictopic) {
                     check_metrics (client, metrictopic, alertConfiguration);
-                }
-                else {
-                    zsys_error ("%s: Received command '%s', but message has bad format", name, command);
+                } else {
+                    zsys_error ("%s: Received stream command '%s', but message has bad format", name, command);
                 }
                 zstr_free (&metrictopic);
-            }
-            else {
-                zsys_error ("%s: Unexcepted message received", name);
+            } else {
+                zsys_error ("%s: Unexcepted stream message received with command : %s", name, command);
             }
             zstr_free (&command);
         }

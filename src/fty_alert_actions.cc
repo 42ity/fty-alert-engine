@@ -1018,13 +1018,11 @@ fty_alert_actions(zsock_t *pipe, void* args)
             continue;
         }
         // all other messages should be ignored
-        else {
-            zsys_debug ("fty_alert_actions: received message through '%s' from '%s' with subject '%s' that is ignored",
-                    mlm_client_address (self->client),
-                    mlm_client_sender (self->client),
-                    mlm_client_subject (self->client));
-            zmsg_destroy (&msg);
-        }
+        zsys_debug ("fty_alert_actions: received message through '%s' from '%s' with subject '%s' that is ignored",
+                mlm_client_address (self->client),
+                mlm_client_sender (self->client),
+                mlm_client_subject (self->client));
+        zmsg_destroy (&msg);
     }
     zpoller_destroy (&poller);
     fty_alert_actions_destroy (&self);
