@@ -827,7 +827,7 @@ fty_alert_engine_server_test(
         assert (streq (foo, ""));
         zstr_free (&foo);
         zmsg_destroy (&recv);
-        }
+    }
 
     // Test case #2.0: add new rule
     {
@@ -1263,6 +1263,7 @@ fty_alert_engine_server_test(
         zstr_free (&foo);
         zmsg_destroy (&recv);
     }
+
     // test case #17 update the existing rule (type: threshold_simple)
     // input:
     //          * file check_update_threshold_simple.rule
@@ -1337,21 +1338,21 @@ fty_alert_engine_server_test(
         zsys_info ("######## Test case #18.2 evaluate some rule (type: pattern)");
         //  18.2.1. OK
         zmsg_t *m = fty_proto_encode_metric (
-                NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "100", "some description");
+                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "100", "some description");
         mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
         // 18.2.1.1. No ALERT should be generated
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
         void *which = zpoller_wait (poller, 1000);
         assert ( which == NULL );
-        if ( verbose ) {
+        if (verbose) {
             zsys_debug ("No alert was sent: SUCCESS");
         }
         zpoller_destroy (&poller);
 
         // 18.2.2 LOW_WARNING
         m = fty_proto_encode_metric (
-                NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "20", "some description");
+                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "20", "some description");
         mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1366,7 +1367,7 @@ fty_alert_engine_server_test(
 
         // 18.2.3 LOW_CRITICAL
         m = fty_proto_encode_metric (
-                NULL, ::time (NULL), 24*60*60, "end_warranty_date", "UPS_pattern_rule", "2", "some description");
+                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "2", "some description");
         mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1403,7 +1404,6 @@ fty_alert_engine_server_test(
         zstr_free (&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy (&recv);
-
 
         //      21.1.2  add existing rule second time: devicethreshold
         zsys_info ("######## Test case #21.1.2 add existing rule second time: devicethreshold");
@@ -1455,17 +1455,17 @@ fty_alert_engine_server_test(
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
         void *which = zpoller_wait (poller, 1000);
         assert ( which == NULL );
-        if ( verbose ) {
+        if (verbose) {
             zsys_debug ("No alert was sent: SUCCESS");
         }
         zpoller_destroy (&poller);
-        }
-        // Test 22: a simple threshold with not double value
-        // actually, this "behaviour" would automatically apply to ALL rules,
-        // as it is implemented in rule.class
-        // 22-1 : "A40"
-        {
-        zsys_info ("######## Test case #22-1 a simple threshold with not double value (A40)");
+    }
+
+    // Test 22: a simple threshold with not double value
+    // actually, this "behaviour" would automatically apply to ALL rules,
+    // as it is implemented in rule.class
+    // 22-1 : "A40"
+    {
         zmsg_t *rule = zmsg_new();
         zmsg_addstr (rule, "ADD");
         char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str());
@@ -1571,7 +1571,7 @@ fty_alert_engine_server_test(
         assert (poller);
         void *which = zpoller_wait (poller, 1000);
         assert ( which == NULL );
-        if ( verbose ) {
+        if (verbose) {
             zsys_debug ("No alert was sent: SUCCESS");
         }
         zpoller_destroy (&poller);
@@ -1770,14 +1770,16 @@ fty_alert_engine_server_test(
         // 25.7 clean up
         mlm_client_destroy (&metric_unavailable);
     }
+
     // # 26 - # 29 : test autoconfig
     mlm_client_t *asset_producer = mlm_client_new ();
     mlm_client_connect (asset_producer, endpoint, 1000, "asset_producer");
     mlm_client_set_producer (asset_producer, FTY_PROTO_STREAM_ASSETS);
 
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) "test-autoconfig");
-    if (verbose)
-            zstr_send (ag_configurator, "VERBOSE");
+    if (verbose) {
+        zstr_send (ag_configurator, "VERBOSE");
+    }
     zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
@@ -1835,6 +1837,7 @@ fty_alert_engine_server_test(
         assert (streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
     }
+
     // # 27.1 update the created asset, check that we have the rules, wait for 3*ttl,
     // refresh the metric, check that we still have the alert
     {
@@ -1866,7 +1869,7 @@ fty_alert_engine_server_test(
         assert (realpower_default == NULL && phase_imbalance == NULL); */
 
         int ttl = 60;
-        zclock_sleep (3*ttl);
+        zclock_sleep (3 * ttl);
         m = fty_proto_encode_metric (
             NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
         assert (m);
@@ -1881,11 +1884,12 @@ fty_alert_engine_server_test(
         assert (streq (fty_proto_name (brecv), "test"));
         assert (streq (fty_proto_state (brecv), "ACTIVE"));
         assert (streq (fty_proto_severity (brecv), "CRITICAL"));
-        if ( verbose ) {
+        if (verbose) {
             zsys_debug ("Alert was sent: SUCCESS");
         }
         fty_proto_destroy (&brecv);
     }
+
     // # 28 update the created asset to something completely different, check that alert is resolved
     // and that we deleted old rules and created new
 
