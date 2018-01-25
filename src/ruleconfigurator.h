@@ -22,10 +22,6 @@
 #ifndef RULECONFIGURATOR_H_INCLUDED
 #define RULECONFIGURATOR_H_INCLUDED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <string>
 #include <string>
 #include <map>
@@ -58,9 +54,5 @@ class RuleConfigurator {
     virtual ~RuleConfigurator() {};
 
 };
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
