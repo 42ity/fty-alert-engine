@@ -16,6 +16,16 @@
         <option name = "triggers_pollSCM" value = "H/2 * * * *" />
         <option name = "test_cppcheck" value = "1" />
         <option name = "build_docs" value = "1" />
+        <option name = "dist_docs" value = "1" />
+        <option name = "check_sequential" value = "0" />
+        <option name = "use_test_retry" value = "3" />
+        <option name = "use_test_timeout" value = "30" />
+        <option name = "use_deleteDir_rm_first" value = "1" />
+        <!-- Note: Jenkinsfile is amended for longer test timeouts and 'rm -rf'
+             before deleteDir() due to non-ASCII filenames used in tests.
+             This selftest job generates files with non-ASCII names which
+             upset the Jenkins remote file IO agent, in our version at least
+         -->
     </target>
 
     <include filename = "license.xml" />
@@ -53,8 +63,8 @@
         repository = "https://github.com/42ity/cxxtools.git"
         release = "release/IPM_Infra-1.3" />
 
-    <class name = "metriclist" private="1">MetricList</class>
-    <class name = "alertconfiguration" private="1" selftest = "0">alertconfiguration</class>
+    <class name = "metriclist" private="1" selftest="0">MetricList</class>
+    <class name = "alertconfiguration" private="1">alertconfiguration</class>
     <class name = "luarule" private="1" selftest = "0">luaRule</class>
     <class name = "purealert" private="1" selftest = "0">PureAlert</class>
     <class name = "rule" private="1" selftest = "0">Rule</class>
