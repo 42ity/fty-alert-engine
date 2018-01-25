@@ -201,7 +201,7 @@ void fty_proto_destroy_wrapper (void *x) {
 fty_alert_actions_t *
 fty_alert_actions_new (void)
 {
-    zsys_debug("fty_alert_actions: fty_alert_actions_new called");
+    //zsys_debug("fty_alert_actions: fty_alert_actions_new called");
     fty_alert_actions_t *self = (fty_alert_actions_t *) zmalloc (sizeof (fty_alert_actions_t));
     assert (self);
     //  Initialize class properties here
@@ -229,7 +229,7 @@ fty_alert_actions_new (void)
 void
 fty_alert_actions_destroy (fty_alert_actions_t **self_p)
 {
-    zsys_debug("fty_alert_actions: fty_alert_actions_destroy called");
+    //zsys_debug("fty_alert_actions: fty_alert_actions_destroy called");
     assert (self_p);
     if (*self_p) {
         fty_alert_actions_t *self = *self_p;
@@ -268,7 +268,7 @@ get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
     if (override_time > 0) {
         return override_time;
     }
-    zsys_debug("fty_alert_actions: get_alert_interval called");
+    //zsys_debug("fty_alert_actions: get_alert_interval called");
     std::string severity = fty_proto_severity(alert_cache->alert_msg);
     uint8_t priority = (uint8_t) fty_proto_aux_number(alert_cache->related_asset, "priority", 0);
     std::pair <std::string, uint8_t> key = {severity, priority};
@@ -287,7 +287,7 @@ get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
 s_alert_cache *
 new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
 {
-    zsys_debug("fty_alert_actions: new_alert_cache_item called");
+    //zsys_debug("fty_alert_actions: new_alert_cache_item called");
     assert(self);
     assert(msg);
     assert(fty_proto_name(msg));
@@ -331,7 +331,7 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
         }
         zuuid_destroy (&uuid);
     } else {
-        zsys_debug("fty_alert_actions: found related asset.");
+        //zsys_debug("fty_alert_actions: found related asset.");
     }
     return c;
 }
@@ -343,7 +343,7 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
 void
 delete_alert_cache_item(void *c)
 {
-    zsys_debug("fty_alert_actions: delete_alert_cache_item called");
+    //zsys_debug("fty_alert_actions: delete_alert_cache_item called");
     fty_proto_destroy (&((s_alert_cache *)c)->alert_msg);
     free(c);
 }
@@ -640,7 +640,7 @@ action_resolve(fty_alert_actions_t *self, s_alert_cache *alert_item)
 void
 check_timed_out_alerts(fty_alert_actions_t *self)
 {
-    zsys_debug("fty_alert_actions: check_timed_out_alerts called");
+    //zsys_debug("fty_alert_actions: check_timed_out_alerts called");
     s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
     uint64_t now = zclock_mono ();
     while (NULL != it) {
@@ -651,7 +651,7 @@ check_timed_out_alerts(fty_alert_actions_t *self)
         }
         it = (s_alert_cache *) zhash_next(self->alerts_cache);
     }
-    zsys_debug("fty_alert_actions: check_timed_out_alerts check done");
+    //zsys_debug("fty_alert_actions: check_timed_out_alerts check done");
 }
 
 
@@ -661,7 +661,7 @@ check_timed_out_alerts(fty_alert_actions_t *self)
 void
 check_alerts_and_send_if_needed(fty_alert_actions_t *self)
 {
-    zsys_debug("fty_alert_actions: check_alerts_and_send_if_needed called");
+    //zsys_debug("fty_alert_actions: check_alerts_and_send_if_needed called");
     s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
     uint64_t now = zclock_mono ();
     while (NULL != it) {
@@ -672,7 +672,7 @@ check_alerts_and_send_if_needed(fty_alert_actions_t *self)
         }
         it = (s_alert_cache *) zhash_next(self->alerts_cache);
     }
-    zsys_debug("fty_alert_actions: check_alerts_and_send_if_needed check done");
+    //zsys_debug("fty_alert_actions: check_alerts_and_send_if_needed check done");
 }
 
 
@@ -682,7 +682,7 @@ check_alerts_and_send_if_needed(fty_alert_actions_t *self)
 static void
 s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p, const char *subject)
 {
-    zsys_debug("fty_alert_actions: s_handle_stream_deliver_alert called");
+    //zsys_debug("fty_alert_actions: s_handle_stream_deliver_alert called");
     assert (self);
     assert (alert_p);
     assert (subject);
@@ -780,7 +780,7 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
 static void
 s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, const char *subject)
 {
-    zsys_debug("fty_alert_actions: s_handle_stream_deliver_asset called");
+    //zsys_debug("fty_alert_actions: s_handle_stream_deliver_asset called");
     assert (self);
     assert (asset_p);
     assert (subject);
@@ -878,7 +878,7 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
 static void
 s_handle_stream_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, const char *subject)
 {
-    zsys_debug("fty_alert_actions: s_handle_stream_deliver called");
+    //zsys_debug("fty_alert_actions: s_handle_stream_deliver called");
     assert (self);
     assert (msg_p);
     fty_proto_t *proto_msg = fty_proto_decode (msg_p);
@@ -902,7 +902,7 @@ s_handle_stream_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, const char *s
 static int
 s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeout)
 {
-    zsys_debug("fty_alert_actions: s_handle_pipe_deliver called");
+    //zsys_debug("fty_alert_actions: s_handle_pipe_deliver called");
     zmsg_t *msg = *msg_p;
     char *cmd = zmsg_popstr (msg);
 
@@ -970,7 +970,7 @@ s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeo
 void
 fty_alert_actions(zsock_t *pipe, void* args)
 {
-    zsys_debug("fty_alert_actions: fty_alert_actions called");
+    //zsys_debug("fty_alert_actions: fty_alert_actions called");
     fty_alert_actions_t *self = fty_alert_actions_new ();
     assert(self);
     self->name = (char*) args;
