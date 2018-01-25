@@ -63,20 +63,24 @@ list_rules(
     const char *ruleclass,
     AlertConfiguration &ac)
 {
-    std::function<bool(const std::string& s)> filter_f;
-    if (streq (type,"all")) {
-        filter_f = [](const std::string& s) {return true; };
-    }
-    else if (streq (type,"threshold")) {
-        filter_f = [](const std::string& s) {return s.compare ("threshold") == 0; };
-    }
-    else if (streq (type,"single")) {
-        filter_f = [](const std::string& s) {return s.compare ("single") == 0; };
-    }
-    else if (streq (type,"pattern")) {
-        filter_f = [](const std::string& s) {return s.compare ("pattern") == 0; };
-    }
-    else {
+    std::function<bool(const std::string & s) > filter_f;
+    if (streq (type, "all")) {
+        filter_f = [](const std::string & s) {
+            return true;
+        };
+    } else if (streq (type, "threshold")) {
+        filter_f = [](const std::string & s) {
+            return s.compare ("threshold") == 0;
+        };
+    } else if (streq (type, "single")) {
+        filter_f = [](const std::string & s) {
+            return s.compare ("single") == 0;
+        };
+    } else if (streq (type, "pattern")) {
+        filter_f = [](const std::string & s) {
+            return s.compare ("pattern") == 0;
+        };
+    } else {
         //invalid type
         zsys_warning ("type '%s' is invalid", type);
         zmsg_t *reply = zmsg_new ();
@@ -101,7 +105,7 @@ list_rules(
     //      >
     // >
     zsys_debug1 ("number of all rules = '%zu'", ac.size ());
-    for (const auto &i: ac) {
+    for (const auto &i : ac) {
         const auto& rule = i.first;
         if (! (filter_f (rule->whoami ()) && (rclass.empty() || rule->rule_class() == rclass)) ) {
             zsys_debug1 ("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
@@ -121,7 +125,7 @@ get_rule(
 {
     assert (name != NULL);
     zsys_debug1 ("number of all rules = '%zu'", ac.size ());
-    for (const auto& i: ac) {
+    for (const auto& i : ac) {
         const auto &rule = i.first;
         if (rule->hasSameNameAs (name))
         {
@@ -152,7 +156,7 @@ makeActionList(
 {
     zlist_t *res = zlist_new();
     for (const auto& oneAction : actions) {
-        zlist_append(res, const_cast<char*>(oneAction.c_str()));
+        zlist_append(res, const_cast<char*> (oneAction.c_str()));
     }
     return res;
 }
@@ -180,7 +184,7 @@ send_alerts(
             actions
         );
         zlist_destroy(&actions);
-        if( msg ) {
+        if (msg) {
             std::string atopic = rule_name + "/"
                 + alert._severity + "@"
                 + alert._element;
@@ -349,7 +353,6 @@ update_rule(
     }
 }
 
-
 static void
 touch_rule(
     mlm_client_t *client,
@@ -361,7 +364,8 @@ touch_rule(
 
     int rv = ac.touchRule (rule_name, alertsToSend);
     switch (rv) {
-        case -1: {
+        case -1:
+        {
             zsys_debug1 ("touch_rule:%s: Rule was not found", rule_name);
             // ERROR rule doesn't exist
             if ( send_reply ) {
@@ -376,7 +380,8 @@ touch_rule(
             }
             return;
         }
-        case 0: {
+        case 0:
+        {
             // rule was touched
             // send a reply back
             zsys_debug1 ("touch_rule:%s: ok", rule_name);
@@ -396,12 +401,13 @@ touch_rule(
     }
 }
 
-void check_metrics (
+void
+check_metrics(
     mlm_client_t *client,
     const char *metric_topic,
     AlertConfiguration &ac)
 {
-    for ( const auto &i: ac) {
+    for (const auto &i : ac) {
         const auto &rule = i.first;
         if ( rule->isTopicInteresting (metric_topic) ) {
             touch_rule (client, rule->name().c_str(), ac, false);
@@ -417,12 +423,12 @@ evaluate_metric(
     AlertConfiguration &ac)
 {
     // Go through all known rules, and try to evaluate them
-    for ( const auto &i : ac ) {
+    for (const auto &i : ac) {
         const auto &rule = i.first;
         try {
             bool is_interresting = rule->isTopicInteresting (triggeringMetric.generateTopic());
 
-            if ( !is_interresting) {
+            if ( !is_interresting ) {
                 continue;
             }
             zsys_debug1 (" ### Evaluate rule '%s'", rule->name().c_str());
@@ -443,15 +449,16 @@ evaluate_metric(
                 continue;
             }
             send_alerts (client, {alertToSend}, rule);
-        }
-        catch ( const std::exception &e) {
+        } catch (const std::exception &e) {
             zsys_error ("CANNOT evaluate rule, because '%s'", e.what());
         }
     }
 }
 
 void
-fty_alert_engine_server (zsock_t *pipe, void* args)
+fty_alert_engine_server(
+    zsock_t *pipe,
+    void* args)
 {
     MetricList cache; // need to track incoming measurements
     AlertConfiguration alertConfiguration;
@@ -598,11 +605,11 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
             std::string topic = element.first;
             fty_proto_t *bmessage = element.second;
             // process as metric message
-            const char *type = fty_proto_type(bmessage);
+            const char *type = fty_proto_type (bmessage);
             const char * name = fty_proto_name (bmessage);
-            const char *value = fty_proto_value(bmessage);
-            const char *unit = fty_proto_unit(bmessage);
-            uint32_t ttl = fty_proto_ttl(bmessage);
+            const char *value = fty_proto_value (bmessage);
+            const char *unit = fty_proto_unit (bmessage);
+            uint32_t ttl = fty_proto_ttl (bmessage);
             uint64_t timestamp = fty_proto_aux_number (bmessage, "time", ::time(NULL));
             // TODO: 2016-04-27 ACE: fix it later, when "string" values
             // in the metric would be considered as
@@ -628,10 +635,10 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
 
             // Update cache with new value
             MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
-            fty_proto_destroy(&bmessage);
+            fty_proto_destroy (&bmessage);
             cache.addMetric (m);
-            cache.removeOldMetrics();
-            evaluate_metric(client, m, cache, alertConfiguration);
+            cache.removeOldMetrics ();
+            evaluate_metric (client, m, cache, alertConfiguration);
             fty_proto_destroy (&bmessage);
         }
         // According RFC we expect here a messages
@@ -655,8 +662,8 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                 else if (streq (command, "GET")) {
                     get_rule (client, param, alertConfiguration);
                 }
-                else if (streq (command, "ADD") ) {
-                    if ( zmsg_size(zmessage) == 0 ) {
+                else if (streq (command, "ADD")) {
+                    if ( zmsg_size (zmessage) == 0 ) {
                         // ADD/json
                         add_rule (client, param, alertConfiguration);
                     }
@@ -666,7 +673,8 @@ fty_alert_engine_server (zsock_t *pipe, void* args)
                         update_rule (client, param, param1, alertConfiguration);
                         if (param1) free (param1);
                     }
-                } else if (streq (command, "TOUCH") ) {
+                }
+                else if (streq (command, "TOUCH")) {
                     touch_rule (client, param, alertConfiguration, true);
                 }
                 else {
@@ -706,7 +714,9 @@ exit:
 //  Self test of this class.
 
 static char*
-s_readall (const char* filename) {
+s_readall(
+    const char* filename)
+{
     FILE *fp = fopen(filename, "rt");
     if (!fp)
         return NULL;
@@ -732,9 +742,9 @@ s_readall (const char* filename) {
     return NULL;
 }
 
-
 void
-fty_alert_engine_server_test (bool verbose)
+fty_alert_engine_server_test(
+    bool verbose)
 {
     // Note: If your selftest reads SCMed fixture data, please keep it in
     // src/selftest-ro; if your test creates filesystem objects, please
@@ -2029,7 +2039,6 @@ fty_alert_engine_server_test (bool verbose)
         "K\xc3\xa1rol",
         "супер test",
         "\u0441\u0443\u043f\u0435\u0440 Test"
-
     };
 
     assert (utf8eq (strings[0], strings[1]) == 1);
