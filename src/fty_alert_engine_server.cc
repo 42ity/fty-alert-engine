@@ -71,6 +71,7 @@ clearEvaluateMetrics() {
     evaluateMetrics.clear();
 }
 
+//static
 void
 list_rules(
     mlm_client_t *client,
@@ -134,6 +135,7 @@ list_rules(
     mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
 }
 
+//static
 void
 get_rule(
     mlm_client_t *client,
@@ -180,6 +182,7 @@ makeActionList(
     return res;
 }
 
+//static
 void
 send_alerts(
     mlm_client_t *client,
@@ -213,6 +216,7 @@ send_alerts(
     }
 }
 
+//static
 void
 send_alerts(
     mlm_client_t *client,
@@ -222,6 +226,7 @@ send_alerts(
     send_alerts (client, alertsToSend, rule->name());
 }
 
+//static
 void
 add_rule(
     mlm_client_t *client,
@@ -303,6 +308,7 @@ add_rule(
     }
 }
 
+//static
 void
 update_rule(
     mlm_client_t *client,
@@ -389,6 +395,7 @@ update_rule(
     }
 }
 
+//static
 void
 touch_rule(
     mlm_client_t *client,
@@ -454,6 +461,7 @@ check_metrics(
     }
 }
 
+//static
 bool
 evaluate_metric(
     mlm_client_t *client,
@@ -863,6 +871,7 @@ exit:
 //  --------------------------------------------------------------------------
 //  Self test of this class.
 
+//static
 char*
 s_readall(
     const char* filename)
