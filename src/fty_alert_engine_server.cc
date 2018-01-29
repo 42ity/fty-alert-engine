@@ -948,7 +948,7 @@ fty_alert_engine_server_test(
         zstr_send (ag_server_stream, "VERBOSE");
         zstr_send (ag_server_mail, "VERBOSE");
     }
-    zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW + "/").c_str(), NULL);
+    zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
     zstr_sendx (ag_server_mail, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
@@ -1956,7 +1956,7 @@ fty_alert_engine_server_test(
         int rv = mlm_client_send (asset_producer, "datacenter.@test", &m);
         assert ( rv == 0 );
 
-        zclock_sleep (6000);
+        zclock_sleep (20000);
 
         char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str());
         assert (average_humidity);
@@ -2009,7 +2009,7 @@ fty_alert_engine_server_test(
         int rv = mlm_client_send (asset_producer, "row.@test", &m);
         assert ( rv == 0 );
 
-        zclock_sleep (6000);
+        zclock_sleep (20000);
 
         char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str());
         assert (average_humidity);
