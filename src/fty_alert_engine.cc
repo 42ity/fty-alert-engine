@@ -73,8 +73,9 @@ int main (int argc, char** argv)
     if (set_verbose) {
         zstr_sendx (ag_configurator, "VERBOSE", NULL);
     }
+    zstr_sendx (ag_configurator, "CONFIG", PATH, NULL); // state file path
     zstr_sendx (ag_configurator, "CONNECT", ENDPOINT, NULL);
-    zstr_sendx (ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); //rule template
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
 

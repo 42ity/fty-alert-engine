@@ -48,8 +48,8 @@ class Autoconfig {
         explicit Autoconfig (const std::string &agentName) {_agentName = agentName; };
         virtual ~Autoconfig() {mlm_client_destroy (&_client); };
 
-        static const std::string StateFile; //!< file&path where Autoconfig state is saved
-        static const std::string StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
+        static std::string StateFile; //!< file&path where Autoconfig state is saved
+        static std::string StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
         static std::string RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
         static std::string AlertEngineName;
         const std::string getEname (const std::string &iname);
