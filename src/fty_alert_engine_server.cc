@@ -1935,6 +1935,7 @@ fty_alert_engine_server_test(
     if (verbose) {
         zstr_send (ag_configurator, "VERBOSE");
     }
+    zstr_sendx (ag_configurator, "CONFIG", SELFTEST_DIR_RW, NULL);
     zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
