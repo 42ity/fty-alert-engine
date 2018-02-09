@@ -706,62 +706,10 @@ fty_alert_engine_stream(
             if (!metricfound || found->second) {
                 bool isEvaluate = evaluate_metric (client, m, cache, alertConfiguration);
 
-/*<<<<<<< HEAD
-                // Update cache with new value
-                MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
-                fty_proto_destroy(&bmessage);
-                cache.addMetric (m);
-                cache.removeOldMetrics();
-                evaluate_metric(client, m, cache, alertConfiguration);
-            }
-            fty_proto_destroy (&bmessage);
-        }
-        // According RFC we expect here a messages
-        // with the topic:
-        //   * RULE_SUBJECT
-        else
-        if ( streq (mlm_client_subject (client), RULES_SUBJECT) ) {
-            zsys_debug1 ("%s", RULES_SUBJECT);
-            // Here we can have:
-            //  * request for list of rules
-            //  * get detailed info about the rule
-            //  * new/update rule
-            //  * touch rule
-            char *command = zmsg_popstr (zmessage);
-            char *param = zmsg_popstr (zmessage);
-            if (command && param) {
-                if (streq (command, "LIST")) {
-                    char *rule_class = zmsg_popstr (zmessage);
-                    list_rules (client, param, rule_class, alertConfiguration);
-                    zstr_free (&rule_class);
-                }
-                else if (streq (command, "GET")) {
-                    get_rule (client, param, alertConfiguration);
-                }
-                else if (streq (command, "ADD") ) {
-                    if ( zmsg_size(zmessage) == 0 ) {
-                        // ADD/json
-                        add_rule (client, param, alertConfiguration);
-                    }
-                    else {
-                        // ADD/json/old_name
-                        char *param1 = zmsg_popstr (zmessage);
-                        update_rule (client, param, param1, alertConfiguration);
-                        if (param1) free (param1);
-                    }
-                } else if (streq (command, "TOUCH") ) {
-                    touch_rule (client, param, alertConfiguration, true);
-                } else if (streq (command, "DELETEALL")) {
-                    delete_all_rules (client, param, alertConfiguration);
-                }
-                else {
-                    zsys_error ("Received unexpected message to MAIBOX with command '%s'", command);
-=======*/
                 //if the metric is evaluate for the first time, add to the list
                 if (!metricfound) {
                     zsys_debug1 ("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
                     evaluateMetrics[m.generateTopic()] = isEvaluate;
-//>>>>>>> 3aec7817e1a612f52d116322ec6ddab3808e6b75
                 }
             }
             fty_proto_destroy (&bmessage);
