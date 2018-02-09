@@ -1,0 +1,22 @@
+{ "flexible" :
+  {
+    "name"          : "smoke-detector.state-change@__name__",
+    "description"   : "Smoke detected in __logicalasset__",
+    "metrics"       : ["status.__port__"],
+    "assets"	    : ["__name__"],
+    "logical_asset" : "__logicalasset_iname__",
+    "models"	    : ["M12"],
+    "types" 	    : ["sensorgpio", "rackcontroller"],
+    "results"       :  {
+        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+    },
+    "evaluation"    : "
+        function main(current_state)
+            if current_state == '__normalstate__' then
+                return OK, 'Smoke in __logicalasset__ is OK. Reported '
+            end
+                return __severity__ , 'Smoke detected in  __logicalasset__. Reported '
+        end
+    "
+  }
+}

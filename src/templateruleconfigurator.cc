@@ -28,46 +28,44 @@
 
 #include "fty_alert_engine_classes.h"
 
+#include <algorithm>
 #include <cxxtools/directory.h>
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 
 bool
-TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client){
-    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
-            name.c_str(), info.type.c_str (), info.subtype.c_str ());
+TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &ename_la, mlm_client_t *client){
+    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')  ename %s",
+                name.c_str(), info.type.c_str (), info.subtype.c_str (), ename_la.c_str ());
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
                 std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
 
-                std::string port, logical_asset, severity, normal_state, model, ename_la ;
+                std::string port, severity, normal_state, model, iname_la, rule_result;
 
                 for (auto &i : info.attributes)
                 {
                     if (i.first == "port")
                         port = "GPI" + i.second;
                     else
-                    if (i.first == "logical_asset")
-                    {
-                        logical_asset = i.second;
-                        ename_la = TemplateRuleConfigurator::reqEname (logical_asset, client);
-                    }
-                    else
-                    if (i.first == "alarm_severity")
+                    if (i.first == "alarm_severity") {
                         severity = i.second;
+                        rule_result = i.second;
+                        std::transform (rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
+                    }
                     else
                     if (i.first == "normal_state")
                         normal_state = i.second;
                     else
                     if (i.first == "model")
                         model = i.second;
+                    else
+                    if (i.first == "logical_asset")
+                        iname_la = i.second;
                 }
 
-                if (ename_la.empty ())
-                    ename_la = logical_asset;
-
-                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__severity__", "__normalstate__"};
-                std::vector <std::string> replacements = {name, port, ename_la, severity, normal_state};
+                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__"};
+                std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result};
 
                 for ( auto &templat : templates) {
                     if (info.subtype == "sensorgpio")
@@ -117,38 +115,6 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
         zsys_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
     return true;
 
-}
-
-std::string
-TemplateRuleConfigurator::reqEname (const std::string& iname,
-                                    mlm_client_t *client)
-{
-    std::string ename;
-    std::string subj = "ENAME_FROM_INAME";
-
-    zmsg_t *req = zmsg_new ();
-    zmsg_addstr (req, iname.c_str());
-
-    int rv = mlm_client_sendto (client, "asset-agent", subj.c_str(), NULL, 5000, &req);
-    if (rv != 0)
-        zsys_error ("reqEname: mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
-                    "agent-asset", subj.c_str ());
-
-    zmsg_t *rep = mlm_client_recv (client);
-    assert (rep);
-    char *status = zmsg_popstr (rep);
-    if (streq (status, "OK"))
-    {
-        char *c_ename = zmsg_popstr(rep);
-        ename = c_ename;
-    }
-    else
-    {
-        zsys_error ("reqEname: %s for asset %s", zmsg_popstr (rep), iname.c_str());
-        ename = "";
-    }
-    zmsg_destroy (&rep);
-    return ename;
 }
 
 bool
@@ -205,7 +171,7 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, 
     std::string name;
     std::string prefix ("__");
     std::string subtype_str (subtype);
-    if (subtype_str.empty () || (subtype_str == "unknown"))
+    if (subtype_str.empty () || (subtype_str == "unknown") || (subtype_str == "N_A"))
         name = prefix + type + prefix;
     else
         name = prefix + type + '_' + subtype + prefix;

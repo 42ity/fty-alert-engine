@@ -1,21 +1,21 @@
 /*  =========================================================================
     autoconfig - Autoconfig
 
-    Copyright (C) 2014 - 2017 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2017 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -26,10 +26,6 @@
 #include <string>
 #include <malamute.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define TIMEOUT 1000
 
 struct AutoConfigurationInfo
@@ -37,6 +33,7 @@ struct AutoConfigurationInfo
     std::string type;
     std::string subtype;
     std::string operation;
+    std::string update_ts;
     bool configured = false;
     uint64_t date = 0;
     std::map <std::string, std::string> attributes;
@@ -51,10 +48,11 @@ class Autoconfig {
         explicit Autoconfig (const std::string &agentName) {_agentName = agentName; };
         virtual ~Autoconfig() {mlm_client_destroy (&_client); };
 
-        static const std::string StateFile; //!< file&path where Autoconfig state is saved
-        static const std::string StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
+        static std::string StateFile; //!< file&path where Autoconfig state is saved
+        static std::string StateFilePath; //!< fully-qualified path to dir where Autoconfig state is saved
         static std::string RuleFilePath; //!< fully-qualified path to dir where Autoconfig rule templates are saved
         static std::string AlertEngineName;
+        const std::string getEname (const std::string &iname);
 
         int send( const char *subject, zmsg_t **msg_p ) { return mlm_client_send( _client, subject, msg_p ); };
         // replyto == sendto
@@ -148,7 +146,9 @@ class Autoconfig {
         void cleanupState();
         void saveState();
         void loadState();
-        std::map<std::string,AutoConfigurationInfo> _configurableDevices;
+        std::map<std::string, AutoConfigurationInfo> _configurableDevices;
+        // list of containers with their friendly names
+        std::map<std::string, std::string> _containers; // iname | ename
         int64_t _timestamp;
     protected:
         mlm_client_t *_client = NULL;
@@ -156,8 +156,5 @@ class Autoconfig {
         int _timeout = 2000;
         std::string _agentName;
 };
-#ifdef __cplusplus
-}
-#endif
 
 #endif

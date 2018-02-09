@@ -1,0 +1,22 @@
+{ "flexible" :
+  {
+    "name"          : "door-contact.state-change@__name__",
+    "description"   : "Door to __logicalasset__ is not __normalstate__",
+    "metrics"       : ["status.__port__"],
+    "assets"	    : ["__name__"],
+    "logical_asset" : "__logicalasset_iname__",
+    "models"	    : ["DCS001"],
+    "types" 	    : ["sensorgpio", "rackcontroller"],
+    "results"       :  {
+        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+    },
+    "evaluation"    : "
+        function main(current_state)
+            if current_state == '__normalstate__' then
+                return OK, 'Door to __logicalasset__ is ' .. current_state .. '. Reported '
+            end
+                return __severity__, 'Door to __logicalasset__ is ' .. current_state ..'. Reported '
+        end
+    "
+  }
+}

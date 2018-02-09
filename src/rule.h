@@ -69,11 +69,6 @@ struct Outcome {
 static const char *text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown" };
 
 /*
- * \brief Serialzation of outcome
- */
-void operator<<= (cxxtools::SerializationInfo& si, const Outcome& outcome);
-
-/*
  * \brief Deserialzation of outcome
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome);
@@ -119,7 +114,7 @@ public:
         _variables.insert (vars.cbegin (), vars.cend ());
     }
 
-   virtual std::map<std::string,double> getGlobalVariables (void) const {
+    std::map<std::string,double> getGlobalVariables (void) const {
         return _variables;
     }
 

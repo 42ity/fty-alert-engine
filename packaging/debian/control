@@ -1,29 +1,30 @@
 #
 #    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
-#    Copyright (C) 2014 - 2017 Eaton                                        
-#                                                                           
-#    This program is free software; you can redistribute it and/or modify   
-#    it under the terms of the GNU General Public License as published by   
-#    the Free Software Foundation; either version 2 of the License, or      
-#    (at your option) any later version.                                    
-#                                                                           
-#    This program is distributed in the hope that it will be useful,        
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-#    GNU General Public License for more details.                           
-#                                                                           
+#    Copyright (C) 2014 - 2017 Eaton
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 Source:         fty-alert-engine
 Section:        net
 Priority:       optional
 Maintainer:     fty-alert-engine Developers <eatonipcopensource@eaton.com>
-Standards-Version: 3.9.7
+Standards-Version: 4.0.1.0
 Build-Depends: debhelper (>= 9),
     pkg-config,
+    libsodium-dev,
     libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
@@ -38,13 +39,16 @@ Build-Depends: debhelper (>= 9),
 Package: libfty-alert-engine0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: 42ity service evaluating rules written in lua and producing alerts shared library
- This package contains shared library for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
+Description: fty-alert-engine shared library
+ This package contains shared library for fty-alert-engine:
+ 42ity service evaluating rules written in lua and producing alerts
 
 Package: libfty-alert-engine-dev
 Architecture: any
 Section: libdevel
 Depends:
+    ${misc:Depends},
+    libsodium-dev,
     libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
@@ -52,22 +56,24 @@ Depends:
     liblua5.1-0-dev,
     libcxxtools-dev,
     libfty-alert-engine0 (= ${binary:Version})
-Description: 42ity service evaluating rules written in lua and producing alerts development tools
- This package contains development files for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
+Description: fty-alert-engine development tools
+ This package contains development files for fty-alert-engine:
+ 42ity service evaluating rules written in lua and producing alerts
 
 Package: fty-alert-engine
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends},
-Description: 42ity service evaluating rules written in lua and producing alerts
- Main package for fty-alert-engine: 42ity service evaluating rules written in lua and producing alerts
+Description: runnable binaries from fty-alert-engine
+ Main package for fty-alert-engine:
+ 42ity service evaluating rules written in lua and producing alerts
 
 Package: fty-alert-engine-dbg
 Architecture: any
 Section: debug
-Priority: extra
+Priority: optional
 Depends:
     fty-alert-engine (= ${binary:Version}),
     ${misc:Depends}
-Description: 42ity service evaluating rules written in lua and producing alerts debugging symbols
- This package contains the debugging symbols for fty-alert-engine : 42ity service evaluating rules written in lua and producing alerts.
-
+Description: fty-alert-engine debugging symbols
+ This package contains the debugging symbols for fty-alert-engine:
+ 42ity service evaluating rules written in lua and producing alerts.

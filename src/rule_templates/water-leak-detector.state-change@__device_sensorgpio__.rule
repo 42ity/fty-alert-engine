@@ -1,0 +1,22 @@
+{ "flexible" :
+  {
+    "name"          : "water-leak-detector.state-change@__name__",
+    "description"   : "Water leak detected in __logicalasset__",
+    "metrics"       : ["status.__port__"],
+    "assets"	    : ["__name__"],
+    "logical_asset" : "__logicalasset_iname__",
+    "models"	    : ["WLD012"],
+    "types" 	    : ["sensorgpio", "rackcontroller"],
+    "results"       :  {
+        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+    },
+    "evaluation"    : "
+        function main(current_state)
+            if current_state == '__normalstate__' then
+                return OK, 'Water leak in __logicalasset__ is OK. Reported '
+            end
+                return __severity__ , 'Water leak detected in  __logicalasset__ . Reported '
+        end
+    "
+  }
+}

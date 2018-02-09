@@ -48,9 +48,9 @@ extern int agent_alert_verbose;
 
 #define AUTOCONFIG "AUTOCONFIG"
 
-const std::string Autoconfig::StateFilePath = "/var/lib/fty/fty-alert-engine";
+std::string Autoconfig::StateFilePath;
 std::string Autoconfig::RuleFilePath;
-const std::string Autoconfig::StateFile = "/var/lib/fty/fty-alert-engine/state";
+std::string Autoconfig::StateFile;
 std::string Autoconfig::AlertEngineName;
 
 static int
@@ -117,10 +117,9 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
     si.getMember("attributes")  >>= info.attributes;
 }
 
-
 void Autoconfig::main (zsock_t *pipe, char *name)
 {
-    if( _client ) mlm_client_destroy( &_client );
+    if ( _client ) mlm_client_destroy( &_client );
     _client = mlm_client_new ();
     assert (_client);
 
@@ -163,54 +162,67 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                 break;
             }
             else
-                if (streq (cmd, "VERBOSE")) {
-                    zsys_debug1 ("%s: VERBOSE received", name);
-                    agent_alert_verbose = true;
+            if (streq (cmd, "VERBOSE")) {
+                zsys_debug1 ("%s: VERBOSE received", name);
+                agent_alert_verbose = true;
+            }
+            else
+            if (streq (cmd, "TEMPLATES_DIR")) {
+                zsys_debug1 ("TEMPLATES_DIR received");
+                char* dirname = zmsg_popstr (msg);
+                if (dirname) {
+                    Autoconfig::RuleFilePath = std::string (dirname);
                 }
-                else
-                    if (streq (cmd, "TEMPLATES_DIR")) {
-                        zsys_debug1 ("TEMPLATES_DIR received");
-                        char* dirname = zmsg_popstr (msg);
-                        if (dirname) {
-                            Autoconfig::RuleFilePath = std::string (dirname);
-                        }
-                        else {
-                            zsys_error ("%s: in TEMPLATES_DIR command next frame is missing", name);
-                        }
-                        zstr_free (&dirname);
-                    }
-                    else
-                        if (streq (cmd, "CONNECT")) {
-                            zsys_debug1 ("CONNECT received");
-                            char* endpoint = zmsg_popstr (msg);
-                            int rv = mlm_client_connect (_client, endpoint, 1000, name);
-                            if (rv == -1)
-                                zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
-                            zstr_free (&endpoint);
-                        }
-                        else
-                            if (streq (cmd, "CONSUMER")) {
-                                zsys_debug1 ("CONSUMER received");
-                                char* stream = zmsg_popstr (msg);
-                                char* pattern = zmsg_popstr (msg);
-                                int rv = mlm_client_set_consumer (_client, stream, pattern);
-                                if (rv == -1)
-                                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
-                                zstr_free (&pattern);
-                                zstr_free (&stream);
-                            }
-                            else
-                                if (streq (cmd, "ALERT_ENGINE_NAME")) {
-                                    zsys_debug1 ("ALERT_ENGINE_NAME received");
-                                char* alert_engine_name = zmsg_popstr (msg);
-                                if (alert_engine_name) {
-                                    Autoconfig::AlertEngineName = std::string (alert_engine_name);
-                                }
-                                else {
-                                    zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
-                                }
-                                zstr_free (&alert_engine_name);
-                                }
+                else {
+                    zsys_error ("%s: in TEMPLATES_DIR command next frame is missing", name);
+                }
+                zstr_free (&dirname);
+            }
+            else
+            if (streq (cmd, "CONFIG")) {
+                zsys_debug1 ("CONFIG received");
+                char* dirname = zmsg_popstr (msg);
+                if (dirname) {
+                    Autoconfig::StateFilePath = std::string (dirname);
+                    Autoconfig::StateFile = Autoconfig::StateFilePath + "/state";
+                }
+                else {
+                    zsys_error ("%s: in CONFIG command next frame is missing", name);
+                }
+                zstr_free (&dirname);
+            }
+            else
+            if (streq (cmd, "CONNECT")) {
+                zsys_debug1 ("CONNECT received");
+                char* endpoint = zmsg_popstr (msg);
+                int rv = mlm_client_connect (_client, endpoint, 1000, name);
+                if (rv == -1)
+                    zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                zstr_free (&endpoint);
+            }
+            else
+            if (streq (cmd, "CONSUMER")) {
+                zsys_debug1 ("CONSUMER received");
+                char* stream = zmsg_popstr (msg);
+                char* pattern = zmsg_popstr (msg);
+                int rv = mlm_client_set_consumer (_client, stream, pattern);
+                if (rv == -1)
+                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                zstr_free (&pattern);
+                zstr_free (&stream);
+            }
+            else
+            if (streq (cmd, "ALERT_ENGINE_NAME")) {
+                zsys_debug1 ("ALERT_ENGINE_NAME received");
+                char* alert_engine_name = zmsg_popstr (msg);
+                if (alert_engine_name) {
+                    Autoconfig::AlertEngineName = std::string (alert_engine_name);
+                }
+                else {
+                    zsys_error ("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
+                }
+                zstr_free (&alert_engine_name);
+            }
 
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -231,7 +243,9 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
 
             if (fty_proto_id (bmessage) == FTY_PROTO_ASSET) {
-                onSend (&bmessage);
+                if (!streq(fty_proto_operation(bmessage), FTY_PROTO_ASSET_OP_INVENTORY)) {
+                    onSend (&bmessage);
+                }
                 fty_proto_destroy (&bmessage);
                 continue;
             }
@@ -245,7 +259,8 @@ void Autoconfig::main (zsock_t *pipe, char *name)
         else {
             // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
             if (streq (sender (), "fty-alert-engine") ||
-                streq (sender (), "fty-alert-flexible")) {
+                streq (sender (), "fty-alert-flexible"))
+            {
                 char *reply = zmsg_popstr (message);
                 if (streq (reply, "OK")) {
                     char *details = zmsg_popstr (message);
@@ -266,13 +281,21 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             }
             else
                 zsys_warning ("Message from unknown sender received: sender = '%s', command = '%s', subject = '%s'.",
-                              sender (), command (), subject ());
+                    sender (), command (), subject ());
             zmsg_destroy (&message);
         }
     }
     zpoller_destroy (&poller);
 }
 
+const std::string Autoconfig::getEname (const std::string &iname)
+{
+    std::string ename;
+    auto search = _containers.find (iname); // iname | ename
+    if (search != _containers.end ())
+        ename = search->second;
+    return ename;
+}
 
 void
 Autoconfig::onSend (fty_proto_t **message)
@@ -285,15 +308,51 @@ Autoconfig::onSend (fty_proto_t **message)
     info.type.assign (fty_proto_aux_string (*message, "type", ""));
     info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
     info.operation.assign (fty_proto_operation (*message));
+    info.update_ts.assign (fty_proto_ext_string(*message, "update_ts", ""));
 
+    if (_configurableDevices.find(device_name)!=_configurableDevices.end() &&
+            0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""),_configurableDevices[device_name].update_ts.c_str())) {
+        zsys_debug("Changed asset, updating");
+        info.configured = false;
+    }
+
+    if (streq (fty_proto_aux_string (*message, "type", ""), "datacenter") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "room") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "row") ||
+        streq (fty_proto_aux_string (*message, "type", ""), "rack"))
+    {
+        if (info.operation != "delete") {
+            _containers[device_name] = fty_proto_ext_string (*message, "name", "");
+        } else {
+            try {
+                _containers.erase(device_name);
+            } catch (const std::exception &e) {
+                zsys_error( "can't erase container %s: %s", device_name.c_str(), e.what() );
+            }
+        }
+    }
     if (info.type.empty ()) {
-        zsys_debug("extracting attibutes from asset message failed.");
+        zsys_debug("extracting attributes from asset message failed.");
         return;
     }
+
+    if (streq(info.type.c_str(), "datacenter") || streq(info.type.c_str(), "room") ||
+            streq(info.type.c_str(), "row") || streq(info.type.c_str(), "rack")) {
+        _containers.emplace(device_name, fty_proto_ext_string(*message, "name", ""));
+    }
+
     zsys_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
-    _configurableDevices.emplace (std::make_pair (device_name, info));
+    if (info.operation != "delete") {
+        _configurableDevices[device_name] = info;
+    } else {
+        try {
+            _configurableDevices.erase(device_name);
+        } catch (const std::exception &e) {
+            zsys_error( "can't erase device %s: %s", device_name.c_str(), e.what() );
+        }
+    }
     saveState ();
     setPollingInterval();
 }
@@ -314,7 +373,16 @@ void Autoconfig::onPoll( )
             return;
 
         if ((&iTemplateRuleConfigurator)->isApplicable (it.second))
-            device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, client ());
+        {
+            std::string la;
+            for (auto &i : it.second.attributes)
+            {
+                if (i.first == "logical_asset")
+                    la = i.second;
+            }
+
+            device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, Autoconfig::getEname (la), client ());
+        }
         else
             zsys_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
 
@@ -341,9 +409,9 @@ void Autoconfig::onPoll( )
 void Autoconfig::setPollingInterval( )
 {
     _timeout = -1;
-    for( auto &it : _configurableDevices) {
-        if( ! it.second.configured ) {
-            if( it.second.date == 0 ) {
+    for ( auto &it : _configurableDevices) {
+        if ( ! it.second.configured ) {
+            if ( it.second.date == 0 ) {
                 // there is device that we didn't try to configure
                 // let's try to do it soon
                 _timeout = 5000;
@@ -369,30 +437,25 @@ void Autoconfig::loadState()
         _configurableDevices.clear();
         cxxtools::JsonDeserializer deserializer(in);
         deserializer.deserialize(_configurableDevices);
-    } catch(const std::exception &e ) {
+    } catch (const std::exception &e) {
         zsys_error( "can't parse state: %s", e.what() );
     }
 }
 
-
 void Autoconfig::cleanupState()
 {
-    zsys_debug ("Size before cleanup '%zu'", _configurableDevices.size ());
-    for( auto it = _configurableDevices.cbegin(); it != _configurableDevices.cend() ; ) {
-        if( it->second.configured ) {
-            _configurableDevices.erase(it++);
-        } else {
-            ++it;
-        }
-    }
-    zsys_debug ("Size after cleanup '%zu'", _configurableDevices.size ());
+    zsys_debug ("State file size before cleanup '%zu'", _configurableDevices.size ());
+
+    // Just set the state file to empty
+    save_agent_info("");
+    return;
 }
 
 void Autoconfig::saveState()
 {
     std::ostringstream stream;
     cxxtools::JsonSerializer serializer(stream);
-    zsys_debug ("size = '%zu'",_configurableDevices.size ());
+    zsys_debug ("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size ());
     serializer.serialize( _configurableDevices );
     serializer.finish();
     std::string json = stream.str();

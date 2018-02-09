@@ -1,0 +1,19 @@
+{ "flexible" :
+  {
+    "name"          : "sts-preferred-source@__name__",
+    "description"   : "STS/ATS is not running from preferred input",
+    "metrics"       : ["input.source", "input.source.preferred"],
+    "assets"        : ["__name__"],
+    "results"       :  {
+        "high_warning"  : { "action" : [{ "action": "EMAIL" }] }
+    },
+    "evaluation"    : "
+         function main(input, preferred)
+             if input == preferred then
+                 return OK, 'ATS ' .. NAME .. ' is running from preferred input.'
+             end
+             return WARNING, 'ATS ' .. NAME .. ' is running from input ' .. input .. ' (preferred is ' .. preferred .. ')!'
+         end
+    "
+  }
+}

@@ -223,4 +223,6 @@ private:
     std::string _path;
 };
 
+void
+alertconfiguration_test (bool verbose);
 #endif // SRC_ALERTCONFIGURATION_H
