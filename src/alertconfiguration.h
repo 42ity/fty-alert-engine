@@ -210,6 +210,10 @@ public:
         return _path + '/';
     }
 
+    int deleteAllRules (
+        const std::string &element,
+        std::map <std::string, std::vector <PureAlert>> &alertsToSend);
+
 private:
 
     // rules and corresponding alerts

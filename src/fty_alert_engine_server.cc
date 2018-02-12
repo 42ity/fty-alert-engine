@@ -395,6 +395,25 @@ update_rule(
     }
 }
 
+static void
+delete_all_rules
+    (mlm_client_t *client,
+     const char *element,
+     AlertConfiguration &ac)
+{
+    std::map <std::string, std::vector <PureAlert>> alertsToSend;
+    int rv = ac.deleteAllRules (element, alertsToSend);
+    if (!rv) {
+        std::for_each (alertsToSend.begin (),
+                        alertsToSend.end (),
+                        // reference skipped because for_each doesn't like it
+                        [client](std::pair <std::string, std::vector <PureAlert> > alerts) {
+                            send_alerts (client, alerts.second, alerts.first);
+                        });
+    }
+}
+
+
 //static
 void
 touch_rule(
@@ -847,6 +866,8 @@ fty_alert_engine_mailbox(
                 }
                 else if (streq (command, "TOUCH")) {
                     touch_rule (client, param, alertConfiguration, true);
+                } else if (streq (command, "DELETEALL")) {
+                    delete_all_rules (client, param, alertConfiguration);
                 }
                 else {
                     zsys_error ("Received unexpected message to MAILBOX with command '%s'", command);

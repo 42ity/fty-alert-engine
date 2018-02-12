@@ -352,6 +352,22 @@ Autoconfig::onSend (fty_proto_t **message)
         } catch (const std::exception &e) {
             zsys_error( "can't erase device %s: %s", device_name.c_str(), e.what() );
         }
+
+        if (info.subtype == "sensorgpio" || info.subtype == "gpo") {
+            // don't do anything
+        }
+        else {
+            const char *dest = Autoconfig::AlertEngineName.c_str ();
+            // delete all rules for this asset
+            zmsg_t *message = zmsg_new ();
+            zmsg_addstr (message, "DELETEALL");
+            zmsg_addstr (message, device_name.c_str());
+            zsys_error ("Sending DELETEALL for %s to %s", device_name.c_str(), dest);
+            if (sendto (dest, "rfc-evaluator-rules", &message) != 0) {
+                zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
+                            dest, "rfc-evaluator-rules");
+            }
+        }
     }
     saveState ();
     setPollingInterval();
