@@ -8,8 +8,8 @@
 		"element": "__name__",
 		"values_unit": "%",
 		"values": [
-            { "high_critical": "10"},
-            { "high_warning": "20"} ],
+            { "high_critical": "20"},
+            { "high_warning": "10"} ],
 		"results": [
             { "high_critical": { "action": [{ "action": "EMAIL" }], "severity" : "CRITICAL", "description": "Phase imbalance in device is critically high" }},
             { "high_warning": { "action": [{ "action": "EMAIL" }], "severity" : "WARNING", "description": "Phase imbalance in device is high" }} ],
