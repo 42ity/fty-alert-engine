@@ -1,7 +1,7 @@
 {
 	"threshold": {
 		"rule_name": "phase_imbalance@__name__",
-		"rule_desc": "Rack __name__ phase imbalance",
+		"rule_desc": "Rack __ename__ phase imbalance",
 		"rule_class": "Phase imbalance in rack",
         "rule_hierarchy": "power.phaseimbalance.rack",
 		"target": [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],

@@ -3,7 +3,7 @@
 		"rule_name": "phase_imbalance@__name__",
 		"rule_class": "Phase imbalance in PDU",
         "rule_hierarchy": "power.phaseimbalance.epdu",
-		"rule_desc": "Phase Imbalance for epdu __name__",
+		"rule_desc": "Phase Imbalance for epdu __ename__",
 		"target": [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
 		"element": "__name__",
 		"values_unit": "%",
