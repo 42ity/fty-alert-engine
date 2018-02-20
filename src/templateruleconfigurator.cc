@@ -35,13 +35,13 @@
 
 bool
 TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &ename_la, mlm_client_t *client){
-    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')  ename %s",
-                name.c_str(), info.type.c_str (), info.subtype.c_str (), ename_la.c_str ());
+    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
+                name.c_str(), info.type.c_str (), info.subtype.c_str ());
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
                 std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
 
-                std::string port, severity, normal_state, model, iname_la, rule_result;
+                std::string port, severity, normal_state, model, iname_la, rule_result, ename;
 
                 for (auto &i : info.attributes)
                 {
@@ -62,10 +62,13 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                     else
                     if (i.first == "logical_asset")
                         iname_la = i.second;
+                    else
+                    if (i.first == "name")
+                        ename = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__"};
-                std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result};
+                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__"," __ename__"};
+                std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result, ename};
 
                 for ( auto &templat : templates) {
                     if (info.subtype == "sensorgpio")
