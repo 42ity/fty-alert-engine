@@ -191,14 +191,18 @@ send_alerts(
 {
     for ( const auto &alert : alertsToSend )
     {
-        // create 3*ttl minutes alert TTL
-
+        //Asset id is missing in the rule name for warranty alarms
+        std::string fullRuleName = rule_name;
+        if (streq("warranty",fullRuleName.c_str())){
+          fullRuleName += "@" +  alert._element;
+        }
+        
         zlist_t *actions = makeActionList(alert._actions);
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
-            ::time (NULL),
+            ::time(NULL),
             alert._ttl,
-            rule_name.c_str(),
+            fullRuleName.c_str(),
             alert._element.c_str(),
             alert._status.c_str(),
             alert._severity.c_str(),
