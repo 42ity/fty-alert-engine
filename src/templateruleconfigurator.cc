@@ -67,7 +67,7 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                         ename = i.second;
                 }
 
-                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__"," __ename__"};
+                std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__","__ename__"};
                 std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result, ename};
 
                 for ( auto &templat : templates) {
