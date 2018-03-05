@@ -35,7 +35,7 @@
 
 bool
 TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &ename_la, mlm_client_t *client){
-    zsys_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
+    log_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
                 name.c_str(), info.type.c_str (), info.subtype.c_str ());
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE)) {
                 bool result = true;
@@ -76,14 +76,14 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                         if (TemplateRuleConfigurator::isModelOk (model, templat))
                         {
                             std::string rule=replaceTokens(templat, patterns , replacements);
-                            zsys_debug("sending rule for gpio:\n %s", rule.c_str());
+                            log_debug("sending rule for gpio:\n %s", rule.c_str());
                             result &= sendNewRule(rule,client);
                         }
                     }
                     else
                     {
                         std::string rule=replaceTokens(templat, patterns , replacements);
-                        zsys_debug("sending rule :\n %s", rule.c_str());
+                        log_debug("sending rule :\n %s", rule.c_str());
                         result &= sendNewRule(rule,client);
                     }
                 }
@@ -91,10 +91,10 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                 return result;
     }
     else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE) || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)) {
-        zsys_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
+        log_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
     }
     else
-        zsys_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
+        log_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
     return true;
 
 }
@@ -116,14 +116,14 @@ bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
     std::vector <std::string> templates;
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
-        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
+        log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return templates;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     for ( const auto &fn : d) {
         if ( fn.find(type_name.c_str())!= std::string::npos){
-            zsys_debug("match %s", fn.c_str());
+            log_debug("match %s", fn.c_str());
             // read the template rule from the file
             std::ifstream f(d.path() + "/" + fn);
             std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
@@ -135,13 +135,13 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
 
 bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype){
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        zsys_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
+        log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return false;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     for ( const auto &fn : d) {
-        zsys_debug ("Template name is '%s'", fn.c_str ());
+        log_debug ("Template name is '%s'", fn.c_str ());
         if ( fn.find(type_name.c_str())!= std::string::npos){
             return true;
         }
@@ -157,7 +157,7 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, 
         name = prefix + type + prefix;
     else
         name = prefix + type + '_' + subtype + prefix;
-    zsys_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
+    log_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
             type, subtype,name.c_str());
     return name;
 }

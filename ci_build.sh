@@ -376,6 +376,70 @@ default|default-Werror|default-with-docs|valgrind)
         cd "${BASE_PWD}"
     fi
 
+    # Start of recipe for dependency: log4cplus
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list log4cplus-dev >/dev/null 2>&1) || \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions log4cplus >/dev/null 2>&1) \
+    ; then
+        echo ""
+        BASE_PWD=${PWD}
+        echo "`date`: INFO: Building prerequisite 'log4cplus' from Git repository..." >&2
+        $CI_TIME git clone --quiet --depth 1 -b REL_1_1_2 https://github.com/log4cplus/log4cplus.git log4cplus
+        cd log4cplus
+        CCACHE_BASEDIR=${PWD}
+        export CCACHE_BASEDIR
+        git --no-pager log --oneline -n1
+        if [ -e autogen.sh ]; then
+            $CI_TIME ./autogen.sh 2> /dev/null
+        fi
+        if [ -e buildconf ]; then
+            $CI_TIME ./buildconf 2> /dev/null
+        fi
+        if [ ! -e autogen.sh ] && [ ! -e buildconf ] && [ ! -e ./configure ] && [ -s ./configure.ac ]; then
+            $CI_TIME libtoolize --copy --force && \
+            $CI_TIME aclocal -I . && \
+            $CI_TIME autoheader && \
+            $CI_TIME automake --add-missing --copy && \
+            $CI_TIME autoconf || \
+            $CI_TIME autoreconf -fiv
+        fi
+        $CI_TIME ./configure "${CONFIG_OPTS[@]}"
+        $CI_TIME make -j4
+        $CI_TIME make install
+        cd "${BASE_PWD}"
+    fi
+
+    # Start of recipe for dependency: fty-common
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libfty_common-dev >/dev/null 2>&1) || \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions fty-common >/dev/null 2>&1) \
+    ; then
+        echo ""
+        BASE_PWD=${PWD}
+        echo "`date`: INFO: Building prerequisite 'fty-common' from Git repository..." >&2
+        $CI_TIME git clone --quiet --depth 1 https://github.com/42ity/fty-common.git fty-common
+        cd fty-common
+        CCACHE_BASEDIR=${PWD}
+        export CCACHE_BASEDIR
+        git --no-pager log --oneline -n1
+        if [ -e autogen.sh ]; then
+            $CI_TIME ./autogen.sh 2> /dev/null
+        fi
+        if [ -e buildconf ]; then
+            $CI_TIME ./buildconf 2> /dev/null
+        fi
+        if [ ! -e autogen.sh ] && [ ! -e buildconf ] && [ ! -e ./configure ] && [ -s ./configure.ac ]; then
+            $CI_TIME libtoolize --copy --force && \
+            $CI_TIME aclocal -I . && \
+            $CI_TIME autoheader && \
+            $CI_TIME automake --add-missing --copy && \
+            $CI_TIME autoconf || \
+            $CI_TIME autoreconf -fiv
+        fi
+        $CI_TIME ./configure "${CONFIG_OPTS[@]}"
+        $CI_TIME make -j4
+        $CI_TIME make install
+        cd "${BASE_PWD}"
+    fi
+
     # Build and check this project; note that zprojects always have an autogen.sh
     echo ""
     echo "`date`: INFO: Starting build of currently tested project with DRAFT APIs..."

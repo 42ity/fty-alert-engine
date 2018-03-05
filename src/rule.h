@@ -33,15 +33,10 @@
 #include <fstream>
 #include <iostream>
 #include <czmq.h>
+#include <fty_common.h>
 
 #include "purealert.h"
 #include "metriclist.h"
-
-#ifndef zsys_debug1
-extern int agent_alert_verbose;
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
-#endif
 
 //  1  - equals
 //  0  - different
@@ -216,7 +211,7 @@ public:
         // rule name and file name are CASE INSENSITIVE.
 
         std::string full_name = path + name;
-        zsys_debug1 ("trying to save file : '%s'", full_name.c_str());
+        log_debug ("trying to save file : '%s'", full_name.c_str());
         std::ofstream ofs (full_name, std::ofstream::out);
         ofs.exceptions (~std::ofstream::goodbit);
         ofs << getJsonRule ();
@@ -234,7 +229,7 @@ public:
     int remove (const std::string &path) {
 
         std::string full_name = path + _name + ".rule";
-        zsys_debug1 ("trying to remove file : '%s'", full_name.c_str());
+        log_debug ("trying to remove file : '%s'", full_name.c_str());
         return std::remove (full_name.c_str());
     };
 

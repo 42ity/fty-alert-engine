@@ -29,6 +29,7 @@ extern "C" {
 }
 // because of regex and zsysinfo
 #include <czmq.h>
+#include <fty_common.h>
 #include "luarule.h"
 
 class RegexRule : public LuaRule {
@@ -60,10 +61,10 @@ public:
         if ( si.findMember("pattern") == NULL ) {
             return 1;
         }
-        zsys_debug1 ("it is PATTERN rule");
+        log_debug ("it is PATTERN rule");
         auto pattern = si.getMember("pattern");
         if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
-            zsys_error ("Root of json must be an object with property 'pattern'.");
+            log_error ("Root of json must be an object with property 'pattern'.");
             throw std::runtime_error("Root of json must be an object with property 'pattern'.");
         }
 
@@ -86,13 +87,13 @@ public:
             }
             rule_source >>= _rule_source;
         }
-        zsys_debug1 ("rule_source = %s", _rule_source.c_str());
+        log_debug ("rule_source = %s", _rule_source.c_str());
 
         // values
         std::map<std::string,double> tmp_values;
         auto values = pattern.getMember("values");
         if ( values.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_error ("parameter 'values' in json must be an array.");
+            log_error ("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
         }
         values >>= tmp_values;
@@ -101,7 +102,7 @@ public:
         // outcomes
         auto outcomes = pattern.getMember("results");
         if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_error ("parameter 'results' in json must be an array.");
+            log_error ("parameter 'results' in json must be an array.");
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
@@ -112,7 +113,7 @@ public:
             code(tmp);
         }
         catch ( const std::exception &e ) {
-            zsys_error ("something with lua function: %s", e.what());
+            log_error ("something with lua function: %s", e.what());
             return 2;
         }
         // TODO what if regexp is not correct?

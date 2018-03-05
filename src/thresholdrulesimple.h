@@ -24,8 +24,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef SRC_THRESHOLDRULESIMPLE_H
 #define SRC_THRESHOLDRULESIMPLE_H
 
-#include "rule.h"
+#include <fty_common.h>
 #include <cxxtools/serializationinfo.h>
+
+#include "rule.h"
 
 class ThresholdRuleSimple : public Rule
 {
@@ -46,7 +48,7 @@ public:
         }
         auto threshold = si.getMember("threshold");
         if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-            zsys_error ("Root of json must be an object with property 'threshold'.");
+            log_error ("Root of json must be an object with property 'threshold'.");
             throw std::runtime_error("Root of json must be an object with property 'threshold'.");
         }
 
@@ -68,11 +70,11 @@ public:
             }
             rule_source >>= _rule_source;
         }
-        zsys_debug1 ("rule_source = %s", _rule_source.c_str());
+        log_debug ("rule_source = %s", _rule_source.c_str());
         if ( _rule_source != "Manual user input" ) {
             return 1;
         }
-        zsys_debug1 ("it is simple threshold rule");
+        log_debug ("it is simple threshold rule");
 
         si_getValueUtf8 (threshold, "target", _metric);
         si_getValueUtf8 (threshold, "rule_name", _name);
@@ -87,7 +89,7 @@ public:
         std::map<std::string,double> tmp_values;
         auto values = threshold.getMember("values");
         if ( values.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_error ("parameter 'values' in json must be an array.");
+            log_error ("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
         }
         values >>= tmp_values;
@@ -96,7 +98,7 @@ public:
         // outcomes
         auto outcomes = threshold.getMember("results");
         if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_error ("parameter 'results' in json must be an array.");
+            log_error ("parameter 'results' in json must be an array.");
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;

@@ -62,6 +62,13 @@
         repository = "https://github.com/42ity/cxxtools.git"
         release = "2.2-FTY-master" />
 
+    <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
+        repository = "https://github.com/42ity/fty-common.git"
+        test = "fty_commmon_selftest" >
+        <use project = "log4cplus" header = "log4cplus/logger.h"
+        test = "appender_test" release="REL_1_1_2" repository="https://github.com/log4cplus/log4cplus.git" />
+    </use>
+    
     <class name = "metriclist" private="1" selftest="0">MetricList</class>
     <class name = "alertconfiguration" private="1">alertconfiguration</class>
     <class name = "luarule" private="1" selftest = "0">luaRule</class>
@@ -75,6 +82,10 @@
     <class name = "TemplateRuleConfigurator" private="1" selftest="0">Template rule configurator</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
     <class name = "fty_alert_actions" state = "stable" >Actor performing actions on alert (sending notifications)</class>
+    <header name = "normalrule" private="1" >normalrule</header>
+    <header name = "thresholdrulesimple" private="1" >thresholdrulesimple</header>
+    <header name = "thresholdruledevice" private="1" >thresholdruledevice</header>
+    <header name = "regexrule" private="1" >regexrule</header>
     <main name = "fty-alert-engine" service = "1">
         Daemon evaluating rules and producing alerts
     </main>

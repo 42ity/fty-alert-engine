@@ -23,13 +23,18 @@ AM_CPPFLAGS = \
     ${fty_proto_CFLAGS} \
     ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
+    ${log4cplus_CFLAGS} \
+    ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
+SUBDIRS += include
 DIST_SUBDIRS = doc
+DIST_SUBDIRS += include
+
 lib_LTLIBRARIES =
 bin_PROGRAMS =
 noinst_PROGRAMS =
@@ -51,6 +56,8 @@ EXTRA_DIST += \
     Findfty_proto.cmake \
     Findlua_5_1.cmake \
     Findcxxtools.cmake \
+    Findlog4cplus.cmake \
+    Findfty_common.cmake \
     CMakeLists.txt
 endif
 

@@ -39,22 +39,14 @@ static const char *ENDPOINT = "ipc://@/malamute";
 
 int main (int argc, char** argv)
 {
-    bool set_verbose = false;
-    char* fty_log_level = getenv ("BIOS_LOG_LEVEL");
+    ManageFtyLog::setInstanceFtylog("fty-alert-engine");
     if (argc == 2 && streq (argv[1], "-v")) {
-        set_verbose = true;
-    }
-    else if (fty_log_level && streq (fty_log_level, "LOG_DEBUG")) {
-        set_verbose = true;
+        ManageFtyLog::getInstanceFtylog()->setVeboseMode();
     }
 
     zactor_t *ag_server_stream = zactor_new(fty_alert_engine_stream, (void*) ENGINE_AGENT_NAME_STREAM);
     zactor_t *ag_server_mailbox = zactor_new(fty_alert_engine_mailbox, (void*) ENGINE_AGENT_NAME);
-    //common
-    if (set_verbose) {
-        zstr_sendx(ag_server_stream, "VERBOSE", NULL);
-        zstr_sendx(ag_server_mailbox, "VERBOSE", NULL);
-    }
+    
     // mailbox
     zstr_sendx(ag_server_mailbox, "CONFIG", PATH, NULL);
     zstr_sendx(ag_server_mailbox, "CONNECT", ENDPOINT, NULL);
@@ -70,9 +62,6 @@ int main (int argc, char** argv)
 
     //autoconfig
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
-    if (set_verbose) {
-        zstr_sendx (ag_configurator, "VERBOSE", NULL);
-    }
     zstr_sendx (ag_configurator, "CONFIG", PATH, NULL); // state file path
     zstr_sendx (ag_configurator, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_configurator, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); //rule template
@@ -80,9 +69,6 @@ int main (int argc, char** argv)
     zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
 
     zactor_t *ag_actions = zactor_new (fty_alert_actions, (void*) ACTIONS_AGENT_NAME);
-    if (set_verbose) {
-        zstr_sendx (ag_actions, "VERBOSE", NULL);
-    }
     zstr_sendx (ag_actions, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
@@ -96,7 +82,7 @@ int main (int argc, char** argv)
             puts (messageS);
             free (messageS);
         } else {
-            puts ("interrupted");
+            log_info ("interrupted");
             break;
         }
 
@@ -105,7 +91,7 @@ int main (int argc, char** argv)
             puts (messageM);
             free (messageM);
         } else {
-            puts ("interrupted");
+            log_info ("interrupted");
             break;
         }
     }

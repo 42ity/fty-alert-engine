@@ -31,6 +31,7 @@ extern "C" {
 }
 // because of zsys
 #include <czmq.h>
+#include <fty_common.h>
 class NormalRule : public LuaRule
 {
 public:
@@ -53,17 +54,17 @@ public:
         if ( si.findMember("single") == NULL ) {
             return 1;
         }
-        zsys_debug1 ("it is SINGLE rule");
+        log_debug ("it is SINGLE rule");
         auto single = si.getMember("single");
         if ( single.category () != cxxtools::SerializationInfo::Object ) {
-            zsys_error ("Root of json must be an object with property 'single'.");
+            log_error ("Root of json must be an object with property 'single'.");
             throw std::runtime_error("Root of json must be an object with property 'single'.");
         }
 
         // target
         auto target = single.getMember("target");
         if ( target.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_error ("property 'target' in json must be an Array");
+            log_error ("property 'target' in json must be an Array");
             throw std::runtime_error ("property 'target' in json must be an Array");
         }
         target >>= _metrics;
@@ -86,14 +87,14 @@ public:
             }
             rule_source >>= _rule_source;
         }
-        zsys_debug1 ("rule_source = %s", _rule_source.c_str());
+        log_debug ("rule_source = %s", _rule_source.c_str());
         // values
         // values are not required for single rule
         if ( single.findMember("values") != NULL ) {
             std::map<std::string,double> tmp_values;
             auto values = single.getMember("values");
             if ( values.category () != cxxtools::SerializationInfo::Array ) {
-                zsys_error ("parameter 'values' in json must be an array.");
+                log_error ("parameter 'values' in json must be an array.");
                 throw std::runtime_error("parameter 'values' in json must be an array");
             }
             values >>= tmp_values;
@@ -103,7 +104,7 @@ public:
         // outcomes
         auto outcomes = single.getMember("results");
         if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            zsys_error ("parameter 'results' in json must be an array.");
+            log_error ("parameter 'results' in json must be an array.");
             throw std::runtime_error ("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
@@ -114,7 +115,7 @@ public:
             code(tmp);
         }
         catch ( const std::exception &e ) {
-            zsys_warning ("something with lua function: %s", e.what());
+            log_warning ("something with lua function: %s", e.what());
             return 2;
         }
         return 0;

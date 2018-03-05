@@ -16,25 +16,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
-
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/directory.h>
 #include <algorithm>
 
-#include "alertconfiguration.h"
+#include "fty_alert_engine_classes.h"
 
-
-#include "metriclist.h"
-#include "normalrule.h"
-#include "thresholdrulesimple.h"
-#include "thresholdruledevice.h"
-#include "thresholdrulecomplex.h"
-#include "regexrule.h"
 
 int readRule (std::istream &f, RulePtr &rule)
 {
@@ -113,11 +101,11 @@ int readRule (std::istream &f, RulePtr &rule)
             if ( rv == 2 )
                 return 2;
         }
-        zsys_error ("Cannot detect type of the rule");
+        log_error ("Cannot detect type of the rule");
         return 1;
     }
     catch ( const std::exception &e) {
-        zsys_error ("Cannot parse JSON, ignore it. %s", e.what());
+        log_error ("Cannot parse JSON, ignore it. %s", e.what());
         return 1;
     }
 }
@@ -147,25 +135,25 @@ std::set <std::string> AlertConfiguration::
 
             // read rule from the file
             std::ifstream f(d.path() + "/" + fn);
-            zsys_debug1 ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
+            log_debug ("processing_file: '%s'", (d.path() + "/" + fn).c_str());
             std::unique_ptr<Rule> rule;
             int rv = readRule (f, rule);
             if ( rv != 0 ) {
                 // rule can't be read correctly from the file
-                zsys_warning ("nothing to do");
+                log_warning ("nothing to do");
                 continue;
             }
 
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule
             if ( !rule->hasSameNameAs (fn.substr(0, fn.length() -5)) ) {
-                zsys_warning ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
+                log_warning ("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name ().c_str ());
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if ( haveRule (rule) ) {
-                zsys_warning ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
+                log_warning ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
                 continue;
             }
 
@@ -175,10 +163,10 @@ std::set <std::string> AlertConfiguration::
             }
             // add rule to the configuration
             _alerts.push_back (std::make_pair(std::move(rule), emptyAlerts));
-            zsys_debug1 ("file '%s' readed correctly", fn.c_str());
+            log_debug ("file '%s' readed correctly", fn.c_str());
         }
     } catch( std::exception &e ){
-        zsys_error("Can't read configuration: %s", e.what());
+        log_error("Can't read configuration: %s", e.what());
         exit(1);
     }
     return result;
@@ -195,15 +183,15 @@ int AlertConfiguration::
     RulePtr temp_rule;
     int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
-        zsys_error ("nothing created, json error");
+        log_error ("nothing created, json error");
         return -1;
     }
     if ( rv == 2 ) {
-        zsys_error ("nothing created, lua error");
+        log_error ("nothing created, lua error");
         return -5;
     }
     if ( haveRule (temp_rule) ) {
-        zsys_error ("rule already exists");
+        log_error ("rule already exists");
         return -2;
     }
 
@@ -212,7 +200,7 @@ int AlertConfiguration::
         temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule");
     }
     catch (const std::exception& e) {
-        zsys_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule").c_str (), e.what ());
+        log_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule").c_str (), e.what ());
         return -6;
     }
     // in any case we need to check new subjects
@@ -244,7 +232,7 @@ int AlertConfiguration::
     }
     // rule_to_update is an iterator to the rule+alerts
     if ( rule_to_update == _alerts.end() ) {
-        zsys_error ("rule '%s' doesn't exist", rule_name.c_str());
+        log_error ("rule '%s' doesn't exist", rule_name.c_str());
         return -1;
     }
 
@@ -272,18 +260,18 @@ int AlertConfiguration::
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
     // need to find out if rule exists already or not
     if ( !haveRule (old_name) ) {
-        zsys_error ("rule doesn't exist");
+        log_error ("rule doesn't exist");
         return -2;
     }
 
     RulePtr temp_rule;
     int rv = readRule (newRuleString, temp_rule);
     if ( rv == 1 ) {
-        zsys_error ("nothing to update, json error");
+        log_error ("nothing to update, json error");
         return -1;
     }
     if ( rv == 2 ) {
-        zsys_error ("nothing to update, lua error");
+        log_error ("nothing to update, lua error");
         return -5;
     }
     // if name of the rule changed, then
@@ -291,7 +279,7 @@ int AlertConfiguration::
     if ( ! temp_rule->hasSameNameAs(old_name) && haveRule (temp_rule->name()) )
     {
         // rule with new old_name
-        zsys_error ("Rule with such name already exists");
+        log_error ("Rule with such name already exists");
         return -3;
     }
 
@@ -311,21 +299,21 @@ int AlertConfiguration::
     }
     catch (const std::exception& e) {
         // if error happend, we didn't lose any previous data
-        zsys_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule.new").c_str (), e.what ());
+        log_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule.new").c_str (), e.what ());
         return -6;
     }
     // as we successfuly saved the new file, we can try to remove old one
     rv = rule_to_update->first->remove (getPersistencePath());
     std::string rule_removed_name = rule_to_update->first->name ();
     if ( rv != 0 ) {
-        zsys_error ("Old rule wasn't removed, but new one stored with postfix '.new' and is not used yet. Rename *.rule.new file to *.rule, remove old .rule and then manually and restart the daemon", rule_removed_name.c_str ());
+        log_error ("Old rule wasn't removed, but new one stored with postfix '.new' and is not used yet. Rename *.rule.new file to *.rule, remove old .rule and then manually and restart the daemon", rule_removed_name.c_str ());
         return -6;
     }
     // as we successfuly removed old rule, we can rename new rule to the right name
     rv = std::rename (std::string (getPersistencePath()).append (rule_removed_name).append(".rule.new").c_str (),
             std::string (getPersistencePath()).append (rule_removed_name).append(".rule").c_str ());
     if ( rv != 0 ) {
-        zsys_error ("Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon", rule_removed_name.c_str ());
+        log_error ("Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon", rule_removed_name.c_str ());
         return -6;
     }
     // so, in the files now everything ok
@@ -374,7 +362,7 @@ int AlertConfiguration::deleteAllRules
             int rv = rule_to_remove->first->remove (getPersistencePath());
             std::string rule_removed_name = rule_to_remove->first->name ();
             if ( rv != 0 ) {
-                zsys_error ("Error while removing rule %s", rule_removed_name.c_str ());
+                log_error ("Error while removing rule %s", rule_removed_name.c_str ());
                 return -1;
             }
             // resolve found alerts
@@ -430,7 +418,7 @@ int AlertConfiguration::
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
                     // element is the same -> no need to update the field
-                    zsys_debug1("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    log_debug("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 else {
                     // Found alert is still active -> it is the same alert
@@ -438,7 +426,7 @@ int AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    zsys_debug1("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    log_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 // in both cases we need to send an alert
                 alert_to_send = PureAlert(oneAlert);
@@ -452,7 +440,7 @@ int AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    zsys_debug1("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    log_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                     alert_to_send = PureAlert(oneAlert);
                     return 0;
                 }
@@ -469,7 +457,7 @@ int AlertConfiguration::
             if ( pureAlert._status != ALERT_RESOLVED )
             {
                 oneRuleAlerts.second.push_back(pureAlert);
-                zsys_debug1("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
+                log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
                 alert_to_send = PureAlert(pureAlert);
                 return 0;
             }
@@ -491,11 +479,11 @@ int AlertConfiguration::
         PureAlert &pureAlert)
 {
     if ( !PureAlert::isStatusKnown(new_state) ) {
-        zsys_error ("Unknown new status, ignore it");
+        log_error ("Unknown new status, ignore it");
         return -5;
     }
     if ( strcmp(new_state, ALERT_RESOLVED) == 0 ) {
-        zsys_error ("User can't resolve alert manually");
+        log_error ("User can't resolve alert manually");
         return -2;
     }
     for ( auto &oneRuleAlerts : _alerts )
@@ -512,7 +500,7 @@ int AlertConfiguration::
             }
             // we found the alert
             if ( oneAlert._status == ALERT_RESOLVED ) {
-                zsys_error ("state of RESOLVED alert cannot be chaged manually");
+                log_error ("state of RESOLVED alert cannot be chaged manually");
                 return -1;
             }
             oneAlert._status = new_state;
@@ -520,7 +508,7 @@ int AlertConfiguration::
             return 0;
         }
     }
-    zsys_error ("Cannot acknowledge alert, because it doesn't exist");
+    log_error ("Cannot acknowledge alert, because it doesn't exist");
     return -4;
 }
 
@@ -531,6 +519,9 @@ static bool double_equals(double d1, double d2)
 
 void alertconfiguration_test (bool verbose)
 {
+    setenv("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
+    ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
+
     const std::string dir("src/selftest-ro/testrules/");
     std::unique_ptr<Rule> rule;
     std::vector<std::string> action_EMAIL = {"EMAIL"};

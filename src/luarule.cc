@@ -21,18 +21,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Class implementing Lua rule evaluation
  */
 #include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
-
-
-#include "luarule.h"
-
+#include <fty_common.h>
 #include <algorithm>
 extern "C" {
 #include <lualib.h>
 #include <lauxlib.h>
+}
+#include "luarule.h"
+
+LuaRule::~LuaRule () 
+{ 
+   if (_lstate) lua_close (_lstate); 
 }
 
 LuaRule::LuaRule (const LuaRule &r)
@@ -91,7 +90,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     for ( const auto &metric : _metrics ) {
         double value = metricList.find (metric);
         if ( std::isnan (value) ) {
-            //zsys_debug1("Don't have everything for '%s' yet\n", _name.c_str());
+            //log_debug("Don't have everything for '%s' yet\n", _name.c_str());
             return RULE_RESULT_UNKNOWN;
         }
         values.push_back(value);
@@ -111,7 +110,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
         pureAlert.print();
         return 0;
     }
-    zsys_error ("Rule has returned a result %s, but it is not specified in 'result' in the JSON rule definition", statusText);
+    log_error ("Rule has returned a result %s, but it is not specified in 'result' in the JSON rule definition", statusText);
     return RULE_RESULT_UNKNOWN;
 }
 

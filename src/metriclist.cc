@@ -17,10 +17,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 #include "metriclist.h"
 
 // NAN is here
