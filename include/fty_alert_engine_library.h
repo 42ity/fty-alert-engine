@@ -76,8 +76,6 @@
 
 //  Opaque class structures to allow forward references
 //  These classes are stable or legacy and built in all releases
-typedef struct _filesystem_t filesystem_t;
-#define FILESYSTEM_T_DEFINED
 typedef struct _utils_t utils_t;
 #define UTILS_T_DEFINED
 typedef struct _autoconfig_t autoconfig_t;
@@ -89,7 +87,6 @@ typedef struct _fty_alert_actions_t fty_alert_actions_t;
 
 
 //  Public classes, each with its own header file
-#include "filesystem.h"
 #include "utils.h"
 #include "autoconfig.h"
 #include "fty_alert_engine_server.h"

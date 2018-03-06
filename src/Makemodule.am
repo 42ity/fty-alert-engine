@@ -19,7 +19,6 @@ src_libfty_alert_engine_la_SOURCES = \
     src/purealert.cc \
     src/rule.cc \
     src/thresholdrulecomplex.cc \
-    src/filesystem.cc \
     src/utils.cc \
     src/autoconfig.cc \
     src/ruleconfigurator.cc \

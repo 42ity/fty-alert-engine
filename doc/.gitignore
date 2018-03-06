@@ -11,8 +11,6 @@
 *.xml7
 
 # Ignore the source doc texts generated from program sources
-filesystem.txt
-filesystem.doc
 utils.txt
 utils.doc
 autoconfig.txt

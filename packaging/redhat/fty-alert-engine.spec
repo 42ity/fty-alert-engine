@@ -59,6 +59,8 @@ BuildRequires:  fty-proto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  log4cplus-devel
+BuildRequires:  libtntnet-devel
+BuildRequires:  tntdb-devel
 BuildRequires:  fty-common-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -92,6 +94,8 @@ Requires:       fty-proto-devel
 Requires:       lua-devel
 Requires:       cxxtools-devel
 Requires:       log4cplus-devel
+Requires:       libtntnet-devel
+Requires:       tntdb-devel
 Requires:       fty-common-devel
 
 %description devel
@@ -112,7 +116,7 @@ This package contains development files for fty-alert-engine: 42ity service eval
 
 %build
 sh autogen.sh
-%{configure} --enable-drafts=%{DRAFTS} --with-systemd-units
+%{configure} --enable-drafts=%{DRAFTS} --with-systemd-units --with-libtntnet=yes
 make %{_smp_mflags}
 
 %install

@@ -37,7 +37,6 @@ typedef struct {
 static test_item_t
 all_tests [] = {
 // Tests for stable public classes:
-    { "filesystem", filesystem_test },
     { "utils", utils_test },
     { "autoconfig", autoconfig_test },
     { "fty_alert_engine_server", fty_alert_engine_server_test },
@@ -102,14 +101,13 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("13");
+            puts ("12");
             return 0;
         }
         else
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
-            puts ("    filesystem\t\t- stable");
             puts ("    utils\t\t- stable");
             puts ("    autoconfig\t\t- stable");
             puts ("    fty_alert_engine_server\t\t- stable");
