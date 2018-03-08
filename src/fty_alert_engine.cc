@@ -39,11 +39,22 @@ static const char *ENDPOINT = "ipc://@/malamute";
 
 int main (int argc, char** argv)
 {
+    std::string logConfigFile = "";
     ManageFtyLog::setInstanceFtylog("fty-alert-engine");
     if (argc == 2 && streq (argv[1], "-v")) {
         ManageFtyLog::getInstanceFtylog()->setVeboseMode();
     }
 
+    zconfig_t *cfg = zconfig_load(PATH);
+    if (cfg) {
+        logConfigFile = std::string(zconfig_get(cfg, "log/config", ""));
+    }
+    //If a log config file is configured, try to load it
+    if (!logConfigFile.empty())
+    {
+      ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
+    }
+    
     zactor_t *ag_server_stream = zactor_new(fty_alert_engine_stream, (void*) ENGINE_AGENT_NAME_STREAM);
     zactor_t *ag_server_mailbox = zactor_new(fty_alert_engine_mailbox, (void*) ENGINE_AGENT_NAME);
     
