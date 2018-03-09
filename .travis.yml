@@ -116,10 +116,11 @@ matrix:
 before_install:
 - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update; brew install binutils ; fi
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "valgrind" ] ; then brew install valgrind ; fi
+- sudo apt-get remove liblog4cplus-dev
+- sudo apt-get autoremove
 
-### Note: Customized:
-###before_script:
-###- ./.travis.fixlua
+before_script:
+- ./.travis.fixsasl
 
 # Hand off to generated script for each BUILD_TYPE
 script: ./ci_build.sh

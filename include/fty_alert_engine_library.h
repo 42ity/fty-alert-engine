@@ -93,9 +93,18 @@ typedef struct _fty_alert_actions_t fty_alert_actions_t;
 #include "fty_alert_actions.h"
 
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //  Self test for private classes
 FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_private_selftest (bool verbose);
+    fty_alert_engine_private_selftest (bool verbose, const char *subtest);
+
+#ifdef __cplusplus
+}
+#endif
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
 
 #endif

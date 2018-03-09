@@ -26,11 +26,12 @@ AM_CPPFLAGS = \
     ${log4cplus_CFLAGS} \
     ${libtntnet_CFLAGS} \
     ${tntdb_CFLAGS} \
+    ${libsasl2_CFLAGS} \
     ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${libtntnet_LIBS} ${tntdb_LIBS} ${fty_common_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${libtntnet_LIBS} ${tntdb_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -61,6 +62,7 @@ EXTRA_DIST += \
     Findlog4cplus.cmake \
     Findlibtntnet.cmake \
     Findtntdb.cmake \
+    Findlibsasl2.cmake \
     Findfty_common.cmake \
     CMakeLists.txt
 endif
@@ -74,6 +76,10 @@ EXTRA_DIST += \
     src/thresholdrulecomplex.h \
     src/ruleconfigurator.h \
     src/templateruleconfigurator.h \
+    src/normalrule.h \
+    src/thresholdrulesimple.h \
+    src/thresholdruledevice.h \
+    src/regexrule.h \
     README.md \
     src/fty_alert_engine_classes.h
 

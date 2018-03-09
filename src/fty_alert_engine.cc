@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "fty_alert_engine.h"
 
+static const char *CONFIG = "/etc/fty-alert-engine/fty-alert-engine.cfg";
 // path to the directory, where rules are stored. Attention: without last slash!
 static const char *PATH = "/var/lib/fty/fty-alert-engine";
 
@@ -45,7 +46,7 @@ int main (int argc, char** argv)
         ManageFtyLog::getInstanceFtylog()->setVeboseMode();
     }
 
-    zconfig_t *cfg = zconfig_load(PATH);
+    zconfig_t *cfg = zconfig_load(CONFIG);
     if (cfg) {
         logConfigFile = std::string(zconfig_get(cfg, "log/config", ""));
     }

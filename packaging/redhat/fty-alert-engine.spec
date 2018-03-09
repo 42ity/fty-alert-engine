@@ -61,6 +61,7 @@ BuildRequires:  cxxtools-devel
 BuildRequires:  log4cplus-devel
 BuildRequires:  libtntnet-devel
 BuildRequires:  tntdb-devel
+BuildRequires:  cyrus-sasl-devel
 BuildRequires:  fty-common-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -96,6 +97,7 @@ Requires:       cxxtools-devel
 Requires:       log4cplus-devel
 Requires:       libtntnet-devel
 Requires:       tntdb-devel
+Requires:       cyrus-sasl-devel
 Requires:       fty-common-devel
 
 %description devel

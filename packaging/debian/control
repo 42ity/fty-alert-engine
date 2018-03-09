@@ -34,6 +34,7 @@ Build-Depends: debhelper (>= 9),
     liblog4cplus-dev,
     libtntnet-dev,
     libtntdb-dev,
+    libsasl2-dev,
     libfty-common-dev,
     systemd,
     dh-systemd,
@@ -62,6 +63,7 @@ Depends:
     liblog4cplus-dev,
     libtntnet-dev,
     libtntdb-dev,
+    libsasl2-dev,
     libfty-common-dev,
     libfty-alert-engine0 (= ${binary:Version})
 Description: fty-alert-engine development tools

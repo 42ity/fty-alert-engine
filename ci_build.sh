@@ -26,7 +26,7 @@ case "$CI_TRACE" in
 esac
 
 case "$BUILD_TYPE" in
-default|default-Werror|default-with-docs|valgrind)
+default|default-Werror|default-with-docs|valgrind|clang-format-check)
     LANG=C
     LC_ALL=C
     export LANG LC_ALL
@@ -37,9 +37,11 @@ default|default-Werror|default-with-docs|valgrind)
     mkdir -p tmp
     BUILD_PREFIX=$PWD/tmp
 
-    PATH="`echo "$PATH" | sed -e 's,^/usr/lib/ccache/?:,,' -e 's,:/usr/lib/ccache/?:,,' -e 's,:/usr/lib/ccache/?$,,' -e 's,^/usr/lib/ccache/?$,,'2`"
+    PATH="`echo "$PATH" | sed -e 's,^/usr/lib/ccache/?:,,' -e 's,:/usr/lib/ccache/?:,,' -e 's,:/usr/lib/ccache/?$,,' -e 's,^/usr/lib/ccache/?$,,'`"
     CCACHE_PATH="$PATH"
     CCACHE_DIR="${HOME}/.ccache"
+    # Use tools from prerequisites we might have built
+    PATH="${BUILD_PREFIX}/sbin:${BUILD_PREFIX}/bin:${PATH}"
     export CCACHE_PATH CCACHE_DIR PATH
     HAVE_CCACHE=no
     if which ccache && ls -la /usr/lib/ccache ; then
@@ -341,7 +343,7 @@ default|default-Werror|default-with-docs|valgrind)
         echo ""
         echo "WARNING: Can not build prerequisite 'lua-5.1'" >&2
         echo "because neither tarball nor repository sources are known for it," >&2
-        echo "and it was not isntalled as a package; this may cause the test to fail!" >&2
+        echo "and it was not installed as a package; this may cause the test to fail!" >&2
     fi
 
     # Start of recipe for dependency: cxxtools
@@ -476,6 +478,16 @@ default|default-Werror|default-with-docs|valgrind)
         cd "${BASE_PWD}"
     fi
 
+    # Start of recipe for dependency: libsasl2
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libsasl2-dev >/dev/null 2>&1) || \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions libsasl2 >/dev/null 2>&1) \
+    ; then
+        echo ""
+        echo "WARNING: Can not build prerequisite 'libsasl2'" >&2
+        echo "because neither tarball nor repository sources are known for it," >&2
+        echo "and it was not installed as a package; this may cause the test to fail!" >&2
+    fi
+
     # Start of recipe for dependency: fty-common
     if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libfty_common-dev >/dev/null 2>&1) || \
            (command -v brew >/dev/null 2>&1 && brew ls --versions fty-common >/dev/null 2>&1) \
@@ -523,27 +535,33 @@ default|default-Werror|default-with-docs|valgrind)
     # Only use --enable-Werror on projects that are expected to have it
     # (and it is not our duty to check prerequisite projects anyway)
     CONFIG_OPTS+=("${CONFIG_OPT_WERROR}")
-    $CI_TIME ./autogen.sh 
+    $CI_TIME ./autogen.sh 2> /dev/null
     $CI_TIME ./configure --enable-drafts=yes "${CONFIG_OPTS[@]}"
-    if [ "$BUILD_TYPE" == "valgrind" ] ; then
-        # Build and check this project
-        $CI_TIME make VERBOSE=1 memcheck && exit
-        echo "Re-running failed ($?) memcheck with greater verbosity" >&2
-        $CI_TIME make VERBOSE=1 memcheck-verbose
-        exit $?
-    fi
+    case "$BUILD_TYPE" in
+        valgrind)
+            # Build and check this project
+            $CI_TIME make VERBOSE=1 memcheck && exit
+            echo "Re-running failed ($?) memcheck with greater verbosity" >&2
+            $CI_TIME make VERBOSE=1 memcheck-verbose
+            exit $?
+            ;;
+        clang-format-check)
+            $CI_TIME make VERBOSE=1 clang-format-check-CI
+            exit $?
+            ;;
+    esac
     $CI_TIME make VERBOSE=1 all
 
-    echo "=== Are GitIgnores good after 'make all' with drafts? (should have no output below)"
-    git status -s || true
+    echo "=== Are GitIgnores good after 'make all' with drafts?"
+    make check-gitignore
     echo "==="
 
     (
         export DISTCHECK_CONFIGURE_FLAGS="--enable-drafts=yes ${CONFIG_OPTS[@]}"
         $CI_TIME make VERBOSE=1 DISTCHECK_CONFIGURE_FLAGS="$DISTCHECK_CONFIGURE_FLAGS" distcheck
 
-        echo "=== Are GitIgnores good after 'make distcheck' with drafts? (should have no output below)"
-        git status -s || true
+        echo "=== Are GitIgnores good after 'make distcheck' with drafts?"
+        make check-gitignore
         echo "==="
     )
 
@@ -565,8 +583,8 @@ default|default-Werror|default-with-docs|valgrind)
     ) || exit 1
     [ -z "$CI_TIME" ] || echo "`date`: Builds completed without fatal errors!"
 
-    echo "=== Are GitIgnores good after 'make distcheck' without drafts? (should have no output below)"
-    git status -s || true
+    echo "=== Are GitIgnores good after 'make distcheck' without drafts?"
+    make check-gitignore
     echo "==="
 
     if [ "$HAVE_CCACHE" = yes ]; then

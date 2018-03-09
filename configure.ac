@@ -1045,6 +1045,71 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for tntdb
 dnl END of enabled attempts to search for tntdb
 
 
+was_libsasl2_check_lib_detected=no
+
+search_libsasl2="yes"
+
+AC_ARG_WITH([libsasl2],
+    [
+        AS_HELP_STRING([--with-libsasl2],
+        [yes or no. Optionally specify libsasl2 prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+    ],
+    [
+        search_libsasl2="yes"
+    ],
+    [
+        search_libsasl2="yes"
+    ])
+AS_CASE([x"${with_libsasl2}"],
+    [xyes], [search_libsasl2="yes"],
+    [xno],  [search_libsasl2="no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_libsasl2}" = xno],
+    [AC_MSG_WARN([Required dependency on libsasl2 was explicitly disabled during configuration by '--with-libsasl2=no'; subsequent full build of fty-alert-engine may fail])])
+
+AS_IF([test x"${search_libsasl2}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
+    found_pkgconfig=""
+    found_linkname=""
+    PKG_CHECK_MODULES([libsasl2], [libsasl2 >= 0.0.0],
+    [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libsasl2_LIBS"
+        was_libsasl2_check_lib_detected=pkgcfg
+        found_pkgconfig="libsasl2"
+    ],
+    [
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'libsasl2' - please ensure it is set])
+    ])
+
+dnl END of PKG_CHECK_MODULES and/or direct tests for libsasl2
+    AS_CASE(["x${was_libsasl2_check_lib_detected}"],
+        [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_libsasl2],[${found_pkgconfig}])
+                CFLAGS="${libsasl2_CFLAGS} ${CFLAGS}"
+                LIBS="${libsasl2_LIBS} ${LIBS}"
+            ],
+        [xyes], [
+                AC_SUBST([pkgconfig_name_libsasl2],[${found_linkname}])
+                CFLAGS="${libsasl2_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${libsasl2_synthetic_libs} ${LDFLAGS}"
+                LIBS="${libsasl2_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([libsasl2_CFLAGS],[${libsasl2_synthetic_cflags}])
+                AC_SUBST([libsasl2_LIBS],[${libsasl2_synthetic_libs}])
+            ],
+        [xno], [
+                AC_SUBST([pkgconfig_name_libsasl2],[libsasl2])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libsasl2 0.0.0 or higher])
+    ])
+])
+dnl END of enabled attempts to search for libsasl2
+
+
 was_fty_common_check_lib_detected=no
 
 search_libfty_common="yes"

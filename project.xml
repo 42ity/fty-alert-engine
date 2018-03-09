@@ -78,6 +78,11 @@
             repository = "https://github.com/42ity/tntdb.git"
             release = "1.3-FTY-master"
             builddir = "tntdb" />
+        
+        <use project = "libsasl2" header = "sasl/sasl.h"
+            debian_name="libsasl2-dev"
+            redhat_name="cyrus-sasl-devel"
+        />
     </use>
     
     <class name = "metriclist" private="1" selftest="0">MetricList</class>

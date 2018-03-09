@@ -35,10 +35,11 @@
 //
 
 void
-fty_alert_engine_private_selftest (bool verbose)
+fty_alert_engine_private_selftest (bool verbose, const char *subtest)
 {
 // Tests for stable private classes:
-    alertconfiguration_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "alertconfiguration_test"))
+        alertconfiguration_test (verbose);
 }
 /*
 ################################################################################

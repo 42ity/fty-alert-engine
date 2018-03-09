@@ -5,29 +5,29 @@
 ################################################################################
 
 #   Script to generate all required files from fresh git checkout.
-set -x
+
 if [ ! -f src/Makemodule-local.am ] ; then
     echo "autogen.sh: generating a dummy src/Makemodule-local.am to fulfill dependencies." 1>&2
     touch src/Makemodule-local.am
 fi
 
 # Debian and Ubuntu do not shipt libtool anymore, but OSX does not ship libtoolize.
-command -v libtoolize 
+command -v libtoolize >/dev/null 2>&1
 if  [ $? -ne 0 ]; then
-    command -v libtool 
+    command -v libtool >/dev/null 2>&1
     if  [ $? -ne 0 ]; then
         echo "autogen.sh: error: could not find libtool.  libtool is required to run autogen.sh." 1>&2
         exit 1
     fi
 fi
 
-command -v autoreconf 
+command -v autoreconf >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "autogen.sh: error: could not find autoreconf.  autoconf and automake are required to run autogen.sh." 1>&2
     exit 1
 fi
 
-command -v pkg-config 
+command -v pkg-config >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "autogen.sh: error: could not find pkg-config.  pkg-config is required to run autogen.sh." 1>&2
     exit 1

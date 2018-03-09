@@ -93,7 +93,7 @@ FTY_ALERT_ENGINE_PRIVATE void
 
 //  Self test for private classes
 FTY_ALERT_ENGINE_PRIVATE void
-    fty_alert_engine_private_selftest (bool verbose);
+    fty_alert_engine_private_selftest (bool verbose, const char *subtest);
 
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
 
