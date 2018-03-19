@@ -135,7 +135,7 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
 
 bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype){
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
+        log_warning("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
         return false;
     }
     std::string type_name = convertTypeSubType2Name(type,subtype);

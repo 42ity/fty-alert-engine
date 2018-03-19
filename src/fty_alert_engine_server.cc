@@ -200,7 +200,8 @@ send_alerts(
                 + alert._severity + "@"
                 + alert._element;
             mlm_client_send (client, atopic.c_str(), &msg);
-            log_debug ("mlm_client_send (subject = '%s')", atopic.c_str());
+            log_info ("Send Alert for %s with state %s and severity %s", fullRuleName.c_str(),
+                      alert._status.c_str(),alert._severity.c_str());
         }
     }
 }

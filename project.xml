@@ -66,7 +66,7 @@
         repository = "https://github.com/42ity/fty-common.git"
         test = "fty_commmon_selftest" >
         <use project = "log4cplus" header = "log4cplus/logger.h"
-        test = "appender_test" release="REL_1_1_2" repository="https://github.com/log4cplus/log4cplus.git" />
+        test = "appender_test" release="1.1.2-FTY-master" repository="https://github.com/42ity/log4cplus.git" />
         
         <use project = "libtntnet" optional = "1"
             repository = "https://github.com/42ity/tntnet.git"

@@ -35,7 +35,7 @@ int ThresholdRuleComplex::fill(
     }
     auto threshold = si.getMember("threshold");
     if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-        log_info ("Root of json must be an object with property 'threshold'.");
+        log_error ("Root of json must be an object with property 'threshold'.");
         throw std::runtime_error("Root of json must be an object with property 'threshold'.");
     }
 
