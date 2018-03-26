@@ -16,13 +16,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
-
-#include "rule.h"
+#include "fty_alert_engine_classes.h"
 
 // 1, ..., 4 - # of utf8 octets
 // -1 - error 
@@ -48,7 +42,7 @@ utf8_octets (const std::string& s, std::string::size_type pos)
         return 4;
     }
     else {
-        zsys_error ("Unrecognized utf8 lead byte '%x' in string '%s'", c, s.c_str ());
+        log_error ("Unrecognized utf8 lead byte '%x' in string '%s'", c, s.c_str ());
         return -1;
     }
 }
@@ -139,7 +133,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
                 a.getMember("mode") >>= mode;
                 res = type + ":" + asset + ":" + mode;
             } else {
-                zsys_warning("Unknown action type: \"%s\"", type.c_str());
+                log_warning("Unknown action type: \"%s\"", type.c_str());
                 res = type;
             }
             outcome._actions.push_back(res);
@@ -173,7 +167,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
             values.emplace (variableName, valueDouble);
         }
         catch (const std::exception &e ) {
-            zsys_error ("Value '%s' is not double", valueString.c_str());
+            log_error ("Value '%s' is not double", valueString.c_str());
             throw std::runtime_error("Value should be double");
         }
     }

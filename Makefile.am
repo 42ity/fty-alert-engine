@@ -23,13 +23,21 @@ AM_CPPFLAGS = \
     ${fty_proto_CFLAGS} \
     ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
+    ${log4cplus_CFLAGS} \
+    ${libtntnet_CFLAGS} \
+    ${tntdb_CFLAGS} \
+    ${libsasl2_CFLAGS} \
+    ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${libtntnet_LIBS} ${tntdb_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
+SUBDIRS += include
 DIST_SUBDIRS = doc
+DIST_SUBDIRS += include
+
 lib_LTLIBRARIES =
 bin_PROGRAMS =
 noinst_PROGRAMS =
@@ -51,6 +59,11 @@ EXTRA_DIST += \
     Findfty_proto.cmake \
     Findlua_5_1.cmake \
     Findcxxtools.cmake \
+    Findlog4cplus.cmake \
+    Findlibtntnet.cmake \
+    Findtntdb.cmake \
+    Findlibsasl2.cmake \
+    Findfty_common.cmake \
     CMakeLists.txt
 endif
 
@@ -63,6 +76,10 @@ EXTRA_DIST += \
     src/thresholdrulecomplex.h \
     src/ruleconfigurator.h \
     src/templateruleconfigurator.h \
+    src/normalrule.h \
+    src/thresholdrulesimple.h \
+    src/thresholdruledevice.h \
+    src/regexrule.h \
     README.md \
     src/fty_alert_engine_classes.h
 

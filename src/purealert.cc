@@ -15,15 +15,7 @@ You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
-
-#include "purealert.h"
-
-#include <czmq.h>
+#include "fty_alert_engine_classes.h"
 
 bool PureAlert::isStatusKnown (const char *status)
 {
@@ -43,11 +35,11 @@ bool PureAlert::isStatusKnown (const char *status)
 }
 
 void PureAlert::print() const {
-    zsys_debug1 ("status = %s", _status.c_str());
-    zsys_debug1 ("timestamp = %" PRIu64, _timestamp);
-    zsys_debug1 ("description = %s", _description.c_str());
-    zsys_debug1 ("element = %s", _element.c_str());
-    zsys_debug1 ("severity = %s", _severity.c_str());
+    log_debug ("status = %s", _status.c_str());
+    log_debug ("timestamp = %" PRIu64, _timestamp);
+    log_debug ("description = %s", _description.c_str());
+    log_debug ("element = %s", _element.c_str());
+    log_debug ("severity = %s", _severity.c_str());
 }
 
 

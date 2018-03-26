@@ -87,6 +87,11 @@ czmq/
 malamute/
 fty-proto/
 cxxtools/
+fty-common/
+libsodium/
+libtntnet/
+log4cplus/
+tntdb/
 
 # Travis build area
 tmp/

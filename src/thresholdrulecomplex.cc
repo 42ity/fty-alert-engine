@@ -22,14 +22,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Complex threshold rule representation
  */
 
-#include <czmq.h>
-extern int agent_alert_verbose;
-
-#define zsys_debug1(...) \
-    do { if (agent_alert_verbose) zsys_debug (__VA_ARGS__); } while (0);
 #include <sstream>
 
-#include "thresholdrulecomplex.h"
+#include "fty_alert_engine_classes.h"
 
 int ThresholdRuleComplex::fill(
         const cxxtools::SerializationInfo &si)
@@ -40,7 +35,7 @@ int ThresholdRuleComplex::fill(
     }
     auto threshold = si.getMember("threshold");
     if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-        zsys_info ("Root of json must be an object with property 'threshold'.");
+        log_error ("Root of json must be an object with property 'threshold'.");
         throw std::runtime_error("Root of json must be an object with property 'threshold'.");
     }
 
@@ -49,7 +44,7 @@ int ThresholdRuleComplex::fill(
     if ( target.category () != cxxtools::SerializationInfo::Array ) {
         return 1;
     }
-    zsys_debug1 ("it is complex threshold rule");
+    log_debug ("it is complex threshold rule");
 
     std::vector<std::basic_string <cxxtools::Char>> cxxtools_Char_metrics;
     target >>= cxxtools_Char_metrics;
@@ -82,7 +77,7 @@ int ThresholdRuleComplex::fill(
     std::map<std::string,double> tmp_values;
     auto values = threshold.getMember("values");
     if ( values.category () != cxxtools::SerializationInfo::Array ) {
-        zsys_error ("parameter 'values' in json must be an array.");
+        log_error ("parameter 'values' in json must be an array.");
         throw std::runtime_error("parameter 'values' in json must be an array");
     }
     values >>= tmp_values;
@@ -91,7 +86,7 @@ int ThresholdRuleComplex::fill(
     // outcomes
     auto outcomes = threshold.getMember("results");
     if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-        zsys_error ("parameter 'results' in json must be an array.");
+        log_error ("parameter 'results' in json must be an array.");
         throw std::runtime_error ("parameter 'results' in json must be an array.");
     }
     outcomes >>= _outcomes;
@@ -102,7 +97,7 @@ int ThresholdRuleComplex::fill(
         code(tmp);
     }
     catch ( const std::exception &e ) {
-        zsys_error ("something with lua function: %s", e.what());
+        log_error ("something with lua function: %s", e.what());
         return 2;
     }
 

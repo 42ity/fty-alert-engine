@@ -58,7 +58,7 @@ bool RuleConfigurator::sendNewRule (const std::string& rule, mlm_client_t *clien
     if (reg.match (rule)) dest = "fty-alert-flexible";
 
     if (mlm_client_sendto (client, dest, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
-        zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
+        log_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
                 dest, "rfc-evaluator-rules");
         return false;
     }

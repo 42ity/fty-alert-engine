@@ -62,19 +62,45 @@
         repository = "https://github.com/42ity/cxxtools.git"
         release = "2.2-FTY-master" />
 
+    <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
+        repository = "https://github.com/42ity/fty-common.git"
+        test = "fty_commmon_selftest" >
+        <use project = "log4cplus" header = "log4cplus/logger.h"
+        test = "appender_test" release="1.1.2-FTY-master" repository="https://github.com/42ity/log4cplus.git" />
+        
+        <use project = "libtntnet" optional = "1"
+            repository = "https://github.com/42ity/tntnet.git"
+            release = "2.2-FTY-master"
+            />
+
+        <use project = "tntdb"
+            test="tntdb::Date::gmtime"
+            repository = "https://github.com/42ity/tntdb.git"
+            release = "1.3-FTY-master"
+            builddir = "tntdb" />
+        
+        <use project = "libsasl2" header = "sasl/sasl.h"
+            debian_name="libsasl2-dev"
+            redhat_name="cyrus-sasl-devel"
+        />
+    </use>
+    
     <class name = "metriclist" private="1" selftest="0">MetricList</class>
     <class name = "alertconfiguration" private="1">alertconfiguration</class>
     <class name = "luarule" private="1" selftest = "0">luaRule</class>
     <class name = "purealert" private="1" selftest = "0">PureAlert</class>
     <class name = "rule" private="1" selftest = "0">Rule</class>
     <class name = "thresholdrulecomplex" private="1" selftest = "0">ThresholdRuleComplex</class>
-    <class name = "filesystem" state = "stable">Filesystem</class>
     <class name = "utils" state = "stable">Utils</class>
     <class name = "Autoconfig" state = "stable">Autoconfig</class>
     <class name = "RuleConfigurator" private = "1" selftest = "0">Rule Configurator</class>
     <class name = "TemplateRuleConfigurator" private="1" selftest="0">Template rule configurator</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
     <class name = "fty_alert_actions" state = "stable" >Actor performing actions on alert (sending notifications)</class>
+    <header name = "normalrule" private="1" >normalrule</header>
+    <header name = "thresholdrulesimple" private="1" >thresholdrulesimple</header>
+    <header name = "thresholdruledevice" private="1" >thresholdruledevice</header>
+    <header name = "regexrule" private="1" >regexrule</header>
     <main name = "fty-alert-engine" service = "1">
         Daemon evaluating rules and producing alerts
     </main>
