@@ -418,7 +418,7 @@ int AlertConfiguration::
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
                     // element is the same -> no need to update the field
-                    log_debug("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    log_debug("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 else {
                     // Found alert is still active -> it is the same alert
@@ -426,7 +426,7 @@ int AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    log_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    log_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 // in both cases we need to send an alert
                 alert_to_send = PureAlert(oneAlert);
@@ -440,7 +440,7 @@ int AlertConfiguration::
                     oneAlert._description = pureAlert._description;
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
-                    log_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+                    log_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                     alert_to_send = PureAlert(oneAlert);
                     return 0;
                 }
@@ -457,7 +457,7 @@ int AlertConfiguration::
             if ( pureAlert._status != ALERT_RESOLVED )
             {
                 oneRuleAlerts.second.push_back(pureAlert);
-                log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'\n", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
+                log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
                 alert_to_send = PureAlert(pureAlert);
                 return 0;
             }
@@ -500,7 +500,8 @@ int AlertConfiguration::
             }
             // we found the alert
             if ( oneAlert._status == ALERT_RESOLVED ) {
-                log_error ("state of RESOLVED alert cannot be chaged manually");
+                log_error ("Alert %s with rule %s : RESOLVED alert cannot be changed manually",
+                           oneAlert._element.c_str(),oneAlert._rule_class.c_str());
                 return -1;
             }
             oneAlert._status = new_state;
