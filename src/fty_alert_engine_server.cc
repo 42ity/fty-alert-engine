@@ -181,7 +181,7 @@ send_alerts(
         if (streq("warranty",fullRuleName.c_str())){
           fullRuleName += "@" +  alert._element;
         }
-        
+
         zlist_t *actions = makeActionList(alert._actions);
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
@@ -392,6 +392,7 @@ delete_all_rules
      AlertConfiguration &ac)
 {
     std::map <std::string, std::vector <PureAlert>> alertsToSend;
+    mtxAlertConfig.lock();
     int rv = ac.deleteAllRules (element, alertsToSend);
     if (!rv) {
         std::for_each (alertsToSend.begin (),
@@ -401,6 +402,7 @@ delete_all_rules
                             send_alerts (client, alerts.second, alerts.first);
                         });
     }
+    mtxAlertConfig.unlock();
 }
 
 
@@ -945,7 +947,7 @@ fty_alert_engine_server_test(
 
     zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
     zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
-    
+
     zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
     zstr_sendx (ag_server_mail, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
@@ -2215,7 +2217,7 @@ fty_alert_engine_server_test(
     mlm_client_destroy (&consumer);
     mlm_client_destroy (&producer);
     zactor_destroy (&server);
-    
+
     static const std::vector <std::string> strings {
         "ŽlUťOUčKý kůň",
         "\u017dlu\u0165ou\u010dk\xc3\xbd K\u016f\xc5\x88",
