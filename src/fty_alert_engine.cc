@@ -32,6 +32,9 @@ static const char *ENGINE_AGENT_NAME = "fty-alert-engine";
 static const char *ENGINE_AGENT_NAME_STREAM = "fty-alert-engine-stream";
 static const char *ACTIONS_AGENT_NAME = "fty-alert-actions";
 
+// licensing stream
+static const char *LICENSING_ANNOUNCEMENTS = "LICENSING-ANNOUNCEMENTS";
+
 // autoconfig name
 static const char *AUTOCONFIG_NAME = "fty-autoconfig";
 
@@ -55,10 +58,10 @@ int main (int argc, char** argv)
     {
       ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
     }
-    
+
     zactor_t *ag_server_stream = zactor_new(fty_alert_engine_stream, (void*) ENGINE_AGENT_NAME_STREAM);
     zactor_t *ag_server_mailbox = zactor_new(fty_alert_engine_mailbox, (void*) ENGINE_AGENT_NAME);
-    
+
     // mailbox
     zstr_sendx(ag_server_mailbox, "CONFIG", PATH, NULL);
     zstr_sendx(ag_server_mailbox, "CONNECT", ENDPOINT, NULL);
@@ -70,7 +73,7 @@ int main (int argc, char** argv)
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_SENSOR, "status.*", NULL);
-
+    zstr_sendx(ag_server_stream, "CONSUMER", LICENSING_ANNOUNCEMENTS, "LIMITATIONS", NULL);
 
     //autoconfig
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
