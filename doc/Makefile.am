@@ -42,9 +42,9 @@ SUFFIXES=.txt .adoc .xml .xml7 .1 .3 .7
 	asciidoc -d manpage -b docbook -f $(srcdir)/asciidoc.conf \
         -afty-alert-engine_version=@PACKAGE_VERSION@ -o$@ $<
 .xml.1:
-	xmlto man $<
+	xmlto -o $(@D) man $<
 .xml.3:
-	xmlto man $<
+	xmlto -o $(@D) man $<
 
 # Special handling for project overview whose basename may collide
 # with a main or class name
@@ -52,7 +52,7 @@ SUFFIXES=.txt .adoc .xml .xml7 .1 .3 .7
 	asciidoc -d manpage -b docbook -f $(srcdir)/asciidoc.conf \
         -afty-alert-engine_version=@PACKAGE_VERSION@ -o$@ $<
 .xml7.7:
-	xmlto man $<
+	xmlto -o $(@D) man $<
 
 # List of *.txt and *.doc files generated during build from comments
 # in project program source files and further processed into manpages.
@@ -80,8 +80,12 @@ GENERATED_DOCS += fty_alert_actions.txt fty_alert_actions.doc
 fty_alert_actions.txt: $(top_srcdir)/src/fty_alert_actions.cc
 	"$(srcdir)/mkman" "fty_alert_actions" "$(builddir)/fty_alert_actions.txt" "$(srcdir)/.."
 
+### Note: for mains, we keep the source name rather than flattened name:c
+### so that the manpages for binary programs match their name, at expense
+### of perhaps being built in a subdirectory under doc/.
 GENERATED_DOCS += fty-alert-engine.txt fty-alert-engine.doc
 fty-alert-engine.txt: $(top_srcdir)/src/fty_alert_engine.cc
+	mkdir -p "$(builddir)/$(@D)"
 	"$(srcdir)/mkman" "fty_alert_engine" "$(builddir)/fty-alert-engine.txt" "$(srcdir)/.."
 
 

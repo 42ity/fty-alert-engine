@@ -8,11 +8,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 
 ACLOCAL_AMFLAGS = -I config
 
-AM_CFLAGS = \
-    -Werror=format-security
-
 AM_CXXFLAGS = \
-    -Werror=format-security \
     -std=c++11
 
 AM_CPPFLAGS = \
@@ -24,14 +20,14 @@ AM_CPPFLAGS = \
     ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${log4cplus_CFLAGS} \
-    ${libtntnet_CFLAGS} \
+    ${tntnet_CFLAGS} \
     ${tntdb_CFLAGS} \
     ${libsasl2_CFLAGS} \
     ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${libtntnet_LIBS} ${tntdb_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${tntnet_LIBS} ${tntdb_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -60,10 +56,13 @@ EXTRA_DIST += \
     Findlua_5_1.cmake \
     Findcxxtools.cmake \
     Findlog4cplus.cmake \
-    Findlibtntnet.cmake \
+    Findtntnet.cmake \
     Findtntdb.cmake \
     Findlibsasl2.cmake \
     Findfty_common.cmake \
+    builds/cmake/Modules/ClangFormat.cmake \
+    builds/cmake/clang-format-check.sh.in \
+    builds/cmake/Config.cmake.in \
     CMakeLists.txt
 endif
 
