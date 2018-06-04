@@ -24,6 +24,7 @@ sudo: required
 #dist:
 #- trusty
 
+# Note: was uncommented in earlier builds (TODO: Check if needed)
 services:
 - docker
 
@@ -110,6 +111,7 @@ matrix:
   include:
   - env: BUILD_TYPE=default-with-docs
     os: linux
+# Note: was uncommented in earlier builds (TODO: Check if needed)
 #    dist: trusty
     addons:
       apt:
