@@ -900,66 +900,66 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for log4cplus
 dnl END of enabled attempts to search for log4cplus
 
 
-was_libtntnet_check_lib_detected=no
+was_tntnet_check_lib_detected=no
 
-search_libtntnet="no"
+search_tntnet="no"
 
-AC_ARG_WITH([libtntnet],
+AC_ARG_WITH([tntnet],
     [
-        AS_HELP_STRING([--with-libtntnet],
-        [yes or no. Optionally specify libtntnet prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+        AS_HELP_STRING([--with-tntnet],
+        [yes or no. Optionally specify tntnet prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
-        search_libtntnet="yes"
+        search_tntnet="yes"
     ],
     [
-        search_libtntnet="yes"
+        search_tntnet="yes"
     ])
-AS_CASE([x"${with_libtntnet}"],
-    [xyes], [search_libtntnet="yes"],
-    [xno],  [search_libtntnet="no"])
+AS_CASE([x"${with_tntnet}"],
+    [xyes], [search_tntnet="yes"],
+    [xno],  [search_tntnet="no"])
 
 
-AS_IF([test x"${search_libtntnet}" = xyes], [
+AS_IF([test x"${search_tntnet}" = xyes], [
     # Archive previously detected and supplied flags
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
     found_pkgconfig=""
     found_linkname=""
-    PKG_CHECK_MODULES([libtntnet], [libtntnet >= 0.0.0],
+    PKG_CHECK_MODULES([tntnet], [tntnet >= 0.0.0],
     [
-        AC_DEFINE(HAVE_LIBTNTNET, 1, [The optional libtntnet library is to be used])
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libtntnet_LIBS"
-        was_libtntnet_check_lib_detected=pkgcfg
-        found_pkgconfig="libtntnet"
+        AC_DEFINE(HAVE_TNTNET, 1, [The optional tntnet library is to be used])
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $tntnet_LIBS"
+        was_tntnet_check_lib_detected=pkgcfg
+        found_pkgconfig="tntnet"
     ],
     [
-        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'libtntnet' - please ensure it is set])
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'tntnet' - please ensure it is set])
     ])
 
-dnl END of PKG_CHECK_MODULES and/or direct tests for libtntnet
-    AS_CASE(["x${was_libtntnet_check_lib_detected}"],
+dnl END of PKG_CHECK_MODULES and/or direct tests for tntnet
+    AS_CASE(["x${was_tntnet_check_lib_detected}"],
         [xpkgcfg], [
-                AC_SUBST([pkgconfig_name_libtntnet],[${found_pkgconfig}])
-                CFLAGS="${libtntnet_CFLAGS} ${CFLAGS}"
-                LIBS="${libtntnet_LIBS} ${LIBS}"
+                AC_SUBST([pkgconfig_name_tntnet],[${found_pkgconfig}])
+                CFLAGS="${tntnet_CFLAGS} ${CFLAGS}"
+                LIBS="${tntnet_LIBS} ${LIBS}"
             ],
         [xyes], [
-                AC_SUBST([pkgconfig_name_libtntnet],[${found_linkname}])
-                CFLAGS="${libtntnet_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${libtntnet_synthetic_libs} ${LDFLAGS}"
-                LIBS="${libtntnet_synthetic_libs} ${LIBS}"
+                AC_SUBST([pkgconfig_name_tntnet],[${found_linkname}])
+                CFLAGS="${tntnet_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${tntnet_synthetic_libs} ${LDFLAGS}"
+                LIBS="${tntnet_synthetic_libs} ${LIBS}"
 
-                AC_SUBST([libtntnet_CFLAGS],[${libtntnet_synthetic_cflags}])
-                AC_SUBST([libtntnet_LIBS],[${libtntnet_synthetic_libs}])
+                AC_SUBST([tntnet_CFLAGS],[${tntnet_synthetic_cflags}])
+                AC_SUBST([tntnet_LIBS],[${tntnet_synthetic_libs}])
             ],
         [xno], [
-                AC_SUBST([pkgconfig_name_libtntnet],[libtntnet])
-            AC_MSG_WARN([Cannot find pkg-config metadata for libtntnet 0.0.0 or higher])
+                AC_SUBST([pkgconfig_name_tntnet],[tntnet])
+            AC_MSG_WARN([Cannot find pkg-config metadata for tntnet 0.0.0 or higher])
     ])
 ])
-dnl END of enabled attempts to search for libtntnet
+dnl END of enabled attempts to search for tntnet
 
 
 was_tntdb_check_lib_detected=no

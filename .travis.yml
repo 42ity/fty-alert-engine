@@ -72,7 +72,7 @@ pkg_deps_prereqs_source: &pkg_deps_prereqs_source
     - libfty-proto-dev
     - cxxtools-dev
     - log4cplus-dev
-    - libtntnet-dev
+    - tntnet-dev
     - tntdb-dev
     - libfty-common-dev
 
@@ -110,7 +110,7 @@ matrix:
   include:
   - env: BUILD_TYPE=default-with-docs
     os: linux
-    dist: trusty
+#    dist: trusty
     addons:
       apt:
         sources: *pkg_src_zeromq_ubuntu14

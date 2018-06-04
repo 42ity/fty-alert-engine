@@ -410,15 +410,15 @@ default|default-Werror|default-with-docs|valgrind|clang-format-check)
         cd "${BASE_PWD}"
     fi
 
-    # Start of recipe for dependency: libtntnet
-    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libtntnet-dev >/dev/null 2>&1) || \
-           (command -v brew >/dev/null 2>&1 && brew ls --versions libtntnet >/dev/null 2>&1) \
+    # Start of recipe for dependency: tntnet
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list tntnet-dev >/dev/null 2>&1) || \
+           (command -v brew >/dev/null 2>&1 && brew ls --versions tntnet >/dev/null 2>&1) \
     ; then
         echo ""
         BASE_PWD=${PWD}
-        echo "`date`: INFO: Building prerequisite 'libtntnet' from Git repository..." >&2
-        $CI_TIME git clone --quiet --depth 1 -b 2.2-FTY-master https://github.com/42ity/tntnet.git libtntnet
-        cd libtntnet
+        echo "`date`: INFO: Building prerequisite 'tntnet' from Git repository..." >&2
+        $CI_TIME git clone --quiet --depth 1 -b 2.2-FTY-master https://github.com/42ity/tntnet.git tntnet
+        cd tntnet
         CCACHE_BASEDIR=${PWD}
         export CCACHE_BASEDIR
         git --no-pager log --oneline -n1
@@ -440,9 +440,9 @@ default|default-Werror|default-with-docs|valgrind|clang-format-check)
         $CI_TIME make -j4
         $CI_TIME make install
         cd "${BASE_PWD}"
-        CONFIG_OPTS+=("--with-libtntnet=yes")
+        CONFIG_OPTS+=("--with-tntnet=yes")
     else
-        CONFIG_OPTS+=("--with-libtntnet=yes")
+        CONFIG_OPTS+=("--with-tntnet=yes")
     fi
 
     # Start of recipe for dependency: tntdb
