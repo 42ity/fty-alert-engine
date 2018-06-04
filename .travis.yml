@@ -158,6 +158,7 @@ before_install:
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "android" ] ; then brew install binutils ; fi
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "valgrind" ] ; then brew install valgrind ; fi
 
+### Note: Fix up SASL and LUA pkgconfigs before build
 before_script:
 - ./.travis.fixsasl
 - ./.travis.fixlua
