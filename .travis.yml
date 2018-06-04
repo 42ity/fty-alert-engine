@@ -158,6 +158,10 @@ before_install:
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "android" ] ; then brew install binutils ; fi
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "valgrind" ] ; then brew install valgrind ; fi
 
+before_script:
+- ./.travis.fixsasl
+- ./.travis.fixlua
+
 # Hand off to generated script for each BUILD_TYPE
 script: ./ci_build.sh
 before_deploy: . ./ci_deploy.sh && ./ci_deploy_obs.sh
