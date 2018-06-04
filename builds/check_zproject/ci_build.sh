@@ -7,15 +7,15 @@ set -ex
 
 # Verify all required dependencies with repos can be checked out
 cd "$REPO_DIR/.."
-git clone --quiet --depth 1 -b 1.0.5-FTY-master https://github.com/42ity/libsodium.git libsodium
-git clone --quiet --depth 1 -b 4.2.0-FTY-master https://github.com/42ity/libzmq.git libzmq
-git clone --quiet --depth 1 -b v3.0.2-FTY-master https://github.com/42ity/czmq.git czmq
-git clone --quiet --depth 1 -b 1.0-FTY-master https://github.com/42ity/malamute.git malamute
-git clone --quiet --depth 1 https://github.com/42ity/fty-proto.git fty-proto
-git clone --quiet --depth 1 -b 2.2-FTY-master https://github.com/42ity/cxxtools.git cxxtools
-git clone --quiet --depth 1 -b 1.1.2-FTY-master https://github.com/42ity/log4cplus.git log4cplus
-git clone --quiet --depth 1 -b 1.3-FTY-master https://github.com/42ity/tntdb.git tntdb
-git clone --quiet --depth 1 https://github.com/42ity/fty-common.git fty-common
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/libsodium.git libsodium
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/libzmq.git libzmq
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/czmq.git czmq
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/malamute.git malamute
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/fty-proto.git fty-proto
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/cxxtools.git cxxtools
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/log4cplus.git log4cplus
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/tntdb.git tntdb
+git clone --quiet --depth 1 -b release/IPM_Infra-1.4 https://github.com/42ity/fty-common.git fty-common
 cd -
 
 if ! ((command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list zproject >/dev/null 2>&1) || \
