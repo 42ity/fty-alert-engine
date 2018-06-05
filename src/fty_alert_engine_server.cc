@@ -517,6 +517,46 @@ evaluate_metric(
     return isEvaluate;
 }
 
+// convert licensing metric to fty_proto_metric
+static void
+s_convert_licensing_metric (zmsg_t **msg_p)
+{
+    if (!msg_p || !*msg_p)
+        return;
+
+    zmsg_t *msg = *msg_p;
+    zhash_t *aux = zhash_new ();
+    char *value = zmsg_popstr (msg);
+    char *quantity =  zmsg_popstr (msg);
+    char *category = zmsg_popstr (msg);
+    char *expiration = NULL;
+
+    while (value && quantity && category)
+    {
+        if (streq (quantity, "EXPIRE_DAYS")) {
+            expiration = value;
+            break;
+        }
+        value = zmsg_popstr (msg);
+        quantity =  zmsg_popstr (msg);
+        category = zmsg_popstr (msg);
+    }
+
+    *msg_p = fty_proto_encode_metric (
+        aux,
+        ::time (NULL),
+        90,
+        "license_expiration",
+        "rackcontroller-0",   //"lice"
+        expiration,
+        "days"
+    );
+
+    zstr_free (&quantity);
+    zstr_free (&value);
+    zstr_free (&category);
+}
+
 void
 fty_alert_engine_stream(
     zsock_t *pipe,
@@ -562,21 +602,34 @@ fty_alert_engine_stream(
         // Mailbox message received (if any)
         zmsg_t *zmessage = NULL;
         std::string subject;
+
         while (which == mlm_client_msgpipe(client)) {
             zmsg_t *zmsg = mlm_client_recv(client);
-            if (!is_fty_proto(zmsg)) {
+            std::string topic = mlm_client_subject(client);
+
+            // licensing messages are not fty_proto
+            if (topic == "LIMITATIONS") {
+                s_convert_licensing_metric (&zmsg);
+                topic = "license_expiration@rackcontroller-0";
+            }
+
+            if (!is_fty_proto (zmsg)) {
                 zmessage = zmsg;
-                subject = mlm_client_subject(client);
+                topic = mlm_client_subject (client);
                 break;
             }
-            std::string topic = mlm_client_subject(client);
-            fty_proto_t *bmessage = fty_proto_decode(&zmsg);
+
+            fty_proto_t *bmessage = fty_proto_decode (&zmsg);
             if (!bmessage) {
                 log_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 break;
             }
+
             if (fty_proto_id(bmessage) != FTY_PROTO_METRIC) {
-                log_error ("%s: unsupported proto id %d for topic %s, ignoring", name, fty_proto_id(bmessage), topic.c_str());
+                log_error ("%s: unsupported proto id %d for topic %s, ignoring",
+                           name,
+                           fty_proto_id(bmessage),
+                           topic.c_str());
                 fty_proto_destroy(&bmessage);
                 break;
             }
@@ -650,6 +703,7 @@ fty_alert_engine_stream(
         for (auto element : stream_messages) {
             std::string topic = element.first;
             fty_proto_t *bmessage = element.second;
+
             // process as metric message
             const char *type = fty_proto_type (bmessage);
             const char * name = fty_proto_name (bmessage);
@@ -937,6 +991,7 @@ fty_alert_engine_server_test(
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
     mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
+    mlm_client_set_producer (producer, "LICENSING_ANNOUNCEMENTS");
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
@@ -956,6 +1011,7 @@ fty_alert_engine_server_test(
     zstr_sendx (ag_server_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx (ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx (ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+    zstr_sendx (ag_server_stream, "CONSUMER", "LICENSING_ANNOUNCEMENTS", "LIMITATION.*", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // Test case #1: list w/o rules
