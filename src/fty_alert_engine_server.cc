@@ -525,7 +525,6 @@ s_convert_licensing_metric (zmsg_t **msg_p)
         return;
 
     zmsg_t *msg = *msg_p;
-    zhash_t *aux = zhash_new ();
     char *value = zmsg_popstr (msg);
     char *quantity =  zmsg_popstr (msg);
     char *category = zmsg_popstr (msg);
@@ -543,15 +542,15 @@ s_convert_licensing_metric (zmsg_t **msg_p)
     }
 
     *msg_p = fty_proto_encode_metric (
-        aux,
+        NULL,
         ::time (NULL),
-        90,
+        60*60*2,
         "license_expiration",
-        "rackcontroller-0",   //"lice"
+        "rackcontroller-0",
         expiration,
         "days"
     );
-
+    msg_p = NULL;
     zstr_free (&quantity);
     zstr_free (&value);
     zstr_free (&category);
@@ -991,7 +990,6 @@ fty_alert_engine_server_test(
     mlm_client_t *producer = mlm_client_new ();
     mlm_client_connect (producer, endpoint, 1000, "producer");
     mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
-    mlm_client_set_producer (producer, "LICENSING_ANNOUNCEMENTS");
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
@@ -1011,7 +1009,6 @@ fty_alert_engine_server_test(
     zstr_sendx (ag_server_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx (ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx (ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
-    zstr_sendx (ag_server_stream, "CONSUMER", "LICENSING_ANNOUNCEMENTS", "LIMITATION.*", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
 
     // Test case #1: list w/o rules
@@ -1117,7 +1114,7 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
         //Test case #5: generate alert - below the treshold
         zmsg_t *m = fty_proto_encode_metric (
-                NULL, time (NULL), 0, "abc", "fff", "20", "X");
+            NULL, ::time (NULL), 0, "abc", "fff", "20", "X");
         mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
