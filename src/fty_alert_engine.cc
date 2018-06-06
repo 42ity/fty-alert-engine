@@ -32,9 +32,6 @@ static const char *ENGINE_AGENT_NAME = "fty-alert-engine";
 static const char *ENGINE_AGENT_NAME_STREAM = "fty-alert-engine-stream";
 static const char *ACTIONS_AGENT_NAME = "fty-alert-actions";
 
-// licensing stream
-static const char *LICENSING_ANNOUNCEMENTS = "LICENSING-ANNOUNCEMENTS";
-
 // autoconfig name
 static const char *AUTOCONFIG_NAME = "fty-autoconfig";
 
@@ -73,7 +70,7 @@ int main (int argc, char** argv)
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_SENSOR, "status.*", NULL);
-    zstr_sendx(ag_server_stream, "CONSUMER", LICENSING_ANNOUNCEMENTS, "LIMITATIONS", NULL);
+    zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_LICENSING_ANNOUNCEMENTS, "LIMITATIONS", NULL);
 
     //autoconfig
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
