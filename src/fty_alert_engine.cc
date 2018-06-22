@@ -70,7 +70,7 @@ int main (int argc, char** argv)
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_SENSOR, "status.*", NULL);
-    zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_LICENSING_ANNOUNCEMENTS, "LIMITATIONS", NULL);
+    zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_LICENSING_ANNOUNCEMENTS, ".*", NULL);
 
     //autoconfig
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) AUTOCONFIG_NAME);
