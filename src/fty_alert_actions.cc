@@ -793,7 +793,7 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
     const char *operation = fty_proto_operation (asset);
     const char *assetname = fty_proto_name (asset);
 
-    if (streq (operation, "delete")
+    if (streq (operation, FTY_PROTO_ASSET_OP_DELETE)
     || !streq (fty_proto_aux_string (asset, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
         log_debug("received delete for asset %s", assetname);
         fty_proto_t *item = (fty_proto_t *)zhash_lookup (self->assets_cache, assetname);
@@ -813,7 +813,7 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
         }
         fty_proto_destroy (asset_p);
     }
-    else if (streq (operation, "update")) {
+    else if (streq (operation, FTY_PROTO_ASSET_OP_UPDATE)) {
         log_debug("received update for asset %s", assetname);
         fty_proto_t *known = (fty_proto_t *) zhash_lookup(self->assets_cache, assetname);
         if (NULL != known) {
