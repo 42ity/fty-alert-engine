@@ -307,7 +307,8 @@ Autoconfig::onSend (fty_proto_t **message)
         streq (fty_proto_aux_string (*message, "type", ""), "row") ||
         streq (fty_proto_aux_string (*message, "type", ""), "rack"))
     {
-        if (info.operation != "delete") {
+        if (info.operation != FTY_PROTO_ASSET_OP_DELETE
+        && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
             _containers[device_name] = fty_proto_ext_string (*message, "name", "");
         } else {
             try {
