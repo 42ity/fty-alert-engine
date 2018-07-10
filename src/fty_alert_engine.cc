@@ -41,15 +41,46 @@ static const char *ENDPOINT = "ipc://@/malamute";
 int main (int argc, char** argv)
 {
     std::string logConfigFile = "";
+    zconfig_t *cfg = NULL;
     ManageFtyLog::setInstanceFtylog("fty-alert-engine");
-    if (argc == 2 && streq (argv[1], "-v")) {
-        ManageFtyLog::getInstanceFtylog()->setVeboseMode();
+
+    int argn;
+    for (argn = 1 ; argn < argc; argn++)
+    {
+        char *par = NULL;
+        if (argn < argc -1)
+            par = argv [argn + 1];
+
+        if (streq (argv [argn], "-v") ||
+            streq (argv [argn], "--verbose")) {
+            ManageFtyLog::getInstanceFtylog()->setVeboseMode();
+        }
+        else if (streq (argv [argn], "-h") ||
+                 streq (argv [argn], "--help")) {
+            puts ("fty-alert-engine [option] [value]");
+            puts ("   -v|--verbose          verbose output");
+            puts ("   -h|--help             print help");
+            puts ("   -c|--config [path]    use custom config file ");
+            return 0;
+        }
+        else if (streq (argv [argn], "-c") ||
+                 streq (argv [argn], "--config")) {
+            if (par)
+                cfg = zconfig_load (par);
+            ++argn;
+        }
+        else {
+            printf ("Unknown option: %s, run with -h|--help \n", argv [argn]);
+            return 1;
+        }
     }
 
-    zconfig_t *cfg = zconfig_load(CONFIG);
-    if (cfg) {
-        logConfigFile = std::string(zconfig_get(cfg, "log/config", ""));
+    if (!cfg) {
+        cfg = zconfig_load(CONFIG);
     }
+
+    logConfigFile = std::string(zconfig_get(cfg, "log/config", ""));
+
     //If a log config file is configured, try to load it
     if (!logConfigFile.empty())
     {
