@@ -37,6 +37,8 @@
 
 #include "fty_alert_engine_classes.h"
 
+// !! move to common
+#include "comm_filesystem.h"
 #define AUTOCONFIG "AUTOCONFIG"
 
 std::string Autoconfig::StateFilePath;
