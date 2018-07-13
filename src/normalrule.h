@@ -31,7 +31,7 @@ extern "C" {
 }
 // because of zsys
 #include <czmq.h>
-#include <fty_common.h>
+#include <fty_log.h>
 class NormalRule : public LuaRule
 {
 public:

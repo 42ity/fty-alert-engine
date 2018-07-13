@@ -33,7 +33,7 @@
 #include <fstream>
 #include <iostream>
 #include <czmq.h>
-#include <fty_common.h>
+#include <fty_log.h>
 
 #include "purealert.h"
 #include "metriclist.h"

@@ -29,7 +29,7 @@ extern "C" {
 }
 // because of regex and zsysinfo
 #include <czmq.h>
-#include <fty_common.h>
+#include <fty_log.h>
 #include "luarule.h"
 
 class RegexRule : public LuaRule {
