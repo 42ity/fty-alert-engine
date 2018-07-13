@@ -20,14 +20,11 @@ AM_CPPFLAGS = \
     ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${log4cplus_CFLAGS} \
-    ${tntnet_CFLAGS} \
-    ${tntdb_CFLAGS} \
-    ${libsasl2_CFLAGS} \
-    ${fty_common_CFLAGS} \
+    ${fty_common_logging_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${tntnet_LIBS} ${tntdb_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -56,10 +53,7 @@ EXTRA_DIST += \
     Findlua_5_1.cmake \
     Findcxxtools.cmake \
     Findlog4cplus.cmake \
-    Findtntnet.cmake \
-    Findtntdb.cmake \
-    Findlibsasl2.cmake \
-    Findfty_common.cmake \
+    Findfty_common_logging.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
     builds/cmake/Config.cmake.in \
@@ -75,6 +69,7 @@ EXTRA_DIST += \
     src/thresholdrulecomplex.h \
     src/ruleconfigurator.h \
     src/templateruleconfigurator.h \
+    src/comm_filesystem.h \
     src/normalrule.h \
     src/thresholdrulesimple.h \
     src/thresholdruledevice.h \

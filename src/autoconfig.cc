@@ -37,6 +37,8 @@
 
 #include "fty_alert_engine_classes.h"
 
+// !! move to common
+#include "comm_filesystem.h"
 #define AUTOCONFIG "AUTOCONFIG"
 
 std::string Autoconfig::StateFilePath;
@@ -307,7 +309,8 @@ Autoconfig::onSend (fty_proto_t **message)
         streq (fty_proto_aux_string (*message, "type", ""), "row") ||
         streq (fty_proto_aux_string (*message, "type", ""), "rack"))
     {
-        if (info.operation != "delete") {
+        if (info.operation != FTY_PROTO_ASSET_OP_DELETE
+        && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
             _containers[device_name] = fty_proto_ext_string (*message, "name", "");
         } else {
             try {
@@ -330,7 +333,7 @@ Autoconfig::onSend (fty_proto_t **message)
     log_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
-    if (info.operation != "delete") {
+    if (info.operation != FTY_PROTO_ASSET_OP_DELETE && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
         _configurableDevices[device_name] = info;
     } else {
         try {

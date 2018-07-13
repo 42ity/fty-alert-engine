@@ -75,7 +75,7 @@ pkg_deps_prereqs_source: &pkg_deps_prereqs_source
     - log4cplus-dev
     - tntnet-dev
     - tntdb-dev
-    - libfty-common-dev
+    - libfty-common-logging-dev
 
 # NOTE: Our forks are checked out and built without pkg dependencies in use
 pkg_deps_prereqs: &pkg_deps_prereqs

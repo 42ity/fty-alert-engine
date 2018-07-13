@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Class implementing Lua rule evaluation
  */
 #include <czmq.h>
-#include <fty_common.h>
+#include <fty_log.h>
 #include <algorithm>
 extern "C" {
 #include <lualib.h>
@@ -29,9 +29,9 @@ extern "C" {
 }
 #include "luarule.h"
 
-LuaRule::~LuaRule () 
-{ 
-   if (_lstate) lua_close (_lstate); 
+LuaRule::~LuaRule ()
+{
+   if (_lstate) lua_close (_lstate);
 }
 
 LuaRule::LuaRule (const LuaRule &r)

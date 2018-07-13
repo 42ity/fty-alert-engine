@@ -10,8 +10,8 @@
         "values"        :   [
             {"low_critical"  : "0"},
             {"low_warning"   : "0"},
-            {"high_warning"  : "0"},
-            {"high_critical" : "0"} ],
+            {"high_warning"  : "1500"},
+            {"high_critical" : "2000"} ],
         "results"       :   [
             {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input load (3 phase) in device is critically low" }},
             {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input load (3 phase) in device is low" }},

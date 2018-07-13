@@ -24,7 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef SRC_THRESHOLDRULESIMPLE_H
 #define SRC_THRESHOLDRULESIMPLE_H
 
-#include <fty_common.h>
+#include <fty_log.h>
 #include <cxxtools/serializationinfo.h>
 
 #include "rule.h"
