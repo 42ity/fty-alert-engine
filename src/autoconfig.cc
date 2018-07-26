@@ -464,7 +464,6 @@ void Autoconfig::saveState()
     serializer.serialize( _configurableDevices );
     serializer.finish();
     std::string json = stream.str();
-    log_debug (json.c_str ());
     save_agent_info(json );
 }
 
