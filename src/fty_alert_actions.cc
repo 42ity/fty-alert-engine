@@ -195,12 +195,11 @@ void fty_proto_destroy_wrapper (void *x) {
 }
 
 //  --------------------------------------------------------------------------
-//  Create a new fty_alert_actions
+//  Create a new fty_alert_actions_t
 
 fty_alert_actions_t *
 fty_alert_actions_new (void)
 {
-    log_trace("fty_alert_actions_new called");
     fty_alert_actions_t *self = (fty_alert_actions_t *) zmalloc (sizeof (fty_alert_actions_t));
     assert (self);
     //  Initialize class properties here
@@ -228,7 +227,6 @@ fty_alert_actions_new (void)
 void
 fty_alert_actions_destroy (fty_alert_actions_t **self_p)
 {
-    log_trace("fty_alert_actions_destroy called");
     assert (self_p);
     if (*self_p) {
         fty_alert_actions_t *self = *self_p;
@@ -264,7 +262,6 @@ fty_alert_actions_destroy (fty_alert_actions_t **self_p)
 uint64_t
 get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
 {
-    log_trace("get_alert_interval called");
     if (override_time > 0) {
         return override_time;
     }
@@ -286,7 +283,6 @@ get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
 s_alert_cache *
 new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
 {
-    log_trace("new_alert_cache_item called");
     assert(self);
     assert(msg);
     assert(fty_proto_name(msg));
@@ -329,8 +325,6 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
             zstr_free(&rcv_uuid);
         }
         zuuid_destroy (&uuid);
-    } else {
-        log_debug("found related asset.");
     }
     return c;
 }
@@ -342,7 +336,6 @@ new_alert_cache_item(fty_alert_actions_t *self, fty_proto_t *msg)
 void
 delete_alert_cache_item(void *c)
 {
-    log_trace("delete_alert_cache_item called");
     fty_proto_destroy (&((s_alert_cache *)c)->alert_msg);
     free(c);
 }
@@ -389,9 +382,7 @@ send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_ema
         char *rcv_uuid = zmsg_popstr (reply_msg);
         if (0 == strcmp (rcv_uuid, zuuid_str_canonical (uuid))) {
             char *cmd = zmsg_popstr (reply_msg);
-            if (0 == strcmp(cmd, "OK")) {
-                log_debug (" %s successful", subject);
-            } else {
+            if (0 != strcmp(cmd, "OK")) {
                 char *cause = zmsg_popstr (reply_msg);
                 log_error ("%s failed due to %s", subject, cause);
                 zstr_free(&cause);
@@ -469,7 +460,7 @@ action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
         char *action_dup = strdup(action);
         char *action_what = strtok(action_dup, ":");
         if (NULL == action_what) {
-            log_warning("alert action miss command");
+            log_warning("alert action misses command");
             action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
             free(action_dup);
             continue;
@@ -492,7 +483,7 @@ action_alert(fty_alert_actions_t *self, s_alert_cache *alert_item)
         else if (streq (action_what, GPO_ACTION)) {
             char *gpo_iname = tmp; // asset iname
             if (NULL == gpo_iname) {
-                log_warning("GPO_ACTION miss asset iname");
+                log_warning("GPO_ACTION misses asset iname");
                 action = (const char *) zlist_next(fty_proto_action(alert_item->alert_msg));
                 free(action_dup);
                 continue;
@@ -639,18 +630,16 @@ action_resolve(fty_alert_actions_t *self, s_alert_cache *alert_item)
 void
 check_timed_out_alerts(fty_alert_actions_t *self)
 {
-    log_trace("check_timed_out_alerts called");
     s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
     uint64_t now = zclock_mono ();
     while (NULL != it) {
         if (it->last_received + (fty_proto_ttl(it->alert_msg) * 1000) < now) {
-            log_debug("found timed out alert from %s", fty_proto_name(it->alert_msg));
+            log_debug("found timed out alert from %s - resolving it", fty_proto_name(it->alert_msg));
             action_resolve(self, it);
             zhash_delete(self->alerts_cache, zhash_cursor(self->alerts_cache));
         }
         it = (s_alert_cache *) zhash_next(self->alerts_cache);
     }
-    log_trace("check_timed_out_alerts check done");
 }
 
 
@@ -660,7 +649,6 @@ check_timed_out_alerts(fty_alert_actions_t *self)
 void
 check_alerts_and_send_if_needed(fty_alert_actions_t *self)
 {
-    log_trace("check_alerts_and_send_if_needed called");
     s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
     uint64_t now = zclock_mono ();
     while (NULL != it) {
@@ -671,7 +659,6 @@ check_alerts_and_send_if_needed(fty_alert_actions_t *self)
         }
         it = (s_alert_cache *) zhash_next(self->alerts_cache);
     }
-    log_trace("check_alerts_and_send_if_needed check done");
 }
 
 
@@ -681,7 +668,6 @@ check_alerts_and_send_if_needed(fty_alert_actions_t *self)
 static void
 s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p, const char *subject)
 {
-    log_trace("s_handle_stream_deliver_alert called");
     assert (self);
     assert (alert_p);
     assert (subject);
@@ -698,10 +684,9 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
     if (streq (fty_proto_state (alert), "ACTIVE") || streq (fty_proto_state (alert), "ACK-WIP") ||
             streq (fty_proto_state (alert), "ACK-PAUSE") || streq (fty_proto_state (alert), "ACK-IGNORE") ||
             streq (fty_proto_state (alert), "ACK-SILENCE")) {
-        log_debug("received %s alarm with subject %s", fty_proto_state (alert), subject);
         if (NULL == search) {
             // create new alert object in cache
-            log_debug("new alarm, add it to database");
+            log_debug("new %s alarm  with subject %s, add it to database", fty_proto_state (alert), subject);
             search = new_alert_cache_item (self, alert);
             if (NULL == search) {
                 fty_proto_destroy (alert_p);
@@ -711,7 +696,6 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
             zhash_freefn (self->alerts_cache, rule, delete_alert_cache_item);
             action_alert(self, search);
         } else {
-            log_debug("known alarm, check for changes");
             search->last_received = zclock_mono();
             char changed = 0;
             // little more complicated, update cache, alert on changes
@@ -740,7 +724,6 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
             if (NULL != action1 || NULL != action2) {
                 changed = 1;
             }
-            log_debug ("changed = %d", changed);
             if (1 == changed) {
                 // simple workaround to handle alerts for assets changed during alert being active
                 log_debug("known alarm resolved as updated, resolving previous alert");
@@ -755,11 +738,10 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
         }
     }
     else if (streq (fty_proto_state (alert), "RESOLVED")) {
-        log_debug("received RESOLVED alarm with subject %s", subject);
         if (NULL != search) {
             search->last_received = zclock_mono();
             action_resolve(self, search);
-            log_debug("received RESOLVED alarm resolved");
+            log_debug("received RESOLVED alarm with subject %s resolved", subject);
             zhash_delete(self->alerts_cache, rule);
         }
         // we don't care about alerts that are resolved and not stored - were never active
@@ -779,7 +761,6 @@ s_handle_stream_deliver_alert (fty_alert_actions_t *self, fty_proto_t **alert_p,
 static void
 s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, const char *subject)
 {
-    log_trace("s_handle_stream_deliver_asset called");
     assert (self);
     assert (asset_p);
     assert (subject);
@@ -799,8 +780,6 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
         fty_proto_t *item = (fty_proto_t *)zhash_lookup (self->assets_cache, assetname);
         if (NULL != item) {
             s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
-            if (NULL != it)
-                log_debug("%s may had active alarms, resolving them", assetname);
             while (NULL != it) {
                 if (it->related_asset == item) {
                     // delete all alerts related to deleted asset
@@ -824,13 +803,10 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
                         fty_proto_ext_string(asset, "contact_phone", ""))) {
                 changed = 1;
             }
-            log_debug ("changed = %d", changed);
             if (1 == changed) {
                 // simple workaround to handle alerts for assets changed during alert being active
                 log_debug("known asset was updated, resolving previous alert");
                 s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
-                if (NULL != it)
-                    log_debug("resolving all active alarms for %s", assetname);
                 while (NULL != it) {
                     if (it->related_asset == known) {
                         // just resolve, will be activated again
@@ -848,8 +824,6 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
             if (1 == changed) {
                 log_debug("known asset was updated, sending notifications");
                 s_alert_cache *it = (s_alert_cache *) zhash_first(self->alerts_cache);
-                if (NULL != it)
-                    log_debug("checking for alarms assigned to %s", assetname);
                 while (NULL != it) {
                     if (it->related_asset == known) {
                         // force an alert since contact info changed
@@ -866,7 +840,6 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
     else {
         // 'create' is skipped because each is followed by an 'update'
         // 'inventory' is skipped because it does not contain any info we need
-        log_debug("not an update or delete operation for this message");
         fty_proto_destroy (asset_p);
     }
 }
@@ -878,7 +851,6 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
 static void
 s_handle_stream_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, const char *subject)
 {
-    log_trace("s_handle_stream_deliver called");
     assert (self);
     assert (msg_p);
     fty_proto_t *proto_msg = fty_proto_decode (msg_p);
@@ -902,7 +874,6 @@ s_handle_stream_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, const char *s
 static int
 s_handle_pipe_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, uint64_t &timeout)
 {
-    log_trace("s_handle_pipe_deliver called");
     zmsg_t *msg = *msg_p;
     char *cmd = zmsg_popstr (msg);
     assert(cmd);
@@ -992,9 +963,6 @@ fty_alert_actions(zsock_t *pipe, void* args)
             if (zpoller_terminated (poller) || zsys_interrupted) {
                 log_warning ("zpoller_terminated () or zsys_interrupted. Shutting down.");
                 break;
-            }
-            if (zpoller_expired (poller) && !self->integration_test) {
-                log_debug("poller timeout expired");
             }
             continue;
         }
@@ -2136,4 +2104,3 @@ fty_alert_actions_test (bool verbose)
     zactor_destroy (&server);
     printf ("OK\n");
 }
-
