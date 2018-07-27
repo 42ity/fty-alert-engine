@@ -83,7 +83,8 @@ TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigur
                     else
                     {
                         std::string rule=replaceTokens(templat, patterns , replacements);
-                        log_debug("sending rule :\n %s", rule.c_str());
+                        log_debug("sending rule for \n %s", name.c_str());
+                        log_trace ("rule: %s", rule.c_str());
                         result &= sendNewRule(rule,client);
                     }
                 }
@@ -141,8 +142,9 @@ bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subty
     std::string type_name = convertTypeSubType2Name(type,subtype);
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     for ( const auto &fn : d) {
-        log_debug ("Template name is '%s'", fn.c_str ());
+        log_trace ("Template name is '%s'", fn.c_str ());
         if ( fn.find(type_name.c_str())!= std::string::npos){
+            log_debug ("Using template '%s'", fn.c_str ());
             return true;
         }
     }
