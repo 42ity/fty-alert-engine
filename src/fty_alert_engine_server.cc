@@ -606,6 +606,11 @@ fty_alert_engine_stream(
             zmsg_t *zmsg = mlm_client_recv(client);
             std::string topic = mlm_client_subject(client);
 
+            if (streq (mlm_client_sender (client), "fty_info_linuxmetrics")) {
+               zmsg_destroy (&zmsg);
+               continue;
+            }
+
             // licensing messages are not fty_proto
             if (topic == "LIMITATIONS") {
                 s_convert_licensing_metric (&zmsg);
