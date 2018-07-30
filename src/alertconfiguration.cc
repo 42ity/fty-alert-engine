@@ -163,7 +163,7 @@ std::set <std::string> AlertConfiguration::
             }
             // add rule to the configuration
             _alerts.push_back (std::make_pair(std::move(rule), emptyAlerts));
-            log_debug ("file '%s' readed correctly", fn.c_str());
+            log_debug ("file '%s' read correctly", fn.c_str());
         }
     } catch( std::exception &e ){
         log_error("Can't read configuration: %s", e.what());
