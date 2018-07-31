@@ -60,6 +60,7 @@ BuildRequires:  fty-common-logging-devel
 BuildRequires:  fty-proto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
+BuildRequires:  fty-common-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -93,6 +94,7 @@ Requires:       fty-common-logging-devel
 Requires:       fty-proto-devel
 Requires:       lua-devel
 Requires:       cxxtools-devel
+Requires:       fty-common-devel
 
 %description devel
 42ity service evaluating rules written in lua and producing alerts development tools
