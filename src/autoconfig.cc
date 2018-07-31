@@ -35,10 +35,8 @@
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/jsondeserializer.h>
 
-#include "fty_alert_engine_classes.h"
+#include <fty_common_filesystem.h>
 
-// !! move to common
-#include "comm_filesystem.h"
 #define AUTOCONFIG "AUTOCONFIG"
 
 std::string Autoconfig::StateFilePath;

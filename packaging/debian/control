@@ -33,6 +33,7 @@ Build-Depends: debhelper (>= 9),
     libfty-proto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
+    libfty-common-dev,
     systemd,
     dh-systemd,
     asciidoc-base | asciidoc, xmlto,
@@ -59,6 +60,7 @@ Depends:
     libfty-proto-dev,
     liblua5.1-0-dev,
     libcxxtools-dev,
+    libfty-common-dev,
     libfty-alert-engine0 (= ${binary:Version})
 Description: fty-alert-engine development tools
  This package contains development files for fty-alert-engine:

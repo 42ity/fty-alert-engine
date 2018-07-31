@@ -24,9 +24,8 @@ sudo: required
 #dist:
 #- trusty
 
-# Note: was uncommented in earlier builds (TODO: Check if needed)
-services:
-- docker
+#services:
+#- docker
 
 # Set CI_TIME=true to enable build-step profiling in Travis
 # Set CI_TRACE=true to enable shell script tracing in Travis
@@ -61,7 +60,6 @@ env:
 # Prerequisite packages provided by OS distro and used "as is"
 pkg_deps_prereqs_distro: &pkg_deps_prereqs_distro
     - liblua5.1-0-dev
-    - libsasl2-dev
 
 # Prerequisite packages that may be built from source or used from
 # prebuilt packages of that source (usually not from an OS distro)
@@ -70,12 +68,11 @@ pkg_deps_prereqs_source: &pkg_deps_prereqs_source
     - libzmq3-dev
     - libczmq-dev
     - libmlm-dev
+    - log4cplus-dev
+    - libfty-common-logging-dev
     - libfty-proto-dev
     - cxxtools-dev
-    - log4cplus-dev
-    - tntnet-dev
-    - tntdb-dev
-    - libfty-common-logging-dev
+    - libfty-common-dev
 
 # NOTE: Our forks are checked out and built without pkg dependencies in use
 pkg_deps_prereqs: &pkg_deps_prereqs
@@ -111,8 +108,6 @@ matrix:
   include:
   - env: BUILD_TYPE=default-with-docs
     os: linux
-# Note: was uncommented in earlier builds (TODO: Check if needed)
-#    dist: trusty
     addons:
       apt:
         sources: *pkg_src_zeromq_ubuntu14
@@ -160,7 +155,6 @@ before_install:
 
 ### Note: Fix up SASL and LUA pkgconfigs before build
 before_script:
-- ./.travis.fixsasl
 - ./.travis.fixlua
 
 # Hand off to generated script for each BUILD_TYPE
