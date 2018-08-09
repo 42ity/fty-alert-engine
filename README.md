@@ -80,6 +80,7 @@ Actor fty-alert-engine server can be requested for:
 * adding new rule
 * updating rule
 * touching rule (forces re-evaluation)
+* deleting rules
 
 Actor fty-autoconfig doesn't receive any mailbox requests.
 
@@ -216,6 +217,38 @@ where
 * '/' indicates a multipart frame message
 * 'reason' is string detailing reason for error. Possible values are: NOT\_FOUND
 * subject of the message MUST be 'rfc-evaluator-rules'
+
+#### Deleting rules
+
+To delete one particular rule, the USER peer sends the following messages using MAILBOX SEND to
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+
+* DELETE/'name'
+
+where
+* '/' indicates a multipart string message
+* 'name' MUST be name of an existing rule
+
+The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* OK/rulename1/rulename2/...
+* ERROR/reason
+
+To delete all rules about an element, the USER peer sends the following messages using MAILBOX SEND to
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+
+* DELETE_ELEMENT/'name'
+
+where
+* '/' indicates a multipart string message
+* 'name' MUST be a known element with rules attached
+
+The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* OK/rulename1/rulename2/...
+* ERROR/reason
 
 ### Stream METRICS\_UNAVAILABLE
 

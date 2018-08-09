@@ -350,14 +350,33 @@ int AlertConfiguration::
     return 0;
 }
 
+int AlertConfiguration::deleteRule
+    (const std::string &name,
+    std::map <std::string, std::vector <PureAlert>> &alertsToSend)
+{
+    RuleNameMatcher matcher(name);
+    std::vector<std::string> dummy;
+    return deleteRules(&matcher, alertsToSend, dummy);
+}
+
 int AlertConfiguration::deleteAllRules
     (const std::string &element,
     std::map <std::string, std::vector <PureAlert>> &alertsToSend)
 {
+    RuleElementMatcher matcher(element);
+    std::vector<std::string> dummy;
+    return deleteRules(&matcher, alertsToSend, dummy);
+}
+
+int AlertConfiguration::deleteRules
+    (RuleMatcher *matcher,
+    std::map <std::string, std::vector <PureAlert>> &alertsToSend,
+    std::vector <std::string> &rulesDeleted)
+{
     // clean up what we can without touching the iterator
     auto rule_to_remove = _alerts.begin();
     while ( rule_to_remove != _alerts.end() ) {
-        if ( rule_to_remove->first->element () == element ) {
+        if ( (*matcher)(*(rule_to_remove->first)) ) {
             // delete from disk
             int rv = rule_to_remove->first->remove (getPersistencePath());
             std::string rule_removed_name = rule_to_remove->first->name ();
@@ -374,6 +393,7 @@ int AlertConfiguration::deleteAllRules
             }
             // clear the cache
             rule_to_remove->second.clear();
+            rulesDeleted.push_back(rule_removed_name);
         }
         ++rule_to_remove;
     }
@@ -381,8 +401,8 @@ int AlertConfiguration::deleteAllRules
     //delete rules from memory
     auto new_end = std::remove_if (_alerts.begin (),
                                    _alerts.end (),
-                                    [element] (std::pair < RulePtr, std::vector<PureAlert> > const &alert) {
-                                        return (alert.first->element () == element);
+                                    [matcher] (std::pair < RulePtr, std::vector<PureAlert> > const &alert) {
+                                        return (*matcher)(*(alert.first));
                                     });
     _alerts.erase (new_end, _alerts.end ());
     return 0;
