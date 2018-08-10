@@ -211,3 +211,20 @@ bool Rule::isTopicInteresting(const std::string &topic) const {
 std::vector<std::string> Rule::getNeededTopics(void) const {
     return _metrics;
 }
+
+
+RuleNameMatcher::RuleNameMatcher(const std::string &name) :
+    _name(name) {
+}
+
+bool RuleNameMatcher::operator()(const Rule &rule) {
+    return rule.name() == _name;
+}
+
+RuleElementMatcher::RuleElementMatcher(const std::string &element) :
+    _element(element) {
+}
+
+bool RuleElementMatcher::operator()(const Rule &rule) {
+    return rule.element() == _element;
+}

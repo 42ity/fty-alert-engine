@@ -249,9 +249,14 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             {
                 char *reply = zmsg_popstr (message);
                 if (streq (reply, "OK")) {
-                    char *details = zmsg_popstr (message);
-                    log_debug ("Received OK for rule '%s'", details);
-                    zstr_free (&details);
+                    if (zmsg_size(message) == 1) {
+                        char *details = zmsg_popstr (message);
+                        log_debug ("Received OK for rule '%s'", details);
+                        zstr_free (&details);
+                    }
+                    else {
+                        log_debug ("Received OK for %zu rules", zmsg_size(message));
+                    }
                 }
                 else {
                     if (streq (reply, "ERROR")) {
@@ -347,9 +352,9 @@ Autoconfig::onSend (fty_proto_t **message)
             const char *dest = Autoconfig::AlertEngineName.c_str ();
             // delete all rules for this asset
             zmsg_t *message = zmsg_new ();
-            zmsg_addstr (message, "DELETEALL");
+            zmsg_addstr (message, "DELETE_ELEMENT");
             zmsg_addstr (message, device_name.c_str());
-            log_error ("Sending DELETEALL for %s to %s", device_name.c_str(), dest);
+            log_error ("Sending DELETE_ELEMENT for %s to %s", device_name.c_str(), dest);
             if (sendto (dest, "rfc-evaluator-rules", &message) != 0) {
                 log_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
                             dest, "rfc-evaluator-rules");

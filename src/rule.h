@@ -289,4 +289,27 @@ private:
 
 };
 
+class RuleMatcher {
+public:
+    virtual bool operator()(const Rule &rule) = 0;
+protected:
+    virtual ~RuleMatcher() = default;
+};
+
+class RuleNameMatcher : public RuleMatcher {
+public:
+    RuleNameMatcher(const std::string &name);
+    bool operator()(const Rule &rule) override;
+private:
+    std::string _name;
+};
+
+class RuleElementMatcher : public RuleMatcher {
+public:
+    RuleElementMatcher(const std::string &element);
+    bool operator()(const Rule &rule) override;
+private:
+    std::string _element;
+};
+
 #endif // SRC_RULE_H

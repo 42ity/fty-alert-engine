@@ -386,22 +386,43 @@ update_rule(
 }
 
 static void
-delete_all_rules
+delete_rules
     (mlm_client_t *client,
-     const char *element,
+     RuleMatcher *matcher,
      AlertConfiguration &ac)
 {
     std::map <std::string, std::vector <PureAlert>> alertsToSend;
+    std::vector <std::string> rulesDeleted;
     mtxAlertConfig.lock();
-    int rv = ac.deleteAllRules (element, alertsToSend);
+    zmsg_t *reply = zmsg_new ();
+    int rv = ac.deleteRules (matcher, alertsToSend, rulesDeleted);
     if (!rv) {
-        std::for_each (alertsToSend.begin (),
-                        alertsToSend.end (),
-                        // reference skipped because for_each doesn't like it
-                        [client](std::pair <std::string, std::vector <PureAlert> > alerts) {
-                            send_alerts (client, alerts.second, alerts.first);
-                        });
+        if (rulesDeleted.empty()) {
+            log_debug ("can't delete rule (no match)");
+            zmsg_addstr (reply, "ERROR");
+            zmsg_addstr (reply, "NO_MATCH");
+        }
+        else {
+            log_debug ("deleted rule");
+            zmsg_addstr (reply, "OK");
+            for (const auto& i : rulesDeleted) {
+                zmsg_addstr (reply, i.c_str());
+            }
+            std::for_each (alertsToSend.begin (),
+                            alertsToSend.end (),
+                            // reference skipped because for_each doesn't like it
+                            [client](std::pair <std::string, std::vector <PureAlert> > alerts) {
+                                send_alerts (client, alerts.second, alerts.first);
+                            });
+        }
     }
+    else {
+        log_debug ("can't delete rule (failure during removal)");
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "FAILURE_RULE_REMOVAL");
+    }
+
+    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     mtxAlertConfig.unlock();
 }
 
@@ -906,8 +927,16 @@ fty_alert_engine_mailbox(
                 }
                 else if (streq (command, "TOUCH")) {
                     touch_rule (client, param, alertConfiguration, true);
-                } else if (streq (command, "DELETEALL")) {
-                    delete_all_rules (client, param, alertConfiguration);
+                }
+                else if (streq (command, "DELETE")) {
+                    log_info("Requested deletion of rule '%s'", param);
+                    RuleNameMatcher matcher(param);
+                    delete_rules (client, &matcher, alertConfiguration);
+                }
+                else if (streq (command, "DELETE_ELEMENT")) {
+                    log_info("Requested deletion of rules about element '%s'", param);
+                    RuleElementMatcher matcher(param);
+                    delete_rules (client, &matcher, alertConfiguration);
                 }
                 else {
                     log_error ("Received unexpected message to MAILBOX with command '%s'", command);
@@ -1262,6 +1291,60 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
     }
 
+    // Test case #2.3: add and delete new rule
+    {
+        zmsg_t *rule = zmsg_new();
+        zmsg_addstrf (rule, "%s", "ADD");
+        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/ups.rule").c_str());
+        assert (simplethreshold_rule);
+        zmsg_addstrf (rule, "%s", simplethreshold_rule);
+        zstr_free (&simplethreshold_rule);
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+        zmsg_t *recv = mlm_client_recv (ui);
+
+        assert (zmsg_size (recv) == 2);
+        char *foo = zmsg_popstr (recv);
+        assert (streq (foo, "OK"));
+        zstr_free (&foo);
+        // does not make a sense to call streq on two json documents
+        zmsg_destroy (&recv);
+
+        rule = zmsg_new();
+        zmsg_addstrf (rule, "%s", "DELETE");
+        zmsg_addstrf (rule, "%s", "ups");
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+        recv = mlm_client_recv (ui);
+
+        assert (zmsg_size (recv) == 2);
+        foo = zmsg_popstr (recv);
+        assert (streq (foo, "OK"));
+        zstr_free (&foo);
+        foo = zmsg_popstr (recv);
+        assert (streq (foo, "ups"));
+        zstr_free (&foo);
+        zmsg_destroy (&recv);
+    }
+
+    // Test case #2.4: delete unknown rule
+    {
+        zmsg_t *rule = zmsg_new();
+        zmsg_addstrf (rule, "%s", "DELETE");
+        zmsg_addstrf (rule, "%s", "lkiuryt@fff");
+        mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+
+        zmsg_t *recv = mlm_client_recv (ui);
+
+        assert (zmsg_size (recv) == 2);
+        char *foo = zmsg_popstr (recv);
+        assert (streq (foo, "ERROR"));
+        zstr_free (&foo);
+        foo = zmsg_popstr (recv);
+        assert (streq (foo, "NO_MATCH"));
+        zstr_free (&foo);
+        zmsg_destroy (&recv);
+    }
     // Test case #3: list rules
     {
         zmsg_t *command = zmsg_new ();
