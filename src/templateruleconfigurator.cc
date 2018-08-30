@@ -134,6 +134,24 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
     return templates;
 }
 
+std::vector <std::pair<std::string,std::string>> TemplateRuleConfigurator::loadAllTemplates(){
+    std::vector <std::pair<std::string,std::string>> templates;
+    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
+        log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
+        return templates;
+    }
+    cxxtools::Directory d(Autoconfig::RuleFilePath);
+    for ( const auto &fn : d) {
+        if ( fn.compare(".")!=0  && fn.compare("..")!=0){
+            // read the template rule from the file
+            std::ifstream f(d.path() + "/" + fn);
+            std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            templates.push_back(std::make_pair(fn,str));
+        }
+    }
+    return templates;
+}
+
 bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype){
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
         log_warning("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());

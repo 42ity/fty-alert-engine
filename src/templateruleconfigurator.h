@@ -35,7 +35,7 @@ class TemplateRuleConfigurator : public RuleConfigurator {
                         const std::string &logical_asset,
                         mlm_client_t *client);
         bool isApplicable (const AutoConfigurationInfo& info);
-
+        std::vector <std::pair<std::string,std::string>>  loadAllTemplates();
         virtual ~TemplateRuleConfigurator() {};
     private:
         bool checkTemplate(const char *type, const char *subtype);

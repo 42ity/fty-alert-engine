@@ -155,6 +155,7 @@ class Autoconfig {
         int _exitStatus = 0;
         int _timeout = 2000;
         std::string _agentName;
+        void listTemplates(const char *correlation_id, const char *type);
 };
 
 #endif
