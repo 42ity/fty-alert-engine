@@ -490,8 +490,8 @@ void Autoconfig::listTemplates(
     const char *myfilter=(filter==NULL?"all":filter);
     
     zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, correlation_id);
+    zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, myfilter);
     
     cxxtools::Regex reg(myfilter, REG_EXTENDED);

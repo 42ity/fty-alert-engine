@@ -267,8 +267,8 @@ where
 The FTY-AUTOCONFIG-SERVER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* LIST/'correlation_id'/'filter'/'rule\-1'/.../'rule\-n'
-* ERROR/'correlation_id'/'reason'
+* 'correlation_id'/LIST/'filter'/'rule\-1'/.../'rule\-n'
+* 'correlation_id'/ERROR/'reason'
 
 where
 * '/' indicates a multipart frame message

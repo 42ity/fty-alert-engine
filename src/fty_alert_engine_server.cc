@@ -2331,10 +2331,10 @@ fty_alert_engine_server_test(
         zmsg_t *recv = mlm_client_recv (ui);
 
         char *foo = zmsg_popstr (recv);
-        assert (streq (foo, "LIST"));
+        assert (streq (foo, "123456"));
         zstr_free (&foo);
         foo = zmsg_popstr (recv);
-        assert (streq (foo, "123456"));
+        assert (streq (foo, "LIST"));
         zstr_free (&foo);
         foo = zmsg_popstr (recv);
         assert (streq (foo, "all"));
