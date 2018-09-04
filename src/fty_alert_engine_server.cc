@@ -517,45 +517,6 @@ evaluate_metric(
     return isEvaluate;
 }
 
-// convert licensing metric to fty_proto_metric
-static void
-s_convert_licensing_metric (zmsg_t **msg_p)
-{
-    if (!msg_p || !*msg_p)
-        return;
-
-    zmsg_t *msg = *msg_p;
-    char *value = zmsg_popstr (msg);
-    char *quantity =  zmsg_popstr (msg);
-    char *category = zmsg_popstr (msg);
-    char *expiration = NULL;
-
-    while (value && quantity && category)
-    {
-        if (streq (quantity, "EXPIRE_DAYS")) {
-            expiration = value;
-            break;
-        }
-        value = zmsg_popstr (msg);
-        quantity =  zmsg_popstr (msg);
-        category = zmsg_popstr (msg);
-    }
-
-    *msg_p = fty_proto_encode_metric (
-        NULL,
-        ::time (NULL),
-        60*60*2,
-        "license_expiration",
-        "rackcontroller-0",
-        expiration,
-        "days"
-    );
-    msg_p = NULL;
-    zstr_free (&quantity);
-    zstr_free (&value);
-    zstr_free (&category);
-}
-
 void
 fty_alert_engine_stream(
     zsock_t *pipe,
@@ -609,12 +570,6 @@ fty_alert_engine_stream(
             if (streq (mlm_client_sender (client), "fty_info_linuxmetrics")) {
                zmsg_destroy (&zmsg);
                continue;
-            }
-
-            // licensing messages are not fty_proto
-            if (topic == "LIMITATIONS") {
-                s_convert_licensing_metric (&zmsg);
-                topic = "license_expiration@rackcontroller-0";
             }
 
             if (!is_fty_proto (zmsg)) {
