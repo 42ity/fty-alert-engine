@@ -500,9 +500,9 @@ void Autoconfig::listTemplates(
         const char *filter
     )
 {
-    log_debug ("DO REQUEST LIST template '%s' correl_id '%s'",
-            (filter!=NULL?filter:"NA"),correlation_id);
     const char *myfilter=(filter==NULL?"all":filter);
+    log_debug ("DO REQUEST LIST template '%s' correl_id '%s'",
+            myfilter,correlation_id);
     
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, correlation_id);
