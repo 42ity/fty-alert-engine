@@ -2322,6 +2322,7 @@ fty_alert_engine_server_test(
      */
     // Test case #30: list templates rules
     {
+        log_debug("Test #30 ..");
         zmsg_t *command = zmsg_new ();
         zmsg_addstrf (command, "%s", "LIST");
         zmsg_addstrf (command, "%s", "123456");
@@ -2342,15 +2343,24 @@ fty_alert_engine_server_test(
         
         cxxtools::Directory d((str_SELFTEST_DIR_RO + "/templates").c_str());
         int file_counter=0;
+        char *template_name;
         for ( const auto &fn : d) {
             if ( fn.compare(".")!=0  && fn.compare("..")!=0){
                 // read the template rule from the file
                 std::ifstream f(d.path() + "/" + fn);
                 std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                template_name = zmsg_popstr (recv);
+                assert(fn.compare(template_name)==0);
                 foo = zmsg_popstr (recv);
                 assert(str.compare(foo)==0);
+                foo = zmsg_popstr (recv);
+                if(fn.find("__row__")!= std::string::npos){
+                    log_debug("template: '%s', devices :'%s'",template_name,foo);
+                    assert(streq (foo,"test"));
+                }
                 file_counter++;
                 zstr_free (&foo);
+                zstr_free (&template_name);
             }
         }
         assert(file_counter>0);

@@ -267,7 +267,10 @@ where
 The FTY-AUTOCONFIG-SERVER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* 'correlation_id'/LIST/'filter'/'rule\-1'/.../'rule\-n'
+* 'correlation_id'/LIST/'filter'/
+    'template-name-1'/'template-1'/'device-iname-comma-separator-list-1'
+    ../../..
+    'template-name-n'/'template-n'/'device-iname-comma-separator-list-n'
 * 'correlation_id'/ERROR/'reason'
 
 where

@@ -480,6 +480,21 @@ void Autoconfig::saveState()
     save_agent_info(json );
 }
 
+std::list<std::string> 
+Autoconfig::getElemenListMatchTemplate(std::string template_name)
+{
+    TemplateRuleConfigurator templateRuleConfigurator;
+    std::list<std::string> elementList;
+    for (auto& it : _configurableDevices) {
+        AutoConfigurationInfo info=it.second;
+        if (templateRuleConfigurator.isApplicable (info,template_name))
+        {
+            elementList.push_back(it.first);
+        }
+    }
+    return elementList;
+}
+    
 void Autoconfig::listTemplates(
         const char *correlation_id,
         const char *filter
@@ -506,8 +521,20 @@ void Autoconfig::listTemplates(
             log_trace ("templates '%s' does not match", templat.first.c_str());
             continue;
         }
-        log_trace ("templates '%s' match", templat.first.c_str());
+        zmsg_addstr (reply, templat.first.c_str());
         zmsg_addstr (reply, templat.second.c_str());
+        //get list of element which can apply this template
+        std::list<std::string> elements=getElemenListMatchTemplate(templat.first.c_str());
+        std::string element_list_output; //comma separator device list
+        for (const auto &element : elements) {
+            if(element_list_output.size()>0)
+                element_list_output.append(",");
+            element_list_output.append(element);
+        }
+        zmsg_addstr (reply, element_list_output.c_str());
+        log_debug ("template: '%s', devices:'%s' match", 
+                templat.first.c_str(),element_list_output.c_str());
+        
         count++;
     }
     log_debug ("%zu templates match '%s'", count, myfilter);

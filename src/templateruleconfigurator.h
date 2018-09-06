@@ -35,6 +35,7 @@ class TemplateRuleConfigurator : public RuleConfigurator {
                         const std::string &logical_asset,
                         mlm_client_t *client);
         bool isApplicable (const AutoConfigurationInfo& info);
+        bool isApplicable (const AutoConfigurationInfo& info, const std::string& templat_name);
         std::vector <std::pair<std::string,std::string>>  loadAllTemplates();
         virtual ~TemplateRuleConfigurator() {};
     private:
@@ -45,7 +46,7 @@ class TemplateRuleConfigurator : public RuleConfigurator {
                                    const std::vector <std::string> &patterns,
                                    const std::vector <std::string> &replacements) const;
         bool isModelOk (const std::string &model, const std::string &templat);
-
+        
 };
 
 #endif

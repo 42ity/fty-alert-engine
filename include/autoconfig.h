@@ -24,6 +24,7 @@
 
 #include <map>
 #include <string>
+#include <list>
 #include <malamute.h>
 
 #define TIMEOUT 1000
@@ -155,6 +156,7 @@ class Autoconfig {
         int _exitStatus = 0;
         int _timeout = 2000;
         std::string _agentName;
+        std::list<std::string> getElemenListMatchTemplate(std::string template_name);
         void listTemplates(const char *correlation_id, const char *type);
 };
 

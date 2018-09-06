@@ -113,6 +113,30 @@ TemplateRuleConfigurator::isModelOk (const std::string& model,
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
     return checkTemplate(info.type.c_str (), info.subtype.c_str ());
 }
+bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info, 
+        const std::string& templat_name)
+{
+
+    cxxtools::Directory d(Autoconfig::RuleFilePath);
+    std::ifstream f(d.path() + "/" + templat_name);
+    if(!f.good())return false;
+    
+    std::string type_name = convertTypeSubType2Name(info.type.c_str(),info.subtype.c_str());
+    if ( templat_name.find(type_name.c_str())!= std::string::npos){
+        if(info.subtype == "sensorgpio" && info.attributes.find("model") != info.attributes.end()){
+            std::string model=info.attributes.find("model")->second;
+            //for sensor gpio,we need to parse the template content to check model
+            std::string templat_content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            if (templat_content.find(model) != std::string::npos)
+                return true;
+            else
+                return false;
+        }
+        return true;
+    }
+    return false;
+    
+}
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
     std::vector <std::string> templates;
@@ -177,8 +201,8 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, 
         name = prefix + type + prefix;
     else
         name = prefix + type + '_' + subtype + prefix;
-    log_debug("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
-            type, subtype,name.c_str());
+    //log_trace("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
+    //        type, subtype,name.c_str());
     return name;
 }
 
