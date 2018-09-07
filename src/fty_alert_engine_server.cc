@@ -36,9 +36,9 @@
 #include <algorithm>
 #include <mutex>
 #include <unordered_map>
+#include <cxxtools/directory.h>
 
 #define METRICS_STREAM "METRICS"
-#define RULES_SUBJECT "rfc-evaluator-rules"
 
 #include "fty_alert_engine_classes.h"
 
@@ -2067,7 +2067,7 @@ fty_alert_engine_server_test(
         mlm_client_destroy (&metric_unavailable);
     }
 
-    // # 26 - # 29 : test autoconfig
+    // # 26 - # 30 : test autoconfig
     mlm_client_t *asset_producer = mlm_client_new ();
     mlm_client_connect (asset_producer, endpoint, 1000, "asset_producer");
     mlm_client_set_producer (asset_producer, FTY_PROTO_STREAM_ASSETS);
@@ -2320,6 +2320,56 @@ fty_alert_engine_server_test(
     zpoller_destroy (&poller);
     }
      */
+    // Test case #30: list templates rules
+    {
+        log_debug("Test #30 ..");
+        zmsg_t *command = zmsg_new ();
+        zmsg_addstrf (command, "%s", "LIST");
+        zmsg_addstrf (command, "%s", "123456");
+        zmsg_addstrf (command, "%s", "all");
+        mlm_client_sendto (ui, "test-autoconfig", "rfc-evaluator-rules", NULL, 1000, &command);
+
+        zmsg_t *recv = mlm_client_recv (ui);
+
+        char *foo = zmsg_popstr (recv);
+        assert (streq (foo, "123456"));
+        zstr_free (&foo);
+        foo = zmsg_popstr (recv);
+        assert (streq (foo, "LIST"));
+        zstr_free (&foo);
+        foo = zmsg_popstr (recv);
+        assert (streq (foo, "all"));
+        zstr_free (&foo);
+        
+        cxxtools::Directory d((str_SELFTEST_DIR_RO + "/templates").c_str());
+        int file_counter=0;
+        char *template_name;
+        for ( const auto &fn : d) {
+            if ( fn.compare(".")!=0  && fn.compare("..")!=0){
+                // read the template rule from the file
+                std::ifstream f(d.path() + "/" + fn);
+                std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                template_name = zmsg_popstr (recv);
+                assert(fn.compare(template_name)==0);
+                //template content
+                foo = zmsg_popstr (recv);
+                assert(str.compare(foo)==0);
+                zstr_free (&foo);
+                //element list
+                foo = zmsg_popstr (recv);
+                if(fn.find("__row__")!= std::string::npos){
+                    log_debug("template: '%s', devices :'%s'",template_name,foo);
+                    assert(streq (foo,"test"));
+                }
+                file_counter++;
+                zstr_free (&foo);
+                zstr_free (&template_name);
+            }
+        }
+        assert(file_counter>0);
+        log_debug("Test #30 : List All templates parse successfully %d files",file_counter);
+        zmsg_destroy (&recv);
+    }
 
     // Test case #20 update some rule (type: pattern)
     {
