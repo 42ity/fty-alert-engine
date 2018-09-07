@@ -2351,8 +2351,11 @@ fty_alert_engine_server_test(
                 std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
                 template_name = zmsg_popstr (recv);
                 assert(fn.compare(template_name)==0);
+                //template content
                 foo = zmsg_popstr (recv);
                 assert(str.compare(foo)==0);
+                zstr_free (&foo);
+                //element list
                 foo = zmsg_popstr (recv);
                 if(fn.find("__row__")!= std::string::npos){
                     log_debug("template: '%s', devices :'%s'",template_name,foo);
