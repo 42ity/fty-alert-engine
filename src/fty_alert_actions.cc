@@ -142,21 +142,22 @@ TEST_FUNCTIONS
 
 
 static const std::map <std::pair <std::string, uint8_t>, uint32_t> times = {
-    { {"CRITICAL", 1}, 5  * 60},
-    { {"CRITICAL", 2}, 15 * 60},
-    { {"CRITICAL", 3}, 15 * 60},
-    { {"CRITICAL", 4}, 15 * 60},
-    { {"CRITICAL", 5}, 15 * 60},
-    { {"WARNING", 1}, 1 * 60 * 60},
-    { {"WARNING", 2}, 4 * 60 * 60},
-    { {"WARNING", 3}, 4 * 60 * 60},
-    { {"WARNING", 4}, 4 * 60 * 60},
-    { {"WARNING", 5}, 4 * 60 * 60},
-    { {"INFO", 1}, 8 * 60 * 60},
-    { {"INFO", 2}, 24 * 60 * 60},
-    { {"INFO", 3}, 24 * 60 * 60},
-    { {"INFO", 4}, 24 * 60 * 60},
-    { {"INFO", 5}, 24 * 60 * 60}
+    //                  h *  m *  s *   ms
+    { {"CRITICAL", 1},       5 * 60 * 1000}, // =  5m
+    { {"CRITICAL", 2},      15 * 60 * 1000}, // = 15m
+    { {"CRITICAL", 3},      15 * 60 * 1000}, // = 15m
+    { {"CRITICAL", 4},      15 * 60 * 1000}, // = 15m
+    { {"CRITICAL", 5},      15 * 60 * 1000}, // = 15m
+    { {"WARNING", 1},   1 * 60 * 60 * 1000}, // =  1h
+    { {"WARNING", 2},   4 * 60 * 60 * 1000}, // =  4h
+    { {"WARNING", 3},   4 * 60 * 60 * 1000}, // =  4h
+    { {"WARNING", 4},   4 * 60 * 60 * 1000}, // =  4h
+    { {"WARNING", 5},   4 * 60 * 60 * 1000}, // =  4h
+    { {"INFO", 1},      8 * 60 * 60 * 1000}, // =  8h
+    { {"INFO", 2},     24 * 60 * 60 * 1000}, // = 24h
+    { {"INFO", 3},     24 * 60 * 60 * 1000}, // = 24h
+    { {"INFO", 4},     24 * 60 * 60 * 1000}, // = 24h
+    { {"INFO", 5},     24 * 60 * 60 * 1000}  // = 24h
 };
 
 
@@ -270,7 +271,7 @@ get_alert_interval(s_alert_cache *alert_cache, uint64_t override_time = 0)
     std::pair <std::string, uint8_t> key = {severity, priority};
     auto it = times.find(key);
     if (it != times.end()) {
-        return (*it).second * 1000;
+        return (*it).second;
     } else {
         return 0;
     }
