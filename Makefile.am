@@ -21,10 +21,11 @@ AM_CPPFLAGS = \
     ${fty_proto_CFLAGS} \
     ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
+    ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -54,6 +55,7 @@ EXTRA_DIST += \
     Findfty_proto.cmake \
     Findlua_5_1.cmake \
     Findcxxtools.cmake \
+    Findfty_common.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
     builds/cmake/Config.cmake.in \
@@ -69,7 +71,6 @@ EXTRA_DIST += \
     src/thresholdrulecomplex.h \
     src/ruleconfigurator.h \
     src/templateruleconfigurator.h \
-    src/comm_filesystem.h \
     src/normalrule.h \
     src/thresholdrulesimple.h \
     src/thresholdruledevice.h \

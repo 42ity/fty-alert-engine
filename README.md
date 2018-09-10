@@ -80,15 +80,17 @@ Actor fty-alert-engine server can be requested for:
 * adding new rule
 * updating rule
 * touching rule (forces re-evaluation)
+* deleting rules
 
-Actor fty-autoconfig doesn't receive any mailbox requests.
+Actor fty-autoconfig server can be requested for:
+ * list of templates
 
 Actor fty-alert-actions doesn't receive any mailbox requests.
 
 #### List of rules
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
 
 * LIST/'type'\[/'ruleclass'\]
 
@@ -115,7 +117,7 @@ where
 #### Getting rule content
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
 
 * GET/'name'
 
@@ -139,7 +141,7 @@ where
 #### Adding new rule
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
 
 * ADD/'rule'
 
@@ -167,7 +169,7 @@ where
 #### Updating rule
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
 
 * ADD/'rule'/'old\-name'
 
@@ -197,7 +199,7 @@ where
 #### Touching rule
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine-server") peer:
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
 
 * TOUCH/'name'
 
@@ -215,6 +217,67 @@ peer using MAILBOX SEND.
 where
 * '/' indicates a multipart frame message
 * 'reason' is string detailing reason for error. Possible values are: NOT\_FOUND
+* subject of the message MUST be 'rfc-evaluator-rules'
+
+#### Deleting rules
+
+To delete one particular rule, the USER peer sends the following messages using MAILBOX SEND to
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+
+* DELETE/'name'
+
+where
+* '/' indicates a multipart string message
+* 'name' MUST be name of an existing rule
+
+The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* OK/rulename1/rulename2/...
+* ERROR/reason
+
+To delete all rules about an element, the USER peer sends the following messages using MAILBOX SEND to
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+
+* DELETE_ELEMENT/'name'
+
+where
+* '/' indicates a multipart string message
+* 'name' MUST be a known element with rules attached
+
+The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* OK/rulename1/rulename2/...
+* ERROR/reason
+
+#### List of templates rules
+
+The USER peer sends the following messages using MAILBOX SEND to 
+FTY-AUTOCONFIG-SERVER ("fty-autoconfig") peer:
+
+* LIST/'correlation_id'/['filter']
+
+where
+* '/' indicates a multipart string message
+* 'filter' is a regex matching the content : typical regex are 'threshold','single','pattern'
+           "all" means return all templates. filter is optional, by default "all" is applied
+* subject of the message MUST be 'rfc-evaluator-rules'
+
+The FTY-AUTOCONFIG-SERVER peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* 'correlation_id'/LIST/'filter'/
+    'template-name-1'/'template-1'/'device-iname-comma-separator-list-1'
+    ../../..
+    'template-name-n'/'template-n'/'device-iname-comma-separator-list-n'
+* 'correlation_id'/ERROR/'reason'
+
+where
+* '/' indicates a multipart frame message
+* 'filter' MUST be copied from the request
+* 'rule\-1',...'rule\-n' MUST be JSONs corresponding to rules of given type and rule class
+* 'reason' is string detailing reason for error. Possible values are: INVALID\_FILTER
 * subject of the message MUST be 'rfc-evaluator-rules'
 
 ### Stream METRICS\_UNAVAILABLE

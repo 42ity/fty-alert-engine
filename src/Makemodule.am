@@ -25,7 +25,6 @@ src_libfty_alert_engine_la_SOURCES = \
     src/templateruleconfigurator.cc \
     src/fty_alert_engine_server.cc \
     src/fty_alert_actions.cc \
-    src/comm_filesystem.cc \
     src/platform.h
 
 if ENABLE_DRAFTS

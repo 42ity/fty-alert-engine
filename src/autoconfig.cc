@@ -34,11 +34,10 @@
 
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/jsondeserializer.h>
+#include <cxxtools/regex.h>
 
-#include "fty_alert_engine_classes.h"
+#include <fty_common_filesystem.h>
 
-// !! move to common
-#include "comm_filesystem.h"
 #define AUTOCONFIG "AUTOCONFIG"
 
 std::string Autoconfig::StateFilePath;
@@ -251,9 +250,14 @@ void Autoconfig::main (zsock_t *pipe, char *name)
             {
                 char *reply = zmsg_popstr (message);
                 if (streq (reply, "OK")) {
-                    char *details = zmsg_popstr (message);
-                    log_debug ("Received OK for rule '%s'", details);
-                    zstr_free (&details);
+                    if (zmsg_size(message) == 1) {
+                        char *details = zmsg_popstr (message);
+                        log_debug ("Received OK for rule '%s'", details);
+                        zstr_free (&details);
+                    }
+                    else {
+                        log_debug ("Received OK for %zu rules", zmsg_size(message));
+                    }
                 }
                 else {
                     if (streq (reply, "ERROR")) {
@@ -266,10 +270,19 @@ void Autoconfig::main (zsock_t *pipe, char *name)
                             command (), subject (), sender ());
                 }
                 zstr_free (&reply);
+            }else{
+                char *cmd = zmsg_popstr (message);
+                if (streq (cmd, "LIST")) {
+                    char *correl_id = zmsg_popstr (message);
+                    char *filter = zmsg_popstr (message);
+                    listTemplates ( correl_id,filter);
+                    zstr_free (&correl_id);
+                    zstr_free (&filter);
+                }else
+                    log_warning ("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
+                            command (), subject (), sender ());
+                zstr_free (&cmd);
             }
-            else
-                log_warning ("Message from unknown sender received: sender = '%s', command = '%s', subject = '%s'.",
-                    sender (), command (), subject ());
             zmsg_destroy (&message);
         }
     }
@@ -349,9 +362,9 @@ Autoconfig::onSend (fty_proto_t **message)
             const char *dest = Autoconfig::AlertEngineName.c_str ();
             // delete all rules for this asset
             zmsg_t *message = zmsg_new ();
-            zmsg_addstr (message, "DELETEALL");
+            zmsg_addstr (message, "DELETE_ELEMENT");
             zmsg_addstr (message, device_name.c_str());
-            log_error ("Sending DELETEALL for %s to %s", device_name.c_str(), dest);
+            log_error ("Sending DELETE_ELEMENT for %s to %s", device_name.c_str(), dest);
             if (sendto (dest, "rfc-evaluator-rules", &message) != 0) {
                 log_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
                             dest, "rfc-evaluator-rules");
@@ -465,6 +478,68 @@ void Autoconfig::saveState()
     serializer.finish();
     std::string json = stream.str();
     save_agent_info(json );
+}
+
+std::list<std::string> 
+Autoconfig::getElemenListMatchTemplate(std::string template_name)
+{
+    TemplateRuleConfigurator templateRuleConfigurator;
+    std::list<std::string> elementList;
+    for (auto& it : _configurableDevices) {
+        AutoConfigurationInfo info=it.second;
+        if (templateRuleConfigurator.isApplicable (info,template_name))
+        {
+            elementList.push_back(it.first);
+        }
+    }
+    return elementList;
+}
+    
+void Autoconfig::listTemplates(
+        const char *correlation_id,
+        const char *filter
+    )
+{
+    const char *myfilter=(filter==NULL?"all":filter);
+    log_debug ("DO REQUEST LIST template '%s' correl_id '%s'",
+            myfilter,correlation_id);
+    
+    zmsg_t *reply = zmsg_new ();
+    zmsg_addstr (reply, correlation_id);
+    zmsg_addstr (reply, "LIST");
+    zmsg_addstr (reply, myfilter);
+    
+    cxxtools::Regex reg(myfilter, REG_EXTENDED);
+
+    TemplateRuleConfigurator templateRuleConfigurator;
+    std::vector <std::pair<std::string,std::string>> 
+            templates = templateRuleConfigurator.loadAllTemplates();
+    log_debug ("number of total templates rules = '%zu'", templates.size ());
+    int count=0;
+    for (const auto &templat : templates) {
+        if (!streq (myfilter, "all") && !reg.match (templat.second) ) {
+            log_trace ("templates '%s' does not match", templat.first.c_str());
+            continue;
+        }
+        zmsg_addstr (reply, templat.first.c_str());
+        zmsg_addstr (reply, templat.second.c_str());
+        //get list of element which can apply this template
+        std::list<std::string> elements=getElemenListMatchTemplate(templat.first.c_str());
+        std::string element_list_output; //comma separator device list
+        for (const auto &element : elements) {
+            if(element_list_output.size()>0)
+                element_list_output.append(",");
+            element_list_output.append(element);
+        }
+        zmsg_addstr (reply, element_list_output.c_str());
+        log_debug ("template: '%s', devices:'%s' match", 
+                templat.first.c_str(),element_list_output.c_str());
+        
+        count++;
+    }
+    log_debug ("%zu templates match '%s'", count, myfilter);
+    mlm_client_sendto (_client, sender(), RULES_SUBJECT,
+            mlm_client_tracker(_client), 1000, &reply);
 }
 
 void autoconfig (zsock_t *pipe, void *args )
