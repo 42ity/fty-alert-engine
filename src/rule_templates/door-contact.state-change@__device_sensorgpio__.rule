@@ -1,7 +1,7 @@
 { "flexible" :
   {
     "name"          : "door-contact.state-change@__name__",
-    "description"   : "Door to __logicalasset__ is not __normalstate__",
+    "description"   : "TRANSLATE_LUA(Door to __logicalasset__ is not __normalstate__)",
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",
@@ -12,10 +12,10 @@
     },
     "evaluation"    : "
         function main(current_state)
-            if current_state == '__normalstate__' then
-                return OK, 'Door to __logicalasset__ is ' .. current_state .. '. Reported '
+            if current_state == 'TRANSLATE_LUA(__normalstate__)' then
+                return OK, 'TRANSLATE_LUA(Door to __logicalasset__ is )' .. current_state .. 'TRANSLATE_LUA(. Reported )'
             end
-                return __severity__, 'Door to __logicalasset__ is ' .. current_state ..'. Reported '
+                return __severity__, 'TRANSLATE_LUA(Door to __logicalasset__ is )' .. current_state ..'TRANSLATE_LUA(. Reported )'
         end
     "
   }
