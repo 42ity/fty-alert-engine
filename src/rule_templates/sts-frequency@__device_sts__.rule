@@ -1,7 +1,7 @@
 { "flexible" :
   {
     "name"          : "sts-frequency@__name__",
-    "description"   : "The frequency is out of tolerance",
+    "description"   : "The STS/ATS frequency is out of tolerance",
     "metrics"       : ["status.input.1.frequency", "status.input.2.frequency"],
     "assets"        : ["__name__"],
     "results"       :  {
