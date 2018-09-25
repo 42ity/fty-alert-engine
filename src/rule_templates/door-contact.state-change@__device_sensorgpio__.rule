@@ -13,9 +13,9 @@
     "evaluation"    : "
         function main(current_state)
             if current_state == '__normalstate__' then
-                return OK, 'Door to __logicalasset__ is ' .. current_state .. '. Reported '
+ 	       return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Door to $logical_asset$ is $state$. Reported )\", \"variables\": {\"logical_asset\": \"__logicalasset__\", \"state\": \"%s\"}}', current_state)
             end
-                return __severity__, 'Door to __logicalasset__ is ' .. current_state ..'. Reported '
+                return __severity__, string.format('{\"key\": \"TRANSLATE_LUA(Door to $logical_asset$ is $state$. Reported )\", \"variable\": {\"logical_asset\" : \" __logicalasset__\", \"state\" : \"%s\"}}', current_state)
         end
     "
   }
