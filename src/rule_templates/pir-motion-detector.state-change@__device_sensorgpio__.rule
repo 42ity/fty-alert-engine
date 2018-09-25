@@ -13,9 +13,9 @@
     "evaluation"    : "
         function main(current_state)
             if current_state == '__normalstate__' then
-                return OK, 'Motion __logicalasset__ is OK. Reported '
+	        return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Motion $logicalasset$ is OK. Reported )\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
             end
-                return __severity__ , 'Motion detected in __logicalasset__. Reported '
+                return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Motion detected in $logicalasset$. Reported )\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
         end
     "
   }
