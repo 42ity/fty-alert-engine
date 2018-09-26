@@ -1,8 +1,8 @@
 {
     "threshold" : {
         "rule_name"     :   "average.humidity-input@__name__",
-        "rule_desc"     :   "Humidity",
-        "rule_class"    :   "Humidity in rack",
+        "rule_desc"     :   "TRANSLATE_LUA(Humidity)",
+        "rule_class"    :   "TRANSLATE_LUA(Humidity in rack)",
         "rule_hierarchy" :   "environment.humidity.input.rack",
         "target"        :   "average.humidity-input@__name__",
         "element"       :   "__name__",
@@ -12,9 +12,9 @@
                               {"high_warning"  : "60"},
                               {"high_critical" : "70"} ],
         "results"       :   [
-            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Humidity in rack is low" }},
-            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Humidity in rack is critically low" }},
-            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Humidity in rack is high" }},
-            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Humidity in rack is critically high" }} ]
+            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "TRANSLATE_LUA(Humidity in rack is low)" }},
+            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "TRANSLATE_LUA(Humidity in rack is critically low)" }},
+            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "TRANSLATE_LUA(Humidity in rack is high)" }},
+            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "TRANSLATE_LUA(Humidity in rack is critically high)" }} ]
     }
 }
