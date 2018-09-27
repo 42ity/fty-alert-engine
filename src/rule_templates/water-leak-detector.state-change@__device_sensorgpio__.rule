@@ -1,7 +1,7 @@
 { "flexible" :
   {
     "name"          : "water-leak-detector.state-change@__name__",
-    "description"   : "Water leak detected in __logicalasset__",
+    "description"   : "TRANSLATE_LUA(Water leak detected)",
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",
