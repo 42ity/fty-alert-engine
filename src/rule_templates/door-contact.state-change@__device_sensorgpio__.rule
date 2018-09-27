@@ -1,7 +1,7 @@
 { "flexible" :
   {
     "name"          : "door-contact.state-change@__name__",
-    "description"   : "Door to __logicalasset__ is not __normalstate__",
+    "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to $logicalasset$ is not $normalstate$)\", \"variables\" : {\"logical_asset\" : \"__logical_asset__\", \"normal_state\" : \"__normal_state__\"}}",
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",

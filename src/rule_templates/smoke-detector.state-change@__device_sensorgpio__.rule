@@ -1,7 +1,7 @@
 { "flexible" :
   {
     "name"          : "smoke-detector.state-change@__name__",
-    "description"   : "Smoke detected in __logicalasset__",
+    "description"   : "TRANSLATE_LUA(Smoke detected)",
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",
