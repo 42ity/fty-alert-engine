@@ -1,8 +1,8 @@
 {
     "threshold" : {
         "rule_name"     :   "load.default@__name__",
-        "rule_desc"     :   "Load percentage for ups __ename__",
-        "rule_class"    :   "Default load in UPS",
+        "rule_desc"     :   "TRANSLATE_LUA(Load percentage for ups)",
+        "rule_class"    :   "TRANSLATE_LUA(Default load in UPS)",
         "rule_hierarchy":   "power.load.ups",
         "target"        :   "load.default@__name__",
         "element"       :   "__name__",
@@ -13,9 +13,9 @@
             {"high_warning"  : "60"},
             {"high_critical" : "80"} ],
         "results" :   [
-            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Default load in ups is critically low" }},
-            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Default load in ups is low" }},
-            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Default load in ups is high" }},
-            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Default load in ups is critically high" }} ]
+            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : {\"key\" : \"TRANSLATE_LUA(Default load is critically low on ups $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }, "threshold_name" : "TRANSLATE_LUA(Default load in ups is critically low)" }},
+            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : {\"key\" : \"TRANSLATE_LUA(Default load is low on ups $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }, "threshold_name" : "TRANSLATE_LUA(Default load in ups is low)" }},
+            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : {\"key\" : \"TRANSLATE_LUA(Default load is high on ups $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }, "threshold_name" : "TRANSLATE_LUA(Default load in ups is high)" }},
+            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : {\"key\" : \"TRANSLATE_LUA(Default load is critically high on ups $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }, "threshold_name" : "TRANSLATE_LUA(Default load in ups is critically high)" }} ]
     }
 }
