@@ -1,8 +1,8 @@
 {
     "threshold" : {
         "rule_name"     :   "voltage.input_3phase@__name__",
-        "rule_desc"     :   "Input voltage 3 phase for epdu __ename__",
-        "rule_class"    :   "Input voltage (3 phase) in PDU",
+        "rule_desc"     :   "TRANSLATE_LUA(Input voltage 3 phase for ePDU)",
+        "rule_class"    :   "TRANSLATE_LUA(Input voltage (3 phase) in PDU)",
         "rule_hierarchy":   "internal.input.voltage.3phase.epdu",
         "target"        :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
         "element"       :   "__name__",
@@ -13,10 +13,10 @@
             {"high_warning"  : "235"},
             {"high_critical" : "240"} ],
         "results"       :   [
-            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input voltage (3 phase) in device is critically low" }},
-            {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input voltage (3 phase) in device is low" }},
-            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input voltage (3 phase) in device is high" }},
-            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input voltage (3 phase) in device is critically high" }} ],
+            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is critically low in $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is critically low)" }},
+            {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is low in $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is low)" }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is high in $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is high)" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is critically high in $ename$.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is critically high)" }} ],
         "evaluation" : "function main(v1,v2,v3) if (v1 > high_critical or v2 > high_critical or v3 > high_critical) then return HIGH_CRITICAL end; if (v1 > high_warning or v2 > high_warning or v3 > high_warning) then return HIGH_WARNING end; if (v1 < low_critical or v2 < low_critical or v3 < low_critical) then return LOW_CRITICAL end; if (v1 < low_warning or v2 < low_warning or v3 < low_warning) then return LOW_WARNING end; return OK; end"
     }
 }
