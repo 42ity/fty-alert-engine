@@ -13,9 +13,9 @@
     "evaluation"    : "
         function main(current_state)
             if current_state == '__normalstate__' then
-                return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Smoke in $logicalasset$ is OK. Reported )\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
+                return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Smoke in $logicalasset$ is OK.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
             end
-                return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Smoke detected in $logicalasset$. Reported )\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
+                return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Smoke detected in $logicalasset$.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
         end
     "
   }
