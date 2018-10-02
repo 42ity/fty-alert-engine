@@ -1,7 +1,7 @@
 { "flexible" :
   {
     "name"          : "sts-preferred-source@__name__",
-    "description"   : "STS/ATS is not running from preferred input",
+    "description"   : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
     "metrics"       : ["input.source", "input.source.preferred"],
     "assets"        : ["__name__"],
     "results"       :  {
@@ -10,9 +10,9 @@
     "evaluation"    : "
          function main(input, preferred)
              if input == preferred then
-                 return OK, 'ATS ' .. NAME .. ' is running from preferred input.'
+                 return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS $NAME$ is running from  prefered input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
              end
-             return WARNING, 'ATS ' .. NAME .. ' is running from input ' .. input .. ' (preferred is ' .. preferred .. ')!'
+             return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS $NAME$ is running from input $input$ (preffered is $prefered$).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"preffered\" : \"%s\"}}', input, preffered)
          end
     "
   }
