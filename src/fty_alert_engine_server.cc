@@ -288,7 +288,7 @@ add_rule(
         default:
         {
             // error during the rule creation
-            log_warning ("default bad json for rule %", json_representation);
+            log_warning ("default bad json for rule %s", json_representation);
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_JSON");
 
