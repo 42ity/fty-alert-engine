@@ -288,7 +288,7 @@ add_rule(
         default:
         {
             // error during the rule creation
-            log_warning ("default bad json");
+            log_warning ("default bad json for rule %", json_representation);
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_JSON");
 
@@ -376,7 +376,7 @@ update_rule(
         default:
         {
             // error during the rule creation
-            log_warning ("bad json default");
+            log_warning ("bad json default for %s", json_representation);
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_JSON");
             mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
@@ -2295,7 +2295,7 @@ fty_alert_engine_server_test(
         foo = zmsg_popstr (recv);
         assert (streq (foo, "all"));
         zstr_free (&foo);
-        
+
         cxxtools::Directory d((str_SELFTEST_DIR_RO + "/templates").c_str());
         int file_counter=0;
         char *template_name;
