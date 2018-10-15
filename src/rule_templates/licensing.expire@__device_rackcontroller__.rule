@@ -24,7 +24,7 @@
 		     return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 15 days)'
 		 end
 	         if (remaining_days <= '7' ) or (remaining_days <= '6' ) or (remaining_days <= '5' ) or (remaining_days <= '4' ) or (remaining_days <= '3') or (remaining_days <= '2') or (remaining_days <= '1') or (remaining_days <= '0' )then
-		     return CRITICAL, string.format('{\"key\" : \"TRANSLATE_LUA(Your license is going to expire in {{remaining_days}})\", \"variable\" : {\"remaining_days\" : \"%s\"}}', remaining_days)
+		     return CRITICAL, string.format('{\"key\" : \"TRANSLATE_LUA(Your license is going to expire in {{remaining_days}})\", \"variables\" : {\"remaining_days\" : \"%s\"}}', remaining_days)
 		 end
 		 return OK, 'TRANSLATE_LUA(Your license is valid.)'
 	     end
