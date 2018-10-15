@@ -13,9 +13,9 @@
             { "high_warning"    : "1200" },
             { "high_critical"   : "1700" } ],
         "results"       :   [
-            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is critically low in rack {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is critically low in rack)" }},
-            {"low_warning"   : { "action" : [{ "action": "EMAIL" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is low in rack {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is low in rack)" }},
-            {"high_warning"  : { "action" : [{ "action": "EMAIL" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is high in rack {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is high in rack)" }},
-            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is critically high in rack {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is critically high in rack)" }} ]
+            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is critically low in rack {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is critically low in rack)" }},
+            {"low_warning"   : { "action" : [{ "action": "EMAIL" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is low in rack {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is low in rack)" }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is high in rack {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is high in rack)" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power is critically high in rack {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Total power is critically high in rack)" }} ]
     }
 }

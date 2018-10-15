@@ -13,9 +13,9 @@
             {"high_warning"  : "60"},
             {"high_critical" : "80"} ],
         "results" :   [
-            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is critically low on UPS {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is critically low)" }},
-            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is low on UPS {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is low)" }},
-            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is high on UPS {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is high)" }},
-            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is critically high on UPS {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is critically high)" }} ]
+            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is critically low on UPS {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is critically low)" }},
+            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is low on UPS {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is low)" }},
+            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is high on UPS {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is high)" }},
+            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Default load is critically high on UPS {{ename}}.)\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Default load is critically high)" }} ]
     }
 }
