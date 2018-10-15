@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Input load)",
         "rule_class"    :   "TRANSLATE_LUA(Input load (1 phase) on PDU)",
         "rule_hierarchy":   "power.load.input.1phase.epdu",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "load.input.L1@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "W",

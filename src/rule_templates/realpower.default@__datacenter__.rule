@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Total Power in datacenter)",
         "rule_class"    :   "TRANSLATE_LUA(Total power in data center)",
         "rule_hierarchy":   "power.realpower.default.dc",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "realpower.default@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "W",

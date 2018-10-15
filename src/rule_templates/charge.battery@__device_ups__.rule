@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Battery Level)",
         "rule_class"    :   "TRANSLATE_LUA(Battery Level in UPS)",
         "rule_hierarchy":   "internal.batterylevel.ups",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "charge.battery@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "%",

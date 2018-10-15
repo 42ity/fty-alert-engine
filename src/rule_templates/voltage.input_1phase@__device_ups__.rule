@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Input voltage 1 phase for UPS)",
         "rule_class"    :   "TRANSLATE_LUA(Input voltage (1 phase) in UPS)",
         "rule_hierarchy":   "internal.input.voltage.1phase.ups",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "voltage.input.L1@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "V",

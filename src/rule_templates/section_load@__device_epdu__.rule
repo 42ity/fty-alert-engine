@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Section Load)",
         "rule_class"    :   "TRANSLATE_LUA(Section Load in PDU)",
         "rule_hierarchy":   "power.load.section.epdu",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "load.outlet.group.1@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "%",

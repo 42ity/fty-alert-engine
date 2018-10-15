@@ -2,6 +2,7 @@
   {
     "name"          : "vibration-detector.state-change@__name__",
     "description"   : "TRANSLATE_LUA(Vibration detected)",
+    "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",

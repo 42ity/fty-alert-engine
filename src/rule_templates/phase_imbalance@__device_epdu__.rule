@@ -1,12 +1,13 @@
 {
 	"threshold": {
-		"rule_name": "phase_imbalance@__name__",
-		"rule_class": "TRANSLATE_LUA(Phase imbalance in PDU)",
-        "rule_hierarchy": "power.phaseimbalance.epdu",
-		"rule_desc": "TRANSLATE_LUA(Phase Imbalance for EPDU)",
-		"target": [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
-		"element": "__name__",
-		"values_unit": "%",
+		"rule_name"      : "phase_imbalance@__name__",
+		"rule_class"     : "TRANSLATE_LUA(Phase imbalance in PDU)",
+        	"rule_hierarchy" : "power.phaseimbalance.epdu",
+		"rule_desc"      : "TRANSLATE_LUA(Phase Imbalance for EPDU)",
+		"rule_cat"       : ["CAT_OTHER", "CAT_ALL"],
+		"target"         : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
+		"element"        : "__name__",
+		"values_unit"    : "%",
 		"values": [
             { "high_critical": "20"},
             { "high_warning": "10"} ],

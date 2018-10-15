@@ -2,6 +2,7 @@
   {
     "name"          : "motion-detector-sensor.state-change@__name__",
     "description"   : "TRANSLATE_LUA(Motion detected)",
+    "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",

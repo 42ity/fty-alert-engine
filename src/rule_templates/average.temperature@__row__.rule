@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Temperature)",
         "rule_class"    :   "TRANSLATE_LUA(Temperature in row)",
         "rule_hierarchy":   "environment.temperature.row",
+        "rule_cat"      :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
         "target"        :   "average.temperature@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "C",

@@ -2,6 +2,7 @@
   {
     "name"          : "door-contact.state-change@__name__",
     "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logicalasset}} is not {{normalstate}})\", \"variables\" : {\"logical_asset\" : \"__logical_asset__\", \"normal_state\" : \"__normal_state__\"}}",
+    "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
     "metrics"       : ["status.__port__"],
     "assets"	    : ["__name__"],
     "logical_asset" : "__logicalasset_iname__",

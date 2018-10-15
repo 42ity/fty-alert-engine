@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Temperature)",
         "rule_class"    :   "TRANSLATE_LUA(Temperature in rack)",
         "rule_hierarchy":   "environment.temperature.input.rack",
+        "rule_cat"      :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
         "target"        :   "average.temperature-input@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "C",
