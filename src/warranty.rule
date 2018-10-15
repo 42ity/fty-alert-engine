@@ -5,8 +5,8 @@
         "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"} ],
         "values_unit": "days",
         "results"       :   [
-                                {"low_critical"  : { "action" : [{ "action": "EMAIL" }], "description" : "{\"key\" : \"TRANSLATE_LUA(Warranty for $ename$ expires in less than.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "Warranty expires in"}},
-                                {"low_warning"  : { "action" : [{ "action": "EMAIL" }], "description" :  "{\"key\" : \"TRANSLATE_LUA(Warranty for $ename$ expires in less than.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "Warranty expires in"}}
+                                {"low_critical"  : { "action" : [{ "action": "EMAIL" }], "description" : "{\"key\" : \"TRANSLATE_LUA(Warranty for {{ename}} expires in less than.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "Warranty expires in"}},
+                                {"low_warning"  : { "action" : [{ "action": "EMAIL" }], "description" :  "{\"key\" : \"TRANSLATE_LUA(Warranty for {{ename}} expires in less than.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "Warranty expires in"}}
                             ],
         "evaluation"    : "function main(value) if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= low_warning ) then return LOW_WARNING end return OK end"
     }
