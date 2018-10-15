@@ -1,20 +1,20 @@
-{ "flexible" :
-  {
-    "name"          : "sts-preferred-source@__name__",
-    "description"   : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
-    "rule_cat"      : ["CAT_OTHER", "CAT_ALL"],
-    "metrics"       : ["input.source", "input.source.preferred"],
-    "assets"        : ["__name__"],
-    "results"       :  {
-        "high_warning"  : { "action" : [{ "action": "EMAIL" }] }
-    },
-    "evaluation"    : "
-         function main(input, preferred)
-             if input == preferred then
-                 return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  prefered input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
-             end
-             return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preffered is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"preffered\" : \"%s\"}}', input, preffered)
-         end
-    "
-  }
+{ 
+    "flexible" : {
+        "name"          : "sts-preferred-source@__name__",
+        "description"   : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
+        "rule_cat"      : ["CAT_OTHER", "CAT_ALL"],
+        "metrics"       : ["input.source", "input.source.preferred"],
+        "assets"        : ["__name__"],
+        "results"       :  {
+            "high_warning"  : { "action" : [{ "action": "EMAIL" }] }
+        },
+        "evaluation"    : "
+            function main(input, preferred)
+                if input == preferred then
+                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  prefered input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
+                end
+                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preffered is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"preffered\" : \"%s\"}}', input, preffered)
+            end
+        "
+    }
 }

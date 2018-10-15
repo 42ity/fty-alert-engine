@@ -9,9 +9,9 @@
         "element"       :   "__name__",
         "values_unit"   :   "%",
         "values"        :   [ {"low_warning"   : "40"},
-                              {"low_critical"  : "30"},
-                              {"high_warning"  : "60"},
-                              {"high_critical" : "70"} ],
+                                {"low_critical"  : "30"},
+                                {"high_warning"  : "60"},
+                                {"high_critical" : "70"} ],
         "results"       :   [
             { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is low.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is low)" }},
             { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically low.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is critically low)" }},

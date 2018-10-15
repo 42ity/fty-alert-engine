@@ -1,19 +1,19 @@
 {
-	"threshold": {
-		"rule_name"      : "phase_imbalance@__name__",
-		"rule_class"     : "TRANSLATE_LUA(Phase imbalance in PDU)",
-        	"rule_hierarchy" : "power.phaseimbalance.epdu",
-		"rule_desc"      : "TRANSLATE_LUA(Phase Imbalance for EPDU)",
-		"rule_cat"       : ["CAT_OTHER", "CAT_ALL"],
-		"target"         : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
-		"element"        : "__name__",
-		"values_unit"    : "%",
-		"values": [
+    "threshold": {
+        "rule_name"      : "phase_imbalance@__name__",
+        "rule_class"     : "TRANSLATE_LUA(Phase imbalance in PDU)",
+        "rule_hierarchy" : "power.phaseimbalance.epdu",
+        "rule_desc"      : "TRANSLATE_LUA(Phase Imbalance for EPDU)",
+        "rule_cat"       : ["CAT_OTHER", "CAT_ALL"],
+        "target"         : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
+        "element"        : "__name__",
+        "values_unit"    : "%",
+        "values": [
             { "high_critical": "20"},
             { "high_warning": "10"} ],
-		"results": [
+        "results": [
             { "high_critical": { "action": [{ "action": "EMAIL" }], "severity" : "CRITICAL", "description": "{\"key\" : \"TRANSLATE_LUA(Phase imbalance is critically high on {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Phase imbalance is critically high on device)" }},
             { "high_warning": { "action": [{ "action": "EMAIL" }], "severity" : "WARNING", "description": "{\"key\" : \"TRANSLATE_LUA(Phase imbalance is high on {{ename}}.)\", \"variable\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Phase imbalance is high on device)" }} ],
-		"evaluation": "function main(f1,f2,f3) local avg = (f1 + f2 + f3) / 3; local deviation = math.max (math.abs (f1 - avg), math.abs (f2 - avg), math.abs (f3 - avg)); local percentage = deviation / avg * 100; if (percentage > high_critical) then return HIGH_CRITICAL end; if (percentage > high_warning) then return HIGH_WARNING end; return OK; end"
-	}
+        "evaluation": "function main(f1,f2,f3) local avg = (f1 + f2 + f3) / 3; local deviation = math.max (math.abs (f1 - avg), math.abs (f2 - avg), math.abs (f3 - avg)); local percentage = deviation / avg * 100; if (percentage > high_critical) then return HIGH_CRITICAL end; if (percentage > high_warning) then return HIGH_WARNING end; return OK; end"
+    }
 }
