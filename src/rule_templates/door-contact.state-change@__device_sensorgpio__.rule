@@ -17,6 +17,7 @@
                 return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\", \"state\": \"%s\"}}', current_state)
                 end
             return __severity__, string.format('{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : \" __logicalasset__\", \"state\" : \"%s\"}}', current_state)
-            end"
+            end
+        "
     }
 }
