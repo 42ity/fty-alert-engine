@@ -1,4 +1,4 @@
-{ 
+{
     "flexible" : {
         "name"          : "sts-preferred-source@__name__",
         "description"   : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
@@ -13,7 +13,7 @@
                 if input == preferred then
                     return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  prefered input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
                 end
-                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preffered is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"preffered\" : \"%s\"}}', input, preffered)
+                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (prefered is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"prefered\" : \"%s\"}}', input, prefered)
             end
         "
     }
