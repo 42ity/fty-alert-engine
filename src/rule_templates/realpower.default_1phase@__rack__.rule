@@ -3,6 +3,7 @@
         "rule_name"     :   "realpower.default@__name__",
         "rule_desc"     :   "TRANSLATE_LUA(Rack total power)",
         "rule_class"    :   "TRANSLATE_LUA(Total power in rack)",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "rule_hierarchy":   "power.realpower.default.rack",
         "target"        :   "realpower.default@__name__",
         "element"       :   "__name__",

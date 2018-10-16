@@ -4,6 +4,7 @@
         "rule_desc"     :   "TRANSLATE_LUA(Internal temperature for UPS)",
         "rule_class"    :   "TRANSLATE_LUA(Internal temperature in UPS)",
         "rule_hierarchy":   "internal.temperature.ups",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "temperature.default@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "C",

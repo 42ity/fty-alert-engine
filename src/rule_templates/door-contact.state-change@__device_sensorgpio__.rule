@@ -1,22 +1,23 @@
-{ "flexible" :
-  {
-    "name"          : "door-contact.state-change@__name__",
-    "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logicalasset}} is not {{normalstate}})\", \"variables\" : {\"logical_asset\" : \"__logical_asset__\", \"normal_state\" : \"__normal_state__\"}}",
-    "metrics"       : ["status.__port__"],
-    "assets"	    : ["__name__"],
-    "logical_asset" : "__logicalasset_iname__",
-    "models"	    : ["DCS001"],
-    "types" 	    : ["sensorgpio", "rackcontroller"],
-    "results"       :  {
-        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
-    },
-    "evaluation"    : "
-        function main(current_state)
-            if current_state == '__normalstate__' then
- 	        return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\", \"state\": \"%s\"}}', current_state)
+{ 
+    "flexible" : {
+        "name"          : "door-contact.state-change@__name__",
+        "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logicalasset}} is not {{normalstate}})\", \"variables\" : {\"logical_asset\" : \"__logical_asset__\", \"normal_state\" : \"__normal_state__\"}}",
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "metrics"       : ["status.__port__"],
+        "assets"	    : ["__name__"],
+        "logical_asset" : "__logicalasset_iname__",
+        "models"	    : ["DCS001"],
+        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "results"       :  {
+            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+        },
+        "evaluation"    : "
+            function main(current_state)
+                if current_state == '__normalstate__' then
+                return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\", \"state\": \"%s\"}}', current_state)
+                end
+            return __severity__, string.format('{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : \" __logicalasset__\", \"state\" : \"%s\"}}', current_state)
             end
-		return __severity__, string.format('{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : \" __logicalasset__\", \"state\" : \"%s\"}}', current_state)
-        end
-    "
-  }
+        "
+    }
 }
