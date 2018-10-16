@@ -4,6 +4,7 @@
         "rule_desc"     :   "Input Voltage",
         "rule_class"    :   "Input voltage (1 phase) in PDU",
         "rule_hierarchy":   "internal.input.voltage.1phase.epdu",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "voltage.input.L1@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "V",

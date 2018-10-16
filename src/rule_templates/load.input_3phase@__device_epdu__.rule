@@ -3,6 +3,7 @@
         "rule_name"     :   "load.input_3phase@__name__",
         "rule_desc"     :   "TRANSLATE_LUA(Input load 3 phase for PDU)",
         "rule_class"    :   "TRANSLATE_LUA(Input load (3 phase) on PDU)",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "rule_hierarchy":   "power.load.input.3phase.epdu",
         "target"        :   [ "load.input.L1@__name__", "load.input.L2@__name__", "load.input.L3@__name__" ],
         "element"       :   "__name__",

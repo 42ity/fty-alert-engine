@@ -1,22 +1,23 @@
-{ "flexible" :
-  {
-    "name"          : "vibration-detector.state-change@__name__",
-    "description"   : "TRANSLATE_LUA(Vibration detected)",
-    "metrics"       : ["status.__port__"],
-    "assets"	    : ["__name__"],
-    "logical_asset" : "__logicalasset_iname__",
-    "models"	    : ["VIB001"],
-    "types" 	    : ["sensorgpio", "rackcontroller"],
-    "results"       :  {
-        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
-    },
-    "evaluation"    : "
-        function main(current_state)
-            if current_state == '__normalstate__' then
-                return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Vibration in {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
+{ 
+    "flexible" : {
+        "name"          : "vibration-detector.state-change@__name__",
+        "description"   : "TRANSLATE_LUA(Vibration detected)",
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "metrics"       : ["status.__port__"],
+        "assets"	    : ["__name__"],
+        "logical_asset" : "__logicalasset_iname__",
+        "models"	    : ["VIB001"],
+        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "results"       :  {
+            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+        },
+        "evaluation"    : "
+            function main(current_state)
+                if current_state == '__normalstate__' then
+                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Vibration in {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
+                end
+                    return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Vibration detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
             end
-                return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Vibration detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
-        end
-    "
-  }
+        "
+    }
 }

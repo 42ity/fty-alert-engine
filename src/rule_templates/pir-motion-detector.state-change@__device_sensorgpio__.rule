@@ -1,22 +1,23 @@
-{ "flexible" :
-  {
-    "name"          : "motion-detector-sensor.state-change@__name__",
-    "description"   : "TRANSLATE_LUA(Motion detected)",
-    "metrics"       : ["status.__port__"],
-    "assets"	    : ["__name__"],
-    "logical_asset" : "__logicalasset_iname__",
-    "models"	    : ["XCELW"],
-    "types" 	    : ["sensorgpio", "rackcontroller"],
-    "results"       :  {
-        "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
-    },
-    "evaluation"    : "
-        function main(current_state)
-            if current_state == '__normalstate__' then
-	        return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Motion {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
+{ 
+    "flexible" : {
+        "name"          : "motion-detector-sensor.state-change@__name__",
+        "description"   : "TRANSLATE_LUA(Motion detected)",
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "metrics"       : ["status.__port__"],
+        "assets"	    : ["__name__"],
+        "logical_asset" : "__logicalasset_iname__",
+        "models"	    : ["XCELW"],
+        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "results"       :  {
+            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+        },
+        "evaluation"    : "
+            function main(current_state)
+                if current_state == '__normalstate__' then
+                return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Motion {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
+                end
+                    return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Motion detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
             end
-                return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Motion detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": \"__logicalasset__\"}}')
-        end
-    "
-  }
+        "
+    }
 }
