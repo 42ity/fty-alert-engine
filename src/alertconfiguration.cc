@@ -322,7 +322,6 @@ int AlertConfiguration::
     // resolve found alerts
     for ( auto &oneAlert : rule_to_update->second ) {
         oneAlert._status = ALERT_RESOLVED;
-        oneAlert._description = "Rule changed";
         // put them into the list of alerts that changed
         alertsToSend.push_back (oneAlert);
     }
