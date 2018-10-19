@@ -524,6 +524,12 @@ evaluate_metric(
             PureAlert alertToSend;
             rv = ac.updateAlert (rule, pureAlert, alertToSend);
             alertToSend._ttl = triggeringMetric.getTtl () * 3;
+
+            // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the corrent message to stream alert description is modified
+            if (rule->name() == "warranty") {
+                alertToSend._description = "{\"key\" : \"TRANSLATE_LUA(Warranty expires in less than {{days}} days.)\", \"variables\" : {\"days\" : \"" +
+                    std::to_string (triggeringMetric.getValue ()) + "\"} }";
+            }
             if ( rv == -1 ) {
                 log_debug (" ### alert updated, nothing to send");
                 // nothing to send
