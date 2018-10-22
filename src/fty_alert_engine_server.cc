@@ -527,9 +527,17 @@ evaluate_metric(
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the corrent message to stream alert description is modified
             if (rule->name() == "warranty") {
-                alertToSend._description = "{\"key\" : \"TRANSLATE_LUA(Warranty expires in less than {{days}} days.)\", \"variables\" : {\"days\" : \"" +
-                    std::to_string (triggeringMetric.getValue ()) + "\"} }";
+                int remaining_days = (int) triggeringMetric.getValue ();
+                if (remaining_days >=  0) {
+                    alertToSend._description = "{\"key\" : \"TRANSLATE_LUA(Warranty expires in less than {{days}} days.)\", \"variables\" : {\"days\" : \"" +
+                        std::to_string (remaining_days) + "\"} }";
+                } else {
+                    remaining_days = abs (remaining_days);
+                    alertToSend._description = "{\"key\" : \"TRANSLATE_LUA(Warranty expired {{days}} ago.)\", \"variables\" : {\"days\" : \"" +
+                        std::to_string (remaining_days) + "\"} }";
+                }
             }
+
             if ( rv == -1 ) {
                 log_debug (" ### alert updated, nothing to send");
                 // nothing to send
