@@ -29,6 +29,7 @@ RULE_TEMPLATES = \
 	src/rule_templates/phase_imbalance@__rack__.rule \
 	src/rule_templates/realpower.default_1phase@__rack__.rule \
 	src/rule_templates/realpower.default@__datacenter__.rule \
+	src/rule_templates/runtime.battery@__device_ups__.rule \
 	src/rule_templates/section_load@__device_epdu__.rule \
 	src/rule_templates/temperature.default@__device_ups__.rule \
 	src/rule_templates/voltage.input_1phase@__device_epdu__.rule \
