@@ -8,7 +8,7 @@
         "element"       :   "__name__",
         "values"        :   [ ],
         "results"       :   [
-            {"high_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "TRANSLATE_LUA(CRITICAL)", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery in ups {{ename}} depleted!)\", \"variables\" : {\"ename\" : \"__ename__\"} }" }} ],
+            {"high_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "TRANSLATE_LUA(CRITICAL)", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery in ups {{ename}} depleted!)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }" }} ],
         "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status) if has_bit(status,7) then return HIGH_CRITICAL end return OK end"
     }
 }
