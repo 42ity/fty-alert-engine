@@ -375,11 +375,11 @@ Autoconfig::onSend (fty_proto_t **message)
         else {
             const char *dest = Autoconfig::AlertEngineName.c_str ();
             // delete all rules for this asset
-            zmsg_t *message = zmsg_new ();
-            zmsg_addstr (message, "DELETE_ELEMENT");
-            zmsg_addstr (message, device_name.c_str());
+            zmsg_t *msg = zmsg_new ();
+            zmsg_addstr (msg, "DELETE_ELEMENT");
+            zmsg_addstr (msg, device_name.c_str());
             log_error ("Sending DELETE_ELEMENT for %s to %s", device_name.c_str(), dest);
-            if (sendto (dest, "rfc-evaluator-rules", &message) != 0) {
+            if (sendto (dest, "rfc-evaluator-rules", &msg) != 0) {
                 log_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
                             dest, "rfc-evaluator-rules");
             }
