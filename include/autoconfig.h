@@ -156,7 +156,6 @@ class Autoconfig {
             return true;
         };
         void run(zsock_t *pipe, char *name) { onStart(); main(pipe, name); onEnd(); }
-        bool compare(Autoconfig &self,fty_proto_t *message);
     private:
         void handleReplies( zmsg_t *message );
         void setPollingInterval();
