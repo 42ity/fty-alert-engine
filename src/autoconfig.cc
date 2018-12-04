@@ -1,7 +1,7 @@
 /*  =========================================================================
     autoconfig - Autoconfig
 
-    Copyright (C) 2014 - 2017 Eaton
+    Copyright (C) 2014 - 2018 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -304,8 +304,18 @@ Autoconfig::onSend (fty_proto_t **message)
     if (!message || ! *message)
         return;
 
-    AutoConfigurationInfo info;
     std::string device_name (fty_proto_name (*message));
+
+    //filter UPDATE message to ignore it when no change is detected.
+    //This code is mainly to prevent overload activity on hourly REPUBLISH $all
+    if (    strcmp(fty_proto_operation (*message), FTY_PROTO_ASSET_OP_UPDATE) == 0 &&
+            _configurableDevices.find(device_name)!=_configurableDevices.end() &&
+            _configurableDevices[device_name]==*message){
+            log_debug("asset %s UPDATED but no change detected => ignore it",device_name.c_str());
+            return;
+    }
+
+    AutoConfigurationInfo info;
     info.type.assign (fty_proto_aux_string (*message, "type", ""));
     info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
     info.operation.assign (fty_proto_operation (*message));
@@ -338,15 +348,19 @@ Autoconfig::onSend (fty_proto_t **message)
         return;
     }
 
-    if (streq(info.type.c_str(), "datacenter") || streq(info.type.c_str(), "room") ||
-            streq(info.type.c_str(), "row") || streq(info.type.c_str(), "rack")) {
+    if (streq(info.type.c_str(), "datacenter") ||
+            streq(info.type.c_str(), "room") ||
+            streq(info.type.c_str(), "row") ||
+            streq(info.type.c_str(), "rack")) {
         _containers.emplace(device_name, fty_proto_ext_string(*message, "name", ""));
     }
 
     log_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
-    if (info.operation != FTY_PROTO_ASSET_OP_DELETE && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
+
+    if (info.operation != FTY_PROTO_ASSET_OP_DELETE &&
+            streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
         _configurableDevices[device_name] = info;
     } else {
         try {
