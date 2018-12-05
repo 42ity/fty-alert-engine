@@ -7,8 +7,8 @@
         "assets"       	: ["__name__"],
         "types"			: ["rackcontroller"],
 	      "results"		: {
-	          "low_warning"   : {"action" : [{"action": "EMAIL"}, {"action": "SMS"}] },
-	          "low_critical"  : {"action" : [{"action": "EMAIL"}, {"action": "SMS"}] }
+	          "low_warning"   : {"action" : [{"action": "EMAIL"} ] },
+	          "low_critical"  : {"action" : [{"action": "EMAIL"} ] }
 	      },
 	      "evaluation"		: "
 	          function main(remaining_days)

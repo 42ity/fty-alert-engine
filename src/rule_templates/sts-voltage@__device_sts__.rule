@@ -6,7 +6,7 @@
         "metrics"       : ["status.input.1.voltage", "status.input.2.voltage"],
         "assets"        : ["__name__"],
         "results"       :  {
-            "high_warning"  : { "action" : [{ "action": "EMAIL" }] }
+            "high_warning"  : { "action" : [ ] }
         },
         "evaluation"    : "
             function main(i1, i2)
