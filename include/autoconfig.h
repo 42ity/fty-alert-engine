@@ -1,7 +1,7 @@
 /*  =========================================================================
     autoconfig - Autoconfig
 
-    Copyright (C) 2014 - 2017 Eaton
+    Copyright (C) 2014 - 2018 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -38,6 +38,21 @@ struct AutoConfigurationInfo
     bool configured = false;
     uint64_t date = 0;
     std::map <std::string, std::string> attributes;
+    bool operator==(fty_proto_t *message) const
+    {
+        bool bResult=true;
+        bResult&=(operation==fty_proto_operation (message));
+        bResult&=(type==fty_proto_aux_string (message, "type", ""));
+        bResult&=(subtype==fty_proto_aux_string (message, "subtype", ""));
+        //self is implicitly active, so we have to test it
+        bResult&=(streq (fty_proto_aux_string (message, FTY_PROTO_ASSET_STATUS, "active"), "active"));
+        if(!bResult)return false;
+        
+        //test all ext attributes
+        std::map <std::string, std::string> msg_attributes=utils::zhash_to_map(fty_proto_ext (message));
+        return attributes.size()== msg_attributes.size() &&
+                std::equal(attributes.begin(), attributes.end(), msg_attributes.begin());
+    };
 };
 
 void autoconfig (zsock_t *pipe, void *args);
