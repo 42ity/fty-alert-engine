@@ -1,8 +1,9 @@
 {
     "threshold" : {
         "rule_name"     :   "load.input_3phase@__name__",
-        "rule_desc"     :   "input load 3 phase for epdu __ename__",
-        "rule_class"    :   "Input load (3 phase) in PDU",
+        "rule_desc"     :   "TRANSLATE_LUA(Input load 3 phase for PDU)",
+        "rule_class"    :   "TRANSLATE_LUA(Input load (3 phase) on PDU)",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "rule_hierarchy":   "power.load.input.3phase.epdu",
         "target"        :   [ "load.input.L1@__name__", "load.input.L2@__name__", "load.input.L3@__name__" ],
         "element"       :   "__name__",
@@ -13,10 +14,10 @@
             {"high_warning"  : "1500"},
             {"high_critical" : "2000"} ],
         "results"       :   [
-            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input load (3 phase) in device is critically low" }},
-            {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input load (3 phase) in device is low" }},
-            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input load (3 phase) in device is hight" }},
-            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input load (3 phase) in device is critically high" }} ],
+            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (3 phase) is critically low on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (3 phase) is critically low on device)" }},
+            {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (3 phase) is low on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (3 phase) is low on device)" }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (3 phase) is high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (3 phase) is hight on device)" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "TRANSLATE_LUA(Input load (3 phase) in device is critically high)" }} ],
         "evaluation" : "function main(v1,v2,v3) if (v1 > high_critical or v2 > high_critical or v3 > high_critical) then return HIGH_CRITICAL end; if (v1 > high_warning or v2 > high_warning or v3 > high_warning) then return HIGH_WARNING end; if (v1 < low_critical or v2 < low_critical or v3 < low_critical) then return LOW_CRITICAL end; if (v1 < low_warning or v2 < low_warning or v3 < low_warning) then return LOW_WARNING end; return OK; end"
     }
 }

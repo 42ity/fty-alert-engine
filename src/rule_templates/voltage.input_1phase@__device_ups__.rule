@@ -1,9 +1,10 @@
 {
     "threshold" : {
         "rule_name"     :   "voltage.input_1phase@__name__",
-        "rule_desc"     :   "Input voltage 1 phase for ups __ename__",
-        "rule_class"    :   "Input voltage (1 phase) in UPS",
+        "rule_desc"     :   "TRANSLATE_LUA(Input voltage 1 phase for UPS)",
+        "rule_class"    :   "TRANSLATE_LUA(Input voltage (1 phase) in UPS)",
         "rule_hierarchy":   "internal.input.voltage.1phase.ups",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "voltage.input.L1@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "V",
@@ -13,9 +14,9 @@
             {"high_warning"  : "235"},
             {"high_critical" : "240"} ],
         "results"       :   [
-            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input voltage (1 phase) in device is critically low" }},
-            {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input voltage (1 phase) in device is low" }},
-            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "Input voltage (1 phase) in device is high" }},
-            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Input voltage (1 phase) in device is critically high" }} ]
+            {"low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is critically low in device)" }},
+            {"low_warning"  :  { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is low in device)" }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSTALE_LUA(Input voltage (1 phase) is high in device)" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) in device is critically high)" }} ]
     }
 }

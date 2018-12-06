@@ -1,9 +1,10 @@
 {
     "threshold" : {
         "rule_name"     :   "section_load@__name__",
-        "rule_desc"     :   "Section Load",
-        "rule_class"    :   "Section Load in PDU",
+        "rule_desc"     :   "TRANSLATE_LUA(Section Load)",
+        "rule_class"    :   "TRANSLATE_LUA(Section Load in PDU)",
         "rule_hierarchy":   "power.load.section.epdu",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   "load.outlet.group.1@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "%",
@@ -11,8 +12,8 @@
                               {"high_warning"  : "70"},
                               {"high_critical" : "90"} ],
         "results"       :   [
-                              {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Section Load high warning" }},
-                              {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Section Load high critical"}} ],
+                              {"high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Section load is high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Section Load high warning)" }},
+                              {"high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Section load is critically high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Section Load high critical)"}} ],
         "evaluation"    :   "function main(v1) if (v1 > high_critical) then return HIGH_CRITICAL end; if (v1 > high_warning) then return HIGH_WARNING end; return OK; end"
 
     }

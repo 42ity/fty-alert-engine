@@ -53,19 +53,19 @@ static std::mutex mtxAlertConfig;
 static std::map<std::string, bool> evaluateMetrics;
 
 void
-clearEvaluateMetrics() {
-    evaluateMetrics.clear();
+clearEvaluateMetrics () {
+    evaluateMetrics.clear ();
 }
 
 //static
 void
-list_rules(
+list_rules (
     mlm_client_t *client,
     const char *type,
     const char *ruleclass,
     AlertConfiguration &ac)
 {
-    std::function<bool(const std::string & s) > filter_f;
+    std::function<bool (const std::string & s) > filter_f;
     if (streq (type, "all")) {
         filter_f = [](const std::string & s) {
             return true;
@@ -88,7 +88,7 @@ list_rules(
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INVALID_TYPE");
-        mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+        mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
         return;
     }
 
@@ -107,23 +107,23 @@ list_rules(
     //      >
     // >
     log_debug ("number of all rules = '%zu'", ac.size ());
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     for (const auto &i : ac) {
         const auto& rule = i.first;
-        if (! (filter_f (rule->whoami ()) && (rclass.empty() || rule->rule_class() == rclass)) ) {
-            log_debug ("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
+        if (! (filter_f (rule->whoami ()) && (rclass.empty () || rule->rule_class () == rclass)) ) {
+            log_debug ("Skipping rule  = '%s' class '%s'", rule->name ().c_str (), rule->rule_class ().c_str ());
             continue;
         }
-        log_debug ("Adding rule  = '%s'", rule->name().c_str());
-        zmsg_addstr (reply, rule->getJsonRule().c_str());
+        log_debug ("Adding rule  = '%s'", rule->name ().c_str ());
+        zmsg_addstr (reply, rule->getJsonRule ().c_str ());
     }
-    mtxAlertConfig.unlock();
-    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    mtxAlertConfig.unlock ();
+    mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
 }
 
 //static
 void
-get_rule(
+get_rule (
     mlm_client_t *client,
     const char *name,
     AlertConfiguration &ac)
@@ -132,7 +132,7 @@ get_rule(
     zmsg_t *reply = zmsg_new ();
     bool found = false;
 
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     log_debug ("number of all rules = '%zu'", ac.size ());
     for (const auto& i : ac) {
         const auto &rule = i.first;
@@ -140,37 +140,37 @@ get_rule(
         {
             log_debug ("found rule %s",name);
             zmsg_addstr (reply, "OK");
-            zmsg_addstr (reply, rule->getJsonRule().c_str());
+            zmsg_addstr (reply, rule->getJsonRule ().c_str ());
             found = true;
             break;
         }
     }
-    mtxAlertConfig.unlock();
+    mtxAlertConfig.unlock ();
 
     if (!found) {
         log_debug ("not found");
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
     }
-    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
 }
 
 
 // XXX: Store the actions as zlist_t internally to avoid useless copying
 zlist_t *
-makeActionList(
+makeActionList (
     const std::vector <std::string> &actions)
 {
-    zlist_t *res = zlist_new();
+    zlist_t *res = zlist_new ();
     for (const auto& oneAction : actions) {
-        zlist_append(res, const_cast<char*> (oneAction.c_str()));
+        zlist_append (res, const_cast<char*> (oneAction.c_str ()));
     }
     return res;
 }
 
 //static
 void
-send_alerts(
+send_alerts (
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
     const std::string &rule_name)
@@ -179,58 +179,58 @@ send_alerts(
     {
         //Asset id is missing in the rule name for warranty alarms
         std::string fullRuleName = rule_name;
-        if (streq("warranty",fullRuleName.c_str())){
+        if (streq ("warranty",fullRuleName.c_str ())){
           fullRuleName += "@" +  alert._element;
         }
 
-        zlist_t *actions = makeActionList(alert._actions);
+        zlist_t *actions = makeActionList (alert._actions);
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
-            ::time(NULL),
+            ::time (NULL),
             alert._ttl,
-            fullRuleName.c_str(),
-            alert._element.c_str(),
-            alert._status.c_str(),
-            alert._severity.c_str(),
-            alert._description.c_str(),
+            fullRuleName.c_str (),
+            alert._element.c_str (),
+            alert._status.c_str (),
+            alert._severity.c_str (),
+            alert._description.c_str (),
             actions
         );
-        zlist_destroy(&actions);
+        zlist_destroy (&actions);
         if (msg) {
             std::string atopic = rule_name + "/"
                 + alert._severity + "@"
                 + alert._element;
-            mlm_client_send (client, atopic.c_str(), &msg);
-            log_info ("Send Alert for %s with state %s and severity %s", fullRuleName.c_str(),
-                      alert._status.c_str(),alert._severity.c_str());
+            mlm_client_send (client, atopic.c_str (), &msg);
+            log_info ("Send Alert for %s with state %s and severity %s", fullRuleName.c_str (),
+                      alert._status.c_str (),alert._severity.c_str ());
         }
     }
 }
 
 //static
 void
-send_alerts(
+send_alerts (
     mlm_client_t *client,
     const std::vector <PureAlert> &alertsToSend,
     const RulePtr &rule)
 {
-    send_alerts (client, alertsToSend, rule->name());
+    send_alerts (client, alertsToSend, rule->name ());
 }
 
 //static
 void
-add_rule(
+add_rule (
     mlm_client_t *client,
     const char *json_representation,
     AlertConfiguration &ac)
 {
-    std::istringstream f(json_representation);
+    std::istringstream f (json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
-    mtxAlertConfig.unlock();
+    mtxAlertConfig.unlock ();
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
         case -2:
@@ -240,18 +240,18 @@ add_rule(
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "ALREADY_EXISTS");
 
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
         case 0:
         {
             // rule was created succesfully
             /* TODO: WIP, don't delete
-            log_debug ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-            log_debug ("alertsToSend count = %d", alertsToSend.size() );
+            log_debug ("newsubjects count = %d", newSubjectsToSubscribe.size () );
+            log_debug ("alertsToSend count = %d", alertsToSend.size () );
             for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                log_debug ("Registering to receive '%s'", interestedSubject.c_str());
-                mlm_client_set_consumer (client, METRICS_STREAM, interestedSubject.c_str());
+                log_debug ("Registering to receive '%s'", interestedSubject.c_str ());
+                mlm_client_set_consumer (client, METRICS_STREAM, interestedSubject.c_str ());
                 log_debug ("Registering finished");
             }
              */
@@ -260,7 +260,7 @@ add_rule(
             log_debug ("rule added correctly");
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, json_representation);
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
 
             // send updated alert
             send_alerts (client, alertsToSend, new_rule_it->first);
@@ -273,7 +273,7 @@ add_rule(
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_LUA");
 
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
         case -6:
@@ -283,17 +283,17 @@ add_rule(
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
 
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
         default:
         {
             // error during the rule creation
-            log_warning ("default bad json");
+            log_warning ("default bad json for rule %s", json_representation);
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_JSON");
 
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
     }
@@ -301,19 +301,19 @@ add_rule(
 
 //static
 void
-update_rule(
+update_rule (
     mlm_client_t *client,
     const char *json_representation,
     const char *rule_name,
     AlertConfiguration &ac)
 {
-    std::istringstream f(json_representation);
+    std::istringstream f (json_representation);
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     int rv = ac.updateRule (f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
-    mtxAlertConfig.unlock();
+    mtxAlertConfig.unlock ();
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
         case -2:
@@ -322,26 +322,26 @@ update_rule(
             // ERROR rule doesn't exist
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "NOT_FOUND");
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
         case 0:
         {
             // rule was updated succesfully
             /* TODO: WIP, don't delete
-            log_debug ("newsubjects count = %d", newSubjectsToSubscribe.size() );
-            log_debug ("alertsToSend count = %d", alertsToSend.size() );
+            log_debug ("newsubjects count = %d", newSubjectsToSubscribe.size () );
+            log_debug ("alertsToSend count = %d", alertsToSend.size () );
             for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                log_debug ("Registering to receive '%s'", interestedSubject.c_str());
-                mlm_client_set_consumer(client, METRICS_STREAM, interestedSubject.c_str());
-                log_debug("Registering finished");
+                log_debug ("Registering to receive '%s'", interestedSubject.c_str ());
+                mlm_client_set_consumer (client, METRICS_STREAM, interestedSubject.c_str ());
+                log_debug ("Registering finished");
             }
              */
             // send a reply back
             log_debug ("rule updated");
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, json_representation);
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             // send updated alert
             send_alerts (client, alertsToSend, new_rule_it->first);
             return;
@@ -352,7 +352,7 @@ update_rule(
             // error during the rule creation (lua)
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_LUA");
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
         case -3:
@@ -361,7 +361,7 @@ update_rule(
             // rule with new rule name already exists
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "ALREADY_EXISTS");
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
         case -6:
@@ -370,17 +370,17 @@ update_rule(
             log_error ("internal error");
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
 
         default:
         {
             // error during the rule creation
-            log_warning ("bad json default");
+            log_warning ("bad json default for %s", json_representation);
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "BAD_JSON");
-            mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
     }
@@ -394,11 +394,11 @@ delete_rules
 {
     std::map <std::string, std::vector <PureAlert>> alertsToSend;
     std::vector <std::string> rulesDeleted;
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     zmsg_t *reply = zmsg_new ();
     int rv = ac.deleteRules (matcher, alertsToSend, rulesDeleted);
     if (!rv) {
-        if (rulesDeleted.empty()) {
+        if (rulesDeleted.empty ()) {
             log_debug ("can't delete rule (no match)");
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "NO_MATCH");
@@ -407,7 +407,7 @@ delete_rules
             log_debug ("deleted rule");
             zmsg_addstr (reply, "OK");
             for (const auto& i : rulesDeleted) {
-                zmsg_addstr (reply, i.c_str());
+                zmsg_addstr (reply, i.c_str ());
             }
             std::for_each (alertsToSend.begin (),
                             alertsToSend.end (),
@@ -423,14 +423,14 @@ delete_rules
         zmsg_addstr (reply, "FAILURE_RULE_REMOVAL");
     }
 
-    mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-    mtxAlertConfig.unlock();
+    mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+    mtxAlertConfig.unlock ();
 }
 
 
 //static
 void
-touch_rule(
+touch_rule (
     mlm_client_t *client,
     const char *rule_name,
     AlertConfiguration &ac,
@@ -438,9 +438,9 @@ touch_rule(
 {
     std::vector <PureAlert> alertsToSend;
 
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     int rv = ac.touchRule (rule_name, alertsToSend);
-    mtxAlertConfig.unlock();
+    mtxAlertConfig.unlock ();
     switch (rv) {
         case -1:
         {
@@ -454,7 +454,7 @@ touch_rule(
                 }
                 zmsg_addstr (reply, "ERROR");
                 zmsg_addstr (reply, "NOT_FOUND");
-                mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+                mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             }
             return;
         }
@@ -470,7 +470,7 @@ touch_rule(
                     return;
                 }
                 zmsg_addstr (reply, "OK");
-                mlm_client_sendto (client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+                mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             }
             // send updated alert
             send_alerts (client, alertsToSend, rule_name); // TODO third parameter
@@ -480,7 +480,7 @@ touch_rule(
 }
 
 void
-check_metrics(
+check_metrics (
     mlm_client_t *client,
     const char *metric_topic,
     AlertConfiguration &ac)
@@ -489,42 +489,62 @@ check_metrics(
         const auto &rule = i.first;
         if ( rule->isTopicInteresting (metric_topic) ) {
             //mutex is done in touch_rule
-            touch_rule (client, rule->name().c_str(), ac, false);
+            touch_rule (client, rule->name ().c_str (), ac, false);
         }
     }
 }
 
 //static
 bool
-evaluate_metric(
+evaluate_metric (
     mlm_client_t *client,
     const MetricInfo &triggeringMetric,
     const MetricList &knownMetricValues,
     AlertConfiguration &ac)
 {
     // Go through all known rules, and try to evaluate them
-    mtxAlertConfig.lock();
+    mtxAlertConfig.lock ();
     bool isEvaluate = false;
     for (const auto &i : ac) {
         const auto &rule = i.first;
         try {
-            bool is_interresting = rule->isTopicInteresting (triggeringMetric.generateTopic());
+            bool is_interresting = rule->isTopicInteresting (triggeringMetric.generateTopic ());
 
             if ( !is_interresting ) {
                 continue;
             }
-            log_debug (" ### Evaluate rule '%s'", rule->name().c_str());
+            log_debug (" ### Evaluate rule '%s'", rule->name ().c_str ());
             isEvaluate = true;
             PureAlert pureAlert;
             int rv = rule->evaluate (knownMetricValues, pureAlert);
             if ( rv != 0 ) {
-                log_error (" ### Cannot evaluate the rule '%s'", rule->name().c_str());
+                log_error (" ### Cannot evaluate the rule '%s'", rule->name ().c_str ());
                 continue;
             }
 
             PureAlert alertToSend;
             rv = ac.updateAlert (rule, pureAlert, alertToSend);
             alertToSend._ttl = triggeringMetric.getTtl () * 3;
+
+            // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the corrent message to stream alert description is modified
+            if (rule->name () == "warranty") {
+                int remaining_days = (int) triggeringMetric.getValue ();
+                if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}") {
+                    alertToSend._description =
+                        std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
+                        "\"variables\" : { \"asset\" : { \"variable\" : \"\", \"assetLink\" : \"" +
+                        triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
+                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_ME (Warranty expires in)\"}") {
+                    remaining_days = abs (remaining_days);
+                    alertToSend._description =
+                        std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} ago.)\", ") +
+                        "\"variables\" : { \"asset\" : { \"variable\" : \"\", \"assetLink\" : \"" +
+                        triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
+                } else {
+                    log_error ("Unable to identify Warranty alert description");
+                }
+            }
+
             if ( rv == -1 ) {
                 log_debug (" ### alert updated, nothing to send");
                 // nothing to send
@@ -532,10 +552,10 @@ evaluate_metric(
             }
             send_alerts (client, {alertToSend}, rule);
         } catch (const std::exception &e) {
-            log_error ("CANNOT evaluate rule, because '%s'", e.what());
+            log_error ("CANNOT evaluate rule, because '%s'", e.what ());
         }
     }
-    mtxAlertConfig.unlock();
+    mtxAlertConfig.unlock ();
     return isEvaluate;
 }
 
@@ -598,7 +618,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
 }
 
 void
-fty_alert_engine_stream(
+fty_alert_engine_stream (
     zsock_t *pipe,
     void* args)
 {
@@ -613,8 +633,8 @@ fty_alert_engine_stream(
 
     uint64_t timeout = fty_get_polling_interval() * 1000;
     zsock_signal (pipe, 0);
-    int64_t timeCash = zclock_mono();
-    log_info("Actor %s started",name);
+    int64_t timeCash = zclock_mono ();
+    log_info ("Actor %s started",name);
     while (!zsys_interrupted) {
 
         //clear cache every "polling interval" sec
@@ -651,9 +671,9 @@ fty_alert_engine_stream(
         zmsg_t *zmessage = NULL;
         std::string subject;
 
-        while (which == mlm_client_msgpipe(client)) {
-            zmsg_t *zmsg = mlm_client_recv(client);
-            std::string topic = mlm_client_subject(client);
+        while (which == mlm_client_msgpipe (client)) {
+            zmsg_t *zmsg = mlm_client_recv (client);
+            std::string topic = mlm_client_subject (client);
 
             if (streq (mlm_client_sender (client), "fty_info_linuxmetrics")) {
                zmsg_destroy (&zmsg);
@@ -668,16 +688,16 @@ fty_alert_engine_stream(
 
             fty_proto_t *bmessage = fty_proto_decode (&zmsg);
             if (!bmessage) {
-                log_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
+                log_error ("%s: can't decode message with topic %s, ignoring", name, topic.c_str ());
                 break;
             }
 
-            if (fty_proto_id(bmessage) != FTY_PROTO_METRIC) {
+            if (fty_proto_id (bmessage) != FTY_PROTO_METRIC) {
                 log_error ("%s: unsupported proto id %d for topic %s, ignoring",
                            name,
-                           fty_proto_id(bmessage),
-                           topic.c_str());
-                fty_proto_destroy(&bmessage);
+                           fty_proto_id (bmessage),
+                           topic.c_str ());
+                fty_proto_destroy (&bmessage);
                 break;
             }
 //            auto it = stream_messages.find(topic);
@@ -746,13 +766,12 @@ fty_alert_engine_stream(
         // from the stream  -> metrics
         // but even so we try to decide according what we got, not from where
 
-        // process accumulated stream messages      
         if (zmessage) {
             // Here we can have a message with arbitrary topic, but according protocol
             // first frame must be one of the following:
             //  * METRIC_UNAVAILABLE
             char *command = zmsg_popstr (zmessage);
-            if (streq(command, "METRICUNAVAILABLE")) {
+            if (streq (command, "METRICUNAVAILABLE")) {
                 char *metrictopic = zmsg_popstr (zmessage);
                 if (metrictopic) {
                     check_metrics (client, metrictopic, alertConfiguration);
@@ -773,7 +792,7 @@ exit:
 }
 
 void
-fty_alert_engine_mailbox(
+fty_alert_engine_mailbox (
     zsock_t *pipe,
     void* args)
 {
@@ -782,13 +801,13 @@ fty_alert_engine_mailbox(
     mlm_client_t *client = mlm_client_new ();
     assert (client);
 
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     assert (poller);
 
     uint64_t timeout = 30000;
 
     zsock_signal (pipe, 0);
-    log_info("Actor %s started",name);
+    log_info ("Actor %s started",name);
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout);
         if (which == NULL) {
@@ -837,7 +856,7 @@ fty_alert_engine_mailbox(
                     // Read initial configuration
                     alertConfiguration.setPath (filename);
                     // XXX: somes to subscribe are returned, but not used for now
-                    alertConfiguration.readConfiguration();
+                    alertConfiguration.readConfiguration ();
                 } else {
                     log_error ("%s: in CONFIG command next frame is missing", name);
                 }
@@ -859,7 +878,7 @@ fty_alert_engine_mailbox(
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
-        if (streq (mlm_client_subject(client), RULES_SUBJECT)) {
+        if (streq (mlm_client_subject (client), RULES_SUBJECT)) {
             log_debug ("%s", RULES_SUBJECT);
             // According RFC we expect here a messages
             // with the topic:
@@ -896,13 +915,13 @@ fty_alert_engine_mailbox(
                     touch_rule (client, param, alertConfiguration, true);
                 }
                 else if (streq (command, "DELETE")) {
-                    log_info("Requested deletion of rule '%s'", param);
-                    RuleNameMatcher matcher(param);
+                    log_info ("Requested deletion of rule '%s'", param);
+                    RuleNameMatcher matcher (param);
                     delete_rules (client, &matcher, alertConfiguration);
                 }
                 else if (streq (command, "DELETE_ELEMENT")) {
-                    log_info("Requested deletion of rules about element '%s'", param);
-                    RuleElementMatcher matcher(param);
+                    log_info ("Requested deletion of rules about element '%s'", param);
+                    RuleElementMatcher matcher (param);
                     delete_rules (client, &matcher, alertConfiguration);
                 }
                 else {
@@ -963,17 +982,17 @@ exit:
 
 //static
 char*
-s_readall(
+s_readall (
     const char* filename)
 {
-    FILE *fp = fopen(filename, "rt");
+    FILE *fp = fopen (filename, "rt");
     if (!fp)
         return NULL;
 
     size_t fsize = 0;
-    fseek(fp, 0, SEEK_END);
-    fsize = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
+    fseek (fp, 0, SEEK_END);
+    fsize = ftell (fp);
+    fseek (fp, 0, SEEK_SET);
 
     char *ret = (char*) malloc (fsize * sizeof (char) + 1);
     if (!ret) {
@@ -982,7 +1001,7 @@ s_readall(
     }
     memset ((void*) ret, '\0', fsize * sizeof (char) + 1);
 
-    size_t r = fread((void*) ret, 1, fsize, fp);
+    size_t r = fread ((void*) ret, 1, fsize, fp);
     fclose (fp);
     if (r == fsize)
         return ret;
@@ -992,11 +1011,11 @@ s_readall(
 }
 
 void
-fty_alert_engine_server_test(
+fty_alert_engine_server_test (
     bool verbose)
 {
-    setenv("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
-    ManageFtyLog::setInstanceFtylog("fty-alert-engine-server");
+    setenv ("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
+    ManageFtyLog::setInstanceFtylog ("fty-alert-engine-server");
     // Note: If your selftest reads SCMed fixture data, please keep it in
     // src/selftest-ro; if your test creates filesystem objects, please
     // do so under src/selftest-rw. They are defined below along with a
@@ -1005,14 +1024,14 @@ fty_alert_engine_server_test(
     const char *SELFTEST_DIR_RW = "src/selftest-rw";
     assert (SELFTEST_DIR_RO);
     assert (SELFTEST_DIR_RW);
-    std::string str_SELFTEST_DIR_RO = std::string(SELFTEST_DIR_RO);
-    std::string str_SELFTEST_DIR_RW = std::string(SELFTEST_DIR_RW);
+    std::string str_SELFTEST_DIR_RO = std::string (SELFTEST_DIR_RO);
+    std::string str_SELFTEST_DIR_RW = std::string (SELFTEST_DIR_RW);
 
     log_info (" * fty_alert_engine_server: ");
     if (verbose)
-        ManageFtyLog::getInstanceFtylog()->setVeboseMode();
+        ManageFtyLog::getInstanceFtylog ()->setVeboseMode ();
 
-    int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
+    int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str ());
     assert (r == 0); // to make gcc @ CentOS 7 happy
 
     //  @selftest
@@ -1035,7 +1054,7 @@ fty_alert_engine_server_test(
     zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
     zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
 
-    zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
+    zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str (), NULL);
     zstr_sendx (ag_server_mail, "CONNECT", endpoint, NULL);
     zstr_sendx (ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
@@ -1070,9 +1089,9 @@ fty_alert_engine_server_test(
 
     // Test case #2.0: add new rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold3.rule").c_str());
+        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold3.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1090,9 +1109,9 @@ fty_alert_engine_server_test(
 
     // Test case #2.1: add new rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
+        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1109,9 +1128,9 @@ fty_alert_engine_server_test(
         // Test case #2.3: existing rule: simplethreshold
         //                 existing rule: simplethreshold2
         //                 update simplethreshold2 with new name simplethreshold
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold2.rule").c_str());
+        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold2.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1126,9 +1145,9 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy (&recv);
 
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
+        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1270,9 +1289,9 @@ fty_alert_engine_server_test(
 
     // Test case #2.2: add new rule with existing name
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
+        char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1293,9 +1312,9 @@ fty_alert_engine_server_test(
 
     // Test case #2.3: add and delete new rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/ups.rule").c_str());
+        char* simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/ups.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1310,7 +1329,7 @@ fty_alert_engine_server_test(
         // does not make a sense to call streq on two json documents
         zmsg_destroy (&recv);
 
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "DELETE");
         zmsg_addstrf (rule, "%s", "ups");
         mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
@@ -1329,7 +1348,7 @@ fty_alert_engine_server_test(
 
     // Test case #2.4: delete unknown rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "DELETE");
         zmsg_addstrf (rule, "%s", "lkiuryt@fff");
         mlm_client_sendto (ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
@@ -1417,9 +1436,9 @@ fty_alert_engine_server_test(
     // Test case #13: segfault on onbattery
     // #13.1 ADD new rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* onbattery_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/onbattery-5PX1500-01.rule").c_str());
+        char* onbattery_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/onbattery-5PX1500-01.rule").c_str ());
         assert (onbattery_rule);
         zmsg_addstrf (rule, "%s", onbattery_rule);
         zstr_free (&onbattery_rule);
@@ -1441,10 +1460,10 @@ fty_alert_engine_server_test(
     // Test case #14: add new rule, but with lua syntax error
     {
         log_info ("######## Test case #14 add new rule, but with lua syntax error");
-        zmsg_t *rule = zmsg_new();
-        assert(rule);
+        zmsg_t *rule = zmsg_new ();
+        assert (rule);
         zmsg_addstrf (rule, "%s", "ADD");
-        char* complexthreshold_rule_lua_error = s_readall ((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
+        char* complexthreshold_rule_lua_error = s_readall ((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str ());
         assert (complexthreshold_rule_lua_error);
         zmsg_addstrf (rule, "%s", complexthreshold_rule_lua_error);
         zstr_free (&complexthreshold_rule_lua_error);
@@ -1455,7 +1474,7 @@ fty_alert_engine_server_test(
         char *foo = zmsg_popstr (recv);
         assert (streq (foo, "ERROR"));
         zstr_free (&foo);
-        foo = zmsg_popstr(recv);
+        foo = zmsg_popstr (recv);
         assert (streq (foo, "BAD_LUA"));
         zstr_free (&foo);
         // does not make a sense to call streq on two json documents
@@ -1464,9 +1483,9 @@ fty_alert_engine_server_test(
 
     // Test case #15.1: add Radek's testing rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* toohigh_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/too_high-ROZ.ePDU13.rule").c_str());
+        char* toohigh_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/too_high-ROZ.ePDU13.rule").c_str ());
         assert (toohigh_rule);
         zmsg_addstrf (rule, "%s", toohigh_rule);
         zstr_free (&toohigh_rule);
@@ -1518,9 +1537,9 @@ fty_alert_engine_server_test(
 
     // Test case #16.1: add new rule, with the trash at the end
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* rule_with_trash = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_with_trash.rule").c_str());
+        char* rule_with_trash = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_with_trash.rule").c_str ());
         assert (rule_with_trash);
         zmsg_addstrf (rule, "%s", rule_with_trash);
         zstr_free (&rule_with_trash);
@@ -1569,9 +1588,9 @@ fty_alert_engine_server_test(
     // expected result: SUCCESS
     // 1.
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple.rule").c_str());
+        char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1587,9 +1606,9 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
 
         // 2.
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple2.rule").c_str());
+        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple2.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstrf (rule, "%s", simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1611,9 +1630,9 @@ fty_alert_engine_server_test(
     // 18.1 add some rule (type: pattern)
     {
         log_info ("######## Test case #18 add some rule (type: pattern)");
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char* pattern_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
+        char* pattern_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str ());
         assert (pattern_rule);
         zmsg_addstrf (rule, "%s", pattern_rule);
         zstr_free (&pattern_rule);
@@ -1635,7 +1654,7 @@ fty_alert_engine_server_test(
         mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
 
         // 18.2.1.1. No ALERT should be generated
-        zpoller_t *poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
+        zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
         void *which = zpoller_wait (poller, 1000);
         assert ( which == NULL );
         if (verbose) {
@@ -1681,9 +1700,9 @@ fty_alert_engine_server_test(
     // Test case #21:   Thresholds imported from devices
     {
         //      21.1.1  add existing rule: devicethreshold
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char *devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold.rule").c_str());
+        char *devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold.rule").c_str ());
         assert (devicethreshold_rule);
         zmsg_addstrf (rule, "%s", devicethreshold_rule);
         zstr_free (&devicethreshold_rule);
@@ -1700,9 +1719,9 @@ fty_alert_engine_server_test(
 
         //      21.1.2  add existing rule second time: devicethreshold
         log_info ("######## Test case #21.1.2 add existing rule second time: devicethreshold");
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
+        devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str ());
         assert (devicethreshold_rule);
         zmsg_addstrf (rule, "%s", devicethreshold_rule);
         zstr_free (&devicethreshold_rule);
@@ -1721,9 +1740,9 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
 
         //      21.2  update existing rule
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
+        devicethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str ());
         assert (devicethreshold_rule);
         zmsg_addstrf (rule, "%s", devicethreshold_rule);
         zstr_free (&devicethreshold_rule);
@@ -1745,7 +1764,7 @@ fty_alert_engine_server_test(
                 NULL, ::time (NULL), 600, "device_metric", "ggg", "100", "");
         mlm_client_send (producer, "device_metric@ggg", &m);
 
-        zpoller_t *poller = zpoller_new (mlm_client_msgpipe(consumer), NULL);
+        zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
         void *which = zpoller_wait (poller, 1000);
         assert ( which == NULL );
         if (verbose) {
@@ -1759,9 +1778,9 @@ fty_alert_engine_server_test(
     // as it is implemented in rule.class
     // 22-1 : "A40"
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstr (rule, "ADD");
-        char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str());
+        char *simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstr (rule, simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1784,9 +1803,9 @@ fty_alert_engine_server_test(
             // 22-2 : "50AA"
             log_info ("######## Test case #22-2 a simple threshold with not double value (50AA)");
         */
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstr (rule, "ADD");
-        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
+        simplethreshold_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str ());
         assert (simplethreshold_rule);
         zmsg_addstr (rule, simplethreshold_rule);
         zstr_free (&simplethreshold_rule);
@@ -1829,9 +1848,9 @@ fty_alert_engine_server_test(
     // test 24: touch rule that exists
     {
         // 24.1 Create a rule we are going to test against
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char *rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_touch.rule").c_str());
+        char *rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_touch.rule").c_str ());
         assert (rule_to_touch);
         zmsg_addstrf (rule, "%s", rule_to_touch);
         zstr_free (&rule_to_touch);
@@ -1957,9 +1976,9 @@ fty_alert_engine_server_test(
     // test 25: metric_unavailable
     // 25.1 Create a rules we are going to test against; add First rule
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char *rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch1.rule").c_str());
+        char *rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch1.rule").c_str ());
         assert (rule_to_touch);
         zmsg_addstrf (rule, "%s", rule_to_touch);
         zstr_free (&rule_to_touch);
@@ -1975,9 +1994,9 @@ fty_alert_engine_server_test(
         zmsg_destroy (&recv);
 
         // 25.2 Add Second rule
-        rule = zmsg_new();
+        rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch2.rule").c_str());
+        rule_to_touch = s_readall ((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch2.rule").c_str ());
         assert (rule_to_touch);
         zmsg_addstrf (rule, "%s", rule_to_touch);
         zstr_free (&rule_to_touch);
@@ -2037,7 +2056,7 @@ fty_alert_engine_server_test(
         mlm_client_set_producer (metric_unavailable, "_METRICS_UNAVAILABLE");
 
         // 25.5.2. send UNAVAILABLE metric
-        zmsg_t *m_unavailable = zmsg_new();
+        zmsg_t *m_unavailable = zmsg_new ();
         assert (m_unavailable);
         zmsg_addstr (m_unavailable, "METRICUNAVAILABLE");
         zmsg_addstr (m_unavailable, "metrictouch1@element1");
@@ -2075,7 +2094,7 @@ fty_alert_engine_server_test(
     zactor_t *ag_configurator = zactor_new (autoconfig, (void*) "test-autoconfig");
     zstr_sendx (ag_configurator, "CONFIG", SELFTEST_DIR_RW, NULL);
     zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);
-    zstr_sendx (ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
+    zstr_sendx (ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str (), NULL);
     zstr_sendx (ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_configurator, "ALERT_ENGINE_NAME", "fty-alert-engine", NULL);
     zclock_sleep (500);   //THIS IS A HACK TO SETTLE DOWN THINGS
@@ -2097,13 +2116,13 @@ fty_alert_engine_server_test(
 
         zclock_sleep (20000);
 
-        char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str());
+        char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
         assert (average_humidity);
-        char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str());
+        char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
         assert (average_temperature);
-        char *realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str());
+        char *realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
         assert (realpower_default);
-        char *phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str());
+        char *phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str ());
         assert (phase_imbalance);
 
         zstr_free (&realpower_default);
@@ -2150,16 +2169,16 @@ fty_alert_engine_server_test(
 
         zclock_sleep (20000);
 
-        char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str());
+        char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
         assert (average_humidity);
-        char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str());
+        char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
         assert (average_temperature);
 
         zstr_free (&average_humidity);
         zstr_free (&average_temperature);
         // TODO: now inapplicable rules should be deleted in the future
-        /* realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str());
-        phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str());
+        /* realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
+        phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str ());
         assert (realpower_default == NULL && phase_imbalance == NULL); */
 
         int ttl = 60;
@@ -2221,27 +2240,27 @@ fty_alert_engine_server_test(
     zmsg_destroy (&recv);
     zpoller_destroy (&poller);
 
-    char *average_humidity2 = s_readall ((str_SELFTEST_DIR_RO + "/average.humidity@test.rule").c_str());
-    char *average_temperature2 = s_readall ((str_SELFTEST_DIR_RO + "/average.temperature@test.rule").c_str());
-    char *realpower_default2 =  s_readall ((str_SELFTEST_DIR_RO + "/realpower.default@test.rule").c_str());
-    char *phase_imbalance2 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str());
+    char *average_humidity2 = s_readall ((str_SELFTEST_DIR_RO + "/average.humidity@test.rule").c_str ());
+    char *average_temperature2 = s_readall ((str_SELFTEST_DIR_RO + "/average.temperature@test.rule").c_str ());
+    char *realpower_default2 =  s_readall ((str_SELFTEST_DIR_RO + "/realpower.default@test.rule").c_str ());
+    char *phase_imbalance2 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str ());
     assert (average_humidity2 == NULL && average_temperature2 == NULL && realpower_default2 == NULL && phase_imbalance2 == NULL);
     zstr_free (&average_humidity2);
     zstr_free (&average_temperature2);
     zstr_free (&realpower_default2);
     zstr_free (&phase_imbalance2);
 
-    char *load_1phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_1phase@test.rule").c_str());
+    char *load_1phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_1phase@test.rule").c_str ());
     assert (load_1phase);
-    char *load_3phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_3phase@test.rule").c_str());
+    char *load_3phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_3phase@test.rule").c_str ());
     assert (load_3phase);
-    char *section_load =  s_readall ((str_SELFTEST_DIR_RO + "/section_load@test.rule").c_str());
+    char *section_load =  s_readall ((str_SELFTEST_DIR_RO + "/section_load@test.rule").c_str ());
     assert (section_load);
-    char *phase_imbalance3 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str());
+    char *phase_imbalance3 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str ());
     assert (phase_imbalance);
-    char *voltage_1phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_1phase@test.rule").c_str());
+    char *voltage_1phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_1phase@test.rule").c_str ());
     assert (voltage_1phase);
-    char *voltage_3phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_3phase@test.rule").c_str());
+    char *voltage_3phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_3phase@test.rule").c_str ());
     assert (voltage_3phase);
 
     zstr_free (&load_1phase);
@@ -2284,12 +2303,12 @@ fty_alert_engine_server_test(
     rv = mlm_client_send (asset_producer, "device.epdu@test", &m);
     assert ( rv == 0 );
 
-    load_1phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_1phase@test.rule").c_str());
-    load_3phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_3phase@test.rule").c_str());
-    section_load =  s_readall ((str_SELFTEST_DIR_RO + "/section_load@test.rule").c_str());
-    phase_imbalance3 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str());
-    voltage_1phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_1phase@test.rule").c_str());
-    voltage_3phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_3phase@test.rule").c_str());
+    load_1phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_1phase@test.rule").c_str ());
+    load_3phase = s_readall ((str_SELFTEST_DIR_RO + "/load.input_3phase@test.rule").c_str ());
+    section_load =  s_readall ((str_SELFTEST_DIR_RO + "/section_load@test.rule").c_str ());
+    phase_imbalance3 = s_readall ((str_SELFTEST_DIR_RO + "/phase.imbalance@test.rule").c_str ());
+    voltage_1phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_1phase@test.rule").c_str ());
+    voltage_3phase = s_readall ((str_SELFTEST_DIR_RO + "/voltage.input_3phase@test.rule").c_str ());
 
     assert (load_1phase == NULL && load_3phase == NULL && section_load == NULL && phase_imbalance3 == NULL && voltage_1phase == NULL && voltage_3phase == NULL);
 
@@ -2322,7 +2341,7 @@ fty_alert_engine_server_test(
      */
     // Test case #30: list templates rules
     {
-        log_debug("Test #30 ..");
+        log_debug ("Test #30 ..");
         zmsg_t *command = zmsg_new ();
         zmsg_addstrf (command, "%s", "LIST");
         zmsg_addstrf (command, "%s", "123456");
@@ -2340,42 +2359,42 @@ fty_alert_engine_server_test(
         foo = zmsg_popstr (recv);
         assert (streq (foo, "all"));
         zstr_free (&foo);
-        
-        cxxtools::Directory d((str_SELFTEST_DIR_RO + "/templates").c_str());
+
+        cxxtools::Directory d ((str_SELFTEST_DIR_RO + "/templates").c_str ());
         int file_counter=0;
         char *template_name;
         for ( const auto &fn : d) {
-            if ( fn.compare(".")!=0  && fn.compare("..")!=0){
+            if ( fn.compare (".")!=0  && fn.compare ("..")!=0){
                 // read the template rule from the file
-                std::ifstream f(d.path() + "/" + fn);
-                std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                std::ifstream f (d.path () + "/" + fn);
+                std::string str ((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
                 template_name = zmsg_popstr (recv);
-                assert(fn.compare(template_name)==0);
+                assert (fn.compare (template_name)==0);
                 //template content
                 foo = zmsg_popstr (recv);
-                assert(str.compare(foo)==0);
+                assert (str.compare (foo)==0);
                 zstr_free (&foo);
                 //element list
                 foo = zmsg_popstr (recv);
-                if(fn.find("__row__")!= std::string::npos){
-                    log_debug("template: '%s', devices :'%s'",template_name,foo);
-                    assert(streq (foo,"test"));
+                if (fn.find ("__row__")!= std::string::npos){
+                    log_debug ("template: '%s', devices :'%s'",template_name,foo);
+                    assert (streq (foo,"test"));
                 }
                 file_counter++;
                 zstr_free (&foo);
                 zstr_free (&template_name);
             }
         }
-        assert(file_counter>0);
-        log_debug("Test #30 : List All templates parse successfully %d files",file_counter);
+        assert (file_counter>0);
+        log_debug ("Test #30 : List All templates parse successfully %d files",file_counter);
         zmsg_destroy (&recv);
     }
 
     // Test case #20 update some rule (type: pattern)
     {
-        zmsg_t *rule = zmsg_new();
+        zmsg_t *rule = zmsg_new ();
         zmsg_addstrf (rule, "%s", "ADD");
-        char *pattern_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
+        char *pattern_rule = s_readall ((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str ());
         assert (pattern_rule);
         zmsg_addstrf (rule, "%s", pattern_rule);
         zmsg_addstrf (rule, "%s", "warranty2");
@@ -2402,7 +2421,7 @@ fty_alert_engine_server_test(
     zactor_destroy (&ag_configurator);
     zactor_destroy (&ag_server_stream);
     zactor_destroy (&ag_server_mail);
-    clearEvaluateMetrics();
+    clearEvaluateMetrics ();
     mlm_client_destroy (&asset_producer);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);

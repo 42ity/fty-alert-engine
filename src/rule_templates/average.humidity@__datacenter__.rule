@@ -1,20 +1,21 @@
 {
     "threshold" : {
         "rule_name"     :   "average.humidity@__name__",
-        "rule_desc"     :   "Humidity",
-        "rule_class"    :   "Humidity in data center",
-        "rule_hierarchy" :   "environment.humidity.dc",
+        "rule_desc"     :   "TRANSLATE_LUA(Humidity)",
+        "rule_class"    :   "TRANSLATE_LUA(Humidity in data center)",
+        "rule_hierarchy" :  "environment.humidity.dc",
+        "rule_cat"      :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
         "target"        :   "average.humidity@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "%",
         "values"        :   [ {"low_warning"   : "40"},
-                              {"low_critical"  : "30"},
-                              {"high_warning"  : "60"},
-                              {"high_critical" : "70"} ],
+                                {"low_critical"  : "30"},
+                                {"high_warning"  : "60"},
+                                {"high_critical" : "70"} ],
         "results"       :   [
-            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Humidity in datacenter is low" }},
-            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Humidity in datacenter is critically low" }},
-            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Humidity in datacenter is high" }},
-            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Humidity in datacenter is critically high" }} ]
+            { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is low)" }},
+            { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is critically low)" }},
+            { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is high)" }},
+            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is critically high)" }} ]
     }
 }
