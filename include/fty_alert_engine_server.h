@@ -34,6 +34,9 @@ FTY_ALERT_ENGINE_EXPORT void
 FTY_ALERT_ENGINE_EXPORT void
     fty_alert_engine_mailbox (zsock_t *pipe, void *args);
 
+//FTY_ALERT_ENGINE_EXPORT void
+//    fty_alert_engine_metric(zsock_t *pipe, void *args);
+
 FTY_ALERT_ENGINE_EXPORT void
     clearEvaluateMetrics ();
 

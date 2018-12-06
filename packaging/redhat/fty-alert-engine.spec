@@ -54,6 +54,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
+BuildRequires:  fty_shm-devel
 BuildRequires:  malamute-devel
 BuildRequires:  log4cplus-devel
 BuildRequires:  fty-common-logging-devel
@@ -88,6 +89,7 @@ Requires:       libfty_alert_engine0 = %{version}
 Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
+Requires:       fty_shm-devel
 Requires:       malamute-devel
 Requires:       log4cplus-devel
 Requires:       fty-common-logging-devel
