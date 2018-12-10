@@ -21,7 +21,7 @@ RULE_TEMPLATES = \
 	src/rule_templates/load.input_1phase@__device_epdu__.rule \
 	src/rule_templates/load.input_3phase@__device_epdu__.rule \
 	src/rule_templates/lowbattery@__device_ups__.rule \
-    src/rule_templates/onacpoweroutage@__device_ups__.rule \
+	src/rule_templates/onacpoweroutage@__device_ups__.rule \
 	src/rule_templates/onbattery@__device_ups__.rule \
 	src/rule_templates/onbypass@__device_ups__.rule \
 	src/rule_templates/phase_imbalance@__datacenter__.rule \
