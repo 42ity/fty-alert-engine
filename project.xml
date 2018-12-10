@@ -125,8 +125,10 @@
 
     <use project = "lua-5.1" />
 
-    <!-- alert engine uses patched cxxtools, point to 42ity fork instead -->
-    <use project = "cxxtools" test = "cxxtools::Utf8Codec::Utf8Codec" header = "cxxtools/allocator.h"
+    <!-- alert engine uses patched cxxtools, point to 42ity fork instead of upstream -->
+    <use project = "cxxtools"
+        test = "cxxtools::Utf8Codec::Utf8Codec"
+        header = "cxxtools/allocator.h"
         repository = "https://github.com/42ity/cxxtools.git"
         release = "2.2-FTY-master"
         />
