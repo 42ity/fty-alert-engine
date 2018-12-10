@@ -57,7 +57,8 @@
             <use project = "libsodium" prefix = "sodium"
                 repository = "https://github.com/42ity/libsodium.git"
                 release = "1.0.5-FTY-master"
-                test = "sodium_init" />
+                test = "sodium_init"
+                />
         </use>
     </use>
 
@@ -136,14 +137,14 @@
         test = "fty_common_selftest" >
 
         <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
-        repository = "https://github.com/42ity/fty-common-logging.git"
-        release = "master"
-        test = "fty_common_logging_selftest" >
+            repository = "https://github.com/42ity/fty-common-logging.git"
+            release = "master"
+            test = "fty_common_logging_selftest" >
 
             <use project = "log4cplus" header = "log4cplus/logger.h" test = "appender_test"
-            repository = "https://github.com/42ity/log4cplus.git"
-            release = "1.1.2-FTY-master"
-            />
+                repository = "https://github.com/42ity/log4cplus.git"
+                release = "1.1.2-FTY-master"
+                />
         </use>
     </use>
 
