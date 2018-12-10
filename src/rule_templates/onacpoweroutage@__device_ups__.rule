@@ -15,6 +15,6 @@
                 "description" : "{\"key\" : \"TRANSLATE_LUA(AC power outage on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }" 
                 }
             } ],
-        "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status) if has_bit(status,9) and not has_bit(status,15) then return HIGH_CRITICAL end return OK end"
+        "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status) if has_bit(status,9) and not has_bit(status,2) then return HIGH_CRITICAL end return OK end"
     }
 }
