@@ -9,7 +9,7 @@
         "models"	    : ["DCS001"],
         "types" 	    : ["sensorgpio", "rackcontroller"],
         "results"       :  {
-            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+            "high___rule_result__"   : { "action" : [ ] }
         },
         "evaluation"    : "
             function main(current_state)
