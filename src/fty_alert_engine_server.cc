@@ -560,8 +560,6 @@ evaluate_metric (
 }
 
 void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_client_t *client) {
-  
-    cache.removeOldMetrics();
     // process accumulated stream messages
     for (auto &element : result) {
         //std::string topic = element.first;
@@ -943,39 +941,6 @@ exit:
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
 }
-
-
-
-//void
-//fty_alert_engine_metric(
-//    zsock_t *pipe,
-//    void* args)
-//{
-//  zpoller_t *poller = zpoller_new(pipe, NULL);
-//  zsock_signal(pipe, 0);
-//  MetricList cache; // need to track incoming measurements
-//  while (!zsys_interrupted) {
-//      void *which = zpoller_wait(poller, 30000);
-//      if (which == pipe) {
-//        zmsg_t *message = zmsg_recv (pipe);
-//        char *actor_command = zmsg_popstr (message);
-//        //  $TERM actor command implementation is required by zactor_t interface
-//        if (streq (actor_command, "$TERM")) {
-//            zstr_free (&actor_command);
-//            zmsg_destroy (&message);
-//            break;
-//        }
-//      } else if (which == NULL) {
-//        //Timeout, need to get metrics and update refresh value
-//        std::vector<fty::shm::ShmMetric>& result;
-//        fty::shm::read_metrics("metric", ".*", ".*",  result);
-//        
-//        
-//      }
-//  }
-//
-//  zpoller_destroy(&poller);
-//}
 
 //  --------------------------------------------------------------------------
 //  Self test of this class.
