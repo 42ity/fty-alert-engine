@@ -629,7 +629,7 @@ fty_alert_engine_stream (
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     assert (poller);
 
-    uint64_t timeout = fty_get_polling_interval() * 1000;
+    int64_t timeout = fty_get_polling_interval() * 1000;
     zsock_signal (pipe, 0);
     int64_t timeCash = zclock_mono ();
     log_info ("Actor %s started",name);
@@ -1017,7 +1017,7 @@ fty_alert_engine_server_test (
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
     fty_shm_set_default_polling_interval(2);
-    fty_shm_set_test_dir("selftest-rw/shm");
+    assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
     zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
     zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
 
@@ -1135,7 +1135,8 @@ fty_alert_engine_server_test (
         //Test case #5: generate alert - below the treshold
 //        zmsg_t *m = fty_proto_encode_metric (
 //            NULL, ::time (NULL), 0, "abc", "fff", "20", "X");
-        fty::shm::write_metric("fff", "abc", "20", "X", 3);
+        assert(fty::shm::write_metric("fff", "abc", "20", "X", 3) == 0);
+        log_debug("first write ok !");
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1995,10 +1996,11 @@ fty_alert_engine_server_test (
         zmsg_destroy (&recv);
 
         // 25.3.1 Generate alert on the First rule; send metric
-        zmsg_t *m = fty_proto_encode_metric (
-                NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
-        assert (m);
-        int rv = mlm_client_send (producer, "metrictouch1@element1", &m);
+//        zmsg_t *m = fty_proto_encode_metric (
+//                NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
+//        assert (m);
+//        int rv = mlm_client_send (producer, "metrictouch1@element1", &m);
+        int rv = fty::shm::write_metric("element1", "metrictouch1", "100", "X", 3);
         assert ( rv == 0 );
 
         // 25.3.2 receive alert
@@ -2018,7 +2020,7 @@ fty_alert_engine_server_test (
 //                NULL, ::time (NULL), 0, "metrictouch2", "element2", "80", "X");
 //        assert (m);
 //        rv = mlm_client_send (producer, "metrictouch2@element2", &m);
-        fty::shm::write_metric("element2", "metrictouch2", "80", "X", 3);
+        rv = fty::shm::write_metric("element2", "metrictouch2", "80", "X", 3);
         assert ( rv == 0 );
 
         // 25.4.2 receive alert
@@ -2115,10 +2117,10 @@ fty_alert_engine_server_test (
         zstr_free (&average_temperature);
         // # 26.2 force an alert
         int ttl = 3;
-        m = fty_proto_encode_metric (
-            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-        assert (m);
-        rv = mlm_client_send (producer, "average.temperature@test", &m);
+//        m = fty_proto_encode_metric (
+//            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
+//        assert (m);
+//        rv = mlm_client_send (producer, "average.temperature@test", &m);
         fty::shm::write_metric("average.temperature", "test", "1000", "C", ttl);
         assert ( rv == 0 );
 
@@ -2168,10 +2170,10 @@ fty_alert_engine_server_test (
 
         int ttl = 3;
         zclock_sleep (3 * ttl);
-        m = fty_proto_encode_metric (
-            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-        assert (m);
-        rv = mlm_client_send (producer, "average.temperature@test", &m);
+//        m = fty_proto_encode_metric (
+//            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
+//        assert (m);
+//        rv = mlm_client_send (producer, "average.temperature@test", &m);
         fty::shm::write_metric("average.temperature", "test", "1000", "C", ttl);
         assert ( rv == 0 );
 
@@ -2411,7 +2413,7 @@ fty_alert_engine_server_test (
     mlm_client_destroy (&asset_producer);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);
-    ffty_shm_delete_test_dir();
+    fty_shm_delete_test_dir();
     zactor_destroy (&server);
 
     static const std::vector <std::string> strings {
