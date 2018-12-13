@@ -629,7 +629,7 @@ fty_alert_engine_stream (
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     assert (poller);
 
-    uint64_t timeout = fty_get_polling_interval() * 1000;
+    int64_t timeout = fty_get_polling_interval() * 1000;
     zsock_signal (pipe, 0);
     int64_t timeCash = zclock_mono ();
     log_info ("Actor %s started",name);
@@ -642,7 +642,7 @@ fty_alert_engine_stream (
             cache.removeOldMetrics();
             timeCash = zclock_mono();
             //Timeout, need to get metrics and update refresh value
-            fty::shm::read_metrics("metric", ".*", ".*",  result);
+            fty::shm::read_metrics(FTY_SHM_METRIC_TYPE, ".*", ".*",  result);
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
         } else {
@@ -1005,9 +1005,9 @@ fty_alert_engine_server_test (
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
 
-//    mlm_client_t *producer = mlm_client_new ();
-//    mlm_client_connect (producer, endpoint, 1000, "producer");
-//    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
+    mlm_client_t *producer = mlm_client_new ();
+    mlm_client_connect (producer, endpoint, 1000, "producer");
+    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
@@ -1016,8 +1016,10 @@ fty_alert_engine_server_test (
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
-    fty_shm_set_default_polling_interval(2);
-    fty_shm_set_test_dir("selftest-rw/shm");
+    int polling_value = 10;
+    int wanted_ttl = 2*polling_value-1;
+    fty_shm_set_default_polling_interval(polling_value);
+    assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
     zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
     zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
 
@@ -1135,7 +1137,8 @@ fty_alert_engine_server_test (
         //Test case #5: generate alert - below the treshold
 //        zmsg_t *m = fty_proto_encode_metric (
 //            NULL, ::time (NULL), 0, "abc", "fff", "20", "X");
-        fty::shm::write_metric("fff", "abc", "20", "X", 3);
+        assert(fty::shm::write_metric("fff", "abc", "20", "X", wanted_ttl) == 0);
+        log_debug("first write ok !");
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1151,7 +1154,7 @@ fty_alert_engine_server_test (
         // Test case #6: generate alert - resolved
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "42", "X");
-        fty::shm::write_metric("fff", "abc", "42", "X", 3);
+        fty::shm::write_metric("fff", "abc", "42", "X", wanted_ttl);
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1165,7 +1168,7 @@ fty_alert_engine_server_test (
         // Test case #6: generate alert - high warning
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "52", "X");
-        fty::shm::write_metric("fff", "abc", "52", "X", 3);
+        fty::shm::write_metric("fff", "abc", "52", "X", wanted_ttl);
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1182,7 +1185,7 @@ fty_alert_engine_server_test (
         // Test case #7: generate alert - high critical
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "62", "X");
-        fty::shm::write_metric("fff", "abc", "62", "X", 3);
+        fty::shm::write_metric("fff", "abc", "62", "X", wanted_ttl);
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1199,7 +1202,7 @@ fty_alert_engine_server_test (
         // Test case #8: generate alert - resolved again
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "42", "X");
-        fty::shm::write_metric("fff", "abc", "42", "X", 3);
+        fty::shm::write_metric("fff", "abc", "42", "X", wanted_ttl);
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
@@ -1216,7 +1219,7 @@ fty_alert_engine_server_test (
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "62", "X");
 //        mlm_client_send (producer, "abc@fff", &m);
-        fty::shm::write_metric("fff", "abc", "62", "X", 3);
+        fty::shm::write_metric("fff", "abc", "62", "X", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
 
@@ -1233,7 +1236,7 @@ fty_alert_engine_server_test (
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "62", "X");
 //        mlm_client_send (producer, "abc@fff", &m);
-        fty::shm::write_metric("fff", "abc", "62", "X", 3);
+        fty::shm::write_metric("fff", "abc", "62", "X", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
         assert (recv);
@@ -1249,7 +1252,7 @@ fty_alert_engine_server_test (
 //        m = fty_proto_encode_metric (
 //                NULL, time (NULL), 0, "abc", "fff", "42", "X");
 //        mlm_client_send (producer, "abc@fff", &m);
-        fty::shm::write_metric("fff", "abc", "42", "X", 3);
+        fty::shm::write_metric("fff", "abc", "42", "X", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
         assert (recv);
@@ -1430,7 +1433,7 @@ fty_alert_engine_server_test (
 //        zmsg_t *m = fty_proto_encode_metric (
 //               NULL, ::time (NULL), ::time (NULL), "status.ups", "5PX1500-01", "1032.000", "");
 //        mlm_client_send (producer, "status.ups@5PX1500-01", &m);
-        fty::shm::write_metric("5PX1500-01", "status.ups", "1032.000", "", 3);
+        fty::shm::write_metric("5PX1500-01", "status.ups", "1032.000", "", wanted_ttl);
     }
 
     // Test case #14: add new rule, but with lua syntax error
@@ -1479,7 +1482,7 @@ fty_alert_engine_server_test (
 //        zmsg_t *m = fty_proto_encode_metric (
 //                NULL, ::time (NULL), ::time (NULL), "status.ups", "ROZ.UPS33", "42.00", "");
 //        mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
-        fty::shm::write_metric("ROZ.UPS33", "status.ups", "42.00", "", 3);
+        fty::shm::write_metric("ROZ.UPS33", "status.ups", "42.00", "", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
 
@@ -1497,7 +1500,7 @@ fty_alert_engine_server_test (
 //        m = fty_proto_encode_metric (
 //                NULL, ::time (NULL), ::time (NULL), "status.ups", "ROZ.UPS33", "42.00", "");
 //        mlm_client_send (producer, "status.ups@ROZ.UPS33", &m);
-        fty::shm::write_metric("ROZ.UPS33", "status.ups", "42.00", "", 3);
+        fty::shm::write_metric("ROZ.UPS33", "status.ups", "42.00", "", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
 
@@ -1630,7 +1633,7 @@ fty_alert_engine_server_test (
 //        zmsg_t *m = fty_proto_encode_metric (
 //                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "100", "some description");
 //        mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
-        fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "100", "some description", 3);
+        fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "100", "some description", wanted_ttl);
 
         // 18.2.1.1. No ALERT should be generated
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
@@ -1645,7 +1648,7 @@ fty_alert_engine_server_test (
 //        m = fty_proto_encode_metric (
 //                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "20", "some description");
 //        mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
-        fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "20", "some description", 3);
+        fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "20", "some description", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
         assert ( recv != NULL );
@@ -1661,7 +1664,7 @@ fty_alert_engine_server_test (
 //        m = fty_proto_encode_metric (
 //                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "2", "some description");
 //        mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
-        fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "2", "some description", 3);
+        fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "2", "some description", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
         assert ( recv != NULL );
@@ -1744,10 +1747,10 @@ fty_alert_engine_server_test (
 //        zmsg_t *m = fty_proto_encode_metric (
 //                NULL, ::time (NULL), 600, "device_metric", "ggg", "100", "");
 //        mlm_client_send (producer, "device_metric@ggg", &m);
-        fty::shm::write_metric("ggg", "device_metric", "100", "", 3);
+        fty::shm::write_metric("ggg", "device_metric", "100", "", wanted_ttl);
 
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
-        void *which = zpoller_wait (poller, 2500);
+        void *which = zpoller_wait (poller, polling_value*3);
         assert ( which == NULL );
         if (verbose) {
             log_debug ("No alert was sent: SUCCESS");
@@ -1866,7 +1869,7 @@ fty_alert_engine_server_test (
         // 24.1.2 No ALERT should be generated/regenerated/closed
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
         assert (poller);
-        void *which = zpoller_wait (poller, 1000);
+        void *which = zpoller_wait (poller, polling_value*2);
         assert ( which == NULL );
         if (verbose) {
             log_debug ("No alert was sent: SUCCESS");
@@ -1878,7 +1881,7 @@ fty_alert_engine_server_test (
 //                NULL, ::time (NULL), 0, "metrictouch", "assettouch", "10", "X");
 //        assert (m);
 //        rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
-        fty::shm::write_metric("assettouch", "metrictouch", "10", "X", 3);
+        fty::shm::write_metric("assettouch", "metrictouch", "10", "X", wanted_ttl);
         assert ( rv == 0 );
 
         // 24.2.1.2 receive alert
@@ -1912,7 +1915,7 @@ fty_alert_engine_server_test (
         // 24.2.3 the only existing ALERT must be RESOLVED
         poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
         assert (poller);
-        which = zpoller_wait (poller, 1000);
+        which = zpoller_wait (poller, polling_value*2);
         assert ( which != NULL );
         recv = mlm_client_recv (consumer);
         assert ( recv != NULL );
@@ -1948,7 +1951,7 @@ fty_alert_engine_server_test (
         // 24.3.2 NO alert should be generated
         poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
         assert (poller);
-        which = zpoller_wait (poller, 1000);
+        which = zpoller_wait (poller, polling_value*2);
         assert ( which == NULL );
         if ( verbose ) {
             log_debug ("No alert was sent: SUCCESS");
@@ -1995,10 +1998,11 @@ fty_alert_engine_server_test (
         zmsg_destroy (&recv);
 
         // 25.3.1 Generate alert on the First rule; send metric
-        zmsg_t *m = fty_proto_encode_metric (
-                NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
-        assert (m);
-        int rv = mlm_client_send (producer, "metrictouch1@element1", &m);
+//        zmsg_t *m = fty_proto_encode_metric (
+//                NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
+//        assert (m);
+//        int rv = mlm_client_send (producer, "metrictouch1@element1", &m);
+        int rv = fty::shm::write_metric("element1", "metrictouch1", "100", "X", wanted_ttl);
         assert ( rv == 0 );
 
         // 25.3.2 receive alert
@@ -2006,6 +2010,7 @@ fty_alert_engine_server_test (
         assert (recv);
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
+        fty_proto_print(brecv);
         assert (brecv);
         assert (streq (fty_proto_rule (brecv), "rule_to_metrictouch1"));
         assert (streq (fty_proto_name (brecv), "element3"));
@@ -2018,7 +2023,7 @@ fty_alert_engine_server_test (
 //                NULL, ::time (NULL), 0, "metrictouch2", "element2", "80", "X");
 //        assert (m);
 //        rv = mlm_client_send (producer, "metrictouch2@element2", &m);
-        fty::shm::write_metric("element2", "metrictouch2", "80", "X", 3);
+        rv = fty::shm::write_metric("element2", "metrictouch2", "80", "X", wanted_ttl);
         assert ( rv == 0 );
 
         // 25.4.2 receive alert
@@ -2114,12 +2119,12 @@ fty_alert_engine_server_test (
         zstr_free (&average_humidity);
         zstr_free (&average_temperature);
         // # 26.2 force an alert
-        int ttl = 3;
-        m = fty_proto_encode_metric (
-            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-        assert (m);
-        rv = mlm_client_send (producer, "average.temperature@test", &m);
-        fty::shm::write_metric("average.temperature", "test", "1000", "C", ttl);
+        int ttl = wanted_ttl;
+//        m = fty_proto_encode_metric (
+//            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
+//        assert (m);
+//        rv = mlm_client_send (producer, "average.temperature@test", &m);
+        fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
         assert ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
@@ -2166,13 +2171,13 @@ fty_alert_engine_server_test (
         phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str ());
         assert (realpower_default == NULL && phase_imbalance == NULL); */
 
-        int ttl = 3;
+        int ttl = wanted_ttl;
         zclock_sleep (3 * ttl);
-        m = fty_proto_encode_metric (
-            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-        assert (m);
-        rv = mlm_client_send (producer, "average.temperature@test", &m);
-        fty::shm::write_metric("average.temperature", "test", "1000", "C", ttl);
+//        m = fty_proto_encode_metric (
+//            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
+//        assert (m);
+//        rv = mlm_client_send (producer, "average.temperature@test", &m);
+        fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
         assert ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
@@ -2411,7 +2416,7 @@ fty_alert_engine_server_test (
     mlm_client_destroy (&asset_producer);
     mlm_client_destroy (&ui);
     mlm_client_destroy (&consumer);
-    ffty_shm_delete_test_dir();
+    fty_shm_delete_test_dir();
     zactor_destroy (&server);
 
     static const std::vector <std::string> strings {
