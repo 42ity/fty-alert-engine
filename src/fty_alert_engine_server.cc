@@ -1005,9 +1005,9 @@ fty_alert_engine_server_test (
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     zstr_sendx (server, "BIND", endpoint, NULL);
 
-    mlm_client_t *producer = mlm_client_new ();
-    mlm_client_connect (producer, endpoint, 1000, "producer");
-    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
+//    mlm_client_t *producer = mlm_client_new ();
+//    mlm_client_connect (producer, endpoint, 1000, "producer");
+//    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
 
     mlm_client_t *consumer = mlm_client_new ();
     mlm_client_connect (consumer, endpoint, 1000, "consumer");
