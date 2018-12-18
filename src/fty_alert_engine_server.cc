@@ -589,7 +589,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         	log_error ("%s: can't convert value to double #2, ignore message", name);
         	continue;
         }
-        log_debug("%s: Got message '%s' with value %s", name, "topic:metric", value);
+        log_debug("%s: Got message '%s@%s' with value %s", name, type, name, value);
         
         // Update cache with new value
         MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
@@ -642,6 +642,14 @@ fty_alert_engine_stream (
             cache.removeOldMetrics();
             timeCash = zclock_mono();
             //Timeout, need to get metrics and update refresh value
+            log_debug("Try to read metrics");
+            FILE *proc = popen("/bin/ls -l --time-style=full-iso src/selftest-rw/0/", "r");
+            char buf[1024];
+            while( !feof(proc) && fgets(buf, sizeof(buf), proc))
+            {
+              log_debug("metrics read: %s\n", buf);
+            }
+            pclose(proc);
             fty::shm::read_metrics(FTY_SHM_METRIC_TYPE, ".*", ".*",  result);
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
@@ -1139,6 +1147,13 @@ fty_alert_engine_server_test (
 //            NULL, ::time (NULL), 0, "abc", "fff", "20", "X");
         assert(fty::shm::write_metric("fff", "abc", "20", "X", wanted_ttl) == 0);
         log_debug("first write ok !");
+        FILE *proc = popen("/bin/ls -l --time-style=full-iso src/selftest-rw/0/", "r");
+        char buf[1024];
+        while( !feof(proc) && fgets(buf, sizeof(buf), proc))
+        {
+          log_debug("Line read: %s\n", buf);
+        }
+        pclose(proc);
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
