@@ -1028,6 +1028,7 @@ fty_alert_engine_server_test (
     int wanted_ttl = 2*polling_value-1;
     fty_shm_set_default_polling_interval(polling_value);
     assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
+    sleep(3);
     zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
     zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
 
