@@ -643,13 +643,6 @@ fty_alert_engine_stream (
             timeCash = zclock_mono();
             //Timeout, need to get metrics and update refresh value
             log_debug("Try to read metrics");
-            FILE *proc = popen("/bin/ls -l --time-style=full-iso src/selftest-rw/0/", "r");
-            char buf[1024];
-            while( !feof(proc) && fgets(buf, sizeof(buf), proc))
-            {
-              log_debug("metrics read: %s\n", buf);
-            }
-            pclose(proc);
             fty::shm::read_metrics(FTY_SHM_METRIC_TYPE, ".*", ".*",  result);
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
@@ -1028,7 +1021,7 @@ fty_alert_engine_server_test (
     int wanted_ttl = 2*polling_value-1;
     fty_shm_set_default_polling_interval(polling_value);
     assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
-    sleep(3);
+
     zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
     zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
 
@@ -1148,13 +1141,6 @@ fty_alert_engine_server_test (
 //            NULL, ::time (NULL), 0, "abc", "fff", "20", "X");
         assert(fty::shm::write_metric("fff", "abc", "20", "X", wanted_ttl) == 0);
         log_debug("first write ok !");
-        FILE *proc = popen("/bin/ls -l --time-style=full-iso src/selftest-rw/0/", "r");
-        char buf[1024];
-        while( !feof(proc) && fgets(buf, sizeof(buf), proc))
-        {
-          log_debug("Line read: %s\n", buf);
-        }
-        pclose(proc);
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
