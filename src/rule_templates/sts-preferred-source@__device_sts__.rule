@@ -11,9 +11,9 @@
         "evaluation"    : "
             function main(input, preferred)
                 if input == preferred then
-                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  prefered input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
+                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  preferred input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
                 end
-                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (prefered is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"prefered\" : \"%s\"}}', input, prefered)
+                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"prefered\" : \"%s\"}}', input, prefered)
             end
         "
     }
