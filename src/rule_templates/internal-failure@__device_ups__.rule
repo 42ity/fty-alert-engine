@@ -1,0 +1,12 @@
+{
+    "single" : {
+        "rule_name"     :   "internal-failure@__name__",
+        "rule_class"    :   "TRANSLATE_LUA(UPS has an internal failure)",
+        "target"        :   ["status.ups@__name__", "ups.alarm@__name__"],
+        "element"       :   "__name__",
+        "values"        :   [ ],
+        "results"       :   [
+            {"high_critical"  : { "action" : [], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(UPS $ename$ has an internal failure.)\", \"variable\" : {\"ename\" : \"__ename__\"} }" }} ],
+        "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status,alarm) if has_bit(status,15) and has_bit(alarm,9) then return HIGH_CRITICAL end return OK end"
+    }
+}
