@@ -643,7 +643,7 @@ fty_alert_engine_stream (
             timeCash = zclock_mono();
             //Timeout, need to get metrics and update refresh value
             log_debug("Try to read metrics");
-            fty::shm::read_metrics(FTY_SHM_METRIC_TYPE, ".*", ".*",  result);
+            fty::shm::read_metrics(".*", ".*",  result);
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
         } else {
@@ -1018,7 +1018,7 @@ fty_alert_engine_server_test (
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
     int polling_value = 10;
-    int wanted_ttl = 2*polling_value-1;
+    int wanted_ttl = polling_value;
     fty_shm_set_default_polling_interval(polling_value);
     assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
 
