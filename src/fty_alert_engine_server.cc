@@ -642,8 +642,8 @@ fty_alert_engine_stream (
             cache.removeOldMetrics();
             timeCash = zclock_mono();
             //Timeout, need to get metrics and update refresh value
-            log_debug("Try to read metrics");
             fty::shm::read_metrics(".*", ".*",  result);
+            log_debug("number of metrics read : %d", result.size());
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
         } else {
@@ -1018,7 +1018,7 @@ fty_alert_engine_server_test (
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
     int polling_value = 10;
-    int wanted_ttl = polling_value;
+    int wanted_ttl = polling_value+2;
     fty_shm_set_default_polling_interval(polling_value);
     assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
 
@@ -1145,6 +1145,9 @@ fty_alert_engine_server_test (
 
         recv = mlm_client_recv (consumer);
 
+        fty_shm_delete_test_dir();
+        fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
+
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
         assert (streq (fty_proto_rule (brecv), "simplethreshold"));
@@ -1161,6 +1164,9 @@ fty_alert_engine_server_test (
 
         recv = mlm_client_recv (consumer);
 
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
+
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
         assert (streq (fty_proto_rule (brecv), "simplethreshold"));
@@ -1174,6 +1180,9 @@ fty_alert_engine_server_test (
 //        mlm_client_send (producer, "abc@fff", &m);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         assert (recv);
         assert (is_fty_proto (recv));
@@ -1192,6 +1201,9 @@ fty_alert_engine_server_test (
 
         recv = mlm_client_recv (consumer);
 
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
+
         assert (recv);
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
@@ -1209,6 +1221,9 @@ fty_alert_engine_server_test (
 
         recv = mlm_client_recv (consumer);
 
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
+
         assert (recv);
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
@@ -1224,6 +1239,9 @@ fty_alert_engine_server_test (
         fty::shm::write_metric("fff", "abc", "62", "X", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         assert (recv);
         assert (is_fty_proto (recv));
@@ -1241,6 +1259,9 @@ fty_alert_engine_server_test (
         fty::shm::write_metric("fff", "abc", "62", "X", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert (recv);
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
@@ -1257,6 +1278,9 @@ fty_alert_engine_server_test (
         fty::shm::write_metric("fff", "abc", "42", "X", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert (recv);
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
@@ -1488,6 +1512,9 @@ fty_alert_engine_server_test (
 
         recv = mlm_client_recv (consumer);
 
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
+
         assert (recv);
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
@@ -1505,6 +1532,9 @@ fty_alert_engine_server_test (
         fty::shm::write_metric("ROZ.UPS33", "status.ups", "42.00", "", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         assert (recv);
         assert (is_fty_proto (recv));
@@ -1653,6 +1683,9 @@ fty_alert_engine_server_test (
         fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "20", "some description", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert ( recv != NULL );
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
@@ -1669,6 +1702,9 @@ fty_alert_engine_server_test (
         fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "2", "some description", wanted_ttl);
 
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert ( recv != NULL );
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
@@ -1888,6 +1924,9 @@ fty_alert_engine_server_test (
 
         // 24.2.1.2 receive alert
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert (recv);
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
@@ -2009,6 +2048,9 @@ fty_alert_engine_server_test (
 
         // 25.3.2 receive alert
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert (recv);
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
@@ -2030,6 +2072,9 @@ fty_alert_engine_server_test (
 
         // 25.4.2 receive alert
         recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert (recv);
         assert (is_fty_proto (recv));
         brecv = fty_proto_decode (&recv);
@@ -2130,6 +2175,9 @@ fty_alert_engine_server_test (
         assert ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert (recv);
         assert (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
@@ -2183,6 +2231,9 @@ fty_alert_engine_server_test (
         assert ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
+
+    fty_shm_delete_test_dir();
+    fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         assert ( recv != NULL );
         assert ( is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
