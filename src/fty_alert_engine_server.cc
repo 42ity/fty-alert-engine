@@ -529,15 +529,15 @@ evaluate_metric (
             if (rule->name () == "warranty") {
                 int remaining_days = (int) triggeringMetric.getValue ();
                 if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}") {
-                    alertToSend._description =
-                        std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
-                        "\"variables\" : { \"asset\" : { \"variable\" : \"\", \"assetLink\" : \"" +
-                        triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
-                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_ME (Warranty expires in)\"}") {
                     remaining_days = abs (remaining_days);
                     alertToSend._description =
-                        std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} ago.)\", ") +
-                        "\"variables\" : { \"asset\" : { \"variable\" : \"\", \"assetLink\" : \"" +
+                        std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)\", ") +
+                        "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
+                        triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
+                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_ME (Warranty expires in)\"}") {
+                    alertToSend._description =
+                        std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
+                        "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                         triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
                 } else {
                     log_error ("Unable to identify Warranty alert description");
