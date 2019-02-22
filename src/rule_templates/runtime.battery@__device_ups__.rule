@@ -11,8 +11,8 @@
         "values"        :   [
             {"low_warning"  : "180"},
             {"low_critical" : "60"} ],
-        "results"       :   [ {"low_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level is low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime is low in device)" }},
-                              {"low_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level is critically low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime critically is low in device)" }} ],
+        "results"       :   [ {"low_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime is low in device)" }},
+                              {"low_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is critically low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime critically is low in device)" }} ],
         "evaluation" : "function main(v1) if (v1 < low_critical) then return LOW_CRITICAL end; if (v1 > low_critical and v1 < low_warning) then return LOW_WARNING end; return OK; end"
     }
 }
