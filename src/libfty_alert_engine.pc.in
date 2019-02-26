@@ -12,7 +12,7 @@ Name: libfty_alert_engine
 Description: 42ity service evaluating rules written in Lua and producing alerts
 Version: @VERSION@
 
-Requires:@pkgconfig_name_libsodium@ @pkgconfig_name_libzmq@ @pkgconfig_name_libczmq@ @pkgconfig_name_libmlm@ @pkgconfig_name_log4cplus@ @pkgconfig_name_libfty_common_logging@ @pkgconfig_name_libfty_proto@ @pkgconfig_name_lua@ @pkgconfig_name_cxxtools@ @pkgconfig_name_libfty_common@
+Requires:@pkgconfig_name_libsodium@ @pkgconfig_name_libzmq@ @pkgconfig_name_libczmq@ @pkgconfig_name_libmlm@ @pkgconfig_name_log4cplus@ @pkgconfig_name_libfty_common_logging@ @pkgconfig_name_libfty_proto@ @pkgconfig_name_lua@ @pkgconfig_name_cxxtools@ @pkgconfig_name_libfty_common@ @pkgconfig_name_libfty_shm@
 
 Libs: -L${libdir} -lfty_alert_engine
 Cflags: -I${includedir} @pkg_config_defines@
