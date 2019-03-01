@@ -109,7 +109,7 @@ list_rules (
     log_debug ("number of all rules = '%zu'", ac.size ());
     mtxAlertConfig.lock ();
     for (const auto &i : ac) {
-        const auto& rule = i.first;
+        const auto& rule = i.second.first;
         if (! (filter_f (rule->whoami ()) && (rclass.empty () || rule->rule_class () == rclass)) ) {
             log_debug ("Skipping rule  = '%s' class '%s'", rule->name ().c_str (), rule->rule_class ().c_str ());
             continue;
@@ -134,17 +134,15 @@ get_rule (
 
     mtxAlertConfig.lock ();
     log_debug ("number of all rules = '%zu'", ac.size ());
-    for (const auto& i : ac) {
-        const auto &rule = i.first;
-        if (rule->hasSameNameAs (name))
-        {
-            log_debug ("found rule %s",name);
-            zmsg_addstr (reply, "OK");
-            zmsg_addstr (reply, rule->getJsonRule ().c_str ());
-            found = true;
-            break;
-        }
+    if(ac.count(name) != 0) {
+      const auto &it_ac = ac.at(name);
+      const auto &rule = it_ac.first;
+      log_debug ("found rule %s",name);
+      zmsg_addstr (reply, "OK");
+      zmsg_addstr (reply, rule->getJsonRule ().c_str ());
+      found = true;
     }
+
     mtxAlertConfig.unlock ();
 
     if (!found) {
@@ -263,7 +261,7 @@ add_rule (
             mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
 
             // send updated alert
-            send_alerts (client, alertsToSend, new_rule_it->first);
+            send_alerts (client, alertsToSend, new_rule_it->second.first);
             return;
         }
         case -5:
@@ -343,7 +341,7 @@ update_rule (
             zmsg_addstr (reply, json_representation);
             mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             // send updated alert
-            send_alerts (client, alertsToSend, new_rule_it->first);
+            send_alerts (client, alertsToSend, new_rule_it->second.first);
             return;
         }
         case -5:
@@ -485,12 +483,9 @@ check_metrics (
     const char *metric_topic,
     AlertConfiguration &ac)
 {
-    for (const auto &i : ac) {
-        const auto &rule = i.first;
-        if ( rule->isTopicInteresting (metric_topic) ) {
-            //mutex is done in touch_rule
-            touch_rule (client, rule->name ().c_str (), ac, false);
-        }
+    const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(metric_topic);
+    for(const auto &rulename : rules_of_metric) {
+      touch_rule (client, rulename.c_str(), ac, false);
     }
 }
 
@@ -505,14 +500,16 @@ evaluate_metric (
     // Go through all known rules, and try to evaluate them
     mtxAlertConfig.lock ();
     bool isEvaluate = false;
-    for (const auto &i : ac) {
-        const auto &rule = i.first;
-        try {
-            bool is_interresting = rule->isTopicInteresting (triggeringMetric.generateTopic ());
+    const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(triggeringMetric.generateTopic ());
+    for(const auto &rulename : rules_of_metric) {
+      if(ac.count(rulename) == 0) {
+        log_error("Rule %s must exist but was not found",rulename.c_str());
+        continue;
+      }
+      auto &it_ac = ac.at(rulename);
+      const auto &rule = it_ac.first;
 
-            if ( !is_interresting ) {
-                continue;
-            }
+      try {
             log_debug (" ### Evaluate rule '%s'", rule->name ().c_str ());
             isEvaluate = true;
             PureAlert pureAlert;
@@ -523,7 +520,7 @@ evaluate_metric (
             }
 
             PureAlert alertToSend;
-            rv = ac.updateAlert (rule, pureAlert, alertToSend);
+            rv = ac.updateAlert (it_ac, pureAlert, alertToSend);
             alertToSend._ttl = triggeringMetric.getTtl () * 3;
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the corrent message to stream alert description is modified
@@ -1017,7 +1014,7 @@ fty_alert_engine_server_test (
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 1000, "UI");
 
-    int polling_value = 10;
+    int polling_value = 2;
     int wanted_ttl = polling_value+2;
     fty_shm_set_default_polling_interval(polling_value);
     assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
@@ -1671,9 +1668,7 @@ fty_alert_engine_server_test (
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe (consumer), NULL);
         void *which = zpoller_wait (poller, 2500);
         assert ( which == NULL );
-        if (verbose) {
-            log_debug ("No alert was sent: SUCCESS");
-        }
+        log_debug ("No alert was sent: SUCCESS");
         zpoller_destroy (&poller);
 
         // 18.2.2 LOW_WARNING
@@ -1681,7 +1676,7 @@ fty_alert_engine_server_test (
 //                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "20", "some description");
 //        mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
         fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "20", "some description", wanted_ttl);
-
+        log_debug ("18.2.2 LOW_WARNING : Wait for alert");
         recv = mlm_client_recv (consumer);
 
     fty_shm_delete_test_dir();
@@ -1700,7 +1695,7 @@ fty_alert_engine_server_test (
 //                NULL, ::time (NULL), 24 * 60 * 60, "end_warranty_date", "UPS_pattern_rule", "2", "some description");
 //        mlm_client_send (producer, "end_warranty_date@UPS_pattern_rule", &m);
         fty::shm::write_metric("UPS_pattern_rule", "end_warranty_date", "2", "some description", wanted_ttl);
-
+        log_debug ("18.2.3 LOW_CRITICAL : Wait for alert");
         recv = mlm_client_recv (consumer);
 
     fty_shm_delete_test_dir();

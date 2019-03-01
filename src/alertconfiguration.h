@@ -33,6 +33,7 @@
 
 #include "rule.h"
 #include "purealert.h"
+#include <unordered_map>
 
 /*
  * Parses the input and reads the rule\
@@ -60,7 +61,8 @@ int readRule (std::istream &f, RulePtr &rule);
 class AlertConfiguration{
 public:
 
-    typedef typename std::vector <std::pair<RulePtr, std::vector<PureAlert> > > A;
+    typedef typename std::pair<RulePtr, std::vector<PureAlert> > B;
+    typedef typename std::unordered_map <std::string, B> A;
     typedef typename A::value_type value_type;
     typedef typename A::iterator iterator;
 
@@ -92,9 +94,16 @@ public:
 
     // XXX: this exposes a lot of internal stuff - we need iterator as a class,
     // not just typedef
-    iterator begin() { return _alerts.begin(); }
-    iterator end() { return _alerts.end(); }
-    size_t size () { return _alerts.size (); }
+    iterator begin() { return _alerts_map.begin(); }
+    iterator end() { return _alerts_map.end(); }
+    size_t size () { return _alerts_map.size (); }
+    B& at(std::string name) {
+        return _alerts_map.at(name);
+    }
+
+    size_t count(std::string name) {
+        return _alerts_map.count(name);
+    }
 
     /*
      * \brief Sets a path to configuration files
@@ -182,7 +191,8 @@ public:
      *          0 need to send an alert
      */
     int updateAlert (
-        const RulePtr &rule,
+        std::pair<RulePtr, std::vector<PureAlert> >  &it,
+/*        const RulePtr &rule,*/
         const PureAlert &pureAlert,
         PureAlert &alert_to_send);
 
@@ -191,12 +201,14 @@ public:
     };
 
     bool haveRule (const std::string &rule_name) const {
-        for ( const auto &i: _alerts ) {
-            const auto &oneKnownRule = i.first;
-            if ( oneKnownRule->hasSameNameAs(rule_name) )
-                return true;
-        }
-        return false;
+        const auto &i = _alerts_map.find(rule_name);
+        return (i != _alerts_map.end());
+//        for ( const auto &i: _alerts ) {
+//            const auto &oneKnownRule = i.first;
+//            if ( oneKnownRule->hasSameNameAs(rule_name) )
+//                return true;
+//        }
+//        return false;
     };
 
     int
@@ -223,10 +235,23 @@ public:
         std::map <std::string, std::vector <PureAlert>> &alertsToSend,
         std::vector <std::string> &rulesDeleted);
 
+    const std::vector<std::string> getRulesByMetric (std::string metric) {
+        auto it = _metrics_alerts_map.find(metric);
+        if(it == _metrics_alerts_map.end())
+            return std::vector<std::string>{};
+        else
+            return std::vector<std::string>(it->second);
+    }
+
 private:
 
     // rules and corresponding alerts
-    A _alerts;
+    //A _alerts;
+
+    //hash map to quickly retrieve specific alert by rulename
+    A _alerts_map;
+    //std::unordered_map<std::string,B> _alerts_map;
+    std::unordered_map <std::string, std::vector<std::string> > _metrics_alerts_map;
 
     // directory, where rules are stored
     std::string _path;
