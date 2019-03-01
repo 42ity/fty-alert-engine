@@ -500,7 +500,12 @@ evaluate_metric (
     // Go through all known rules, and try to evaluate them
     mtxAlertConfig.lock ();
     bool isEvaluate = false;
-    const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(triggeringMetric.generateTopic ());
+    std::string sTopic;
+    if(triggeringMetric.getSource() == "end_warranty_date")
+      sTopic = "^end_warranty_date@.+";
+    else
+      sTopic = triggeringMetric.generateTopic ();
+    const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
     for(const auto &rulename : rules_of_metric) {
       if(ac.count(rulename) == 0) {
         log_error("Rule %s must exist but was not found",rulename.c_str());
