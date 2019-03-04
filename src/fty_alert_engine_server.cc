@@ -501,6 +501,7 @@ evaluate_metric (
     mtxAlertConfig.lock ();
     bool isEvaluate = false;
     std::string sTopic;
+    //end_warranty_date is the only "regex rule", for optimisation purpose, use some trick for those.
     if(triggeringMetric.getSource() == "end_warranty_date")
       sTopic = "^end_warranty_date@.+";
     else
