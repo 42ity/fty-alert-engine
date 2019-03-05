@@ -2,7 +2,7 @@
     "flexible" : {
         "name"          : "smoke-detector.state-change@__name__",
         "description"   : "TRANSLATE_LUA(Smoke detected)",
-        "rule_cat"      : ["CAT_GPIO", CAT_ALL"],
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
         "metrics"       : ["status.__port__"],
         "assets"	    : ["__name__"],
         "logical_asset" : "__logicalasset_iname__",
