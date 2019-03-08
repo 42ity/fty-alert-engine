@@ -182,6 +182,10 @@ void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, 
                     {"high_critical" : { "action" : [{ "action": "EMAIL"}], "description" : "wow high critical DESCTIPRION" } } ]
     */
     for ( const auto &oneElement : si ) { // iterate through the array
+        //we should ensure that only one member is present
+        if(oneElement.memberCount()!=1){
+            throw std::runtime_error ("unexpected member count element in results");
+        }
         auto outcomeName = oneElement.getMember(0).name();
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
