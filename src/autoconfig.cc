@@ -569,5 +569,40 @@ void
 autoconfig_test (bool verbose)
 {
     printf (" * autoconfig: ");
+
+    // Basic test: try to load JSON rules to see if these are well formed
+    // This will avoid regression in the future, since fty-alert-engine only
+    // stores this to provide to fty-alert-flexible, which is in charge of the
+    // actual parsing
+    // Ref: https://github.com/42ity/fty-alert-engine/pull/175
+    // Note: we simply try to deserialize using cxxtools, unlike fty-alert-flexible
+    // which uses vsjson!
+
+    const char *RULE_TEMPLATE_DIR = "src/rule_templates/";
+    Autoconfig::RuleFilePath = std::string (RULE_TEMPLATE_DIR);
+    TemplateRuleConfigurator templateRuleConfigurator;
+    std::vector <std::pair<std::string,std::string>>
+            templates = templateRuleConfigurator.loadAllTemplates();
+    log_debug ("number of total templates rules = '%zu'", templates.size ());
+
+    for (const auto &templat : templates) {
+        cxxtools::SerializationInfo si;
+        {
+            // read json and deserialize it
+            std::string json_rule_filename = Autoconfig::RuleFilePath + templat.first;
+            log_debug("Loading rule %s", json_rule_filename.c_str());
+            std::ifstream json_rule(json_rule_filename);
+            try {
+                cxxtools::JsonDeserializer deserializer(json_rule);
+                deserializer.deserialize(si);
+                assert(si.memberCount () != 0);
+            }
+            catch ( const std::exception &e) {
+                log_error ("Invalid JSON: %s, aborting (%s)", json_rule_filename.c_str(), e.what());
+                assert(0 == 1);
+            }
+        }
+    }
+
     printf ("OK\n");
 }

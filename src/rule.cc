@@ -107,7 +107,7 @@ si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& membe
 }
 
 /*
- * \brief Deserialzation of outcome
+ * \brief Deserialization of outcome
  */
 void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 {
