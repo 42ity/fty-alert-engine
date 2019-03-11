@@ -538,7 +538,7 @@ evaluate_metric (
                         std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)\", ") +
                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                         triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
-                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_ME (Warranty expires in)\"}") {
+                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
                     alertToSend._description =
                         std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
@@ -593,11 +593,11 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         	continue;
         }
         log_debug("%s: Got message '%s@%s' with value %s", name, type, name, value);
-        
+
         // Update cache with new value
         MetricInfo m (name, type, unit, dvalue, timestamp, "", ttl);
         cache.addMetric (m);
-        
+
         //search if this metric is already evaluated and if this metric is evaluate
         std::map < std::string, bool>::iterator found = evaluateMetrics.find (m.generateTopic());
         bool metricfound = found != evaluateMetrics.end();
@@ -605,10 +605,10 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         if (metricfound && ManageFtyLog::getInstanceFtylog()->isLogDebug()) {
         	log_debug ("This metric is known and %s be evaluated", found->second ? "must" : "will not");
         }
-        
+
         if (!metricfound || found->second) {
         	bool isEvaluate = evaluate_metric (client, m, cache, alertConfiguration);
-        
+
         	//if the metric is evaluate for the first time, add to the list
         	if (!metricfound) {
         		log_debug ("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
