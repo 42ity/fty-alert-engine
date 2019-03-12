@@ -534,7 +534,7 @@ evaluate_metric (
                         std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)\", ") +
                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                         triggeringMetric.getElementName () + "\" }, \"days\" : \"" + std::to_string (remaining_days) + "\"} }";
-                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_ME (Warranty expires in)\"}") {
+                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
                     alertToSend._description =
                         std::string ("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
