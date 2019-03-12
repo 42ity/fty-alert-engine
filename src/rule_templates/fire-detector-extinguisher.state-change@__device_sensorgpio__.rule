@@ -1,0 +1,23 @@
+{
+    "flexible" : {
+        "name"          : "fire-detector-extinguisher.state-change@__name__",
+        "description"   : "{\"key\" : \"TRANSLATE_LUA(Fire detected (alarm) in {{logical_asset}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\"}}",
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "metrics"       : ["status.__port__"],
+        "assets"	    : ["__name__"],
+        "logical_asset" : "__logicalasset_iname__",
+        "models"	    : ["MZXE-alarm"],
+        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "results"       :  {
+            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+        },
+        "evaluation"    : "
+            function main(current_state)
+                if current_state == '__normalstate__' then
+                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(No fire detected in {{logical_asset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}')
+                end
+                    return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Fire detected (alarm) in {{logical_asset}}, initiating fire suppression activation countdown.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}')
+            end
+        "
+    }
+}
