@@ -1,0 +1,26 @@
+Format: 3.0 (quilt)
+Binary: fty-alert-engine
+Source: fty-alert-engine
+Version: 1.0.0
+Maintainer: fty-alert-engine Developers <eatonipcopensource@eaton.com>
+Architecture: any
+Build-Depends: debhelper (>= 9),
+    pkg-config,
+    libsodium-dev,
+    libzmq3-dev,
+    libczmq-dev,
+    libmlm-dev,
+    liblog4cplus-dev,
+    libfty-common-logging-dev,
+    libfty-proto-dev,
+    liblua5.1-0-dev,
+    libcxxtools-dev,
+    libfty-common-dev,
+    libfty-shm-dev,
+    systemd,
+    dh-systemd,
+    asciidoc-base | asciidoc, xmlto,
+    dh-autoreconf
+
+Files:
+ 7697688bf65a35bc33ae2db51ebb0e3b 818110 fty-alert-engine.tar.gz
