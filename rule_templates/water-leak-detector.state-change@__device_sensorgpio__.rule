@@ -1,0 +1,23 @@
+{ 
+    "flexible" : {
+        "name"          : "water-leak-detector.state-change@__name__",
+        "description"   : "TRANSLATE_LUA(Water leak detected)",
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "metrics"       : ["status.__port__"],
+        "assets"	    : ["__name__"],
+        "logical_asset" : "__logicalasset_iname__",
+        "models"	    : ["WLD012"],
+        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "results"       : {
+            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
+        },
+        "evaluation"    : "
+            function main(current_state)
+                if current_state == '__normalstate__' then
+                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Water leak is OK in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}')
+                end
+                    return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Water leak detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}')
+            end
+        "
+    }
+}

@@ -26,29 +26,29 @@
 #include "fty_alert_engine_library.h"
 
 //  Add your own public definitions here, if you need them
-static const char * RULES_SUBJECT = "rfc-evaluator-rules";
-static const char * LIST_RULE_MB = "RULE_HANDLING";
+#define RULES_SUBJECT "rfc-evaluator-rules"
+#define LIST_RULE_MB "RULE_HANDLING"
 
 /// config path
-static const char *CONFIG_FILE = "/etc/fty-alert-engine/fty-alert-engine.cfg";
+#define CONFIG_FILE "/etc/fty-alert-engine/fty-alert-engine.cfg"
 /// path to the directory, where rules are stored. Attention: without last slash!
-static const char *RULE_PATH_DEFAULT = "/var/lib/fty/fty-alert-engine";
+#define RULE_PATH_DEFAULT "/var/lib/fty/fty-alert-engine"
 /// path to the directory, where templates are stored. Attention: without last slash!
-static const char *TEMPLATE_PATH_DEFAULT = "/usr/share/bios/fty-autoconfig";
+#define TEMPLATE_PATH_DEFAULT "/usr/share/bios/fty-autoconfig"
 /// default timeout [ms]
-static const char *DEFAULT_TIMEOUT = "30000";
+#define DEFAULT_TIMEOUT "30000"
 
 /// trigger name
-static const char *TRIGGER_AGENT_NAME_MAILBOX = "fty-alert-trigger";
-static const char *TRIGGER_AGENT_NAME_STREAM = "fty-alert-trigger-stream";
+#define TRIGGER_AGENT_NAME_MAILBOX "fty-alert-trigger"
+#define TRIGGER_AGENT_NAME_STREAM "fty-alert-trigger-stream"
 
 /// config name
-static const char *CONFIG_AGENT_NAME = "fty-alert-config";
+#define CONFIG_AGENT_NAME "fty-alert-config"
 
 /// list name
-static const char *LIST_AGENT_NAME = "fty-alert-list";
+#define LIST_AGENT_NAME "fty-alert-list"
 
 /// malamute endpoint
-static const char *ENDPOINT = "ipc://@/malamute";
+#define ENDPOINT "ipc://@/malamute"
 
 #endif

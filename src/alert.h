@@ -23,19 +23,6 @@
 
 #include "rule.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-///  Self test of this class
-FTY_ALERT_ENGINE_PRIVATE void
-    alert_test (bool verbose);
-//  @end
-
-#ifdef __cplusplus
-}
-#endif
-
 //  @interface
 class Alert {
     public:
@@ -43,7 +30,7 @@ class Alert {
             m_Id (id),
             m_Results (results),
             m_State (RESOLVED),
-            m_Outcome ({"OK"}),
+            m_Outcome ({"ok"}),
             m_Ctime (0),
             m_Mtime (0),
             m_Ttl (std::numeric_limits<uint64_t>::max ())
@@ -69,7 +56,7 @@ class Alert {
         std::vector<std::string> actions () { return m_Actions; }
 
         void overwrite (fty_proto_t *msg);
-        void overwrite (std::shared_ptr<Rule> rule);
+        void overwrite (GenericRule rule);
         void update (fty_proto_t *msg);
         void cleanup ();
         int switchState (std::string state_str);
@@ -112,7 +99,7 @@ class Alert {
 
         AlertState StringToAlertState (std::string state_str)
         {
-            AlertState state;
+            AlertState state = RESOLVED;
             if (state_str == "RESOLVED")
                 state = RESOLVED;
             else if (state_str == "ACTIVE")
@@ -145,6 +132,10 @@ class Alert {
         std::string m_Description;
         std::vector<std::string> m_Actions;
 };
+
+///  Self test of this class
+FTY_ALERT_ENGINE_PRIVATE void
+    alert_test (bool verbose);
 //  @end
 
 #endif

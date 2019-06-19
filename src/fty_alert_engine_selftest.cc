@@ -50,6 +50,7 @@ all_tests [] = {
     { "lua_evaluate", NULL, true, false, "lua_evaluate_test" },
     { "extended_rules", NULL, true, false, "extended_rules_test" },
     { "alert", NULL, true, false, "alert_test" },
+    { "header_tests", NULL, true, false, "header_tests_test" },
     { "private_classes", NULL, false, false, "$ALL" }, // compat option for older projects
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
     {NULL, NULL, 0, 0, NULL}          //  Sentinel

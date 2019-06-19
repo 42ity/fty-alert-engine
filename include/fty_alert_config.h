@@ -27,10 +27,6 @@
 #include <map>
 #include <memory>
 
-#include "asset.h"
-#include "asset_database.h"
-#include "rule.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,6 +45,9 @@ FTY_ALERT_ENGINE_EXPORT void
 }
 #endif
 
+class FullAsset;
+class Rule;
+
 class AlertConfig {
     private:
         std::string alert_trigger_mb_name_;
@@ -56,20 +55,22 @@ class AlertConfig {
         std::string template_location_;
         uint64_t timeout_;
         std::string name_;
-        static const std::string MB_DELIVER;
         // supportive functions
         void listTemplates (std::string corr_id, std::string type);
-        std::vector<FullAssetSPtr> getMatchingAssets (std::pair<const std::string, std::shared_ptr<Rule>> &rule_template);
-        bool ruleMatchAsset (const std::pair<std::string, std::shared_ptr<Rule>> &rule_template, FullAssetSPtr asset);
+        std::vector<std::shared_ptr<FullAsset>> getMatchingAssets (std::pair<const std::string,
+                std::shared_ptr<Rule>> &rule_template);
+        bool ruleMatchAsset (const std::pair<std::string, std::shared_ptr<Rule>> &rule_template,
+                std::shared_ptr<FullAsset> asset);
         std::string convertTypeSubType2Name (const char *type, const char *subtype);
         std::map<std::string, std::shared_ptr<Rule>> getAllTemplatesMap ();
-        void onAssetCreateCallback (FullAssetSPtr assetptr);
-        // void onAssetUpdateCallback (FullAssetSPtr assetptr); // updates are not tracked for alert rule purposes
-        void onAssetDeleteCallback (FullAssetSPtr assetptr);
+        void onAssetCreateCallback (std::shared_ptr<FullAsset> assetptr);
+        // // updates are not tracked for alert rule purposes
+        // void onAssetUpdateCallback (std::shared_ptr<FullAsset> assetptr);
+        void onAssetDeleteCallback (std::shared_ptr<FullAsset> assetptr);
     protected:
         // internal functions
-        void handleStreamMessages ();
-        void handleMailboxMessages ();
+        void handleStreamMessages (zmsg_t **msg);
+        void handleMailboxMessages (zmsg_t **msg);
         int handlePipeMessages (zsock_t *pipe);
     public:
         // ctor, dtor

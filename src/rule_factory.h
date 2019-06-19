@@ -39,7 +39,7 @@ class RuleFactory {
     private:
         template <typename T>
         static std::unique_ptr<Rule> createRuleByName (const std::string &name, const T ruleSource) {
-            if (name == "simple") {
+            if (name == "single") {
                 return std::unique_ptr<Rule>(new SingleRule (ruleSource));
             } else if (name == "pattern") {
                 return std::unique_ptr<Rule>(new PatternRule (ruleSource));

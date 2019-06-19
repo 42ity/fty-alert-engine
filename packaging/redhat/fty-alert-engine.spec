@@ -61,6 +61,8 @@ BuildRequires:  fty-proto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  fty-common-devel
+BuildRequires:  openssl-devel
+BuildRequires:  fty-common-mlm-devel
 BuildRequires:  fty_shm-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -95,6 +97,8 @@ Requires:       fty-proto-devel
 Requires:       lua-devel
 Requires:       cxxtools-devel
 Requires:       fty-common-devel
+Requires:       openssl-devel
+Requires:       fty-common-mlm-devel
 Requires:       fty_shm-devel
 
 %description devel

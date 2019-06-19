@@ -150,12 +150,16 @@ std::string Rule::getJsonRule (void) const {
 }
 
 void Rule::save (const std::string &path) const {
-    std::string fullname = path + name_ + ".rule";
+    std::string fullname = path + "/" + name_ + ".rule";
     log_debug ("trying to save file : '%s'", fullname.c_str ());
-    std::ofstream ofs (fullname, std::ofstream::out);
-    ofs.exceptions (~std::ofstream::goodbit);
-    ofs << getJsonRule ();
-    ofs.close ();
+    try {
+        std::ofstream ofs (fullname, std::ofstream::out);
+        ofs.exceptions (~std::ofstream::goodbit);
+        ofs << getJsonRule ();
+        ofs.close ();
+    } catch (...) {
+        throw unable_to_save ();
+    }
 }
 
 int Rule::remove (const std::string &path) {
@@ -177,7 +181,11 @@ RuleAssetMatcher::RuleAssetMatcher (const std::string &asset) :
 }
 
 bool RuleAssetMatcher::operator ()(const Rule &rule) {
-    return std::find (rule.getAssets ().begin (), rule.getAssets ().end (), asset_) != rule.getAssets ().end ();
+    for (const std::string &a : rule.getAssets ()) {
+        if (a == asset_)
+            return true;
+    }
+    return false;
 }
 
 /*
@@ -476,7 +484,7 @@ void Rule::saveToSerializedObject (cxxtools::SerializationInfo &si) const {
         root.addMember ("hierarchy") <<= hierarchy_;
 }
 
-bool Rule::compare (const Rule &rule) const {
+bool Rule::operator == (const Rule &rule) const {
     return rule.name_ == name_ && rule.description_ == description_ && rule.class_ == class_ &&
         rule.categories_ == categories_ && rule.metrics_ == metrics_ && rule.results_ == results_ &&
         rule.source_ == source_ && rule.assets_ == assets_ && rule.variables_ == variables_ &&
@@ -504,8 +512,28 @@ rule_test (bool verbose)
 {
     printf (" * rule: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    //  @end
+    // Rule r; // compiler error, Rule is abstract
+    RuleTest rt ("metric@asset1", {"metric1"}, {"asset1"}, {"CAT_ALL"}, {{"ok", {{"no_action"}, "critical", "ok_description"}}});
+    rt.setGlobalVariables ({{"var1", "val1"}, {"var2", "val2"}});
+    assert (rt.whoami () == "test");
+    assert (rt.evaluate ({})[0] == "eval");
+    std::string json = rt.getJsonRule ();
+    json.erase (remove_if (json.begin (), json.end (), isspace), json.end ());
+    assert (json == std::string ("{\"test\":{\"name\":\"metric@asset1\",\"categories\":[\"CAT_ALL\"],\"metrics\":[\"") +
+            "metric1\"],\"results\":[{\"ok\":{\"action\":[],\"severity\":\"critical\",\"description\":\"" +
+            "ok_description\",\"threshold_name\":\"\"}}],\"assets\":[\"asset1\"],\"values\":[{\"var1\":\"val1\"},{\"" +
+            "var2\":\"val2\"}]}}");
+    RuleTest rt2 (json);
+    RuleTest rt3 (json);
+    assert (rt2 == rt3);
+    std::string json3 = rt3.getJsonRule ();
+    RuleTest rt4 (json3);
+    json3.erase (remove_if (json3.begin (), json3.end (), isspace), json3.end ());
+    std::string json4 = rt4.getJsonRule ();
+    json4.erase (remove_if (json4.begin (), json4.end (), isspace), json4.end ());
+    assert (json3 == json && json3 == json4);
+    FlexibleRule ("metric@asset2", {"metric1"}, {"asset2"}, {"CAT_ALL"}, {{"ok", {{"no_action"}, "critical",
+            "ok_description"}}}, "function main () return ok end", {{"var1", "val1"}});
+
     printf ("OK\n");
 }
