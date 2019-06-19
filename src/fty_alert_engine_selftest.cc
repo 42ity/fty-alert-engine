@@ -40,6 +40,7 @@ typedef struct {
 static test_item_t
 all_tests [] = {
 // Tests for stable public classes:
+/*
     { "fty_alert_trigger", fty_alert_trigger_test, true, true, NULL },
     { "fty_alert_config", fty_alert_config_test, true, true, NULL },
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
@@ -53,6 +54,7 @@ all_tests [] = {
     { "header_tests", NULL, true, false, "header_tests_test" },
     { "private_classes", NULL, false, false, "$ALL" }, // compat option for older projects
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
+*/
     {NULL, NULL, 0, 0, NULL}          //  Sentinel
 };
 
