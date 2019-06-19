@@ -31,8 +31,8 @@
 #include <fty_shm.h>
 
 // force proper header order
-#include "rule.h"
-#include "database.h"
+#include "../src/rule.h"
+#include "../src/database.h"
 
 #ifdef __cplusplus
 extern "C" {
