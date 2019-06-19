@@ -341,12 +341,12 @@ BasicAsset::Status BasicAsset::stringToStatus (std::string status) const {
     }
 }
 
-bool BasicAsset::compare (const BasicAsset &asset) const {
+bool BasicAsset::operator == (const BasicAsset &asset) const {
     return id_ == asset.id_ && status_ == asset.status_ && type_subtype_ == asset.type_subtype_;
 }
 
-bool ExtendedAsset::compare (const ExtendedAsset &asset) const {
-    return BasicAsset::compare (asset) && name_ == asset.name_ && parent_id_ == asset.parent_id_ &&
+bool ExtendedAsset::operator == (const ExtendedAsset &asset) const {
+    return BasicAsset::operator == (asset) && name_ == asset.name_ && parent_id_ == asset.parent_id_ &&
         priority_ == asset.priority_;
 }
 
@@ -354,8 +354,8 @@ void ExtendedAsset::setPriority (const std::string priority) {
     priority_ = priority[1] - '0';
 }
 
-bool FullAsset::compare (const FullAsset &asset) const {
-    return ExtendedAsset::compare (asset) && aux_ == asset.aux_ && ext_ == asset.ext_;
+bool FullAsset::operator == (const FullAsset &asset) const {
+    return ExtendedAsset::operator == (asset) && aux_ == asset.aux_ && ext_ == asset.ext_;
 }
 
 std::string FullAsset::getAuxItem (const std::string &key) const {
@@ -446,8 +446,107 @@ asset_test (bool verbose)
 {
     printf (" * asset: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    //  @end
+    try {
+        //BasicAsset a; // this causes g++ error, as expected
+        BasicAsset b ("id-1", "active", "device", "rackcontroller");
+        assert (b.getId () == "id-1");
+        assert (b.getStatus () == BasicAsset::Status::Active);
+        assert (b.getType () == BasicAsset::Type::Type_Device);
+        assert (b.getSubtype () == BasicAsset::Subtype::Subtype_RackController);
+        assert (b.getStatusString () == "active");
+        assert (b.getTypeString () == "device");
+        assert (b.getSubtypeString () == "rackcontroller");
+        b.setStatus ("nonactive");
+        assert (b.getStatus () == BasicAsset::Status::Nonactive);
+        b.setType ("vm");
+        assert (b.getType () == BasicAsset::Type::Type_VM);
+        b.setSubtype ("vmwarevm");
+        assert (b.getSubtype () == BasicAsset::Subtype::Subtype_VMWareVM);
+        BasicAsset bb (b);
+        assert (b == bb);
+        assert (bb.getId () == "id-1");
+        assert (bb.getType () == BasicAsset::Type::Type_VM);
+        bb.setType ("device");
+        assert (bb.getType () == BasicAsset::Type::Type_Device);
+        assert (b.getType () == BasicAsset::Type::Type_VM);
+        assert (b != bb);
+    } catch (std::exception &e) {
+        assert (false); // exception not expected
+    }
+    try {
+        BasicAsset c ("id-2", "invalid", "device", "rackcontroller");
+        assert (false); // exception expected
+    } catch (std::exception &e) {
+        // exception is expected
+    }
+    try {
+        BasicAsset d ("id-3", "active", "invalid", "rackcontroller");
+        assert (false); // exception expected
+    } catch (std::exception &e) {
+        // exception is expected
+    }
+    try {
+        BasicAsset e ("id-4", "active", "device", "invalid");
+        assert (false); // exception expected
+    } catch (std::exception &e) {
+        // exception is expected
+    }
+    try {
+        ExtendedAsset f ("id-5", "active", "device", "rackcontroller", "MyRack", "id-1", 1);
+        assert (f.getName () == "MyRack");
+        assert (f.getParentId () == "id-1");
+        assert (f.getPriority () == 1);
+        assert (f.getPriorityString () == "P1");
+        ExtendedAsset g ("id-6", "active", "device", "rackcontroller", "MyRack", "parent-1", "P2");
+        assert (f != g);
+        assert (g.getPriority () == 2);
+        assert (g.getPriorityString () == "P2");
+        g.setName ("MyNewRack");
+        assert (g.getName () == "MyNewRack");
+        g.setParentId ("parent-2");
+        assert (g.getParentId () == "parent-2");
+        g.setPriority ("P3");
+        assert (g.getPriority () == 3);
+        g.setPriority (4);
+        assert (g.getPriority () == 4);
+        ExtendedAsset gg (g);
+        assert (g == gg);
+        assert (gg.getId () == "id-6");
+        assert (gg.getName () == "MyNewRack");
+        gg.setName ("MyOldRack");
+        assert (gg.getName () == "MyOldRack");
+        assert (g.getName () == "MyNewRack");
+        assert (g != gg);
+    } catch (std::exception &e) {
+        assert (false); // exception not expected
+    }
+    try {
+        FullAsset h ("id-7", "active", "device", "rackcontroller", "MyRack", "id-1", 1, {{"aux1", "aval1"},
+                {"aux2", "aval2"}}, {});
+        assert (h.getAuxItem ("aux2") == "aval2");
+        assert (h.getAuxItem ("aval3").empty ());
+        assert (h.getExtItem ("eval1").empty ());
+        h.setAuxItem ("aux4", "aval4");
+        assert (h.getAuxItem ("aux4") == "aval4");
+        h.setExtItem ("ext5", "eval5");
+        assert (h.getExtItem ("ext5") == "eval5");
+        h.setExt ({{"ext1", "eval1"}});
+        assert (h.getExtItem ("ext1") == "eval1");
+        assert (h.getExtItem ("ext5") != "eval5");
+        assert (h.getItem ("aux2") == "aval2");
+        assert (h.getItem ("ext1") == "eval1");
+        assert (h.getItem ("notthere").empty ());
+        FullAsset hh (h);
+        assert (h == hh);
+        assert (hh.getExtItem ("ext1") == "eval1");
+        assert (hh.getExtItem ("ext6").empty ());
+        hh.setExtItem ("ext6", "eval6");
+        assert (hh.getExtItem ("ext6") == "eval6");
+        assert (!h.getExtItem ("ext6").empty ());
+        assert (h == hh);
+    } catch (std::exception &e) {
+        assert (false); // exception not expected
+    }
+
     printf ("OK\n");
 }

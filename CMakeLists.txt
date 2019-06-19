@@ -234,6 +234,30 @@ ELSE (FTY-COMMON_FOUND)
 ENDIF (FTY-COMMON_FOUND)
 
 ########################################################################
+# OPENSSL dependency
+########################################################################
+find_package(openssl REQUIRED)
+IF (OPENSSL_FOUND)
+    include_directories(${OPENSSL_INCLUDE_DIRS})
+    list(APPEND MORE_LIBRARIES ${OPENSSL_LIBRARIES})
+    set(pkg_config_libs_private "${pkg_config_libs_private} -lopenssl")
+ELSE (OPENSSL_FOUND)
+    message( FATAL_ERROR "openssl not found." )
+ENDIF (OPENSSL_FOUND)
+
+########################################################################
+# FTY-COMMON-MLM dependency
+########################################################################
+find_package(fty-common-mlm REQUIRED)
+IF (FTY-COMMON-MLM_FOUND)
+    include_directories(${FTY-COMMON-MLM_INCLUDE_DIRS})
+    list(APPEND MORE_LIBRARIES ${FTY-COMMON-MLM_LIBRARIES})
+    set(pkg_config_libs_private "${pkg_config_libs_private} -lfty-common-mlm")
+ELSE (FTY-COMMON-MLM_FOUND)
+    message( FATAL_ERROR "fty-common-mlm not found." )
+ENDIF (FTY-COMMON-MLM_FOUND)
+
+########################################################################
 # FTY_SHM dependency
 ########################################################################
 find_package(fty_shm REQUIRED)
@@ -268,6 +292,7 @@ set (fty_alert_engine_headers
     src/lua_evaluate.h
     src/extended_rules.h
     src/alert.h
+    src/header_tests.h
 )
 
 source_group ("Header Files" FILES ${fty_alert_engine_headers})
@@ -285,6 +310,7 @@ set (fty_alert_engine_sources
     src/lua_evaluate.cc
     src/extended_rules.cc
     src/alert.cc
+    src/header_tests.cc
     src/fty_alert_trigger.cc
     src/fty_alert_config.cc
 )
@@ -458,6 +484,8 @@ target_link_libraries(
     ${LUA-5.1_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${FTY-COMMON_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${FTY-COMMON-MLM_LIBRARIES}
     ${FTY_SHM_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -476,6 +504,8 @@ target_link_libraries(
     ${LUA-5.1_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${FTY-COMMON_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${FTY-COMMON-MLM_LIBRARIES}
     ${FTY_SHM_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -501,6 +531,8 @@ target_link_libraries(
     ${LUA-5.1_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${FTY-COMMON_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${FTY-COMMON-MLM_LIBRARIES}
     ${FTY_SHM_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -519,6 +551,8 @@ target_link_libraries(
     ${LUA-5.1_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${FTY-COMMON_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${FTY-COMMON-MLM_LIBRARIES}
     ${FTY_SHM_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )

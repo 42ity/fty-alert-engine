@@ -182,6 +182,8 @@ class Rule : public InterfaceRule {
         // getters/setters
         /// get rule internal name
         std::string getName (void) const { return name_; }
+        /// set rule internal name
+        void setName (std::string name) { name_ = name; }
         /// get rule description (shorter string for user)
         std::string getRuleDescription (void) const { return description_; }
         /// set rule description (shorter string for user)
@@ -222,7 +224,7 @@ class Rule : public InterfaceRule {
         /// remove rule from persistence storage
         int remove (const std::string &path);
         /// full comparator
-        bool compare (const Rule &rule) const;
+        bool operator == (const Rule &rule) const;
         // friends
         friend void operator>>= (const cxxtools::SerializationInfo& si, Rule &rule); // support cxxtools deserialization
 };

@@ -36,8 +36,9 @@ std::mutex AlertTrigger::known_rules_mutex_;
 std::vector<fty_proto_t *> AlertTrigger::streamed_metrics_;
 std::unordered_set<std::string> AlertTrigger::unavailable_metrics_;
 std::mutex AlertTrigger::stream_metrics_mutex_;
+int64_t AlertTrigger::timeout_ = fty_get_polling_interval ();
 
-AlertTrigger::AlertTrigger (std::string name) : timeout_ (30000), name_(name) {
+AlertTrigger::AlertTrigger (std::string name) : name_(name) {
     client_ = mlm_client_new ();
     assert (client_);
 }
@@ -49,7 +50,7 @@ AlertTrigger::~AlertTrigger () {
 void AlertTrigger::onRuleCreateCallback (RuleSPtr ruleptr) {
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "ADD");
-    zmsg_addstr (msg, "CORRID");
+    zmsg_addstr (msg, name_.c_str ()); // uuid don't need to be unique
     zmsg_addstr (msg, ruleptr->getJsonRule ().c_str ());
     zmsg_addstr (msg, ruleptr->getName ().c_str ());
     mlm_client_sendto (client_, alert_list_mb_name_.c_str (), LIST_RULE_MB, mlm_client_tracker (client_), 1000, &msg);
@@ -61,7 +62,7 @@ void AlertTrigger::onRuleCreateCallback (RuleSPtr ruleptr) {
 void AlertTrigger::onRuleUpdateCallback (RuleSPtr ruleptr) {
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "ADD");
-    zmsg_addstr (msg, "CORRID");
+    zmsg_addstr (msg, name_.c_str ()); // uuid don't need to be unique
     zmsg_addstr (msg, ruleptr->getJsonRule ().c_str ());
     zmsg_addstr (msg, ruleptr->getName ().c_str ());
     mlm_client_sendto (client_, alert_list_mb_name_.c_str (), LIST_RULE_MB, mlm_client_tracker (client_), 1000, &msg);
@@ -72,7 +73,7 @@ void AlertTrigger::onRuleUpdateCallback (RuleSPtr ruleptr) {
 void AlertTrigger::onRuleDeleteCallback (RuleSPtr ruleptr) {
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "DELETE");
-    zmsg_addstr (msg, "CORRID");
+    zmsg_addstr (msg, name_.c_str ()); // uuid don't need to be unique
     zmsg_addstr (msg, ruleptr->getName ().c_str ());
     mlm_client_sendto (client_, alert_list_mb_name_.c_str (), LIST_RULE_MB, mlm_client_tracker (client_), 1000, &msg);
     msg = mlm_client_recv (client_);
@@ -406,7 +407,8 @@ void AlertTrigger::handleMailboxMessages () {
                     // ADD/json/old_name
                     char *param1 = zmsg_popstr (zmessage);
                     updateRule (corr_id, param, param1);
-                    if (param1) free (param1);
+                    if (param1)
+                        zstr_free (&param1);
                 }
             }
             else if (streq (command, "TOUCH")) {
@@ -431,7 +433,11 @@ void AlertTrigger::handleMailboxMessages () {
         zstr_free (&param);
     } else {
         char *command = zmsg_popstr (zmessage);
-        log_error ("%s: Unexpected mailbox message received with command : %s", name_.c_str (), command);
+        if (command != nullptr) {
+            log_error ("%s: Unexpected mailbox message received with command : %s", name_.c_str (), command);
+        } else {
+            log_error ("%s: Unexpected mailbox message received without any commands", name_.c_str ());
+        }
         zstr_free (&command);
     }
     if (zmessage) {
@@ -450,7 +456,9 @@ void AlertTrigger::handleStreamMessages () {
             std::lock_guard<std::mutex> lock (stream_metrics_mutex_);
             char *metric = zmsg_popstr (zmsg);
             unavailable_metrics_.insert (metric);
+            zstr_free (&metric);
         }
+        zstr_free (&command);
         zmsg_destroy (&zmsg);
         return;
     }
@@ -525,27 +533,31 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics shm_metrics) 
 void AlertTrigger::runStream (zsock_t *pipe) {
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), NULL);
     assert (poller);
-    int64_t timeout = fty_get_polling_interval () * 1000;
+    int64_t timeout = timeout_;
     zsock_signal (pipe, 0);
-    int64_t time_now = zclock_mono ();
+    int64_t time_last = zclock_mono ();
     log_info ("Actor %s started",name_.c_str ());
     while (!zsys_interrupted) {
-        // handle polling (trigger + cache clear)
-        int64_t time_counter = zclock_mono () - time_now;
-        if (time_counter >= timeout) {
+        void *which = zpoller_wait (poller, timeout);
+        int64_t time_diff = zclock_mono () - time_last;
+        if (time_diff >= timeout) {
+            timeout = timeout_;
+            // handle polling (trigger + cache clear)
             fty::shm::shmMetrics result;
-            time_now = zclock_mono ();
-            //Timeout, need to get metrics and update refresh value
             fty::shm::read_metrics (".*", ".*",  result);
             log_debug ("number of metrics read : %d", result.size ());
-            timeout = fty_get_polling_interval () * 1000;
             evaluateAlarmsForTriggers (result);
         } else {
-          timeout = timeout - time_counter;
+          timeout = timeout - time_diff;
+          if (timeout > timeout_) // to speed up time in tests via pipe timeout message
+              timeout = timeout_;
         }
-        // handle termination
-        void *which = zpoller_wait (poller, timeout);
+        time_last = zclock_mono ();
+        // handle expiration || termination
         if (which == NULL) {
+            if (zpoller_expired (poller)) {
+                continue;
+            }
             if (zpoller_terminated (poller) || zsys_interrupted) {
                 log_warning ("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name_.c_str ());
                 break;
@@ -630,8 +642,762 @@ fty_alert_trigger_test (bool verbose)
 {
     printf (" * fty_alert_trigger: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    //  @end
+    std::string str_SELFTEST_DIR_RW = std::string (SELFTEST_DIR_RW);
+    int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str ());
+    assert (r == 0); // to make gcc @ CentOS 7 happy
+    fty_shm_set_default_polling_interval (3);
+    assert (fty_shm_set_test_dir (str_SELFTEST_DIR_RW.c_str ()) == 0);
+    // create stream producer for unavailable metrics
+    mlm_client_t *client_unavailable = mlm_client_new ();
+    int rv = mlm_client_connect (client_unavailable, "ipc://@/malamute", 1000, "fty_alert_trigger_test_unavailable_producer");
+    assert (rv == 0);
+    rv = mlm_client_set_producer (client_unavailable, "fty_alert_trigger_test_unavailable");
+    assert (rv == 0);
+    // create stream producer for metrics stream
+    mlm_client_t *client_metrics = mlm_client_new ();
+    rv = mlm_client_connect (client_metrics, "ipc://@/malamute", 1000, "fty_alert_trigger_test_metrics_producer");
+    assert (rv == 0);
+    rv = mlm_client_set_producer (client_metrics, "fty_alert_trigger_test_metrics");
+    assert (rv == 0);
+    // create stream producer for metrics stream
+    mlm_client_t *client_licensing = mlm_client_new ();
+    rv = mlm_client_connect (client_licensing, "ipc://@/malamute", 1000, "fty_alert_trigger_test_licensing_producer");
+    assert (rv == 0);
+    rv = mlm_client_set_producer (client_licensing, "fty_alert_trigger_test_licensing");
+    assert (rv == 0);
+    // create agent for stream
+    mlm_client_t *client_stream = mlm_client_new ();
+    rv = mlm_client_connect (client_stream, "ipc://@/malamute", 1000, "fty_alert_trigger_test_consumer");
+    assert (rv == 0);
+    rv = mlm_client_set_consumer (client_licensing, "fty_alert_trigger_test_stream", ".*");
+    assert (rv == 0);
+    // create agent for mailboxes
+    mlm_client_t *client_mailbox = mlm_client_new ();
+    rv = mlm_client_connect (client_mailbox, "ipc://@/malamute", 1000, "fty_alert_trigger_test_list");
+    assert (rv == 0);
+    // poller
+    zpoller_t *poller = zpoller_new (mlm_client_msgpipe (client_unavailable), mlm_client_msgpipe (client_metrics),
+        mlm_client_msgpipe (client_licensing), mlm_client_msgpipe (client_stream), mlm_client_msgpipe (client_mailbox),
+        NULL);
+    assert (poller);
+
+    // set everything up
+    zactor_t *agent_trigger_stream = zactor_new (fty_alert_trigger_stream_main, (void*) "fty_alert_trigger_stream_test");
+    zactor_t *agent_trigger_mailbox = zactor_new (fty_alert_trigger_mailbox_main, (void*) "fty_alert_trigger_mailbox_test");
+    sleep (1);
+    // trigger mailbox
+    zstr_sendx (agent_trigger_mailbox, "CONFIG", SELFTEST_DIR_RW, NULL);
+    zstr_sendx (agent_trigger_mailbox, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_trigger_mailbox, "ALERT_LIST_MB_NAME", "fty_alert_trigger_test_list", NULL); // trigger mailbox name
+    // trigger stream + alert evaluation
+    zstr_sendx (agent_trigger_stream, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "3000000", NULL);
+    zstr_sendx (agent_trigger_stream, "PRODUCER", "fty_alert_trigger_test_stream", NULL);
+    zstr_sendx (agent_trigger_stream, "CONSUMER", "fty_alert_trigger_test_unavailable", ".*", NULL);
+    zstr_sendx (agent_trigger_stream, "CONSUMER", "fty_alert_trigger_test_metrics", "status.*", NULL);
+    zstr_sendx (agent_trigger_stream, "CONSUMER", "fty_alert_trigger_test_licensing", ".*", NULL);
+    sleep (1);
+
+    // TODO: FIXME:
+    // create threshold rule for single metric
+    ThresholdRule tr1 ("threshold1@asset1",
+        {"threshold1.metric1"},
+        {"asset1"},
+        {"CAT_ALL"},
+        {   {"ok", {{}, "OK", "ok_description"}},
+            {"low_critical", {{}, "CRITICAL", "low_critical_description"}},
+            {"low_warning", {{}, "WARNING", "low_warning_description"}},
+            {"high_critical", {{}, "CRITICAL", "high_critical_description"}},
+            {"high_warning", {{}, "WARNING", "high_warning_description"}}},
+        "",
+        {{"low_critical", "10"}, {"low_warning", "20"}, {"high_critical", "90"}, {"high_warning", "80"}});
+    // create threshold rule for multiple metrics with lua
+    ThresholdRule tr2 ("threshold2@asset2",
+        {"threshold2.metric1", "threshold2.metric2"},
+        {"asset2"},
+        {"CAT_ALL"},
+        {   {"ok", {{}, "OK", "ok_description"}},
+            {"fail", {{}, "CRITICAL", "fail_description"}}},
+        "function main (i1, i2) if i1 < var1 and i2 < var2 return 'ok' end return 'fail' end",
+        {{"var1", "10"}, {"var2", "20"}});
+    // create flexible rule with lua
+    FlexibleRule fr1 ("flexible1@asset3",
+        {"flexible1.metric1"},
+        {"asset3"},
+        {"CAT_ALL"},
+        {   {"ok", {{}, "OK", "ok_description"}},
+            {"fail", {{}, "CRITICAL", "fail_description"}}},
+        "function main (i1) if i1 == 'good' return 'ok' end return 'fail' end",
+        {});
+    // create single rule with lua
+    SingleRule sr1 ("single1@asset4",
+        {"single1.metric1"},
+        {"asset4"},
+        {"CAT_ALL"},
+        {   {"ok", {{}, "OK", "ok_description"}},
+            {"fail", {{}, "CRITICAL", "fail_description"}}},
+        "function main (i1) if i1 < var1 return 'ok' end return 'fail' end",
+        {{"var1", "50"}});
+    // create pattern rule with lua
+    PatternRule pr1 ("pattern1@asset5",
+        {"pattern.*.metric1"},
+        {"asset5"},
+        {"CAT_ALL"},
+        {   {"ok", {{}, "OK", "ok_description"}},
+            {"fail", {{}, "CRITICAL", "fail_description"}}},
+        "function main (i1) if i1 < var1 return 'ok' end return 'fail' end",
+        {{"var1", "50"}});
+
+    // send mailbox add, check response
+    zmsg_t *message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, tr1.getJsonRule ().c_str ());
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    int counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, tr2.getJsonRule ().c_str ());
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, fr1.getJsonRule ().c_str ());
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, sr1.getJsonRule ().c_str ());
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, pr1.getJsonRule ().c_str ());
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+
+    // send mailbox add (on known, should fail)
+    message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, pr1.getJsonRule ().c_str ());
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "ERROR"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+
+    // send mailbox list, check response
+    message = zmsg_new ();
+    zmsg_addstr (message, "LIST");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "all");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    int rules_count = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "LIST"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *param1 = zmsg_popstr (message);
+            char *param2 = zmsg_popstr (message);
+            for (;;) {
+                char *rules = zmsg_popstr (message);
+                ++rules_count;
+                if (rules == nullptr)
+                    break;
+            }
+            zstr_free (&param1);
+            zstr_free (&param2);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    assert (rules_count == 5);
+
+    // send mailbox get
+    message = zmsg_new ();
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "single1@asset4");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *param1 = zmsg_popstr (message);
+            assert (param1 != nullptr);
+            zstr_free (&param1);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+
+    // send metrics via stream, evaluate all 5 rules
+    // rule tr1
+    zmsg_t *m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "threshold1.metric1", "asset1",
+            "15.00", "");
+    mlm_client_send (client_metrics, "threshold1.metric1@asset1", &m);
+    // rule tr2
+    m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "threshold2.metric1", "asset2", "14.00",
+            "");
+    mlm_client_send (client_metrics, "threshold2.metric1@asset2", &m);
+    m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "threshold2.metric2", "asset2", "12.00",
+            "");
+    mlm_client_send (client_metrics, "threshold2.metric2@asset2", &m);
+    // rule fr1
+    m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "flexible1.metric1", "asset3", "bad", "");
+    mlm_client_send (client_metrics, "flexible1.metric1@asset3", &m);
+    // rule sr1
+    m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "single1.metric1", "asset4", "9.00", "");
+    mlm_client_send (client_metrics, "single1.metric1@asset4", &m);
+    // rule pr1
+    m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "pattern1.metric1", "asset5", "8.00", "");
+    mlm_client_send (client_metrics, "pattern1.metric1@asset5", &m);
+    // timeout it updated on every timeout and when it's set to lower value than it's current
+    // unfortunatelly this needs two passes, as timeout handling is the first thing and parsing message is the second
+    // so the first timeout sets the value to 1000, but the second actually propagates it to the poller timeout, even
+    // through it sets it to 300000 afterwards. Then poller will time out in up to 1000ms and reset it's value to 300000
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "1000", NULL); // speed up evaluation
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "300000", NULL); // slow down evaluation to get time for results + prep
+    sleep (1);
+    std::set<std::string> recv_alarms;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold1@asset1") == mlm_client_subject (client_stream) ||
+                    std::string ("threshold2@asset2") == mlm_client_subject (client_stream) ||
+                    std::string ("flexible1@asset3") == mlm_client_subject (client_stream) ||
+                    std::string ("single1@asset4") == mlm_client_subject (client_stream) ||
+                    std::string ("pattern1@asset5") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "ACTIVE"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else {
+            assert (false); // unexpected message from other sources
+        }
+    }
+    assert (counter < 20);
+    assert (recv_alarms.size () == 5); // all alarms should be triggered
+    recv_alarms.clear ();
+
+    // send metrics via shm, evaluate all 5 rules
+    fty_shm_delete_test_dir ();
+    fty_shm_set_test_dir (str_SELFTEST_DIR_RW.c_str ());
+    fty::shm::write_metric ("asset1", "threshold1.metric1", "85.00", "", 5);
+    fty::shm::write_metric ("asset2", "threshold2.metric1", "86.00", "", 5);
+    fty::shm::write_metric ("asset2", "threshold2.metric2", "87.00", "", 5);
+    fty::shm::write_metric ("asset3", "flexible1.metric1", "bad", "", 5);
+    fty::shm::write_metric ("asset4", "single1.metric1", "91.00", "", 5);
+    fty::shm::write_metric ("asset5", "pattern1.metric1", "92.00", "", 5);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "1000", NULL); // speed up evaluation
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "300000", NULL); // slow down evaluation to get time for results + prep
+    sleep (1);
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold1@asset1") == mlm_client_subject (client_stream) ||
+                    std::string ("threshold2@asset2") == mlm_client_subject (client_stream) ||
+                    std::string ("flexible1@asset3") == mlm_client_subject (client_stream) ||
+                    std::string ("single1@asset4") == mlm_client_subject (client_stream) ||
+                    std::string ("pattern1@asset5") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "ACTIVE"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else {
+            assert (false); // unexpected message from other sources
+        }
+    }
+    assert (counter < 20);
+    assert (recv_alarms.size () == 5); // all alarms should be triggered
+    recv_alarms.clear ();
+
+    // send metrics via both stream and shm, evaluate multi metrics rules
+    fty_shm_delete_test_dir ();
+    fty_shm_set_test_dir (str_SELFTEST_DIR_RW.c_str ());
+    m = fty_proto_encode_metric (nullptr, ::time (nullptr), ::time (nullptr), "threshold2.metric1", "asset2", "9.00",
+            "");
+    mlm_client_send (client_metrics, "threshold2.metric1@asset2", &m);
+    fty::shm::write_metric ("asset2", "threshold2.metric2", "8.00", "", 5);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "1000", NULL); // speed up evaluation
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "300000", NULL); // slow down evaluation to get time for results + prep
+    sleep (1);
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold2@asset2") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "ACTIVE"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else {
+            assert (false); // unexpected message from other sources
+        }
+    }
+    assert (counter < 20);
+    assert (recv_alarms.size () == 1); // all alarms should be triggered
+    recv_alarms.clear ();
+
+    // send metric unavailable for single metric rules
+    m = zmsg_new ();
+    assert (m);
+    zmsg_addstr (m, "METRICUNAVAILABLE");
+    zmsg_addstr (m, "threshold1.metric1@asset1");
+    rv = mlm_client_send (client_unavailable, "threshold1.metric1@asset1", &m);
+    assert (rv == 0);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "1000", NULL); // speed up evaluation
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "300000", NULL); // slow down evaluation to get time for results + prep
+    sleep (1);
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold1@asset1") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "RESOLVED"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else {
+            assert (false); // unexpected message from other sources
+        }
+    }
+    assert (counter < 20);
+    assert (recv_alarms.size () == 1); // all alarms should be triggered
+    recv_alarms.clear ();
+
+    // send metric unavailable for multi metric rules
+    m = zmsg_new ();
+    assert (m);
+    zmsg_addstr (m, "METRICUNAVAILABLE");
+    zmsg_addstr (m, "threshold2.metric1@asset2");
+    rv = mlm_client_send (client_unavailable, "threshold2.metric1@asset2", &m);
+    assert (rv == 0);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "1000", NULL); // speed up evaluation
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", "300000", NULL); // slow down evaluation to get time for results + prep
+    sleep (1);
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold2@asset2") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "RESOLVED"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else {
+            assert (false); // unexpected message from other sources
+        }
+    }
+    assert (counter < 20);
+    assert (recv_alarms.size () == 1); // all alarms should be triggered
+    recv_alarms.clear ();
+
+    // send mailbox touch, check result
+    fty_shm_delete_test_dir ();
+    fty_shm_set_test_dir (str_SELFTEST_DIR_RW.c_str ());
+    fty::shm::write_metric ("asset1", "threshold1.metric1", "85.00", "", 5);
+    message = zmsg_new ();
+    zmsg_addstr (message, "TOUCH");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "single1@asset4");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold1@asset1") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "ACTIVE"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else {
+            assert (false); // no more messages expected
+        }
+    }
+    assert (counter < 20);
+    assert (recv_alarms.size () == 1); // all alarms should be triggered
+    recv_alarms.clear ();
+
+    // send mailbox add (update)
+    PatternRule pr2 ("pattern1@asset5",
+        {"pattern.*.metric1"},
+        {"asset5"},
+        {"CAT_ALL"},
+        {   {"ok", {{}, "OK", "ok_description"}},
+            {"fail", {{}, "CRITICAL", "fail_description"}}},
+        "function main (i1) if i1 < var1 return 'ok' end return 'fail' end",
+        {{"var1", "60"}});
+    pr2.setRuleDescription ("DESCRIPTION");
+    message = zmsg_new ();
+    zmsg_addstr (message, "ADD");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, pr2.getJsonRule ().c_str ());
+    zmsg_addstr (message, "pattern1@asset5");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "pattern1@asset5");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *param1 = zmsg_popstr (message);
+            std::shared_ptr<Rule> rule_ptr = RuleFactory::createFromJson (param1);
+            assert (rule_ptr->getRuleDescription () == "DESCRIPTION");
+            assert (param1 != nullptr);
+            zstr_free (&param1);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+
+    // send mailbox delete
+    message = zmsg_new ();
+    zmsg_addstr (message, "DELETE");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "pattern1@asset5");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("threshold1@asset1") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "RESOLVED"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "pattern1@asset5");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "ERROR"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            // TODO: FIXME: add more details to this UI
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+
+    // send mailbox delete element
+    message = zmsg_new ();
+    zmsg_addstr (message, "DELETE_ELEMENT");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "asset4");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            // TODO: FIXME: add more precise unit tests
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        } if (which == mlm_client_msgpipe (client_stream)) {
+            message = mlm_client_recv (client_stream);
+            assert (std::string ("single1@asset4") == mlm_client_subject (client_stream));
+            Alert a (mlm_client_subject (client_stream), {});
+            fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.overwrite (fty_msg);
+            recv_alarms.insert (a.id ());
+            assert (a.state () == "RESOLVED"); // all alarms should be active
+            // TODO: FIXME: add more precise unit tests
+            fty_proto_destroy (&fty_msg);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+    message = zmsg_new ();
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "single1@asset4");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "ERROR"));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            // TODO: FIXME: add more details to this UI
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        }
+    }
+    assert (counter < 20);
+
+    // send licensing metric
+    // TODO: FIXME: add this as there was no support in previous version
+
+    zpoller_destroy (&poller);
+    mlm_client_destroy (&client_unavailable);
+    mlm_client_destroy (&client_metrics);
+    mlm_client_destroy (&client_licensing);
+    mlm_client_destroy (&client_stream);
+    mlm_client_destroy (&client_mailbox);
+    zactor_destroy (&agent_trigger_stream);
+    zactor_destroy (&agent_trigger_mailbox);
     printf ("OK\n");
 }

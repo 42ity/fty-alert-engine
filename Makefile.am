@@ -22,11 +22,13 @@ AM_CPPFLAGS = \
     ${lua_5_1_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${fty_common_CFLAGS} \
+    ${openssl_CFLAGS} \
+    ${fty_common_mlm_CFLAGS} \
     ${fty_shm_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${fty_common_LIBS} ${fty_shm_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${lua_5_1_LIBS} ${cxxtools_LIBS} ${fty_common_LIBS} ${openssl_LIBS} ${fty_common_mlm_LIBS} ${fty_shm_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -57,6 +59,8 @@ EXTRA_DIST += \
     Findlua_5_1.cmake \
     Findcxxtools.cmake \
     Findfty_common.cmake \
+    Findopenssl.cmake \
+    Findfty_common_mlm.cmake \
     Findfty_shm.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
@@ -70,6 +74,7 @@ EXTRA_DIST += \
     src/lua_evaluate.h \
     src/extended_rules.h \
     src/alert.h \
+    src/header_tests.h \
     src/database.h \
     src/asset_database.h \
     src/rule_factory.h \

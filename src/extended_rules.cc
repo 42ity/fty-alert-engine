@@ -269,8 +269,7 @@ extended_rules_test (bool verbose)
 {
     printf (" * extended_rules: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    //  @end
+    // TODO: FIXME: add unit tests here
+
     printf ("OK\n");
 }

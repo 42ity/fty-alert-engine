@@ -87,12 +87,18 @@ Alert::update (fty_proto_t *msg)
 void
 Alert::overwrite (fty_proto_t *msg)
 {
+    if (msg == nullptr)
+        return;
     if (fty_proto_id (msg) != FTY_PROTO_ALERT) {
         std::string msg ("Wrong fty-proto type");
         throw std::runtime_error (msg);
     }
-    if (!isAckState (m_State))
-        m_State = StringToAlertState (fty_proto_state (msg));
+    if (!isAckState (m_State)) {
+        const char *state = nullptr;
+        state = fty_proto_state (msg);
+        if (state != nullptr)
+            m_State = StringToAlertState (state);
+    }
     m_Ctime = fty_proto_time (msg);
     m_Mtime = fty_proto_time (msg);
 }
@@ -233,6 +239,7 @@ Alert::StaleToFtyProto ()
             "",
             actions
             );
+    return tmp;
 }
 
 zmsg_t *
@@ -243,7 +250,7 @@ Alert::TriggeredToFtyProto ()
     zhash_insert (aux, "outcome", (void *) m_Outcome[0].c_str ());
     if (m_Outcome.size () > 1) {
         zhash_insert (aux, "outcome_count", (void *) std::to_string (m_Outcome.size ()).c_str ());
-        for (int i = 0; i < m_Outcome.size (); ++i) {
+        for (size_t i = 0; i < m_Outcome.size (); ++i) {
             std::string outcome_x_key = std::string ("outcome.") + std::to_string (i);
             zhash_insert (aux, outcome_x_key.c_str (), (void *) std::to_string (m_Outcome.size ()).c_str ());
         }
@@ -395,14 +402,14 @@ alert_test (bool verbose)
         zmsg_t *alert_msg =  alert.toFtyProto ("DC-Roztoky", "", "", "", "");
         fty_proto_t *fty_alert_msg = fty_proto_decode (&alert_msg);
         assert (fty_proto_aux_number (fty_alert_msg, "ctime", 0) == now);
-        assert (fty_proto_aux_string (fty_alert_msg, "outcome", "") == "HIGH_CRITICAL");
+        assert (std::string ("HIGH_CRITICAL") == fty_proto_aux_string (fty_alert_msg, "outcome", ""));
         assert (fty_proto_time (fty_alert_msg) == now);
         assert (fty_proto_rule (fty_alert_msg) == rule.c_str ());
         assert (fty_proto_name (fty_alert_msg) == name.c_str ());
         assert (fty_proto_ttl (fty_alert_msg) == ttl);
-        assert (fty_proto_severity (fty_alert_msg) == "CRITICAL");
-        assert (fty_proto_state (fty_alert_msg) == "ACK-SILENCE");
-        assert (fty_proto_description (fty_alert_msg) == "Average temperature in DC-Roztoky is critically high");
+        assert (std::string ("CRITICAL") == fty_proto_severity (fty_alert_msg));
+        assert (fty_proto_state (fty_alert_msg) == std::string ("ACK-SILENCE"));
+        assert (fty_proto_description (fty_alert_msg) == std::string ("Average temperature in DC-Roztoky is critically high"));
         assert (fty_proto_action (fty_alert_msg) == actions);
 
         // cleanup the first alert
@@ -415,13 +422,13 @@ alert_test (bool verbose)
         // call StaleToFtyProto
         zmsg_t *alert_stale_msg = alert.StaleToFtyProto ();
         fty_proto_t *fty_alert_stale_msg = fty_proto_decode (&alert_stale_msg);
-        assert (fty_proto_aux_string (fty_alert_stale_msg, "outcome", "") == "OK");
+        assert (fty_proto_aux_string (fty_alert_stale_msg, "outcome", "") == std::string ("OK"));
         assert (fty_proto_rule (fty_alert_stale_msg) == rule.c_str ());
         assert (fty_proto_name (fty_alert_stale_msg) == name.c_str ());
         assert (fty_proto_ttl (fty_alert_stale_msg) == ttl);
-        assert (fty_proto_severity (fty_alert_stale_msg) == "");
-        assert (fty_proto_state (fty_alert_stale_msg) == "RESOLVED");
-        assert (fty_proto_description (fty_alert_stale_msg) == "");
+        assert (fty_proto_severity (fty_alert_stale_msg) == std::string (""));
+        assert (fty_proto_state (fty_alert_stale_msg) == std::string ("RESOLVED"));
+        assert (fty_proto_description (fty_alert_stale_msg) == std::string (""));
         assert (fty_proto_action (fty_alert_stale_msg) == actions);
     }
 
@@ -453,7 +460,7 @@ alert_test (bool verbose)
         // call TriggeredToFtyProto
         zmsg_t *alert2_msg = alert2.TriggeredToFtyProto ();
         fty_proto_t *fty_alert2_msg = fty_proto_decode (&alert2_msg);
-        assert (fty_proto_aux_string (fty_alert2_msg, "outcome", "") == "HIGH_WARNING");
+        assert (fty_proto_aux_string (fty_alert2_msg, "outcome", "") == std::string ("HIGH_WARNING"));
         assert (fty_proto_rule (fty_alert2_msg) == rule.c_str ());
         assert (fty_proto_name (fty_alert2_msg) == name.c_str ());
     }

@@ -79,7 +79,7 @@ class AlertTrigger {
         // other variables
         mlm_client_t *client_;
         std::string rule_location_;
-        uint64_t timeout_;
+        static int64_t timeout_;
         std::string name_;
         std::string alert_list_mb_name_;
         // supportive functions
@@ -90,6 +90,7 @@ class AlertTrigger {
         void addRule (std::string corr_id, std::string json);
         void getRule (std::string corr_id, std::string name);
         void listRules (std::string corr_id, std::string type, std::string ruleclass);
+        void setTimeout (int64_t timeout) { timeout_ = timeout; }
         // callbacks for rule database
         void onRuleCreateCallback (RuleSPtr ruleptr);
         void onRuleUpdateCallback (RuleSPtr ruleptr);

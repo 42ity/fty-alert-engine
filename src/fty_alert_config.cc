@@ -201,6 +201,7 @@ void AlertConfig::listTemplates (std::string corr_id, std::string type) {
                     asset_list.append (",");
                 asset_list.append (matching_assets[i]->getId ());
             }
+            zmsg_addstr (reply, asset_list.c_str ());
         }
     }
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
@@ -241,6 +242,7 @@ void AlertConfig::handleMailboxMessages () {
             }
         }
         zstr_free (&command);
+        zstr_free (&corr_id);
         zstr_free (&param);
     } else {
         char *command = zmsg_popstr (zmessage);
@@ -280,18 +282,52 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
     std::map<std::string, std::shared_ptr<Rule>> rules = getAllTemplatesMap ();
     for (auto &rule_it : rules) {
         if (ruleMatchAsset (rule_it, assetptr)) {
-            zmsg_t *reply = zmsg_new ();
-            zmsg_addstr (reply, "ADD");
-            zmsg_addstr (reply, rule_it.second->getJsonRule ().c_str ());
-            mlm_client_sendto (client_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
+            auto name_it = rule_it.second->getName ().find ("__name__");
+            rule_it.second->setName (rule_it.second->getName ().replace (name_it, name_it+std::strlen ("__name__"),
+                assetptr->getId ()));
+            zmsg_t *message = zmsg_new ();
+            zmsg_addstr (message, "ADD");
+            zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
+            zmsg_addstr (message, rule_it.second->getJsonRule ().c_str ());
+            mlm_client_sendto (client_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_),
+                1000, &message);
+            // expect response
+            message = mlm_client_recv (client_);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_));
+            char *command = zmsg_popstr (message);
+            if (!streq (command, "OK")) {
+                char *corr_id = zmsg_popstr (message);
+                char *param = zmsg_popstr (message);
+                log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (),
+                    rule_it.second->getJsonRule ().c_str ());
+                zstr_free (&corr_id);
+                zstr_free (&param);
+            }
+            zstr_free (&command);
+            zmsg_destroy (&message);
         }
     }
 }
 void AlertConfig::onAssetDeleteCallback (FullAssetSPtr assetptr) {
-    zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "DELETE_ELEMENT");
-    zmsg_addstr (reply, assetptr->getId ().c_str ());
-    mlm_client_sendto (client_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
+    zmsg_t *message = zmsg_new ();
+    zmsg_addstr (message, "DELETE_ELEMENT");
+    zmsg_addstr (message, assetptr->getId ().c_str ());
+    mlm_client_sendto (client_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_), 1000,
+        &message);
+    // expect response
+    message = mlm_client_recv (client_);
+    assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_));
+    char *command = zmsg_popstr (message);
+    if (!streq (command, "OK")) {
+        char *corr_id = zmsg_popstr (message);
+        char *param = zmsg_popstr (message);
+        log_error ("%s refused to delete rules for asset %s", alert_trigger_mb_name_.c_str (),
+            assetptr->getId ().c_str ());
+        zstr_free (&corr_id);
+        zstr_free (&param);
+    }
+    zstr_free (&command);
+    zmsg_destroy (&message);
 }
 
 void AlertConfig::run (zsock_t *pipe) {
@@ -364,8 +400,197 @@ fty_alert_config_test (bool verbose)
 {
     printf (" * fty_alert_config: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    //  @end
+    // create stream producer for assets
+    mlm_client_t *client_assets = mlm_client_new ();
+    int rv = mlm_client_connect (client_assets, "ipc://@/malamute", 1000, "fty_alert_config_test_assets_producer");
+    assert (rv == 0);
+    rv = mlm_client_set_producer (client_assets, "fty_alert_config_test_assets_stream");
+    assert (rv == 0);
+    // create agent for mailboxes
+    mlm_client_t *client_mailbox = mlm_client_new ();
+    rv = mlm_client_connect (client_mailbox, "ipc://@/malamute", 1000, "fty_alert_config_test_trigger");
+    assert (rv == 0);
+    // poller
+    zpoller_t *poller = zpoller_new (mlm_client_msgpipe (client_assets), mlm_client_msgpipe (client_mailbox), NULL);
+    assert (poller);
+
+    zactor_t *agent_config = zactor_new (fty_alert_config_main, (void*) "fty_alert_config_test");
+    sleep (1);
+    // set everything up
+    zstr_sendx (agent_config, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_config, "TIMEOUT", "30000", NULL);
+    zstr_sendx (agent_config, "TEMPLATES_DIR", SELFTEST_DIR_RO "/templates", NULL); // rule template
+    zstr_sendx (agent_config, "CONSUMER", "fty_alert_config_test_assets_stream", ".*", NULL);
+    zstr_sendx (agent_config, "ALERT_TRIGGER_MB_NAME", "fty_alert_config_test_trigger", NULL); // trigger mailbox name
+    sleep (1);
+
+    // send asset - DC
+    // expected: rule average.temperature@dc-1
+    zhash_t *asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "datacenter");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
+    zhash_t *asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "DC-Roztoky");
+    zmsg_t *asset = fty_proto_encode_asset (asset_aux, "datacenter-1", FTY_PROTO_ASSET_OP_CREATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    int counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            zmsg_t *zmessage = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (zmessage);
+            char *corr_id = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            assert (std::string ("ADD") == command);
+            assert (!std::string (param).empty ());
+            auto rule_ptr = RuleFactory::createFromJson (param);
+            assert (rule_ptr->getName () == "average.temperature@dc-1");
+            // proper reply
+            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, "OK", corr_id);
+            zstr_free (&command);
+            zstr_free (&corr_id);
+            zstr_free (&param);
+            zmsg_destroy (&zmessage);
+            break;
+        }
+    }
+    assert (counter < 20);
+
+    // send asset - device ups
+    // expected: empty result
+    asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "device");
+    zhash_insert (asset_aux, "subtype", (void *) "ups");
+    asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyUPS");
+    asset = fty_proto_encode_asset (asset_aux, "ups-22", FTY_PROTO_ASSET_OP_CREATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            assert (false); // there are no test rules for ups, so no message should come
+        }
+    }
+    assert (counter >= 20);
+
+    // send asset - device rack
+    // expected: 4 rules: average.humidity@__rack__.rule, average.temperature@__rack__.rule,
+    //                    phase_imbalance@__rack__.rule, realpower.default_1phase@__rack__.rule
+    asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "rack");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
+    asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "Rack 1");
+    asset = fty_proto_encode_asset (asset_aux, "rack-3", FTY_PROTO_ASSET_OP_CREATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    counter = 0;
+    int rules_count = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            zmsg_t *zmessage = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (zmessage);
+            char *corr_id = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            assert (std::string ("ADD") == command);
+            assert (!std::string (param).empty ());
+            auto rule_ptr = RuleFactory::createFromJson (param);
+            assert (rule_ptr->getName () == "average.humidity@rack-3" ||
+                rule_ptr->getName () == "average.temperature@rack-3" ||
+                rule_ptr->getName () == "phase_imbalance@rack-3" ||
+                rule_ptr->getName () == "realpower.default_1phase@rack-3");
+            // proper reply
+            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, "OK", corr_id);
+            zstr_free (&command);
+            zstr_free (&corr_id);
+            zstr_free (&param);
+            zmsg_destroy (&zmessage);
+            if (++rules_count == 4)
+                break;
+        }
+    }
+    assert (counter < 20);
+    assert (rules_count == 4);
+
+    // send mailbox list, check response
+    zmsg_t *message = zmsg_new ();
+    zmsg_addstr (message, "LIST");
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    mlm_client_sendto (client_mailbox, "fty_alert_config_test", RULES_SUBJECT, mlm_client_tracker (client_mailbox),
+        1000, &message);
+    counter = 0;
+    rules_count = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            zmsg_t *zmessage = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *command = zmsg_popstr (zmessage);
+            char *corr_id = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            assert (streq ("LIST", command));
+            assert (streq ("uuidtest", corr_id));
+            assert (streq ("", param));
+            for (;;) {
+                char *filename = zmsg_popstr (zmessage);
+                if (filename == nullptr)
+                    break;
+                char *rulejson = zmsg_popstr (zmessage);
+                assert (rulejson != nullptr);
+                char *assets = zmsg_popstr (zmessage);
+                assert (assets!= nullptr);
+                // TODO: FIXME: add more complex tests to check content
+                ++rules_count;
+                zstr_free (&filename);
+                zstr_free (&rulejson);
+                zstr_free (&assets);
+            }
+            zstr_free (&command);
+            zstr_free (&corr_id);
+            zstr_free (&param);
+            zmsg_destroy (&zmessage);
+            break;
+        }
+    }
+    assert (counter < 20);
+    assert (rules_count == 5);
+
+    zpoller_destroy (&poller);
+    mlm_client_destroy (&client_assets);
+    mlm_client_destroy (&client_mailbox);
+    zactor_destroy (&agent_config);
     printf ("OK\n");
 }

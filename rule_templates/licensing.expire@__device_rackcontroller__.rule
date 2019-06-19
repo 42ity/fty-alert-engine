@@ -1,0 +1,40 @@
+{ 
+    "flexible" : {
+        "name"			: "licensing.expiration@__name__",
+        "description"   : "TRANSLATE_LUA(Sends alert when license is about to expire.)",
+        "rule_cat"      : ["CAT_OTHER", "CAT_ALL"],
+        "metrics"       : ["licensing.expire"],
+        "assets"       	: ["__name__"],
+        "types"			: ["rackcontroller"],
+	      "results"		: {
+	          "low_warning"   : {"action" : [{"action": "EMAIL"} ] },
+	          "low_critical"  : {"action" : [{"action": "EMAIL"} ] }
+	      },
+	      "evaluation"		: "
+	          function main(remaining_days)
+	              if remaining_days == '60' then
+		                return WARNING, 'TRANSLATE_LUA(Your license is going to expire in 60 days)'
+		            end
+	              if remaining_days == '40' then
+		                return WARNING, 'TRANSLATE_LUA(Your license is going to expire in 40 days)'
+		            end
+	              if remaining_days == '30' then
+		                return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 30 days)'
+		            end
+	              if remaining_days == '15' then
+		                return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 15 days)'
+		            end
+	              if (tonumber (remaining_days <= 7) and tonumber (remaining_days => 1)) then
+                    return CRITICAL, string.format('{\"key\" : \"TRANSLATE_LUA(Your license is going to expire in {{remaining_days}} days)\", \"variables\" : {\"remaining_days\" : \"%s\"}}', remaining_days)
+		            end
+	              if remaining_days == '0' then
+		                return CRITICAL, 'TRANSLATE_LUA(Your license expires today)'
+		            end
+	              if (tonumber(remaining_days) < 0) then
+		                return CRITICAL, 'TRANSLATE_LUA(Your license is expired.)'
+		            end
+		            return OK, 'TRANSLATE_LUA(Your license is valid.)'
+	          end
+	 "
+    }
+}

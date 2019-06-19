@@ -58,6 +58,10 @@ typedef struct _extended_rules_t extended_rules_t;
 typedef struct _alert_t alert_t;
 #define ALERT_T_DEFINED
 #endif
+#ifndef HEADER_TESTS_T_DEFINED
+typedef struct _header_tests_t header_tests_t;
+#define HEADER_TESTS_T_DEFINED
+#endif
 
 //  Internal API
 
@@ -66,6 +70,7 @@ typedef struct _alert_t alert_t;
 #include "lua_evaluate.h"
 #include "extended_rules.h"
 #include "alert.h"
+#include "header_tests.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ALERT_ENGINE_BUILD_DRAFT_API
@@ -94,6 +99,11 @@ FTY_ALERT_ENGINE_PRIVATE void
 //  Self test of this class.
 FTY_ALERT_ENGINE_PRIVATE void
     alert_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    header_tests_test (bool verbose);
 
 //  Self test for private classes
 FTY_ALERT_ENGINE_PRIVATE void

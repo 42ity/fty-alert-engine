@@ -1,0 +1,23 @@
+{ 
+    "flexible" : {
+        "name"          : "door-contact.state-change@__name__",
+        "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logical_asset}} is not {{normal_state}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\", \"normal_state\" : \"__normalstate__\"}}",
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "metrics"       : ["status.__port__"],
+        "assets"	    : ["__name__"],
+        "logical_asset" : "__logicalasset_iname__",
+        "models"	    : ["DCS001"],
+        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "results"       :  {
+            "high___rule_result__"   : { "action" : [ ] }
+        },
+        "evaluation"    : "
+            function main(current_state)
+                if current_state == '__normalstate__' then
+                return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } , \"state\": \"%s\"}}', current_state)
+                end
+            return __severity__, string.format('{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } , \"state\" : \"%s\"}}', current_state)
+            end
+        "
+    }
+}

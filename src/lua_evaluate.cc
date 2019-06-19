@@ -138,8 +138,7 @@ lua_evaluate_test (bool verbose)
 {
     printf (" * lua_evaluate: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    //  @end
+    // TODO: FIXME: add unit tests here
+
     printf ("OK\n");
 }

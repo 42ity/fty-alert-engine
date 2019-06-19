@@ -48,6 +48,8 @@ fty_alert_engine_private_selftest (bool verbose, const char *subtest)
         extended_rules_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "alert_test"))
         alert_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "header_tests_test"))
+        header_tests_test (verbose);
 }
 /*
 ################################################################################
