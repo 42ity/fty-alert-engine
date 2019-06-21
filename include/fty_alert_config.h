@@ -27,10 +27,6 @@
 #include <map>
 #include <memory>
 
-#include "asset.h"
-#include "asset_database.h"
-#include "rule.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
