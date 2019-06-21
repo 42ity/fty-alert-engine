@@ -36,10 +36,16 @@
 AlertConfig::AlertConfig (const std::string name) : timeout_ (30000), name_(name) {
     client_ = mlm_client_new ();
     assert (client_);
+    client_mb_sender_ = mlm_client_new ();
+    assert (client_mb_sender_);
+    client_mb_sender_poller_ = zpoller_new (mlm_client_msgpipe (client_mb_sender_), NULL);
+    timeout_internal_ = 2000;
 }
 
 AlertConfig::~AlertConfig () {
+    zpoller_destroy (&client_mb_sender_poller_);
     mlm_client_destroy (&client_);
+    mlm_client_destroy (&client_mb_sender_);
 }
 
 /// handle pipe messages for this actor
@@ -62,6 +68,11 @@ int AlertConfig::handlePipeMessages (zsock_t *pipe) {
         int rv = mlm_client_connect (client_, endpoint, 1000, name_.c_str ());
         if (rv == -1)
             log_error ("%s: can't connect to malamute endpoint '%s'", name_.c_str (), endpoint);
+        std::string client_mb_sender_name = std::string ("client_mb_sender") + std::to_string (random ()) + "." +
+            std::to_string (getpid ());
+        rv = mlm_client_connect (client_mb_sender_, endpoint, 1000, client_mb_sender_name.c_str ());
+        if (rv == -1)
+            log_error ("%s: can't connect to malamute endpoint '%s'", client_mb_sender_name.c_str (), endpoint);
         zstr_free (&endpoint);
     }
     else
@@ -69,6 +80,13 @@ int AlertConfig::handlePipeMessages (zsock_t *pipe) {
         log_debug ("TIMEOUT received");
         char* timeout = zmsg_popstr (msg);
         timeout_ = std::stoull (timeout);
+        zstr_free (&timeout);
+    }
+    else
+    if (streq (cmd, "TIMEOUT_INTERNAL")) {
+        log_debug ("TIMEOUT_INTERNAL received");
+        char* timeout = zmsg_popstr (msg);
+        timeout_internal_ = std::stoull (timeout);
         zstr_free (&timeout);
     }
     else
@@ -300,22 +318,25 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
             zmsg_addstr (message, "ADD");
             zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
             zmsg_addstr (message, rule_it.second->getJsonRule ().c_str ());
-            mlm_client_sendto (client_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_),
-                1000, &message);
+            mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT,
+                    mlm_client_tracker (client_), 1000, &message);
             // expect response
-            message = mlm_client_recv (client_);
-            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_));
-            char *command = zmsg_popstr (message);
-            if (!streq (command, "OK")) {
-                char *corr_id = zmsg_popstr (message);
-                char *param = zmsg_popstr (message);
-                log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (),
-                    rule_it.second->getJsonRule ().c_str ());
-                zstr_free (&corr_id);
-                zstr_free (&param);
+            void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
+            if (which != nullptr) {
+                message = mlm_client_recv (client_mb_sender_);
+                assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mb_sender_));
+                char *command = zmsg_popstr (message);
+                if (!streq (command, "OK")) {
+                    char *corr_id = zmsg_popstr (message);
+                    char *param = zmsg_popstr (message);
+                    log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (),
+                        rule_it.second->getJsonRule ().c_str ());
+                    zstr_free (&corr_id);
+                    zstr_free (&param);
+                }
+                zstr_free (&command);
+                zmsg_destroy (&message);
             }
-            zstr_free (&command);
-            zmsg_destroy (&message);
         }
     }
 }
@@ -325,22 +346,25 @@ void AlertConfig::onAssetDeleteCallback (FullAssetSPtr assetptr) {
     zmsg_addstr (message, "DELETE_ELEMENT");
     zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
     zmsg_addstr (message, assetptr->getId ().c_str ());
-    mlm_client_sendto (client_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_), 1000,
-        &message);
+    mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_),
+            1000, &message);
     // expect response
-    message = mlm_client_recv (client_);
-    assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_));
-    char *command = zmsg_popstr (message);
-    if (!streq (command, "OK")) {
-        char *corr_id = zmsg_popstr (message);
-        char *param = zmsg_popstr (message);
-        log_error ("%s refused to delete rules for asset %s", alert_trigger_mb_name_.c_str (),
-            assetptr->getId ().c_str ());
-        zstr_free (&corr_id);
-        zstr_free (&param);
+    void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
+    if (which != nullptr) {
+        message = mlm_client_recv (client_mb_sender_);
+        assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mb_sender_));
+        char *command = zmsg_popstr (message);
+        if (!streq (command, "OK")) {
+            char *corr_id = zmsg_popstr (message);
+            char *param = zmsg_popstr (message);
+            log_error ("%s refused to delete rules for asset %s", alert_trigger_mb_name_.c_str (),
+                assetptr->getId ().c_str ());
+            zstr_free (&corr_id);
+            zstr_free (&param);
+        }
+        zstr_free (&command);
+        zmsg_destroy (&message);
     }
-    zstr_free (&command);
-    zmsg_destroy (&message);
 }
 
 void AlertConfig::run (zsock_t *pipe) {
@@ -356,13 +380,17 @@ void AlertConfig::run (zsock_t *pipe) {
     FullAssetDatabase::getInstance ().setOnDelete (std::bind (&AlertConfig::onAssetDeleteCallback, this,
             std::placeholders::_1));
 
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), mlm_client_msgpipe (client_mb_sender_), NULL);
     assert (poller);
 
     zsock_signal (pipe, 0);
     log_info ("Actor %s started",name_.c_str ());
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout_);
+        if (which == mlm_client_msgpipe (client_mb_sender_)){
+            zmsg_t *zmsg = mlm_client_recv (client_mb_sender_);
+            zmsg_destroy (&zmsg);
+        }
         // handle termination
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
@@ -438,6 +466,7 @@ fty_alert_config_test (bool verbose)
     // set everything up
     zstr_sendx (agent_config, "CONNECT", "ipc://@/malamute", NULL);
     zstr_sendx (agent_config, "TIMEOUT", "30000", NULL);
+    zstr_sendx (agent_config, "TIMEOUT_INTERNAL", "3000000", NULL);
     zstr_sendx (agent_config, "TEMPLATES_DIR", SELFTEST_DIR_RO "/templates", NULL); // rule template
     zstr_sendx (agent_config, "CONSUMER", "fty_alert_config_test_assets_stream", ".*", NULL);
     zstr_sendx (agent_config, "ALERT_TRIGGER_MB_NAME", "fty_alert_config_test_trigger", NULL); // trigger mailbox name
