@@ -82,6 +82,7 @@ class AlertTrigger {
         zpoller_t *client_mb_sender_poller_;
         std::string rule_location_;
         static int64_t timeout_;
+        int64_t timeout_internal_;
         std::string name_;
         std::string alert_list_mb_name_;
         // supportive functions

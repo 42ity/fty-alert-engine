@@ -52,8 +52,11 @@ class AlertConfig {
     private:
         std::string alert_trigger_mb_name_;
         mlm_client_t *client_;
+        mlm_client_t *client_mb_sender_;
+        zpoller_t *client_mb_sender_poller_;
         std::string template_location_;
         uint64_t timeout_;
+        int64_t timeout_internal_;
         std::string name_;
         // supportive functions
         void listTemplates (std::string corr_id, std::string type);

@@ -46,6 +46,7 @@ AlertTrigger::AlertTrigger (std::string name) : name_(name) {
     client_mb_sender_ = mlm_client_new ();
     assert (client_mb_sender_);
     client_mb_sender_poller_ = zpoller_new (mlm_client_msgpipe (client_mb_sender_), NULL);
+    timeout_internal_ = 2000;
 }
 
 void AlertTrigger::initCallbacks () {
@@ -71,7 +72,6 @@ void AlertTrigger::loadFromPersistence () {
     cxxtools::Directory directory (rule_location_);
     for ( const auto &filename : directory) {
         if ( filename.compare (".")!=0  && filename.compare ("..")!=0) {
-            // read the template rule from the file
             std::ifstream file (directory.path () + "/" + filename);
             std::string file_content ((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             try {
@@ -92,7 +92,7 @@ void AlertTrigger::onRuleCreateCallback (RuleSPtr ruleptr) {
     zmsg_addstr (msg, ruleptr->getName ().c_str ());
     mlm_client_sendto (client_mb_sender_, alert_list_mb_name_.c_str (), LIST_RULE_MB, mlm_client_tracker (client_),
             1000, &msg);
-    void *which = zpoller_wait (client_mb_sender_poller_, 2000);
+    void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
     if (which != nullptr) {
         msg = mlm_client_recv (client_mb_sender_);
         // thx for the reply, but I don't really care :)
@@ -109,7 +109,7 @@ void AlertTrigger::onRuleUpdateCallback (RuleSPtr ruleptr) {
     zmsg_addstr (msg, ruleptr->getName ().c_str ());
     mlm_client_sendto (client_mb_sender_, alert_list_mb_name_.c_str (), LIST_RULE_MB, mlm_client_tracker (client_),
             1000, &msg);
-    void *which = zpoller_wait (client_mb_sender_poller_, 2000);
+    void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
     if (which != nullptr) {
         msg = mlm_client_recv (client_mb_sender_);
         // thx for the reply, but I don't really care :)
@@ -125,7 +125,7 @@ void AlertTrigger::onRuleDeleteCallback (RuleSPtr ruleptr) {
     zmsg_addstr (msg, ruleptr->getName ().c_str ());
     mlm_client_sendto (client_mb_sender_, alert_list_mb_name_.c_str (), LIST_RULE_MB, mlm_client_tracker (client_),
             1000, &msg);
-    void *which = zpoller_wait (client_mb_sender_poller_, 2000);
+    void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
     if (which != nullptr) {
         msg = mlm_client_recv (client_mb_sender_);
         // thx for the reply, but I don't really care :)
@@ -165,6 +165,13 @@ int AlertTrigger::handlePipeMessages (zsock_t *pipe) {
         log_debug ("TIMEOUT received");
         char* timeout = zmsg_popstr (msg);
         timeout_ = std::stoull (timeout);
+        zstr_free (&timeout);
+    }
+    else
+    if (streq (cmd, "TIMEOUT_INTERNAL")) {
+        log_debug ("TIMEOUT_INTERNAL received");
+        char* timeout = zmsg_popstr (msg);
+        timeout_internal_ = std::stoull (timeout);
         zstr_free (&timeout);
     }
     else
@@ -813,11 +820,13 @@ fty_alert_trigger_test (bool verbose)
     // trigger mailbox
     zstr_sendx (agent_trigger_mailbox, "CONFIG", SELFTEST_DIR_RW, NULL);
     zstr_sendx (agent_trigger_mailbox, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_trigger_mailbox, "TIMEOUT_INTERNAL", "3000000", NULL);
     zstr_sendx (agent_trigger_mailbox, "ALERT_LIST_MB_NAME", "fty_alert_trigger_test_list", NULL); // trigger mailbox name
     zstr_sendx (agent_trigger_mailbox, "PRODUCER", "fty_alert_trigger_test_stream", NULL);
     // trigger stream + alert evaluation
     zstr_sendx (agent_trigger_stream, "CONNECT", "ipc://@/malamute", NULL);
     zstr_sendx (agent_trigger_stream, "TIMEOUT", "3000000", NULL);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT_INTERNAL", "3000000", NULL);
     zstr_sendx (agent_trigger_stream, "PRODUCER", "fty_alert_trigger_test_stream", NULL);
     zstr_sendx (agent_trigger_stream, "CONSUMER", "fty_alert_trigger_test_unavailable", ".*", NULL);
     zstr_sendx (agent_trigger_stream, "CONSUMER", "fty_alert_trigger_test_metrics", ".*", NULL);
@@ -909,11 +918,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (json, tr1.getJsonRule ().c_str ()));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, tr1.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&json);
                 zstr_free (&corr_id);
@@ -964,11 +973,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (json, tr2.getJsonRule ().c_str ()));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, tr2.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&json);
                 zstr_free (&corr_id);
@@ -1019,11 +1028,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (json, fr1.getJsonRule ().c_str ()));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, fr1.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&json);
                 zstr_free (&corr_id);
@@ -1074,11 +1083,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (json, sr1.getJsonRule ().c_str ()));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, sr1.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&json);
                 zstr_free (&corr_id);
@@ -1130,11 +1139,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (json, pr1.getJsonRule ().c_str ()));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, pr1.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&json);
                 zstr_free (&corr_id);
@@ -1539,7 +1548,6 @@ fty_alert_trigger_test (bool verbose)
             assert (a.state () == "ACTIVE"); // all alarms should be active
             // TODO: FIXME: add more precise unit tests
             fty_proto_destroy (&fty_msg);
-// mlm_client_msgpipe (client_unavailable), mlm_client_msgpipe (client_metrics), mlm_client_msgpipe (client_licensing), mlm_client_msgpipe (client_stream), mlm_client_msgpipe (client_mailbox), NULL);
         } else if (which != nullptr) {
             assert (false); // no more messages expected
         } else {
@@ -1594,11 +1602,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (json, sr2.getJsonRule ().c_str ()));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, sr2.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&json);
                 zstr_free (&corr_id);
@@ -1682,11 +1690,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (corr_id, "fty_alert_trigger_mailbox_test"));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, tr1.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&corr_id);
                 zstr_free (&command);
@@ -1776,11 +1784,11 @@ fty_alert_trigger_test (bool verbose)
                 assert (streq (corr_id, "fty_alert_trigger_mailbox_test"));
                 char *rulename = zmsg_popstr (message);
                 assert (streq (rulename, sr1.getName ().c_str ()));
-                message = zmsg_new ();
-                zmsg_addstr (message, "OK");
-                zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "OK");
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
                 mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
-                        mlm_client_tracker (client_mailbox), 1000, &message);
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
                 zstr_free (&rulename);
                 zstr_free (&corr_id);
                 zstr_free (&command);
