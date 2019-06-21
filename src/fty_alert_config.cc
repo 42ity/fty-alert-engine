@@ -378,8 +378,6 @@ void AlertConfig::run (zsock_t *pipe) {
             } else {
                 break;
             }
-        } else if (MB_DELIVER == mlm_client_command (client_)) {
-            handleMailboxMessages ();
         } else {
             zmsg_t *zmsg = mlm_client_recv (client_);
             if (streq (MB_DELIVER, mlm_client_command (client_))) {
