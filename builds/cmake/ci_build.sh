@@ -346,7 +346,7 @@ if ! ((command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libfty_shm-dev
        (command -v brew >/dev/null 2>&1 && brew ls --versions fty_shm >/dev/null 2>&1)); then
     BASE_PWD=${PWD}
     cd tmp-deps
-    $CI_TIME git clone --quiet --depth 1 https://github.com/42ity/fty-shm.git fty_shm
+    $CI_TIME git clone --quiet --depth 1 -b master https://github.com/42ity/fty-shm.git fty_shm
     cd fty_shm
     CCACHE_BASEDIR=${PWD}
     export CCACHE_BASEDIR
