@@ -1,12 +1,12 @@
 {
     "threshold" : {
-        "rule_name"     :   "voltage.input_3phase@__name__",
-        "rule_desc"     :   "TRANSLATE_LUA(Input voltage 3 phase for ePDU)",
-        "rule_class"    :   "TRANSLATE_LUA(Input voltage (3 phase) in PDU)",
-        "rule_hierarchy":   "internal.input.voltage.3phase.epdu",
-        "target"        :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
-        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
-        "element"       :   "__name__",
+        "name"     :   "voltage.input_3phase@__name__",
+        "description"     :   "TRANSLATE_LUA(Input voltage 3 phase for ePDU)",
+        "class"    :   "TRANSLATE_LUA(Input voltage (3 phase) in PDU)",
+        "hierarchy":   "internal.input.voltage.3phase.epdu",
+        "metrics"        :   [ "voltage.input.L1", "voltage.input.L2", "voltage.input.L3" ],
+        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
+        "assets"       :   "__name__",
         "values_unit"   :   "V",
         "values"        :   [
             {"low_critical"  : "210"},

@@ -2,7 +2,7 @@
     "flexible" : {
         "name"          : "fire-detector-extinguisher.state-change@__name__",
         "description"   : "{\"key\" : \"TRANSLATE_LUA(Fire detected (alarm) in {{logical_asset}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\"}}",
-        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "categories"      : ["CAT_GPIO", "CAT_ALL"],
         "metrics"       : ["status.__port__"],
         "assets"	    : ["__name__"],
         "logical_asset" : "__logicalasset_iname__",
