@@ -246,13 +246,13 @@ class AssetDatabaseUT3 {
             created_ = false;
             updated_ = false;
             deleted_ = false;
-            assert (created_ = false);
+            assert (created_ == false);
             FullAsset fa7 ("id-15", "active", "device", "rackcontroller", "MyRack", "id-1", 1, {{"aux15", "aval15"}},
                     {{"ext15", "eval15"}});
             FullAssetDatabase::getInstance ().setOnCreate (std::bind (&AssetDatabaseUT3::internalFunctionInsert, this,
                     std::placeholders::_1));
             FullAssetDatabase::getInstance ().insertOrUpdateAsset (fa7);
-            assert (created_ = true);
+            assert (created_ == true);
         }
         bool getCreated () { return created_; }
 };
@@ -278,7 +278,7 @@ void assetDatabaseUT3 () {
     assert (deleted == false);
     FullAssetDatabase::getInstance ().insertOrUpdateAsset (fa5);
     assert (created == true);
-    assert (updated == false);
+    assert (updated == true);
     assert (deleted == false);
     AssetDatabaseUT3 adut3;
     assert (adut3.getCreated () == false);
@@ -292,6 +292,9 @@ void assetDatabaseUT3 () {
 void
 runAssetDatabaseUT (bool verbose)
 {
+    BasicAssetDatabase::getInstance ().clear ();
+    ExtendedAssetDatabase::getInstance ().clear ();
+    FullAssetDatabase::getInstance ().clear ();
     // basic tests
     assetDatabaseUT1 ();
     // test content from different function context
@@ -310,8 +313,8 @@ runRuleFactoryUT (bool verbose)
             "], \"results\" : [ { \"high_warning\" : { \"action\" : [ ], \"severity\" : \"WARNING\", \"description\" " +
             ": \"none\" } } ], \"evaluation\" : \" function main (i1," + " i2) if i1 == 'good' and i2 == 'good' then return OK, string.format ('{ \\\"key\\\": \\\"TRANSLATE_LUA (" + "Voltage status of both inputs of {{NAME}} is good.)\\\", \\\"variables\\\": {\\\"NAME\\\": \\\"NAME\\\"" + "}}') end if i1 == 'good' then return WARNING, string.format ('{ \\\"key\\\": \\\"TRANSLATE_LUA (Input 2 " + "voltage status of {{NAME}} is out of tolerance ({{i2}})!)\\\", \\\"variables\\\": {\\\"NAME\\\": \\\"" + "NAME\\\", \\\"i2\\\" : \\\"%s\\\"}}', i2) end if i2 == 'good' then return WARNING, string.format ('{ " + "\\\"key\\\": \\\"TRANSLATE_LUA (Input 1 voltage status of {{NAME}} is out of tolerance ({{i1}})!)\\\", " + "\\\"variables\\\": {\\\"NAME\\\": \\\"NAME\\\", \\\"i1\\\" : \\\"%s\\\"}}', i1) end return WARNING, " + "string.format ('{ \\\"key\\\": \\\"TRANSLATE_LUA (Voltage status of both inputs is out of tolerance " + "({{i1}}, {{i2}})!)\\\", \\\"variables\\\": {\\\"i2\\\": \\\"%s\\\", \\\"i1\\\" : \\\"%s\\\"}}', i2, i1) " + "end \" } }";
     auto rule = RuleFactory::createFromJson (json1);
-    assert (rule->whoami () != "flexible");
-    assert (rule->getName () != "sts-voltage@__name__");
+    assert (rule->whoami () == "flexible");
+    assert (rule->getName () == "sts-voltage@__name__");
 }
 
 void

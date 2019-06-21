@@ -150,12 +150,16 @@ std::string Rule::getJsonRule (void) const {
 }
 
 void Rule::save (const std::string &path) const {
-    std::string fullname = path + name_ + ".rule";
+    std::string fullname = path + "/" + name_ + ".rule";
     log_debug ("trying to save file : '%s'", fullname.c_str ());
-    std::ofstream ofs (fullname, std::ofstream::out);
-    ofs.exceptions (~std::ofstream::goodbit);
-    ofs << getJsonRule ();
-    ofs.close ();
+    try {
+        std::ofstream ofs (fullname, std::ofstream::out);
+        ofs.exceptions (~std::ofstream::goodbit);
+        ofs << getJsonRule ();
+        ofs.close ();
+    } catch (...) {
+        throw unable_to_save ();
+    }
 }
 
 int Rule::remove (const std::string &path) {
@@ -177,7 +181,11 @@ RuleAssetMatcher::RuleAssetMatcher (const std::string &asset) :
 }
 
 bool RuleAssetMatcher::operator ()(const Rule &rule) {
-    return std::find (rule.getAssets ().begin (), rule.getAssets ().end (), asset_) != rule.getAssets ().end ();
+    for (const std::string &a : rule.getAssets ()) {
+        if (a == asset_)
+            return true;
+    }
+    return false;
 }
 
 /*

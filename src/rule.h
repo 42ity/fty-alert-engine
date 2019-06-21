@@ -28,6 +28,7 @@
 #include <memory>
 #include <cassert>
 #include <cxxtools/serializationinfo.h>
+#include <cxxtools/jsondeserializer.h>
 #include <fty_log.h>
 
 #ifdef __cplusplus
@@ -51,6 +52,11 @@ utf8eq (const std::string& s1, const std::string& s2);
 
 void
 si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& member_name, std::string& result);
+
+class unable_to_save : public std::runtime_error {
+    public:
+        unable_to_save () : runtime_error ("unable to save rule") { }
+};
 
 class InterfaceRule {
     public:
@@ -161,8 +167,8 @@ class Rule : public InterfaceRule {
         std::string hierarchy_;
 
         //internal functions
-        void loadFromSerializedObject (const cxxtools::SerializationInfo &si);
-        void saveToSerializedObject (cxxtools::SerializationInfo &si) const;
+        virtual void loadFromSerializedObject (const cxxtools::SerializationInfo &si);
+        virtual void saveToSerializedObject (cxxtools::SerializationInfo &si) const;
         void loadMandatoryString (const cxxtools::SerializationInfo &si, const std::string name, std::string &target);
         void loadOptionalString (const cxxtools::SerializationInfo &si, const std::string name, std::string &target);
         void loadOptionalInt (const cxxtools::SerializationInfo &si, const std::string name, int &target);
@@ -238,6 +244,26 @@ class RuleTest final : public Rule {
                 results) { };
         RuleTest (const cxxtools::SerializationInfo &si) : Rule (si) { };
         RuleTest (const std::string json) : Rule (json) { };
+};
+
+class GenericRule final : public Rule {
+    public:
+        std::string whoami () const { return rule_type_; };
+        VectorStrings evaluate (const VectorStrings &metrics) { return VectorStrings{"eval"}; };
+        GenericRule (const std::string name, const VectorStrings metrics, const VectorStrings assets,
+                const VectorStrings categories, const ResultsMap results) : Rule (name, metrics, assets, categories,
+                results) { };
+        GenericRule (const cxxtools::SerializationInfo &si) : Rule (si) { };
+        GenericRule (const std::string json) : Rule (json) {
+            std::istringstream iss (json);
+            cxxtools::JsonDeserializer jd (iss);
+            cxxtools::SerializationInfo si;
+            jd.deserialize (si);
+            auto elem = si.getMember (0);
+            elem >>= rule_type_;
+        };
+    private:
+        std::string rule_type_;
 };
 
 class RuleMatcher {

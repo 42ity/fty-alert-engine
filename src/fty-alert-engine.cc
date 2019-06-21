@@ -91,6 +91,8 @@ int main (int argc, char *argv [])
     zstr_sendx (agent_trigger_mailbox, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (agent_trigger_mailbox, "TIMEOUT", std::to_string (fty_get_polling_interval ()).c_str (), NULL);
     zstr_sendx (agent_trigger_mailbox, "ALERT_LIST_MB_NAME", LIST_AGENT_NAME, NULL); // trigger mailbox name
+    zstr_sendx (agent_trigger_mailbox, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL); // due to TOUCH mailbox
+    zstr_sendx (agent_trigger_mailbox, "LOAD_PERSISTENCE", NULL); // due to TOUCH mailbox
     // trigger stream + alert evaluation
     zstr_sendx (agent_trigger_stream, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (agent_trigger_stream, "TIMEOUT", std::to_string (fty_get_polling_interval ()).c_str (), NULL);

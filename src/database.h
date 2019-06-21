@@ -28,11 +28,15 @@
 
 #include "fty_alert_engine_classes.h"
 
-class null_argument : std::runtime_error {
+class null_argument : public std::runtime_error {
     public:
         null_argument () : runtime_error ("null argument") { }
 };
-class element_not_found : std::runtime_error {
+class element_exists: public std::runtime_error {
+    public:
+        element_exists () : runtime_error ("element already exist") { }
+};
+class element_not_found : public std::runtime_error {
     public:
         element_not_found () : runtime_error ("element not found") { }
 };
@@ -93,6 +97,9 @@ class GenericDatabase {
                 throw element_not_found ();
             }
         }
+        void clear () {
+            database_.clear ();
+        }
         // iterators
         inline typename std::map<KeyT, ElementT>::iterator begin () noexcept { return database_.begin (); }
         inline typename std::map<KeyT, ElementT>::const_iterator cbegin () const noexcept { return database_.cbegin (); }
@@ -126,6 +133,9 @@ class ObservedGenericDatabase : public GenericDatabase<KeyT, ElementT> {
         // calls
         /// throws any errors, notably element_not_found
         void insertElement (KeyT key, ElementT element) {
+            if (GD::getElementIt (key) != end ()) {
+                throw element_exists ();
+            }
             GD::insertOrUpdateElement (key, element);
             if (on_create) {
                 ElementT e = this->getElement (key);
@@ -134,11 +144,16 @@ class ObservedGenericDatabase : public GenericDatabase<KeyT, ElementT> {
         }
         /// throws any errors, notably element_not_found
         void updateElement (KeyT key, ElementT element) {
+            if (GD::getElementIt (key) == end ()) {
+                throw element_not_found ();
+            }
             const ElementT e = this->getElement (key);
             GD::insertOrUpdateElement (key, element);
             if (on_update) {
-                if (!on_update_only_different || e == element)
-                    on_update (e);
+                if (!on_update_only_different || e == element) {
+                    ElementT ee = this->getElement (key);
+                    on_update (ee);
+                }
             }
         }
         void insertOrUpdateElement (KeyT key, ElementT element) {
@@ -156,6 +171,12 @@ class ObservedGenericDatabase : public GenericDatabase<KeyT, ElementT> {
             GD::deleteElement (key);
             if (on_delete)
                 on_delete (e);
+        }
+        void clear () {
+            GD::clear ();
+            on_create = nullptr;
+            on_update = nullptr;
+            on_delete = nullptr;
         }
     public:
         // need to republish iterators, otherwise they are inacessible

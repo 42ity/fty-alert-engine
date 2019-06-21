@@ -30,10 +30,6 @@
 #include <unordered_set>
 #include <fty_shm.h>
 
-// force proper header order
-#include "../src/rule.h"
-#include "../src/database.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,6 +61,10 @@ FTY_ALERT_ENGINE_EXPORT void
 }
 #endif
 
+class Rule;
+template <typename A, typename B> class ObservedGenericDatabase;
+class RuleMatcher;
+
 class AlertTrigger {
     private:
         using RuleDatabase = ObservedGenericDatabase<std::string, std::shared_ptr<Rule>>;
@@ -78,12 +78,14 @@ class AlertTrigger {
         static std::mutex stream_metrics_mutex_;
         // other variables
         mlm_client_t *client_;
+        mlm_client_t *client_mb_sender_;
+        zpoller_t *client_mb_sender_poller_;
         std::string rule_location_;
         static int64_t timeout_;
         std::string name_;
         std::string alert_list_mb_name_;
         // supportive functions
-        void evaluateAlarmsForTriggers (fty::shm::shmMetrics shm_metrics);
+        void evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics);
         void deleteRules (std::string corr_id, RuleMatcher *matcher);
         void touchRule (std::string corr_id, std::string name);
         void updateRule (std::string corr_id, std::string json, std::string old_name);
@@ -91,6 +93,7 @@ class AlertTrigger {
         void getRule (std::string corr_id, std::string name);
         void listRules (std::string corr_id, std::string type, std::string ruleclass);
         void setTimeout (int64_t timeout) { timeout_ = timeout; }
+        void loadFromPersistence ();
         // callbacks for rule database
         void onRuleCreateCallback (RuleSPtr ruleptr);
         void onRuleUpdateCallback (RuleSPtr ruleptr);
@@ -107,6 +110,8 @@ class AlertTrigger {
         // execution
         void runStream (zsock_t *pipe);
         void runMailbox (zsock_t *pipe);
+        // setter for static resources
+        void initCallbacks ();
 };
 
 #endif

@@ -44,6 +44,32 @@ FTY_ALERT_ENGINE_PRIVATE void
 }
 #endif
 
+class lua_exception : public std::runtime_error {
+    public:
+        lua_exception (std::string reason) : runtime_error (reason) { }
+};
+class cant_initiate : public lua_exception {
+    public:
+        cant_initiate () : lua_exception ("Can't initiate LUA context!") { }
+};
+class invalid_code : public lua_exception {
+    public:
+        invalid_code () : lua_exception ("Invalid LUA code!") { }
+};
+class missing_main : public lua_exception {
+    public:
+        missing_main () : lua_exception ("Function main not found!") { }
+};
+class main_returns_nonstring : public lua_exception {
+    public:
+        main_returns_nonstring () : lua_exception ("LUA main function did not return string!") { }
+};
+class evaluation_failed: public lua_exception {
+    public:
+        evaluation_failed () : lua_exception ("LUA evaluation failed!") { }
+};
+
+
 class DecoratorLuaEvaluate {
     public:
         typedef std::map<std::string, std::string> VariableMap;
@@ -55,7 +81,7 @@ class DecoratorLuaEvaluate {
         /// get number of outcome variables (size of evaluation result)
         int getOutcomeItems () const { return outcome_items_; };
         /// get number of outcome variables (size of evaluation result)
-        void setOutcomeItems (int count) { outcome_items_ = count; };
+         void setOutcomeItems (int count) { outcome_items_ = count; };
         /// get lua code
         std::string getCode () const { return code_; };
         /// set new code and reinitialize LUA stack

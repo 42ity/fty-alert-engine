@@ -61,7 +61,7 @@ void DecoratorLuaEvaluate::setCode (const std::string newCode)
     lstate_ = lua_open ();
 #endif
     if (! lstate_) {
-        throw std::runtime_error ("Can't initiate LUA context!");
+        throw cant_initiate ();
     }
     luaL_openlibs (lstate_); // get functions like print ();
 
@@ -73,7 +73,7 @@ void DecoratorLuaEvaluate::setCode (const std::string newCode)
     int error = luaL_dostring (lstate_, code_.c_str ());
     valid_ = (error == 0);
     if (! valid_) {
-        throw std::runtime_error ("Invalid LUA code!");
+        throw invalid_code ();
     }
 
     // check wether there is main () function
@@ -81,30 +81,31 @@ void DecoratorLuaEvaluate::setCode (const std::string newCode)
     if (! lua_isfunction (lstate_, lua_gettop (lstate_))) {
         // main () missing
         valid_ = false;
-        throw std::runtime_error ("Function main not found!");
+        throw missing_main ();
     }
 }
 
 DecoratorLuaEvaluate::VectorStrings DecoratorLuaEvaluate::evaluate (const std::vector<std::string> &arguments)
 {
-    if (! valid_) { throw std::runtime_error ("Rule is not valid!"); }
+    if (! valid_) { throw invalid_code (); }
     lua_settop (lstate_, 0);
 
     lua_getglobal (lstate_, "main");
     for (const auto x: arguments) {
         lua_pushstring (lstate_, x.c_str ());
     }
-    if (lua_pcall (lstate_, arguments.size (), 1, 0) != 0) {
-        throw std::runtime_error ("LUA calling main () failed!");
-    }
-    if (!lua_isstring (lstate_, -1)) {
-        throw std::runtime_error ("LUA main function did not return string!");
+    if (lua_pcall (lstate_, arguments.size (), outcome_items_, 0) != 0) {
+        log_error ("Lua reported evaluation error '%s'", lua_tostring (lstate_, -1));
+        throw evaluation_failed ();
     }
     DecoratorLuaEvaluate::VectorStrings result;
-    for (int i = 0; i < outcome_items_; ++i) {
-        result.push_back (lua_tostring (lstate_, -1));
-        lua_pop (lstate_, 1);
+    for (int i = outcome_items_; i > 0; --i) {
+        if (!lua_isstring (lstate_, -1 * i)) {
+            throw main_returns_nonstring ();
+        }
+        result.push_back (lua_tostring (lstate_, -1 * i));
     }
+    lua_pop (lstate_, outcome_items_);
     return result;
 }
 
@@ -138,7 +139,8 @@ lua_evaluate_test (bool verbose)
 {
     printf (" * lua_evaluate: ");
 
-    // TODO: FIXME: add unit tests here
-
+    //  @selftest
+    //  Simple create/destroy test
+    //  @end
     printf ("OK\n");
 }
