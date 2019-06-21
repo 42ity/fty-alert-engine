@@ -1,12 +1,12 @@
 {
     "threshold" : {
-        "rule_name"     :   "load.default@__name__",
-        "rule_desc"     :   "TRANSLATE_LUA(Load percentage for ups)",
-        "rule_class"    :   "TRANSLATE_LUA(Default load in UPS)",
-        "rule_hierarchy":   "power.load.ups",
-        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
-        "target"        :   "load.default@__name__",
-        "element"       :   "__name__",
+        "name"     :   "load.default@__name__",
+        "description"     :   "TRANSLATE_LUA(Load percentage for ups)",
+        "class"    :   "TRANSLATE_LUA(Default load in UPS)",
+        "hierarchy":   "power.load.ups",
+        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
+        "metrics"        :   "load.default",
+        "assets"       :   "__name__",
         "values_unit"   :   "%",
         "values"        :   [
             {"low_critical"  : "0"},

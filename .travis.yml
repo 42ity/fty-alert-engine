@@ -1,10 +1,9 @@
 # Travis CI script
 # This is a skeleton created by zproject.
 # You can add hand-written code here.
-### Note: Customized after generation; take care upon regens
 
 language:
-- cpp
+- c
 
 cache:
 - ccache
@@ -74,6 +73,7 @@ pkg_deps_prereqs_source: &pkg_deps_prereqs_source
     - libfty-proto-dev
     - cxxtools-dev
     - libfty-common-dev
+    - libfty-shm-dev
 
 # NOTE: Our forks are checked out and built without pkg dependencies in use
 pkg_deps_prereqs: &pkg_deps_prereqs

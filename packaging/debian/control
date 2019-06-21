@@ -1,7 +1,7 @@
 #
 #    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
-#    Copyright (C) 2014 - 2018 Eaton
+#    Copyright (C) 2019 - 2019 Eaton
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -34,6 +34,8 @@ Build-Depends: debhelper (>= 9),
     liblua5.1-0-dev,
     libcxxtools-dev,
     libfty-common-dev,
+    libssl-dev,
+    libfty-common-mlm-dev,
     libfty-shm-dev,
     systemd,
     dh-systemd,
@@ -62,6 +64,8 @@ Depends:
     liblua5.1-0-dev,
     libcxxtools-dev,
     libfty-common-dev,
+    libssl-dev,
+    libfty-common-mlm-dev,
     libfty-shm-dev,
     libfty-alert-engine0 (= ${binary:Version})
 Description: fty-alert-engine development tools

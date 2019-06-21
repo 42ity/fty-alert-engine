@@ -1,7 +1,7 @@
 #
 #    fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 #
-#    Copyright (C) 2014 - 2018 Eaton
+#    Copyright (C) 2019 - 2019 Eaton
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -61,6 +61,8 @@ BuildRequires:  fty-proto-devel
 BuildRequires:  lua-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  fty-common-devel
+BuildRequires:  openssl-devel
+BuildRequires:  fty-common-mlm-devel
 BuildRequires:  fty_shm-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -79,7 +81,6 @@ This package contains shared library for fty-alert-engine: 42ity service evaluat
 
 %files -n libfty_alert_engine0
 %defattr(-,root,root)
-%doc COPYING
 %{_libdir}/libfty_alert_engine.so.*
 
 %package devel
@@ -96,6 +97,8 @@ Requires:       fty-proto-devel
 Requires:       lua-devel
 Requires:       cxxtools-devel
 Requires:       fty-common-devel
+Requires:       openssl-devel
+Requires:       fty-common-mlm-devel
 Requires:       fty_shm-devel
 
 %description devel
@@ -129,7 +132,6 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %doc README.md
-%doc COPYING
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg

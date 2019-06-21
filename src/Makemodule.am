@@ -13,18 +13,14 @@ lib_LTLIBRARIES += src/libfty_alert_engine.la
 pkgconfig_DATA = src/libfty_alert_engine.pc
 
 src_libfty_alert_engine_la_SOURCES = \
-    src/metriclist.cc \
-    src/alertconfiguration.cc \
-    src/luarule.cc \
-    src/purealert.cc \
+    src/asset.cc \
     src/rule.cc \
-    src/thresholdrulecomplex.cc \
-    src/utils.cc \
-    src/autoconfig.cc \
-    src/ruleconfigurator.cc \
-    src/templateruleconfigurator.cc \
-    src/fty_alert_engine_server.cc \
-    src/fty_alert_actions.cc \
+    src/lua_evaluate.cc \
+    src/extended_rules.cc \
+    src/alert.cc \
+    src/header_tests.cc \
+    src/fty_alert_trigger.cc \
+    src/fty_alert_config.cc \
     src/platform.h
 
 if ENABLE_DRAFTS
@@ -61,7 +57,7 @@ if ENABLE_FTY_ALERT_ENGINE
 bin_PROGRAMS += src/fty-alert-engine
 src_fty_alert_engine_CPPFLAGS = ${AM_CPPFLAGS}
 src_fty_alert_engine_LDADD = ${program_libs}
-src_fty_alert_engine_SOURCES = src/fty_alert_engine.cc
+src_fty_alert_engine_SOURCES = src/fty-alert-engine.cc
 src_fty_alert_engine_config_DATA =
 src_fty_alert_engine_config_DATA += src/fty-alert-engine.cfg
 src_fty_alert_engine_configdir = $(sysconfdir)/fty-alert-engine

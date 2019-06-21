@@ -3,8 +3,6 @@
 Agent fty-alert-engine is the main component for evaluating metrics and publishing pure alerts.
 These are then processed by fty-alert-list, which takes care of resolving and acknowledging alerts.
 
-NB: Rules for fty-alert-engine have strictly defined format. Agents which need different kinds of rules use fty-alert-flexible for alert publishing.
-
 ## How to build
 
 To build fty-alert-engine project run:
@@ -43,23 +41,76 @@ Rules loaded at start up are stored in the directory /var/lib/fty/fty-alert-engi
 
 ### Rule types
 
-To be added.
+Rules are currently of types flexible, single, pattern and threshold, refer to templates for more details
+Major differences and use cases:
+* pattern rule don't require assets, and uses metrics as regex patterns - asset is determined by matching a metric name
+by metric, always runs LUA evaluation
+* threshold accepts multiple metrics and either compare values of one metric to values list (hardcoded names
+low_warning, low_critical, high_warning, high_critical) or aggregates multiple metrics via LUA function and return
+respective result
+* single accepts specified metrics for one asset, but always runs LUA evaluation (difference to threshold)
+* flexible supports string variables (other accept just doubles), runs LUA evaluation for specified metrics, is supposed
+to work with multiple assets (never used so far, not tested), metrics are evaluated as metric@asset for every asset in
+list
 
 ### Rule templates
 
-To be added.
+Rules are currently of types flexible, single, pattern and threshold
+UPPERCASEs are variables to be filled
+lowercases are fixed
+// comments are to put more details, not part of json format
+one|other means OR operator, provided either one or other applies
+... means more might follow
+{
+    "single|pattern|threshold|flexible" : {
+        "name" : "NAME",
+        "description" : "DESCRIPTION", // optional
+        "class" : "CLASS", // optional
+        "categories" : [ // nonempty
+            "CAT1", "CAT2", ...
+        ],
+        "metrics" : "METRIC"|[ // can be either value or array, nonempty
+            "METRIC1", "METRIC2", ...
+        ],
+        "results" : [ // nonempty
+            {
+                "RES1" : { // this object is called outcome
+                    "action" : [ // can be empty
+                        {"action" : "EMAIL|SMS"},
+                        { "action" : "GPO_INTERACTION", "asset" : "ASSET", "mode" : "MODE"},
+                        ...
+                    ],
+                    "description" : "DESCRIPTION",
+                    "threshold_name" : "THRESHOLD_NAME",
+                    "severity" : "SEVERITY"
+                }
+            },
+            ...
+        ],
+        "source" : "SOURCE", // optional
+        "assets" : "ASSET"|[ // can be either value or array, can be empty (pattern rule)
+            "ASSET1", "ASSET2", ...
+        ],
+        "outcome_item_count" : "OUTCOME_ITEM_COUNT", // optional
+        "values" : [ // can be empty
+            { "VAR1NAME" : "VAR1VALUE" }, { "VAR2NAME" : "VAR2VALUE" }, ...
+        ],
+        "values_unit" : "VALUES_UNIT",
+        "hierarchy" : "hierarchy",
+        "models" : [ // optional, flexible only
+            "MODEL1", "MODEL2", ...
+        ]
+    }
+}
 
 ## Architecture
 
 ### Overview
 
-fty-alert-engine is composed of 3 actors and 2 timers:
+fty-alert-engine is composed of 2 actors:
 
-* fty-alert-engine-server: does general alert management
-* fty-autoconfig: on asset creation/update, processes templates and creates rules for given asset
-* fty-autoconfig-timer (implicit): runs each \_timeout (default value 2 seconds); checks asset cache and creates template-based rules for assets
-* fty-alert-actions: takes care of alert notification using email/SMS/GPO activation
-* fty-alert-actions-timer (implicit): runs every minute; deletes timed-out alerts and checks whether to send e-mail/SMS based on severity and priority
+* fty-alert-trigger: keeps alert rule persistence, triggers alerts based on metrics
+* fty-alert-config: on asset creation/delete, processes templates and creates rules for given asset
 
 ## Protocols
 
@@ -73,7 +124,7 @@ Agent publishes alerts on \_ALERTS\_SYS stream.
 
 ### Mailbox requests
 
-Actor fty-alert-engine server can be requested for:
+Actor fty-alert-trigger can be requested for:
 
 * list of rules
 * getting rule content
@@ -82,25 +133,25 @@ Actor fty-alert-engine server can be requested for:
 * touching rule (forces re-evaluation)
 * deleting rules
 
-Actor fty-autoconfig server can be requested for:
+Actor fty-alert-config server can be requested for:
  * list of templates
-
-Actor fty-alert-actions doesn't receive any mailbox requests.
+ * addition of template
+ * passing rule to the rest of alert agents
 
 #### List of rules
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * LIST/'type'\[/'ruleclass'\]
 
 where
 * '/' indicates a multipart string message
-* 'type' MUST be one of the values: 'all','threshold','single','pattern'
+* 'type' MUST be one of the values: 'all','threshold','single','pattern','flexible'
 * 'ruleclass' MAY be any string (even empty)
 * subject of the message MUST be 'rfc-evaluator-rules'
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * LIST/'type'/'ruleclass'/'rule\-1'/.../'rule\-n'
@@ -117,7 +168,7 @@ where
 #### Getting rule content
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * GET/'name'
 
@@ -126,7 +177,7 @@ where
 * 'name' MUST be name of the rule
 * subject of the message MUST be 'rfc-evaluator-rules'
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * OK/'rule'
@@ -141,16 +192,16 @@ where
 #### Adding new rule
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * ADD/'rule'
 
 where
 * '/' indicates a multipart string message
-* 'rule' MUST be valid JSON for the rule of the kind handled by fty-alert-engine-server (as opposed to fty-alert-flexible)
+* 'rule' MUST be valid JSON for the rule of the kind handled by fty-alert-trigger
 * subject of the message MUST be 'rfc-evaluator-rules'
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * OK/'rule'
@@ -169,17 +220,17 @@ where
 #### Updating rule
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * ADD/'rule'/'old\-name'
 
 where
 * '/' indicates a multipart string message
-* 'rule' MUST be valid JSON for the rule of the kind handled by fty-alert-engine-server (as opposed to fty-alert-flexible)
+* 'rule' MUST be valid JSON for the rule of the kind handled by fty-alert-trigger (as opposed to fty-alert-flexible)
 * 'old\-name' MUST be name of the existing rule
 * subject of the message MUST be 'rfc-evaluator-rules'
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * OK/'rule'
@@ -199,7 +250,7 @@ where
 #### Touching rule
 
 The USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * TOUCH/'name'
 
@@ -208,7 +259,7 @@ where
 * 'name' MUST be name of an existing rule
 * subject of the message MUST be 'rfc-evaluator-rules'
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * OK
@@ -222,7 +273,7 @@ where
 #### Deleting rules
 
 To delete one particular rule, the USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * DELETE/'name'
 
@@ -230,14 +281,14 @@ where
 * '/' indicates a multipart string message
 * 'name' MUST be name of an existing rule
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * OK/rulename1/rulename2/...
 * ERROR/reason
 
 To delete all rules about an element, the USER peer sends the following messages using MAILBOX SEND to
-FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+FTY-ALERT-TRIGGER ("fty-alert-trigger") peer:
 
 * DELETE_ELEMENT/'name'
 
@@ -245,7 +296,7 @@ where
 * '/' indicates a multipart string message
 * 'name' MUST be a known element with rules attached
 
-The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-TRIGGER peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * OK/rulename1/rulename2/...
@@ -254,17 +305,17 @@ peer using MAILBOX SEND.
 #### List of templates rules
 
 The USER peer sends the following messages using MAILBOX SEND to 
-FTY-AUTOCONFIG-SERVER ("fty-autoconfig") peer:
+FTY-ALERT-CONFIG ("fty-alert-config") peer:
 
 * LIST/'correlation_id'/['filter']
 
 where
 * '/' indicates a multipart string message
-* 'filter' is a regex matching the content : typical regex are 'threshold','single','pattern'
+* 'filter' is a regex matching the content : typical regex are 'threshold','single','pattern','flexible'
            "all" means return all templates. filter is optional, by default "all" is applied
 * subject of the message MUST be 'rfc-evaluator-rules'
 
-The FTY-AUTOCONFIG-SERVER peer MUST respond with one of the messages back to USER
+The FTY-ALERT-CONFIG peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * 'correlation_id'/LIST/'filter'/
@@ -282,19 +333,19 @@ where
 
 ### Stream METRICS\_UNAVAILABLE
 
-This stream is used to signal that certain metric is no longer available (for example because corresponding asset was removed).
+This stream is used to signal that certain metric is no longer available (for example because corresponding asset was
+removed).
 
 Every message on the stream METRICS\_UNAVAILABLE MUST be of the format METRICUNAVAILABLE/<topic>.
 
 ### Stream subscriptions
 
-Actor fty-alert-engine-server is subscribed to streams METRICS, METRICS\_UNAVAILABLE and METRICS\_SENSOR.
-On each METRIC message, it updates metric cache, removes old metrics (older than their TTL) and re-evaluates all rules dependent on this metric.
-On each METRICUNAVAILABLE message, it finds all the rules dependent on this metric and resolves all the alerts triggered by them. For each found rule, it sends back a response message from TOUCH protocol.
+Actor fty-alert-trigger is subscribed to streams METRICS, METRICS\_UNAVAILABLE and METRICS\_SENSOR, and to SHM shared
+memory of metrics.
+On each stream message it stores message to cache, which gets evaluated based on periodic timer.
+On periodic timer trigger it does the following:
+* Resolves all alerts for unavailable metrics.
+* Evaluates all rules based on metric cache and SHM, clears cache.
 
-Actor fty-autoconfig is subscribed to stream ASSETS and on each ASSET message, it updates asset cache.
-
-Actor fty-alert-actions is subscribed to streams ASSETS and ALERTS.
-On each ASSET message, it updates asset cache.
-On each ALERT message, it updates alert cache.
+Actor fty-alert-config is subscribed to stream ASSETS and on each ASSET message, it updates asset cache.
 

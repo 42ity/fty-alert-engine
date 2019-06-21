@@ -4,7 +4,7 @@
     Runs all private classes selftests.
 
     -------------------------------------------------------------------------
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2019 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -38,8 +38,18 @@ void
 fty_alert_engine_private_selftest (bool verbose, const char *subtest)
 {
 // Tests for stable private classes:
-    if (streq (subtest, "$ALL") || streq (subtest, "alertconfiguration_test"))
-        alertconfiguration_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "asset_test"))
+        asset_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "rule_test"))
+        rule_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "lua_evaluate_test"))
+        lua_evaluate_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "extended_rules_test"))
+        extended_rules_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "alert_test"))
+        alert_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "header_tests_test"))
+        header_tests_test (verbose);
 }
 /*
 ################################################################################

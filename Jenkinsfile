@@ -1,7 +1,7 @@
 /*
     fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2019 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -607,13 +607,7 @@ pipeline {
                             def GIT_URL = sh(returnStdout: true, script: """git remote -v | egrep '^origin' | awk '{print \$2}' | head -1""").trim()
                             def GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse --verify HEAD').trim()
                             def DIST_ARCHIVE = ""
-                            def msg = "Would deploy ${GIT_URL} ${GIT_COMMIT} because tested branch '${env.BRANCH_NAME}' matches filter '${myDEPLOY_BRANCH_PATTERN}'"
-                            if ( params.DO_DIST_DOCS ) {
-                                DIST_ARCHIVE = env.BUILD_URL + "artifact/__dist.tar.gz"
-                                msg += ", using dist archive '${DIST_ARCHIVE}' to speed up deployment"
-                            }
-                            echo msg
-                            milestone ordinal: 100, label: "${env.JOB_NAME}@${env.BRANCH_NAME}"
+                            if ( params.DO_DIST_DOCS ) { DIST_ARCHIVE = env.BUILD_URL + "artifact/__dist.tar.gz" }
                             build job: "${myDEPLOY_JOB_NAME}", parameters: [
                                 string(name: 'DEPLOY_GIT_URL', value: "${GIT_URL}"),
                                 string(name: 'DEPLOY_GIT_BRANCH', value: env.BRANCH_NAME),

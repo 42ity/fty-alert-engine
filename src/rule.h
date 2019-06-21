@@ -1,42 +1,48 @@
-/*
- * Copyright (C) 2014 - 2017 Eaton
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- */
+/*  =========================================================================
+    rule - Abstract rule class
 
-/*! \file rule.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief General representation of rule
- */
+    Copyright (C) 2019 - 2019 Eaton
 
-#ifndef SRC_RULE_H
-#define SRC_RULE_H
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
-#include <sstream>
-#include <string>
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
+*/
+
+#ifndef RULE_H_INCLUDED
+#define RULE_H_INCLUDED
+
 #include <vector>
+#include <string>
 #include <map>
-#include <set>
-#include <fstream>
-#include <iostream>
-#include <czmq.h>
+#include <memory>
+#include <cassert>
+#include <cxxtools/serializationinfo.h>
+#include <cxxtools/jsondeserializer.h>
 #include <fty_log.h>
 
-#include "purealert.h"
-#include "metriclist.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+///  Self test of this class
+FTY_ALERT_ENGINE_PRIVATE void
+    rule_test (bool verbose);
+//  @end
+
+#ifdef __cplusplus
+}
+#endif
 
 //  1  - equals
 //  0  - different
@@ -47,269 +53,240 @@ utf8eq (const std::string& s1, const std::string& s2);
 void
 si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& member_name, std::string& result);
 
-/*
- * \brief Helper structure to store a possible outcome of rule evaluation
- *
- * Rule evaluation outcome has three values:
- * - actions
- * - severity // severity is detected automatically !!!! user cannot change it
- * - description
- */
-struct Outcome {
-    std::vector <std::string> _actions;
-    std::string _severity;
-    std::string _description;
+class unable_to_save : public std::runtime_error {
+    public:
+        unable_to_save () : runtime_error ("unable to save rule") { }
 };
 
-static const char *text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown" };
-
-/*
- * \brief Deserialzation of outcome
- */
-void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome);
-
-
-void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, double> &values);
-
-
-void operator>>= (const cxxtools::SerializationInfo& si, std::map <std::string, Outcome> &outcomes);
-
-enum RULE_RESULT {
-    RULE_RESULT_TO_LOW_CRITICAL  = -2,
-    RULE_RESULT_TO_LOW_WARNING   = -1,
-    RULE_RESULT_OK               =  0,
-    RULE_RESULT_TO_HIGH_WARNING  =  1,
-    RULE_RESULT_TO_HIGH_CRITICAL =  2,
-    RULE_RESULT_UNKNOWN          =  3,
+class InterfaceRule {
+    public:
+        typedef std::vector<std::string> VectorStrings;
+        /// identifies rule type
+        virtual std::string whoami () const = 0;
+        /*
+         * \brief Evaluates the rule
+         *
+         * \param[in] metrics - a list of necessary metrics for evaluation in order given by getTargetMetrics ()
+         *
+         * \return string result of evaluation
+         * \throw std::exception in case of evaluation failure
+         */
+        virtual VectorStrings evaluate (const VectorStrings &metrics) = 0;
+        /// identifies rule with unique name
+        std::string getName (void) const;
+        /// returns a list of metrics in order in which evaluation expects them to be
+        VectorStrings getTargetMetrics (void) const;
 };
 
-class Rule;
-typedef std::unique_ptr<Rule> RulePtr;
-
 /*
- * \brief General representation for rules
+ * serialized rule looks like:
+ * {
+ *  "single|pattern|threshold|flexible" : {
+ *      "name" : "NAME",
+ *      "description" : "DESCRIPTION", // optional
+ *      "class" : "CLASS", // optional
+ *      "categories" : [ // nonempty
+ *          "CAT1", "CAT2", ...
+ *      ],
+ *      "metrics" : "METRIC"|[ // can be either value or array, nonempty
+ *          "METRIC1", "METRIC2", ...
+ *      ],
+ *      "results" : [ // nonempty
+ *          { "RES1" : { // this object is called outcome
+ *              "action" : [
+ *                  {"action" : "EMAIL|SMS"}, { "action" : "GPO_INTERACTION", "asset" : "ASSET", "mode" : "MODE"}, ...
+ *              ],
+ *              "description" : "DESCRIPTION",
+ *              "threshold_name" : "THRESHOLD_NAME",
+ *              "severity" : "SEVERITY"
+ *          }
+ *      ],
+ *      "source" : "SOURCE", // optional
+ *      "assets" : "ASSET"|[ // can be either value or array, nonempty
+ *          "ASSET1", "ASSET2", ...
+ *      ],
+ *      "outcome_item_count" : "OUTCOME_ITEM_COUNT", // optional
+ *      "values" : [ // can be empty
+ *          { "VAR1NAME" : "VAR1VALUE" }, { "VAR2NAME" : "VAR2VALUE" }, ...
+ *      ],
+ *      "values_unit" : "VALUES_UNIT",
+ *      "hierarchy" : "hierarchy",
+ *      "models" : [ // optional, flexible only
+ *          "MODEL1", "MODEL2", ...
+ *      ]
+ *  }
  */
-class Rule {
+/// common features of various rules
+class Rule : public InterfaceRule {
+    public:
+        /*
+         * \brief Helper structure to store a possible outcome of rule evaluation
+         *
+         * Rule evaluation outcome has three values:
+         * - actions
+         * - severity // severity is detected automatically !!!! user cannot change it
+         * - description
+         */
+        struct Outcome {
+            VectorStrings actions_;
+            std::string severity_;
+            std::string description_;
+            std::string threshold_name_;
 
-public:
-    virtual std::string whoami () const { return ""; };
-    std::string name (void) const { return _name; }
-
-    void name (const std::string &name) { _name = name; }
-
-    std::string rule_class (void) const { return _rule_class; }
-    void rule_class (const std::string &rule_class) { _rule_class = rule_class; }
-
-    std::string element (void) const { return _element; }
-
-    virtual int fill(const cxxtools::SerializationInfo &si) = 0;
-
-    virtual void globalVariables (const std::map<std::string,double> &vars) {
-        _variables.clear ();
-        _variables.insert (vars.cbegin (), vars.cend ());
-    }
-
-    std::map<std::string,double> getGlobalVariables (void) const {
-        return _variables;
-    }
-
-    /**
-     * \brief get/set code
-     */
-    virtual void code(const std::string &code) {
-        throw std::runtime_error("Method not supported by this type of rule");
-    };
-
-    virtual std::string code(void) const{
-        throw std::runtime_error("Method not supported by this type of rule");
-    };
-
-    /*
-     * \brief User is able to define his own set of result,
-     *          that should be used in evaluation
-     *
-     * Maps result name into the definition of possible outcome.
-     * Outcome name "ok" (case sensitive) for outcome is reserved
-     * and cannot be redefined by user.
-     *
-     * TODO make it private
-     */
-    std::map <std::string, Outcome> _outcomes;
-
-
-    /* TODO rework this part, as it it legacy already*/
-    /* Every rule produces alerts for element */ // TODO check this assumption
-    std::string _element;
-
-    /*
-     * \brief Evaluates the rule
-     *
-     * \param[in] metricList - a list of known metrics
-     * \param[out] pureAlert - result of evaluation
-     *
-     * \return 0 if evaluation was correct
-     *         non 0 if there were some errors during the evaluation
-     */
-    virtual int evaluate (const MetricList &metricList, PureAlert &pureAlert) = 0;
-
-    /*
-     * \brief Checks if topic is necessary for rule evaluation
-     *
-     * \param[in] topic - topic to check
-     *
-     * \return true/false
-     */
-    virtual bool isTopicInteresting(const std::string &topic) const;
-
-    /*
-     * \brief Returns a set of topics, that are necessary for rule evaluation
-     *
-     * \return a set of topics
-     */
-    virtual std::vector<std::string> getNeededTopics(void) const;
-
-    /*
-     * \brief Checks if rules have same names
-     *
-     * \param[in] rule - rule to check
-     *
-     * \return true/false
-     */
-    bool hasSameNameAs (const RulePtr &rule) const {
-        return hasSameNameAs (rule->_name);
-    };
-
-    /*
-     * \brief Checks if rule has this name
-     *
-     * \param[in] name - name to check
-     *
-     * \return true/false
-     */
-    bool hasSameNameAs (const std::string &name) const {
-        return utf8eq (_name, name);
-    };
-
-    /*
-     * \brief Gets a json representation of the rule
-     *
-     * \return json representation of the rule as string
-     */
-    std::string getJsonRule (void) const {
-        std::stringstream s;
-        cxxtools::JsonSerializer js (s);
-        js.beautify (true);
-        js.serialize (_si).finish();
-        return s.str();
-    };
-
-    /*
-     * \brief Save rule to the persistance
-     */
-    void save (const std::string &path, const std::string& name) const {
-        // ASSUMPTION: file name is the same as rule name
-        // rule name and file name are CASE INSENSITIVE.
-
-        std::string full_name = path + name;
-        log_debug ("trying to save file : '%s'", full_name.c_str());
-        std::ofstream ofs (full_name, std::ofstream::out);
-        ofs.exceptions (~std::ofstream::goodbit);
-        ofs << getJsonRule ();
-        ofs.close();
-    };
-
-    /*
-     * \brief Delete rule from the persistance
-     *
-     * \param[in] path - a path to files
-     *
-     * \return 0 on success
-     *         non-zero on error
-     */
-    int remove (const std::string &path) {
-
-        std::string full_name = path + _name + ".rule";
-        log_debug ("trying to remove file : '%s'", full_name.c_str());
-        return std::remove (full_name.c_str());
-    };
-
-    static const char * resultToString(int result) {
-        if(result > RULE_RESULT_TO_HIGH_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
-            return text_results[ RULE_RESULT_UNKNOWN - RULE_RESULT_TO_LOW_CRITICAL ];
-        }
-        return text_results [result - RULE_RESULT_TO_LOW_CRITICAL];
-    }
-
-    static int resultToInt(const char *result) {
-        if( result == NULL ) return RULE_RESULT_UNKNOWN;
-        for(int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HIGH_CRITICAL; i++) {
-            if( strcmp( text_results[ i - RULE_RESULT_TO_LOW_CRITICAL ], result ) == 0 ) {
-                return i;
+            bool operator== (const Outcome &o) const {
+                return o.actions_ == actions_ && o.severity_ == severity_ && o.description_ == description_ &&
+                    o.threshold_name_ == threshold_name_;
             }
-        }
-        return RULE_RESULT_UNKNOWN;
-    }
+        };
+        typedef std::map<std::string, std::string> VariableMap;
+        typedef std::map<std::string, Outcome> ResultsMap;
+    protected:
+        // internal data
+        /// internal rule name, case sensitive, ascii only
+        std::string name_;
+        /// human readable rule name
+        std::string description_;
+        /// human readable info about this rule purpose like "internal temperature", used in UI to display values
+        std::string class_;
+        /// list of rule categories
+        VectorStrings categories_;
+        /// Vector of metrics to be evaluated
+        VectorStrings metrics_;
+        /// map of results that are outcomes of rule evaluation, case sensitive, default "ok" is always present
+        ResultsMap results_;
+        /// source of the rule (default Manual user input)
+        std::string source_;
+        /// assets on which this rule is applied
+        VectorStrings assets_;
+        /// map of variables that are used in rule evaluation
+        VariableMap variables_;
+        // TODO: FIXME: do all values need to use same units?
+        /// value unit
+        std::string value_unit_;
+        /// alert hierarchy
+        std::string hierarchy_;
 
-    virtual ~Rule () {};
+        //internal functions
+        virtual void loadFromSerializedObject (const cxxtools::SerializationInfo &si);
+        virtual void saveToSerializedObject (cxxtools::SerializationInfo &si) const;
+        void loadMandatoryString (const cxxtools::SerializationInfo &si, const std::string name, std::string &target);
+        void loadOptionalString (const cxxtools::SerializationInfo &si, const std::string name, std::string &target);
+        void loadOptionalInt (const cxxtools::SerializationInfo &si, const std::string name, int &target);
+        void loadMandatoryArray (const cxxtools::SerializationInfo &si, const std::string name, VectorStrings &target);
+        void loadMandatoryArrayOrValue (const cxxtools::SerializationInfo &si, const std::string name,
+                VectorStrings &target);
+        void loadOptionalArray (const cxxtools::SerializationInfo &si, const std::string name, VectorStrings &target);
+        void saveArray (cxxtools::SerializationInfo &si, const std::string name, const VectorStrings &target) const;
+    public:
+        // ctors, dtors, =
+        Rule (const std::string name, const VectorStrings metrics, const VectorStrings assets,
+                const VectorStrings categories, const ResultsMap results) : name_(name), categories_(categories),
+                metrics_(metrics), results_(results), assets_(assets) { };
+        Rule (const cxxtools::SerializationInfo &si) { loadFromSerializedObject (si); };
+        Rule (const std::string json);
+        virtual ~Rule () {};
+        // getters/setters
+        /// get rule internal name
+        std::string getName (void) const { return name_; }
+        /// set rule internal name
+        void setName (std::string name) { name_ = name; }
+        /// get rule description (shorter string for user)
+        std::string getRuleDescription (void) const { return description_; }
+        /// set rule description (shorter string for user)
+        void setRuleDescription (const std::string rule_description) { description_ = rule_description; }
+        /// get rule class (longer string for user)
+        std::string getRuleClass (void) const { return class_; }
+        /// set rule class (longer string for user)
+        void setRuleClass (const std::string rule_class) { class_ = rule_class; }
+        /// get rule element (asset)
+        VectorStrings getAssets (void) const { return assets_; }
+        /// returns a list of metrics in order in which evaluation expects them to be
+        VectorStrings getTargetMetrics (void) const { return metrics_; };
+        /// returns a list of categories that apply for the rule
+        VectorStrings getCategories (void) const { return categories_; };
+        /// returns a list of results that rule can publish
+        ResultsMap getResults (void) const { return results_; };
+        /// get global variable list
+        void setGlobalVariables (const VariableMap vars);
+        /// set global varible list
+        VariableMap getGlobalVariables (void) const { return variables_; }
+        /// get rule hierarchy location
+        std::string getHierarchy () const { return hierarchy_; };
+        /// set rule hierarchy location
+        void setHierarchy (const std::string hierarchy) { hierarchy_ = hierarchy; };
+        // handling
+        /// checks if rule has the same name as this rule
+        bool hasSameNameAs (const std::unique_ptr<Rule> &rule) const { return hasSameNameAs (rule->name_); };
+        /// checks if provided name matches this rule
+        bool hasSameNameAs (const std::string &name) const { return utf8eq (name_, name); };
+        /*
+         * \brief Gets a json representation of the rule
+         *
+         * \return json representation of the rule as string
+         */
+        std::string getJsonRule (void) const;
+        /// save rule to persistence storage
+        void save (const std::string &path) const;
+        /// remove rule from persistence storage
+        int remove (const std::string &path);
+        /// full comparator
+        bool operator == (const Rule &rule) const;
+        // friends
+        friend void operator>>= (const cxxtools::SerializationInfo& si, Rule &rule); // support cxxtools deserialization
+};
 
-protected:
-    /*
-     * \brief Vector of metrics to be evaluated
-     */
-    std::vector<std::string> _metrics;
+class RuleTest final : public Rule {
+    public:
+        std::string whoami () const { return "test"; };
+        VectorStrings evaluate (const VectorStrings &metrics) { return VectorStrings{"eval"}; };
+        RuleTest (const std::string name, const VectorStrings metrics, const VectorStrings assets,
+                const VectorStrings categories, const ResultsMap results) : Rule (name, metrics, assets, categories,
+                results) { };
+        RuleTest (const cxxtools::SerializationInfo &si) : Rule (si) { };
+        RuleTest (const std::string json) : Rule (json) { };
+};
 
-    /*
-     * \brief Every rule should have a rule name
-     *
-     * ASSUMPTION: rule name has only ascii characters.
-     * TODO This assumtion is not check anywhere.
-     *
-     * Rule name treated as case INSENSITIVE string
-     */
-    std::string _name;
-
-    cxxtools::SerializationInfo _si;
-
-
-    std::string _rule_source;
-
-    /*
-     * \brief Human readable info about this rule purpose like "internal temperature"
-     */
-    std::string _rule_class;
-private:
-    /*
-     * \brief User is able to define his own constants,
-     *          that can be used in evaluation function
-     *
-     * Maps name of the variable to the value.
-     */
-    std::map <std::string, double> _variables;
-
-
+class GenericRule final : public Rule {
+    public:
+        std::string whoami () const { return rule_type_; };
+        VectorStrings evaluate (const VectorStrings &metrics) { return VectorStrings{"eval"}; };
+        GenericRule (const std::string name, const VectorStrings metrics, const VectorStrings assets,
+                const VectorStrings categories, const ResultsMap results) : Rule (name, metrics, assets, categories,
+                results) { };
+        GenericRule (const cxxtools::SerializationInfo &si) : Rule (si) { };
+        GenericRule (const std::string json) : Rule (json) {
+            std::istringstream iss (json);
+            cxxtools::JsonDeserializer jd (iss);
+            cxxtools::SerializationInfo si;
+            jd.deserialize (si);
+            auto elem = si.getMember (0);
+            elem >>= rule_type_;
+        };
+    private:
+        std::string rule_type_;
 };
 
 class RuleMatcher {
 public:
-    virtual bool operator()(const Rule &rule) = 0;
+    virtual bool operator ()(const Rule &rule) = 0;
 protected:
-    virtual ~RuleMatcher() = default;
+    virtual ~RuleMatcher () = default;
 };
 
 class RuleNameMatcher : public RuleMatcher {
 public:
-    RuleNameMatcher(const std::string &name);
-    bool operator()(const Rule &rule) override;
+    RuleNameMatcher (const std::string &name);
+    bool operator ()(const Rule &rule) override;
 private:
-    std::string _name;
+    std::string name_;
 };
 
-class RuleElementMatcher : public RuleMatcher {
+class RuleAssetMatcher : public RuleMatcher {
 public:
-    RuleElementMatcher(const std::string &element);
-    bool operator()(const Rule &rule) override;
+    RuleAssetMatcher (const std::string &asset);
+    bool operator ()(const Rule &rule) override;
 private:
-    std::string _element;
+    std::string asset_;
 };
 
-#endif // SRC_RULE_H
+#endif
