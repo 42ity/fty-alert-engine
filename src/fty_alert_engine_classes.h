@@ -32,11 +32,6 @@
 //  External API
 #include "../include/fty-alert-engine.h"
 
-//  Extra headers
-#include "database.h"
-#include "asset_database.h"
-#include "rule_factory.h"
-
 //  Opaque class structures to allow forward references
 #ifndef ASSET_T_DEFINED
 typedef struct _asset_t asset_t;
@@ -62,6 +57,11 @@ typedef struct _alert_t alert_t;
 typedef struct _header_tests_t header_tests_t;
 #define HEADER_TESTS_T_DEFINED
 #endif
+
+//  Extra headers
+#include "database.h"
+#include "asset_database.h"
+#include "rule_factory.h"
 
 //  Internal API
 
