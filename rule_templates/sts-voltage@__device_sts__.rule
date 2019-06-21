@@ -1,8 +1,8 @@
-{ 
+{
     "flexible" : {
         "name"          : "sts-voltage@__name__",
         "description"   : "TRANSLATE_LUA(The STS/ATS voltage is out of tolerance)",
-        "rule_cat"      : ["CAT_OTHER", "CAT_ALL"],
+        "categories"      : ["CAT_OTHER", "CAT_ALL"],
         "metrics"       : ["status.input.1.voltage", "status.input.2.voltage"],
         "assets"        : ["__name__"],
         "results"       :  {
