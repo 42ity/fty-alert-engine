@@ -2,12 +2,12 @@ AM_CPPFLAGS += -I$(abs_top_srcdir)/include
 
 template_ruledir = $(datadir)/bios/fty-autoconfig
 RULE_TEMPLATES = \
-	src/rule_templates/average.humidity@__datacenter__.rule \
-	src/rule_templates/average.temperature@__datacenter__.rule \
-	src/rule_templates/average.humidity@__rack__.rule \
-	src/rule_templates/average.temperature@__rack__.rule \
-	src/rule_templates/average.humidity@__row__.rule \
-	src/rule_templates/average.temperature@__row__.rule \
+	src/rule_templates/average.humidity@__datacenter_n_a__.rule \
+	src/rule_templates/average.temperature@__datacenter_n_a__.rule \
+	src/rule_templates/average.humidity@__rack_n_a__.rule \
+	src/rule_templates/average.temperature@__rack_n_a__.rule \
+	src/rule_templates/average.humidity@__row_n_a__.rule \
+	src/rule_templates/average.temperature@__row_n_a__.rule \
 	src/rule_templates/charge.battery@__device_ups__.rule \
 	src/rule_templates/load.default@__device_ups__.rule \
 	src/rule_templates/load.input_1phase@__device_epdu__.rule \
@@ -16,12 +16,12 @@ RULE_TEMPLATES = \
 	src/rule_templates/onacpoweroutage@__device_ups__.rule \
 	src/rule_templates/onbattery@__device_ups__.rule \
 	src/rule_templates/onbypass@__device_ups__.rule \
-	src/rule_templates/phase_imbalance@__datacenter__.rule \
+	src/rule_templates/phase_imbalance@__datacenter_n_a__.rule \
 	src/rule_templates/phase_imbalance@__device_epdu__.rule \
 	src/rule_templates/phase_imbalance@__device_ups__.rule \
-	src/rule_templates/phase_imbalance@__rack__.rule \
-	src/rule_templates/realpower.default_1phase@__rack__.rule \
-	src/rule_templates/realpower.default@__datacenter__.rule \
+	src/rule_templates/phase_imbalance@__rack_n_a__.rule \
+	src/rule_templates/realpower.default_1phase@__rack_n_a__.rule \
+	src/rule_templates/realpower.default@__datacenter_n_a__.rule \
 	src/rule_templates/runtime.battery@__device_ups__.rule \
 	src/rule_templates/section_load@__device_epdu__.rule \
 	src/rule_templates/temperature.default@__device_ups__.rule \
