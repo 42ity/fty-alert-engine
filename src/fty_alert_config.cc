@@ -657,6 +657,15 @@ fty_alert_config_test (bool verbose)
     }
     assert (counter <= 20);
 
+    log_debug ("Test 6 no messages in queue");
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which != nullptr)
+            assert (false);
+        ++counter;
+    }
+    assert (counter >= 20);
+
     zpoller_destroy (&poller);
     mlm_client_destroy (&client_assets);
     mlm_client_destroy (&client_mailbox);

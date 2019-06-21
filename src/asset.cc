@@ -413,6 +413,8 @@ std::unique_ptr<ExtendedAsset> getExtendedAssetFromFtyProto (fty_proto_t *msg) {
 std::unique_ptr<FullAsset> getFullAssetFromFtyProto (fty_proto_t *msg) {
     if (fty_proto_id (msg) != FTY_PROTO_ASSET)
         throw std::invalid_argument ("Wrong fty-proto type");
+        zhash_t *aux = fty_proto_aux (msg);
+        zhash_t *ext = fty_proto_ext (msg);
     return std::unique_ptr<FullAsset>(new FullAsset (
         fty_proto_name (msg),
         fty_proto_aux_string (msg, "status", "active"),
@@ -421,8 +423,8 @@ std::unique_ptr<FullAsset> getFullAssetFromFtyProto (fty_proto_t *msg) {
         fty_proto_ext_string (msg, "name", fty_proto_name (msg)),
         fty_proto_aux_string (msg, "parent_name.1", ""),
         fty_proto_aux_number (msg, "priority", 5),
-        MlmUtils::zhash_to_map (fty_proto_get_aux (msg)),
-        MlmUtils::zhash_to_map (fty_proto_get_ext (msg))));
+        MlmUtils::zhash_to_map (aux),
+        MlmUtils::zhash_to_map (ext)));
 }
 
 //  --------------------------------------------------------------------------

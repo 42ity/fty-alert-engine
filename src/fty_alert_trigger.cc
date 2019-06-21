@@ -641,7 +641,7 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
 
 void AlertTrigger::runStream (zsock_t *pipe) {
     log_debug ("running stream");
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), mlm_client_msgpipe (client_mb_sender_), NULL);
     assert (poller);
     int64_t timeout = timeout_;
     zsock_signal (pipe, 0);
@@ -649,6 +649,10 @@ void AlertTrigger::runStream (zsock_t *pipe) {
     log_info ("%s: Actor started", name_.c_str ());
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout);
+        if (which == mlm_client_msgpipe (client_mb_sender_)){
+            zmsg_t *zmsg = mlm_client_recv (client_mb_sender_);
+            zmsg_destroy (&zmsg);
+        }
         int64_t time_diff = zclock_mono () - time_last;
         if (time_diff >= timeout) {
             log_debug ("Expired timeout, start evaluating alarms");
@@ -691,12 +695,16 @@ void AlertTrigger::runStream (zsock_t *pipe) {
 
 void AlertTrigger::runMailbox (zsock_t *pipe) {
     log_debug ("running mailbox");
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client_), mlm_client_msgpipe (client_mb_sender_), NULL);
     assert (poller);
     zsock_signal (pipe, 0);
     log_info ("%s: Actor started", name_.c_str ());
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, timeout_);
+        if (which == mlm_client_msgpipe (client_mb_sender_)){
+            zmsg_t *zmsg = mlm_client_recv (client_mb_sender_);
+            zmsg_destroy (&zmsg);
+        }
         // handle termination
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
@@ -1207,6 +1215,7 @@ fty_alert_trigger_test (bool verbose)
                 if (rules == nullptr)
                     break;
                 ++rules_count;
+                zstr_free (&rules);
             }
             zstr_free (&param1);
             zstr_free (&param2);
@@ -1831,8 +1840,16 @@ fty_alert_trigger_test (bool verbose)
     }
     assert (counter < 20);
 
+    log_debug ("Test 14 no messages in queue");
     // send licensing metric
     // TODO: FIXME: add this as there was no support in previous version
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which != nullptr)
+            assert (false);
+        ++counter;
+    }
+    assert (counter >= 20);
 
     zpoller_destroy (&poller);
     mlm_client_destroy (&client_unavailable);
