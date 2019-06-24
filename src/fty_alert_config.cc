@@ -447,6 +447,10 @@ fty_alert_config_test (bool verbose)
     printf (" * fty_alert_config: ");
 
     log_debug ("Test 0: initialization");
+    zactor_t *server = zactor_new (mlm_server, (void *) "Malamute");
+    zstr_sendx (server, "BIND", "inproc://@/malamute", NULL);
+    if (verbose)
+        zstr_send (server, "VERBOSE");
     // create stream producer for assets
     mlm_client_t *client_assets = mlm_client_new ();
     int rv = mlm_client_connect (client_assets, "inproc://@/malamute", 1000, "fty_alert_config_test_assets_producer");
