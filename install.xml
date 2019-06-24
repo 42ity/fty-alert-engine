@@ -10,6 +10,6 @@ Installation model
      -->
 
 <install>
-    <item path = "/var/lib/fty/fty-alert-engine" name = "warranty.rule" />
+    <item path = "/var/lib/fty/fty-alert-engine" name = "../src/rule_templates/warranty.rule" />
     <item path = "/usr/share/bios/fty-autoconfig" />
 </install>
