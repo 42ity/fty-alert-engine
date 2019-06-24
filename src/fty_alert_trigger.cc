@@ -527,7 +527,7 @@ void AlertTrigger::handleMailboxMessages () {
             else if (streq (command, "TOUCH")) {
                 touchRule (corr_id, param);
             }
-            else if (streq (command, "DELETE")) {      
+            else if (streq (command, "DELETE")) {
                 RuleNameMatcher matcher (param);
                 deleteRules (corr_id, &matcher);
             }
@@ -793,31 +793,31 @@ fty_alert_trigger_test (bool verbose)
     assert (fty_shm_set_test_dir (str_SELFTEST_DIR_RW.c_str ()) == 0);
     // create stream producer for unavailable metrics
     mlm_client_t *client_unavailable = mlm_client_new ();
-    int rv = mlm_client_connect (client_unavailable, "ipc://@/malamute", 1000, "fty_alert_trigger_test_unavailable_producer");
+    int rv = mlm_client_connect (client_unavailable, "inproc://@/malamute", 1000, "fty_alert_trigger_test_unavailable_producer");
     assert (rv == 0);
     rv = mlm_client_set_producer (client_unavailable, "fty_alert_trigger_test_unavailable");
     assert (rv == 0);
     // create stream producer for metrics stream
     mlm_client_t *client_metrics = mlm_client_new ();
-    rv = mlm_client_connect (client_metrics, "ipc://@/malamute", 1000, "fty_alert_trigger_test_metrics_producer");
+    rv = mlm_client_connect (client_metrics, "inproc://@/malamute", 1000, "fty_alert_trigger_test_metrics_producer");
     assert (rv == 0);
     rv = mlm_client_set_producer (client_metrics, "fty_alert_trigger_test_metrics");
     assert (rv == 0);
     // create stream producer for metrics stream
     mlm_client_t *client_licensing = mlm_client_new ();
-    rv = mlm_client_connect (client_licensing, "ipc://@/malamute", 1000, "fty_alert_trigger_test_licensing_producer");
+    rv = mlm_client_connect (client_licensing, "inproc://@/malamute", 1000, "fty_alert_trigger_test_licensing_producer");
     assert (rv == 0);
     rv = mlm_client_set_producer (client_licensing, "fty_alert_trigger_test_licensing");
     assert (rv == 0);
     // create agent for stream
     mlm_client_t *client_stream = mlm_client_new ();
-    rv = mlm_client_connect (client_stream, "ipc://@/malamute", 1000, "fty_alert_trigger_test_consumer");
+    rv = mlm_client_connect (client_stream, "inproc://@/malamute", 1000, "fty_alert_trigger_test_consumer");
     assert (rv == 0);
     rv = mlm_client_set_consumer (client_stream, "fty_alert_trigger_test_stream", ".*");
     assert (rv == 0);
     // create agent for mailboxes
     mlm_client_t *client_mailbox = mlm_client_new ();
-    rv = mlm_client_connect (client_mailbox, "ipc://@/malamute", 1000, "fty_alert_trigger_test_list");
+    rv = mlm_client_connect (client_mailbox, "inproc://@/malamute", 1000, "fty_alert_trigger_test_list");
     assert (rv == 0);
     // poller
     zpoller_t *poller = zpoller_new (mlm_client_msgpipe (client_unavailable), mlm_client_msgpipe (client_metrics),
@@ -832,12 +832,12 @@ fty_alert_trigger_test (bool verbose)
     sleep (1);
     // trigger mailbox
     zstr_sendx (agent_trigger_mailbox, "CONFIG", SELFTEST_DIR_RW, NULL);
-    zstr_sendx (agent_trigger_mailbox, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_trigger_mailbox, "CONNECT", "inproc://@/malamute", NULL);
     zstr_sendx (agent_trigger_mailbox, "TIMEOUT_INTERNAL", "3000000", NULL);
     zstr_sendx (agent_trigger_mailbox, "ALERT_LIST_MB_NAME", "fty_alert_trigger_test_list", NULL); // trigger mailbox name
     zstr_sendx (agent_trigger_mailbox, "PRODUCER", "fty_alert_trigger_test_stream", NULL);
     // trigger stream + alert evaluation
-    zstr_sendx (agent_trigger_stream, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_trigger_stream, "CONNECT", "inproc://@/malamute", NULL);
     zstr_sendx (agent_trigger_stream, "TIMEOUT", "3000000", NULL);
     zstr_sendx (agent_trigger_stream, "TIMEOUT_INTERNAL", "3000000", NULL);
     zstr_sendx (agent_trigger_stream, "PRODUCER", "fty_alert_trigger_test_stream", NULL);

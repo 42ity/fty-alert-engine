@@ -449,13 +449,13 @@ fty_alert_config_test (bool verbose)
     log_debug ("Test 0: initialization");
     // create stream producer for assets
     mlm_client_t *client_assets = mlm_client_new ();
-    int rv = mlm_client_connect (client_assets, "ipc://@/malamute", 1000, "fty_alert_config_test_assets_producer");
+    int rv = mlm_client_connect (client_assets, "inproc://@/malamute", 1000, "fty_alert_config_test_assets_producer");
     assert (rv == 0);
     rv = mlm_client_set_producer (client_assets, "fty_alert_config_test_assets_stream");
     assert (rv == 0);
     // create agent for mailboxes
     mlm_client_t *client_mailbox = mlm_client_new ();
-    rv = mlm_client_connect (client_mailbox, "ipc://@/malamute", 1000, "fty_alert_config_test_trigger");
+    rv = mlm_client_connect (client_mailbox, "inproc://@/malamute", 1000, "fty_alert_config_test_trigger");
     assert (rv == 0);
     // poller
     zpoller_t *poller = zpoller_new (mlm_client_msgpipe (client_assets), mlm_client_msgpipe (client_mailbox), NULL);
@@ -464,7 +464,7 @@ fty_alert_config_test (bool verbose)
     zactor_t *agent_config = zactor_new (fty_alert_config_main, (void*) "fty_alert_config_test");
     sleep (1);
     // set everything up
-    zstr_sendx (agent_config, "CONNECT", "ipc://@/malamute", NULL);
+    zstr_sendx (agent_config, "CONNECT", "inproc://@/malamute", NULL);
     zstr_sendx (agent_config, "TIMEOUT", "30000", NULL);
     zstr_sendx (agent_config, "TIMEOUT_INTERNAL", "3000000", NULL);
     zstr_sendx (agent_config, "TEMPLATES_DIR", SELFTEST_DIR_RO "/templates", NULL); // rule template
