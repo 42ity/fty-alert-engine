@@ -1,9 +1,13 @@
 #   fty-alert-engine configuration
+# This is a skeleton created by zproject.
+# You can add hand-written code here.
 
 server
-    timeout = 10000     #   Client connection timeout, msec
+    timeout = 30000     #   Client connection timeout, msec, applied only to config service, trigger service follows SHM
     background = 0      #   Run as background process
     workdir = .         #   Working directory for daemon
     verbose = 0         #   Do verbose logging of activity?
+    rules = "/var/lib/fty/fty-alert-engine"         # directory containing rules
+    templates = "/usr/share/bios/fty-autoconfig"    # directory containing templates
 log
     config = "/etc/fty/ftylog.cfg"     #   Path to the log configuration file (optional)

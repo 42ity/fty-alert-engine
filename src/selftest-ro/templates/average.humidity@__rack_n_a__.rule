@@ -1,0 +1,21 @@
+{
+    "threshold" : {
+        "name"     :   "average.humidity-input@__name__",
+        "desc"     :   "TRANSLATE_LUA(Humidity)",
+        "class"    :   "TRANSLATE_LUA(Humidity in rack)",
+        "hierarchy" :  "environment.humidity.input.rack",
+        "categories"      :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
+        "metrics"        :   "average.humidity-input@__name__",
+        "assets"       :   "__name__",
+        "values_unit"   :   "%",
+        "values"        :   [ {"low_warning"   : "40"},
+                              {"low_critical"  : "30"},
+                              {"high_warning"  : "60"},
+                              {"high_critical" : "70"} ],
+        "results"       :   [
+            { "low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in rack {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in rack is low)" }},
+            { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in rack {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in rack is critically low)" }},
+            { "high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" :  "{\"key\" : \"TRANSLATE_LUA(Humidity in rack {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in rack is high)" }},
+            { "high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" :  "{\"key\" : \"TRANSLATE_LUA(Humidity in rack {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in rack is critically high)" }} ]
+    }
+}

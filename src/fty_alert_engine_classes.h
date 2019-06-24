@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_alert_engine_classes - private header file
 
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2019 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,58 +30,47 @@
 #include "platform.h"
 
 //  External API
-#include "../include/fty_alert_engine.h"
-
-//  Extra headers
-#include "normalrule.h"
-#include "thresholdrulesimple.h"
-#include "thresholdruledevice.h"
-#include "regexrule.h"
+#include "../include/fty-alert-engine.h"
 
 //  Opaque class structures to allow forward references
-#ifndef METRICLIST_T_DEFINED
-typedef struct _metriclist_t metriclist_t;
-#define METRICLIST_T_DEFINED
-#endif
-#ifndef ALERTCONFIGURATION_T_DEFINED
-typedef struct _alertconfiguration_t alertconfiguration_t;
-#define ALERTCONFIGURATION_T_DEFINED
-#endif
-#ifndef LUARULE_T_DEFINED
-typedef struct _luarule_t luarule_t;
-#define LUARULE_T_DEFINED
-#endif
-#ifndef PUREALERT_T_DEFINED
-typedef struct _purealert_t purealert_t;
-#define PUREALERT_T_DEFINED
+#ifndef ASSET_T_DEFINED
+typedef struct _asset_t asset_t;
+#define ASSET_T_DEFINED
 #endif
 #ifndef RULE_T_DEFINED
 typedef struct _rule_t rule_t;
 #define RULE_T_DEFINED
 #endif
-#ifndef THRESHOLDRULECOMPLEX_T_DEFINED
-typedef struct _thresholdrulecomplex_t thresholdrulecomplex_t;
-#define THRESHOLDRULECOMPLEX_T_DEFINED
+#ifndef LUA_EVALUATE_T_DEFINED
+typedef struct _lua_evaluate_t lua_evaluate_t;
+#define LUA_EVALUATE_T_DEFINED
 #endif
-#ifndef RULECONFIGURATOR_T_DEFINED
-typedef struct _ruleconfigurator_t ruleconfigurator_t;
-#define RULECONFIGURATOR_T_DEFINED
+#ifndef EXTENDED_RULES_T_DEFINED
+typedef struct _extended_rules_t extended_rules_t;
+#define EXTENDED_RULES_T_DEFINED
 #endif
-#ifndef TEMPLATERULECONFIGURATOR_T_DEFINED
-typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
-#define TEMPLATERULECONFIGURATOR_T_DEFINED
+#ifndef ALERT_T_DEFINED
+typedef struct _alert_t alert_t;
+#define ALERT_T_DEFINED
 #endif
+#ifndef HEADER_TESTS_T_DEFINED
+typedef struct _header_tests_t header_tests_t;
+#define HEADER_TESTS_T_DEFINED
+#endif
+
+//  Extra headers
+#include "database.h"
+#include "asset_database.h"
+#include "rule_factory.h"
 
 //  Internal API
 
-#include "metriclist.h"
-#include "alertconfiguration.h"
-#include "luarule.h"
-#include "purealert.h"
+#include "asset.h"
 #include "rule.h"
-#include "thresholdrulecomplex.h"
-#include "ruleconfigurator.h"
-#include "templateruleconfigurator.h"
+#include "lua_evaluate.h"
+#include "extended_rules.h"
+#include "alert.h"
+#include "header_tests.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ALERT_ENGINE_BUILD_DRAFT_API
@@ -89,7 +78,32 @@ typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 //  *** Draft method, defined for internal use only ***
 //  Self test of this class.
 FTY_ALERT_ENGINE_PRIVATE void
-    alertconfiguration_test (bool verbose);
+    asset_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    rule_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    lua_evaluate_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    extended_rules_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    alert_test (bool verbose);
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+FTY_ALERT_ENGINE_PRIVATE void
+    header_tests_test (bool verbose);
 
 //  Self test for private classes
 FTY_ALERT_ENGINE_PRIVATE void

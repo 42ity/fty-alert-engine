@@ -1,12 +1,12 @@
 {
     "threshold": {
-        "rule_name"	     : "phase_imbalance@__name__",
-        "rule_class"     : "TRANSLATE_LUA(Phase imbalance in data center)",
-        "rule_hierarchy" : "power.phaseimbalance.dc",
-        "rule_desc"	     : "TRANSLATE_LUA(Datacenter phase imbalance)",
-        "rule_cat"       : ["CAT_OTHER", "CAT_ALL"],
-        "target"	     : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
-        "element"	     : "__name__",
+        "name"	     : "phase_imbalance@__name__",
+        "class"     : "TRANSLATE_LUA(Phase imbalance in data center)",
+        "hierarchy" : "power.phaseimbalance.dc",
+        "description"	     : "TRANSLATE_LUA(Datacenter phase imbalance)",
+        "categories"       : ["CAT_OTHER", "CAT_ALL"],
+        "metrics"	     : [ "realpower.output.L1", "realpower.output.L2", "realpower.output.L3" ],
+        "assets"	     : "__name__",
         "values_unit"	 : "%",
         "values"	  : [
             { "high_warning": "10" },

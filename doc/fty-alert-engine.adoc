@@ -15,7 +15,7 @@ Project fty-alert-engine aims to ... (short marketing pitch)
 It delivers several programs with their respective man pages:
  fty-alert-engine.1
 and public classes in a shared library:
- fty_alert_engine_server.3
+ fty_alert_trigger.3 fty_alert_config.3
 
 Generally you can compile and link against it like this:
 ----

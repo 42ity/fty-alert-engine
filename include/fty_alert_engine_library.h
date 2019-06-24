@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty-alert-engine - generated layer of public API
 
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2019 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@
 #include <lua.h>
 #include <cxxtools/allocator.h>
 #include <fty_common.h>
+#include <fty_common_mlm.h>
 #include <fty_shm.h>
 
 //  FTY_ALERT_ENGINE version macros for compile-time API detection
@@ -79,21 +80,15 @@
 
 //  Opaque class structures to allow forward references
 //  These classes are stable or legacy and built in all releases
-typedef struct _utils_t utils_t;
-#define UTILS_T_DEFINED
-typedef struct _autoconfig_t autoconfig_t;
-#define AUTOCONFIG_T_DEFINED
-typedef struct _fty_alert_engine_server_t fty_alert_engine_server_t;
-#define FTY_ALERT_ENGINE_SERVER_T_DEFINED
-typedef struct _fty_alert_actions_t fty_alert_actions_t;
-#define FTY_ALERT_ACTIONS_T_DEFINED
+typedef struct _fty_alert_trigger_t fty_alert_trigger_t;
+#define FTY_ALERT_TRIGGER_T_DEFINED
+typedef struct _fty_alert_config_t fty_alert_config_t;
+#define FTY_ALERT_CONFIG_T_DEFINED
 
 
 //  Public classes, each with its own header file
-#include "utils.h"
-#include "autoconfig.h"
-#include "fty_alert_engine_server.h"
-#include "fty_alert_actions.h"
+#include "fty_alert_trigger.h"
+#include "fty_alert_config.h"
 
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
 

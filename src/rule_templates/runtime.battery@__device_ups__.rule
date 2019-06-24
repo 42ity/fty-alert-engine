@@ -1,12 +1,12 @@
 {
     "threshold" : {
-        "rule_name"     :   "runtime.battery@__name__",
-        "rule_desc"     :   "TRANSLATE_LUA(Battery Runtime)",
-        "rule_class"    :   "TRANSLATE_LUA(Battery Runtime remaining in UPS)",
-        "rule_hierarchy":   "runtime.batterylevel.ups",
-        "rule_cat"      :   ["CAT_POWER", "CAT_ALL"],
-        "target"        :   "runtime.battery@__name__",
-        "element"       :   "__name__",
+        "name"     :   "runtime.battery@__name__",
+        "description"     :   "TRANSLATE_LUA(Battery Runtime)",
+        "class"    :   "TRANSLATE_LUA(Battery Runtime remaining in UPS)",
+        "hierarchy":   "runtime.batterylevel.ups",
+        "categories"      :   ["CAT_POWER", "CAT_ALL"],
+        "metrics"        :   "runtime.battery",
+        "assets"       :   "__name__",
         "values_unit"   :   "s",
         "values"        :   [
             {"low_warning"  : "180"},
