@@ -39,11 +39,16 @@
 #define DEFAULT_TIMEOUT "30000"
 
 /// trigger name
-#define TRIGGER_AGENT_NAME_MAILBOX "fty-alert-trigger"
-#define TRIGGER_AGENT_NAME_STREAM "fty-alert-trigger-stream"
+//TODO: FIXME: renamed to use old names, after release should be changed properly
+//#define TRIGGER_AGENT_NAME_MAILBOX "fty-alert-trigger"
+//#define TRIGGER_AGENT_NAME_STREAM "fty-alert-trigger-stream"
+#define TRIGGER_AGENT_NAME_MAILBOX "fty-alert-engine"
+#define TRIGGER_AGENT_NAME_STREAM "fty-alert-engine-stream"
 
 /// config name
-#define CONFIG_AGENT_NAME "fty-alert-config"
+//TODO: FIXME: renamed to use old names, after release should be changed properly
+//#define CONFIG_AGENT_NAME "fty-alert-config"
+#define CONFIG_AGENT_NAME "fty-autoconfig"
 
 /// list name
 #define LIST_AGENT_NAME "fty-alert-list"
