@@ -786,6 +786,10 @@ fty_alert_trigger_test (bool verbose)
     printf (" * fty_alert_trigger: ");
 
     log_debug ("Test 0: initialization");
+    zactor_t *server = zactor_new (mlm_server, (void *) "Malamute");
+    zstr_sendx (server, "BIND", "inproc://@/malamute", NULL);
+    if (verbose)
+        zstr_send (server, "VERBOSE");
     std::string str_SELFTEST_DIR_RW = std::string (SELFTEST_DIR_RW);
     int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str ());
     assert (r == 0); // to make gcc @ CentOS 7 happy
