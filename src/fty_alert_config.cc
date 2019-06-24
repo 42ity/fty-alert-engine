@@ -698,10 +698,11 @@ fty_alert_config_test (bool verbose)
     }
     assert (counter >= 20);
 
+    zactor_destroy (&agent_config);
     zpoller_destroy (&poller);
     mlm_client_destroy (&client_assets);
     mlm_client_destroy (&client_mailbox);
-    zactor_destroy (&agent_config);
+    zactor_destroy (&server);
 
     printf ("OK\n");
 }

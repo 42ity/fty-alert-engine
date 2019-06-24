@@ -1876,13 +1876,14 @@ fty_alert_trigger_test (bool verbose)
     }
     assert (counter >= 20);
 
-    zpoller_destroy (&poller);
-    mlm_client_destroy (&client_unavailable);
-    mlm_client_destroy (&client_metrics);
-    mlm_client_destroy (&client_licensing);
-    mlm_client_destroy (&client_stream);
-    mlm_client_destroy (&client_mailbox);
-    zactor_destroy (&agent_trigger_stream);
     zactor_destroy (&agent_trigger_mailbox);
+    zactor_destroy (&agent_trigger_stream);
+    zpoller_destroy (&poller);
+    mlm_client_destroy (&client_mailbox);
+    mlm_client_destroy (&client_stream);
+    mlm_client_destroy (&client_licensing);
+    mlm_client_destroy (&client_metrics);
+    mlm_client_destroy (&client_unavailable);
+    zactor_destroy (&server);
     printf ("OK\n");
 }
