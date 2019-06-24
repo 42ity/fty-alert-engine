@@ -17,6 +17,8 @@
         <option name = "clangformat_allow_failures" value = "1" />
         <option name = "use_pkg_deps_prereqs_source" value = "0" />
         <option name = "require_gitignore" value = "1" />
+        <option name = "dist" value = "trusty" />
+        <option name = "shadow_gcc" value = "2" />
     </target>
     <target name = "jenkins" >
         <option name = "agent_label" value = "devel-image &amp;&amp; x86_64" />
@@ -39,11 +41,9 @@
         <option name = "use_deploymilestone" value = "1" />
         <option name = "use_build_nonconcurrent" value = "1" />
         <option name = "use_checkout_explicit" value = "1" />
-        <option name = "dist" value = "trusty" />
-        <option name = "shadow_gcc" value = "2" />
     </target>
 
-    <classfilename use-cxx = "true" source-extension = "cc" header-extension = "h"                                
+    <classfilename use-cxx = "true" source-extension = "cc" header-extension = "h"
         pretty-print = "no" keep-tree = "true" pkgincludedir = "false" use-cxx-gcc-4-9 = "true" />
 
     <include filename = "license.xml" />
@@ -219,10 +219,9 @@
         </use>
     </use>
 
-    <use project = "fty_shm" libname = "libfty_shm" header="fty_shm.h" min_major = "1" test = "fty_shm_test" 
+    <use project = "fty_shm" libname = "libfty_shm" header="fty_shm.h" min_major = "1" test = "fty_shm_test"
         repository = "https://github.com/42ity/fty-shm.git"
         release = "master"
-        test = "fty_shm_selftest"
         />
 
     <class name = "asset" private = "1" selftest = "1">Asset class</class>

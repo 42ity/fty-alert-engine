@@ -85,6 +85,7 @@ This package contains shared library for fty-alert-engine: 42ity service evaluat
 
 %files -n libfty_alert_engine0
 %defattr(-,root,root)
+%doc COPYING
 %{_libdir}/libfty_alert_engine.so.*
 
 %package devel
@@ -136,6 +137,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %doc README.md
+%doc COPYING
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg
