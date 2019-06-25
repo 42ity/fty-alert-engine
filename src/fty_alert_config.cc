@@ -205,16 +205,16 @@ void AlertConfig::listTemplates (std::string corr_id, std::string type) {
         //invalid type
         log_warning ("type '%s' is invalid", type.c_str ());
         zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INVALID_TYPE");
         mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT,
                 mlm_client_tracker (client_), 1000, &reply);
         return;
     }
     zmsg_t *reply = zmsg_new ();
-    zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, corr_id.c_str ());
+    zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type.c_str ());
     for (auto &template_pair : getAllTemplatesMap ()) {
         if (filter_type (template_pair.second->whoami ())) {
@@ -241,8 +241,8 @@ void AlertConfig::handleMailboxMessages (zmsg_t **msg) {
         return;
     }
     if (streq (mlm_client_subject (client_), RULES_SUBJECT)) {
-        char *command = zmsg_popstr (zmessage);
         char *corr_id = zmsg_popstr (zmessage);
+        char *command = zmsg_popstr (zmessage);
         char *param = zmsg_popstr (zmessage);
         log_debug ("Incoming message: subject: '%s', command: '%s', param: '%s'", RULES_SUBJECT, command, param);
         if (command != nullptr) {
@@ -272,8 +272,20 @@ void AlertConfig::handleMailboxMessages (zmsg_t **msg) {
         zstr_free (&corr_id);
         zstr_free (&param);
     } else {
+        char *corr_id = zmsg_popstr (zmessage);
         char *command = zmsg_popstr (zmessage);
-        log_error ("%s: Unexpected mailbox message received with command : %s", name_.c_str (), command);
+        if (command != nullptr) {
+            log_error ("Unexpected mailbox message received with command : %s", command);
+        } else {
+            log_error ("Unexpected mailbox message received without any commands");
+        }
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, corr_id);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "UNKNOWN_MESSAGE");
+        mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000,
+                &reply);
+        zstr_free (&corr_id);
         zstr_free (&command);
     }
     if (zmessage) {
@@ -315,8 +327,8 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
             rule_it.second->setName (rule_it.second->getName ().replace (name_it, name_it+std::strlen ("__name__"),
                 assetptr->getId ()));
             zmsg_t *message = zmsg_new ();
-            zmsg_addstr (message, "ADD");
             zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
+            zmsg_addstr (message, "ADD");
             zmsg_addstr (message, rule_it.second->getJsonRule ().c_str ());
             mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT,
                     mlm_client_tracker (client_), 1000, &message);
@@ -325,15 +337,15 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
             if (which != nullptr) {
                 message = mlm_client_recv (client_mb_sender_);
                 assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mb_sender_));
+                char *corr_id = zmsg_popstr (message);
                 char *command = zmsg_popstr (message);
                 if (!streq (command, "OK")) {
-                    char *corr_id = zmsg_popstr (message);
                     char *param = zmsg_popstr (message);
                     log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (),
                         rule_it.second->getJsonRule ().c_str ());
-                    zstr_free (&corr_id);
                     zstr_free (&param);
                 }
+                zstr_free (&corr_id);
                 zstr_free (&command);
                 zmsg_destroy (&message);
             }
@@ -343,8 +355,8 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
 void AlertConfig::onAssetDeleteCallback (FullAssetSPtr assetptr) {
     log_debug ("on asset delete callback");
     zmsg_t *message = zmsg_new ();
-    zmsg_addstr (message, "DELETE_ELEMENT");
     zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
+    zmsg_addstr (message, "DELETE_ELEMENT");
     zmsg_addstr (message, assetptr->getId ().c_str ());
     mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_),
             1000, &message);
@@ -353,15 +365,15 @@ void AlertConfig::onAssetDeleteCallback (FullAssetSPtr assetptr) {
     if (which != nullptr) {
         message = mlm_client_recv (client_mb_sender_);
         assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mb_sender_));
+        char *corr_id = zmsg_popstr (message);
         char *command = zmsg_popstr (message);
         if (!streq (command, "OK")) {
-            char *corr_id = zmsg_popstr (message);
             char *param = zmsg_popstr (message);
             log_error ("%s refused to delete rules for asset %s", alert_trigger_mb_name_.c_str (),
                 assetptr->getId ().c_str ());
-            zstr_free (&corr_id);
             zstr_free (&param);
         }
+        zstr_free (&corr_id);
         zstr_free (&command);
         zmsg_destroy (&message);
     }
@@ -500,15 +512,15 @@ fty_alert_config_test (bool verbose)
         } else if (which == mlm_client_msgpipe (client_mailbox)) {
             zmsg_t *zmessage = mlm_client_recv (client_mailbox);
             assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
-            char *command = zmsg_popstr (zmessage);
             char *corr_id = zmsg_popstr (zmessage);
+            char *command = zmsg_popstr (zmessage);
             char *param = zmsg_popstr (zmessage);
             assert (std::string ("ADD") == command);
             assert (!std::string (param).empty ());
             auto rule_ptr = RuleFactory::createFromJson (param);
             assert (rule_ptr->getName () == "average.temperature@datacenter-1");
             // proper reply
-            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, "OK", corr_id,
+            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, corr_id, "OK",
                     nullptr);
             zstr_free (&command);
             zstr_free (&corr_id);
@@ -576,8 +588,8 @@ fty_alert_config_test (bool verbose)
         if (which == mlm_client_msgpipe (client_mailbox)) {
             zmsg_t *zmessage = mlm_client_recv (client_mailbox);
             assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
-            char *command = zmsg_popstr (zmessage);
             char *corr_id = zmsg_popstr (zmessage);
+            char *command = zmsg_popstr (zmessage);
             char *param = zmsg_popstr (zmessage);
             assert (std::string ("ADD") == command);
             assert (!std::string (param).empty ());
@@ -587,7 +599,7 @@ fty_alert_config_test (bool verbose)
                 rule_ptr->getName () == "phase_imbalance@rack-3" ||
                 rule_ptr->getName () == "realpower.default@rack-3");
             // proper reply
-            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, "OK", corr_id,
+            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, corr_id, "OK",
                     nullptr);
             zstr_free (&command);
             zstr_free (&corr_id);
@@ -603,8 +615,8 @@ fty_alert_config_test (bool verbose)
     log_debug ("Test 4: list rules");
     // send mailbox list, check response
     zmsg_t *message = zmsg_new ();
-    zmsg_addstr (message, "LIST");
     zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "LIST");
     mlm_client_sendto (client_mailbox, "fty_alert_config_test", RULES_SUBJECT, mlm_client_tracker (client_mailbox),
         1000, &message);
     counter = 0;
@@ -617,11 +629,11 @@ fty_alert_config_test (bool verbose)
         if (which == mlm_client_msgpipe (client_mailbox)) {
             zmsg_t *zmessage = mlm_client_recv (client_mailbox);
             assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
-            char *command = zmsg_popstr (zmessage);
             char *corr_id = zmsg_popstr (zmessage);
+            char *command = zmsg_popstr (zmessage);
             char *param = zmsg_popstr (zmessage);
-            assert (streq ("LIST", command));
             assert (streq ("uuidtest", corr_id));
+            assert (streq ("LIST", command));
             assert (streq ("all", param));
             for (;;) {
                 char *filename = zmsg_popstr (zmessage);
@@ -672,13 +684,13 @@ fty_alert_config_test (bool verbose)
         if (which == mlm_client_msgpipe (client_mailbox)) {
             zmsg_t *zmessage = mlm_client_recv (client_mailbox);
             assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
-            char *command = zmsg_popstr (zmessage);
             char *corr_id = zmsg_popstr (zmessage);
+            char *command = zmsg_popstr (zmessage);
             char *param = zmsg_popstr (zmessage);
             assert (std::string ("DELETE_ELEMENT") == command);
             assert (std::string (param) == "ups-22");
             // proper reply
-            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, "OK", corr_id,
+            mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, corr_id, "OK",
                     nullptr);
             zstr_free (&command);
             zstr_free (&corr_id);
