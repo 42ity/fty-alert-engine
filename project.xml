@@ -238,4 +238,5 @@
     <main name = "fty-alert-engine" service = "1">
         Daemon evaluating rules and producing alerts
     </main>
+    <main name = "rule-checker">Check rules for errors</main>
 </project>

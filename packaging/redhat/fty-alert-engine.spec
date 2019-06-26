@@ -140,6 +140,8 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %doc COPYING
 %{_bindir}/fty-alert-engine
 %{_mandir}/man1/fty-alert-engine*
+%{_bindir}/rule-checker
+%{_mandir}/man1/rule-checker*
 %config(noreplace) %{_sysconfdir}/fty-alert-engine/fty-alert-engine.cfg
 %{SYSTEMD_UNIT_DIR}/fty-alert-engine.service
 %dir %{_sysconfdir}/fty-alert-engine

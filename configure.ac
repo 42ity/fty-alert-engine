@@ -1475,6 +1475,16 @@ AC_ARG_ENABLE([fty-alert-engine],
 AM_CONDITIONAL([ENABLE_FTY_ALERT_ENGINE], [test x$enable_fty_alert_engine != xno])
 AM_COND_IF([ENABLE_FTY_ALERT_ENGINE], [AC_MSG_NOTICE([ENABLE_FTY_ALERT_ENGINE defined])])
 
+# Check for rule-checker intent
+AC_ARG_ENABLE([rule-checker],
+    AS_HELP_STRING([--enable-rule-checker],
+        [Compile and install 'rule-checker' [default=yes]]),
+    [enable_rule_checker=$enableval],
+    [enable_rule_checker=yes])
+
+AM_CONDITIONAL([ENABLE_RULE_CHECKER], [test x$enable_rule_checker != xno])
+AM_COND_IF([ENABLE_RULE_CHECKER], [AC_MSG_NOTICE([ENABLE_RULE_CHECKER defined])])
+
 # Check for fty_alert_engine_selftest intent
 AC_ARG_ENABLE([fty_alert_engine_selftest],
     AS_HELP_STRING([--enable-fty_alert_engine_selftest],
