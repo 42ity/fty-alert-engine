@@ -26,6 +26,7 @@
 #include <cxxtools/serializationinfo.h>
 #include <vector>
 #include <map>
+#include <regex>
 
 // force proper header order
 #include "rule.h"
@@ -54,16 +55,21 @@ class SingleRule : public Rule, public DecoratorLuaEvaluate {
         SingleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
                 const Rule::VectorStrings categories, const ResultsMap results, std::string code,
                 DecoratorLuaEvaluate::VariableMap variables);
-        SingleRule (const cxxtools::SerializationInfo &si) : Rule (si) { loadFromSerializedObject (si); };
-        SingleRule (const std::string json) : Rule (json) { };
+        SingleRule (const std::string json);
         virtual ~SingleRule () {};
         // virtual functions
         virtual std::string whoami () const { return std::string ("single"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+                const Rule::SetStrings &inactive_metrics);
+        // friends
+        friend void operator>>= (const cxxtools::SerializationInfo& si, SingleRule &rule); // support cxxtools
+                                                                                           // deserialization
 };
 
 class PatternRule : public Rule, public DecoratorLuaEvaluate {
     protected:
+        std::regex metric_regex_;
         //internal functions
         void loadFromSerializedObject (const cxxtools::SerializationInfo &si);
         void saveToSerializedObject (cxxtools::SerializationInfo &si) const;
@@ -72,13 +78,17 @@ class PatternRule : public Rule, public DecoratorLuaEvaluate {
         PatternRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
                 const Rule::VectorStrings categories, const ResultsMap results, std::string code,
                 DecoratorLuaEvaluate::VariableMap variables);
-        PatternRule (const cxxtools::SerializationInfo &si) : Rule (si) { loadFromSerializedObject (si); };
-        PatternRule (const std::string json) : Rule (json) { };
+        PatternRule (const std::string json);
         virtual ~PatternRule () {};
         // virtual functions
         virtual std::string whoami () const { return std::string ("pattern"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+                const Rule::SetStrings &inactive_metrics);
         bool metricNameMatchesPattern (std::string &metric_name);
+        // friends
+        friend void operator>>= (const cxxtools::SerializationInfo& si, PatternRule &rule); // support cxxtools
+                                                                                            // deserialization
 };
 
 class ThresholdRule : public Rule, public DecoratorLuaEvaluate {
@@ -91,12 +101,16 @@ class ThresholdRule : public Rule, public DecoratorLuaEvaluate {
         ThresholdRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
                 const Rule::VectorStrings categories, const ResultsMap results, std::string code,
                 DecoratorLuaEvaluate::VariableMap variables);
-        ThresholdRule (const cxxtools::SerializationInfo &si) : Rule (si) { loadFromSerializedObject (si); };
-        ThresholdRule (const std::string json) : Rule (json) { };
+        ThresholdRule (const std::string json);
         virtual ~ThresholdRule () {};
         // virtual functions
         virtual std::string whoami () const { return std::string ("threshold"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+                const Rule::SetStrings &inactive_metrics);
+        // friends
+        friend void operator>>= (const cxxtools::SerializationInfo& si, ThresholdRule &rule); // support cxxtools
+                                                                                              // deserialization
 };
 
 class FlexibleRule : public Rule, public DecoratorLuaEvaluate {
@@ -112,12 +126,16 @@ class FlexibleRule : public Rule, public DecoratorLuaEvaluate {
         FlexibleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
                 const Rule::VectorStrings categories, const ResultsMap results, std::string code,
                 DecoratorLuaEvaluate::VariableMap variables);
-        FlexibleRule (const cxxtools::SerializationInfo &si) : Rule (si) { loadFromSerializedObject (si); };
         FlexibleRule (const std::string json);
         virtual ~FlexibleRule () {};
         // virtual functions
         virtual std::string whoami () const { return std::string ("flexible"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+                const Rule::SetStrings &inactive_metrics);
+        // friends
+        friend void operator>>= (const cxxtools::SerializationInfo& si, FlexibleRule &rule); // support cxxtools
+                                                                                            // deserialization
 };
 
 #endif

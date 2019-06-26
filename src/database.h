@@ -25,6 +25,7 @@
 #include <memory>
 #include <map>
 #include <stdexcept>
+#include <functional>
 
 #include "fty_alert_engine_classes.h"
 
