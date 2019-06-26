@@ -8,9 +8,16 @@
         "logical_asset" : "__logicalasset_iname__",
         "models"	    : ["WLD012"],
         "types" 	    : ["sensorgpio", "rackcontroller"],
-        "results"       : {
-            "high___rule_result__"   : { "action" : [{ "action": "EMAIL" }] }
-        },
+        "results"       : [
+            {
+                "high___rule_result__"   :
+                { 
+                    "action" : [{ "action": "EMAIL" }],
+                    "severity" : "__severity__",
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(Water leak detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}"
+                }
+            }
+        ],
         "evaluation"    : "
             function main(current_state)
                 if current_state == '__normalstate__' then

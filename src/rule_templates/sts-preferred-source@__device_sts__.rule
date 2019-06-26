@@ -5,9 +5,16 @@
         "categories"      : ["CAT_OTHER", "CAT_ALL"],
         "metrics"       : ["input.source", "input.source.preferred"],
         "assets"        : ["__name__"],
-        "results"       :  {
-            "high_warning"  : { "action" : [ ] }
-        },
+        "results"       :  [
+            {
+                "high_warning"  :
+                {
+                    "action" : [ ],
+                    "severity" : "WARNING",
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"prefered\" : \"%s\"}}"
+                }
+            }
+        ],
         "evaluation"    : "
             function main(input, preferred)
                 if input == preferred then

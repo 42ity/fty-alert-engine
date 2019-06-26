@@ -52,7 +52,9 @@ std::vector<std::pair<std::string, std::string>> getAllTemplatesMap (const std::
                 std::string file_content ((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
                 std::shared_ptr<Rule> rule = RuleFactory::createFromJson (file_content);
                 result.push_back (std::make_pair (filename, "valid"));
-            } catch (std::exception &e) {
+            } catch (std::exception &e)
+            {
+                std::cerr << filename << ": " <<  e.what() << std::endl;
                 result.push_back (std::make_pair (filename, "invalid"));
             }
         }
@@ -78,10 +80,24 @@ int main (int argc, char *argv [])
             std::vector<std::pair<std::string, std::string>> results = getAllTemplatesMap (path);
             std::cout << "Checked directory: " << path << std::endl;
             std::cout << "Result:" << std::endl;
+            
+            int errors = 0;
+
             for (auto &p : results) {
-                std::cout << p.first << " : " << p.second << std::endl;
+                if(p.second == "invalid")
+                {
+                    errors++;
+                    std::cout << "\033[31m" << p.first << " : " << p.second << "\033[0m" << std::endl;
+                }
+                else
+                {
+                    std::cout << "\033[32m" << p.first << " : " << p.second << "\033[0m" << std::endl;
+                    
+                }
+                
             }
-            return 0;
+
+            return errors;
         }
         else
         if (streq (argv [argn], "--verbose")

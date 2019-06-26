@@ -5,9 +5,17 @@
         "categories"      : ["CAT_OTHER", "CAT_ALL"],
         "metrics"       : ["status.input.1.frequency", "status.input.2.frequency"],
         "assets"        : ["__name__"],
-        "results"       :  {
-            "high_warning"  : { "action" : [ ] }
-        },
+        "results"       :  [
+            {
+                "high_warning"  :
+                {
+                    "action" : [ ],
+                    "severity" : "WARNING",
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(Input 1 frequency status of {{NAME}} is out of tolerance {{i1}}!)\", \"variables\": {\"NAME\": \"NAME\", \"i1\": \"%s\"}}"
+                }
+            }
+            
+        ],
         "evaluation"    : "
             function main(i1, i2)
                 if i1 == 'good' and i2 == 'good' then
