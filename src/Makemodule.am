@@ -66,13 +66,6 @@ systemdsystemunit_DATA += src/fty-alert-engine.service
 endif #WITH_SYSTEMD_UNITS
 endif #ENABLE_FTY_ALERT_ENGINE
 
-if ENABLE_RULE_CHECKER
-bin_PROGRAMS += src/rule-checker
-src_rule_checker_CPPFLAGS = ${AM_CPPFLAGS}
-src_rule_checker_LDADD = ${program_libs}
-src_rule_checker_SOURCES = src/rule-checker.cc
-endif #ENABLE_RULE_CHECKER
-
 if ENABLE_FTY_ALERT_ENGINE_SELFTEST
 check_PROGRAMS += src/fty_alert_engine_selftest
 noinst_PROGRAMS += src/fty_alert_engine_selftest
@@ -84,7 +77,6 @@ endif #ENABLE_FTY_ALERT_ENGINE_SELFTEST
 # define custom target for all products of /src
 src: \
 		src/fty-alert-engine \
-		src/rule-checker \
 		src/fty_alert_engine_selftest \
 		src/libfty_alert_engine.la
 
