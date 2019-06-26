@@ -273,7 +273,7 @@ BasicAsset::Subtype BasicAsset::stringToSubtype (std::string subtype) const {
         return Subtype_NutanixPrismGateway;
     } else if (subtype == "nutanixvirtualizationmachine") {
         return Subtype_NutanixVirtualizationMachine;
-    } else if (subtype == "n_a") {
+    } else if (subtype == "n_a" || subtype == "N_A") {
         return Subtype_N_A;
     } else if (subtype == "other") {
         return Subtype_Other;
