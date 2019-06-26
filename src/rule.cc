@@ -115,14 +115,6 @@ utf8eq (const std::string& s1, const std::string& s2)
     return 1;
 }
 
-void
-si_getValueUtf8 (const cxxtools::SerializationInfo& si, const std::string& membername_, std::string& result)
-{
-    std::basic_string <cxxtools::Char> cxxtools_Charname_;
-    si.getMember (membername_).getValue (cxxtools_Charname_);
-    result = cxxtools::Utf8Codec::encode (cxxtools_Charname_);
-}
-
 Rule::Rule (const std::string json) {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
@@ -491,6 +483,24 @@ bool Rule::operator == (const Rule &rule) const {
         rule.value_unit_ == value_unit_ && rule.hierarchy_ == hierarchy_;
 }
 
+GenericRule::GenericRule (const std::string json) : Rule (json) {
+    std::istringstream iss (json);
+    cxxtools::JsonDeserializer jd (iss);
+    cxxtools::SerializationInfo si;
+    jd.deserialize (si);
+    auto elem = si.getMember (0);
+    rule_type_ = elem.name ();
+}
+
+GenericRule::VectorStrings GenericRule::evaluate (const GenericRule::VectorStrings &metrics) {
+    return VectorStrings ();
+}
+
+GenericRule::VectorVectorStrings GenericRule::evaluate (const GenericRule::MapStrings &active_metrics,
+        const GenericRule::SetStrings &inactive_metrics) {
+    return VectorVectorStrings ();
+}
+
 //  --------------------------------------------------------------------------
 //  Self test of this class
 
@@ -513,27 +523,26 @@ rule_test (bool verbose)
     printf (" * rule: ");
 
     // Rule r; // compiler error, Rule is abstract
-    RuleTest rt ("metric@asset1", {"metric1"}, {"asset1"}, {"CAT_ALL"}, {{"ok", {{"no_action"}, "critical", "ok_description"}}});
-    rt.setGlobalVariables ({{"var1", "val1"}, {"var2", "val2"}});
-    assert (rt.whoami () == "test");
-    assert (rt.evaluate ({})[0] == "eval");
-    std::string json = rt.getJsonRule ();
+    GenericRule gr ("metric@asset1", {"metric1"}, {"asset1"}, {"CAT_ALL"}, {{"ok", {{}, "critical",
+            "ok_description"}}});
+    gr.setGlobalVariables ({{"var1", "val1"}, {"var2", "val2"}});
+    assert (gr.whoami () == "generic");
+    std::string json = gr.getJsonRule ();
     json.erase (remove_if (json.begin (), json.end (), isspace), json.end ());
-    assert (json == std::string ("{\"test\":{\"name\":\"metric@asset1\",\"categories\":[\"CAT_ALL\"],\"metrics\":[\"") +
-            "metric1\"],\"results\":[{\"ok\":{\"action\":[],\"severity\":\"critical\",\"description\":\"" +
+    assert (json == std::string ("{\"generic\":{\"name\":\"metric@asset1\",\"categories\":[\"CAT_ALL\"],\"metrics\"") +
+            ":[\"metric1\"],\"results\":[{\"ok\":{\"action\":[],\"severity\":\"critical\",\"description\":\"" +
             "ok_description\",\"threshold_name\":\"\"}}],\"assets\":[\"asset1\"],\"values\":[{\"var1\":\"val1\"},{\"" +
             "var2\":\"val2\"}]}}");
-    RuleTest rt2 (json);
-    RuleTest rt3 (json);
-    assert (rt2 == rt3);
-    std::string json3 = rt3.getJsonRule ();
-    RuleTest rt4 (json3);
+    GenericRule gr2 (json);
+    GenericRule gr3 (json);
+    assert (gr3.whoami () == "generic");
+    assert (gr2 == gr3);
+    std::string json3 = gr3.getJsonRule ();
+    GenericRule gr4 (json3);
     json3.erase (remove_if (json3.begin (), json3.end (), isspace), json3.end ());
-    std::string json4 = rt4.getJsonRule ();
+    std::string json4 = gr4.getJsonRule ();
     json4.erase (remove_if (json4.begin (), json4.end (), isspace), json4.end ());
     assert (json3 == json && json3 == json4);
-    FlexibleRule ("metric@asset2", {"metric1"}, {"asset2"}, {"CAT_ALL"}, {{"ok", {{"no_action"}, "critical",
-            "ok_description"}}}, "function main () return ok end", {{"var1", "val1"}});
 
     printf ("OK\n");
 }

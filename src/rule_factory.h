@@ -38,7 +38,7 @@
 class RuleFactory {
     private:
         template <typename T>
-        static std::unique_ptr<Rule> createRuleByName (const std::string &name, const T ruleSource) {
+        static std::unique_ptr<Rule> createRuleByName (const std::string &name, const T &ruleSource) {
             if (name == "single") {
                 return std::unique_ptr<Rule>(new SingleRule (ruleSource));
             } else if (name == "pattern") {
@@ -52,22 +52,6 @@ class RuleFactory {
             }
         }
     public:
-        /// create Rule object from cxxtools::SerializationInfo
-        static std::unique_ptr<Rule> createFromSerializationInfo (const cxxtools::SerializationInfo &si) {
-            const cxxtools::SerializationInfo &elem_content = si.getMember (0);
-            if (elem_content.category () != cxxtools::SerializationInfo::Object) {
-                log_error ("Root of json must be type object.");
-                throw std::runtime_error ("Root of json must be type object.");
-            }
-            try {
-                return createRuleByName (elem_content.name (), si);
-            } catch (std::exception &e) {
-                std::ostringstream oss;
-                si.dump (oss);
-                log_error ("Unrecognized rule '%s'", oss.str ().c_str ());
-                throw std::runtime_error ("Unrecognized rule");
-            }
-        }
         /// create Rule object from JSON format
         static std::unique_ptr<Rule> createFromJson (const std::string &json) {
             std::istringstream iss (json);
@@ -75,10 +59,19 @@ class RuleFactory {
             try {
                 cxxtools::SerializationInfo si;
                 jd.deserialize (si);
-                return createFromSerializationInfo (si);
-                //createRuleByName (elem_content.name (), json);
+                const cxxtools::SerializationInfo &elem_content = si.getMember (0);
+                if (elem_content.category () != cxxtools::SerializationInfo::Object) {
+                    log_error ("Root of json must be type object.");
+                    throw std::runtime_error ("Root of json must be type object.");
+                }
+                return createRuleByName (elem_content.name (), json);
+            } catch (std::runtime_error &re) {
+                throw re; // rethrow
             } catch (std::exception &e) {
                 throw std::runtime_error ("JSON deserializer has null SerializationInfo for input: " + json);
+            } catch (...) {
+                log_error ("Unrecognized rule '%s'", json.c_str ());
+                throw std::runtime_error ("Unrecognized rule");
             }
         }
 };
