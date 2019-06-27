@@ -3,6 +3,7 @@
         "name"          :   "realpower.default@__name__",
         "desc"          :   "Total Power in datacenter",
         "class"         :   "Total power in data center",
+        "categories"    :   [ ],
         "hierarchy"     :   "power.realpower.default.dc",
         "metrics"       :   "realpower.default@__name__",
         "assets"        :   "__name__",

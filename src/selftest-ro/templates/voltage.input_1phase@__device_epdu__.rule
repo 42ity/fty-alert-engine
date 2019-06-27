@@ -3,6 +3,7 @@
         "name"          :   "voltage.input_1phase@__name__",
         "desc"          :   "Input Voltage",
         "class"         :   "Input voltage (1 phase) in PDU",
+        "categories"    :   [ ],
         "hierarchy"     :   "internal.input.voltage.1phase.epdu",
         "metrics"       :   "voltage.input.L1@__name__",
         "assets"        :   "__name__",

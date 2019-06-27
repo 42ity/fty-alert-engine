@@ -3,6 +3,7 @@
         "name"          :   "load.default@__name__",
         "desc"          :   "Load percentage for ups __name__",
         "class"         :   "Default load in UPS",
+        "categories"    :   ["CAT_POWER", "CAT_ALL"],
         "hierarchy"     :   "power.load.ups",
         "metrics"       :   "load.default@__name__",
         "assets"        :   "__name__",

@@ -3,6 +3,7 @@
         "name"          :   "average.humidity@__name__",
         "desc"          :   "Humidity",
         "class"         :   "Humidity in row",
+        "categories"    :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
         "hierarchy"     :   "environment.humidity.row",
         "metrics"       :   "average.humidity@__name__",
         "assets"        :   "__name__",

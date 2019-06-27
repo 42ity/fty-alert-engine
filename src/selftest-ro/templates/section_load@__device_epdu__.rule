@@ -3,6 +3,7 @@
         "name"          :   "section_load@__name__",
         "desc"          :   "Section Load",
         "class"         :   "Section Load in PDU",
+        "categories"    :   [ ],
         "hierarchy"     :   "power.load.section.epdu",
         "metrics"       :   "load.outlet.group.1@__name__",
         "assets"        :   "__name__",

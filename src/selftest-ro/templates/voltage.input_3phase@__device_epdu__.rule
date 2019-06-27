@@ -3,6 +3,7 @@
         "name"          :   "voltage.input_3phase@__name__",
         "desc"          :   "Input voltage 3 phase for epdu __name__",
         "class"         :   "Input voltage (3 phase) in PDU",
+        "categories"    :   [ ],
         "hierarchy"     :   "internal.input.voltage.3phase.epdu",
         "metrics"       :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
         "assets"        :   "__name__",

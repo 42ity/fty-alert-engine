@@ -3,6 +3,7 @@
         "name"          :   "average.humidity@__name__",
         "desc"          :   "Humidity",
         "class"         :   "Humidity in data center",
+        "categories"    :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
         "hierarchy"     :   "environment.humidity.dc",
         "metrics"       :   "average.humidity@__name__",
         "assets"        :   "__name__",
