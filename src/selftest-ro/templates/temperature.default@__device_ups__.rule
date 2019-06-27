@@ -1,11 +1,11 @@
 {
     "threshold" : {
-        "rule_name"     :   "temperature.default@__name__",
-        "rule_desc"     :   "Internal temperature for ups __name__",
-        "rule_class"    :   "Internal temperature in UPS",
-        "rule_hierarchy":   "internal.temperature.ups",
-        "target"        :   "temperature.default@__name__",
-        "element"       :   "__name__",
+        "name"          :   "temperature.default@__name__",
+        "desc"          :   "Internal temperature for ups __name__",
+        "class"         :   "Internal temperature in UPS",
+        "hierarchy"     :   "internal.temperature.ups",
+        "metrics"       :   "temperature.default@__name__",
+        "assets"        :   "__name__",
         "values_unit"   :   "C",
         "values"        :   [
             {"low_critical"  : "0"},

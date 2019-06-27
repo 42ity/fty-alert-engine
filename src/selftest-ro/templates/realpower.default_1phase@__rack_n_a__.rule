@@ -1,12 +1,12 @@
 {
     "threshold" : {
-        "name"     :   "realpower.default@__name__",
-        "desc"     :   "TRANSLATE_LUA(Rack total power)",
-        "class"    :   "TRANSLATE_LUA(Total power in rack)",
-        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
-        "hierarchy":   "power.realpower.default.rack",
-        "metrics"        :   "realpower.default@__name__",
-        "assets"       :   "__name__",
+        "name"          :   "realpower.default@__name__",
+        "desc"          :   "TRANSLATE_LUA(Rack total power)",
+        "class"         :   "TRANSLATE_LUA(Total power in rack)",
+        "categories"    :   ["CAT_OTHER", "CAT_ALL"],
+        "hierarchy"     :   "power.realpower.default.rack",
+        "metrics"       :   "realpower.default@__name__",
+        "assets"        :   "__name__",
         "values_unit"   :   "W",
         "values"        :   [
             { "low_critical"    : "0" },
