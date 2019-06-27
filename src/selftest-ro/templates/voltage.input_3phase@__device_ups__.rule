@@ -1,11 +1,11 @@
 {
     "threshold" : {
-        "rule_name"     :   "voltage.input_3phase@__name__",
-        "rule_desc"     :   "Input voltage 3 phase for ups __name__",
-        "target"        :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
-        "rule_class"    :   "Input voltage (3 phase) in UPS",
-        "rule_hierarchy":   "internal.input.voltage.3phase.ups",
-        "element"       :   "__name__",
+        "name"          :   "voltage.input_3phase@__name__",
+        "desc"          :   "Input voltage 3 phase for ups __name__",
+        "metrics"       :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
+        "class"         :   "Input voltage (3 phase) in UPS",
+        "hierarchy"     :   "internal.input.voltage.3phase.ups",
+        "assets"        :   "__name__",
         "values_unit"   :   "V",
         "values"        :   [
             {"low_critical"  : "210"},

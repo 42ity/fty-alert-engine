@@ -319,18 +319,21 @@ void AlertTrigger::addRule (std::string corr_id, std::string json) {
         zmsg_addstr (reply, corr_id.c_str ());
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ALREADY_EXISTS");
+    } catch (cxxtools::SerializationError &se) {
+        log_warning ("default bad json for rule %s", json.c_str ());
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_JSON");
     } catch (std::exception &e) {
         log_debug ("rule exception caught: %s", e.what ());
         zmsg_addstr (reply, corr_id.c_str ());
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "Internal error");
-        // TODO: FIXME: add more granularity
-        /*
-            log_warning ("default bad json for rule %s", json_representation);
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "BAD_JSON");
-        */
-
+    } catch (...) {
+        log_debug ("Unidentified rule exception caught!");
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "Internal error");
     }
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
@@ -362,11 +365,20 @@ void AlertTrigger::updateRule (std::string corr_id, std::string json, std::strin
         zmsg_addstr (reply, corr_id.c_str ());
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "NOT_FOUND");
+    } catch (cxxtools::SerializationError &se) {
+        log_warning ("default bad json for rule %s", json.c_str ());
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_JSON");
     } catch (std::exception &e) {
         zmsg_addstr (reply, corr_id.c_str ());
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "Internal error");
-        // TODO: FIXME: add more granularity - same as above
+    } catch (...) {
+        log_debug ("Unidentified rule exception caught!");
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "Internal error");
     }
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
@@ -396,39 +408,18 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
         {
             std::lock_guard<std::mutex> lock (known_rules_mutex_);
             auto rule_ptr = known_rules_.getElement (name);
-            bool is_valid = true;
-            Rule::VectorStrings metric_values;
-            Alert alert (rule_ptr->getName (), Rule::ResultsMap ());
-            for (std::string &asset : rule_ptr->getAssets ()) {
-                for (std::string &metric : rule_ptr->getTargetMetrics ()) {
-                    std::string metric_key = metric + "@" + asset;
-                    if (unavailables.find (metric_key) != unavailables.end ()) {
-                        // metric is unavailable, from stream input
-                        // TODO: FIXME: this should be used if we decide to merge unavailability detection to alert engine
-                        is_valid = false;
-                        break;
-                    }
-                    if (rule_ptr->whoami () == "regex") {
-                        // TODO: FIXME: add support for regex rules
-                        is_valid = false;
-                        break;
-                    }
-                    auto metric_value = metric_map.find (metric_key);
-                    if (metric_value == metric_map.end ()) {
-                        // metric was not found, it's unavailable, missing in SHM
-                        // TODO: FIXME: this should be used if we decide to merge unavailability detection to alert engine
-                        is_valid = false;
-                        break;
-                    }
-                    metric_values.push_back (metric_value->second);
-                }
-                if (is_valid) {
-                    alert.setOutcomes (rule_ptr->evaluate (metric_values));
+            auto rule_results = rule_ptr->evaluate (metric_map, unavailables);
+            if (rule_results.size () != 0) {
+                for (auto &one_rule_result : rule_results) {
+                    Alert alert (rule_ptr->getName (), Rule::ResultsMap ());
+                    alert.setOutcomes (one_rule_result);
                     alert.setState ("ACTIVE");
-                } else {
-                    // TODO: FIXME: are alerts for unavailable metrics supposed to be resolved?
-                    alert.setState ("RESOLVED");
+                    zmsg_t *msg = alert.TriggeredToFtyProto ();
+                    mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
+            } else {
+                Alert alert (rule_ptr->getName (), Rule::ResultsMap ());
+                alert.setState ("RESOLVED");
                 zmsg_t *msg = alert.TriggeredToFtyProto ();
                 mlm_client_send (client_, alert.id ().c_str (), &msg);
             }
@@ -617,41 +608,18 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
         for (auto &r : known_rules_) {
             Rule &rule = *r.second;
             log_debug ("Evaluating rule %s", rule.getName ().c_str ());
-            bool is_valid = true;
-            Rule::VectorStrings metric_values;
-            Alert alert (rule.getName (), Rule::ResultsMap ());
-            for (std::string &asset : rule.getAssets ()) {
-                for (std::string &metric : rule.getTargetMetrics ()) {
-                    std::string metric_key = metric + "@" + asset;
-                    if (unavailables.find (metric_key) != unavailables.end ()) {
-                        // metric is unavailable, from stream input
-                        // TODO: FIXME: this should be used if we decide to merge unavailability detection to alert engine
-                        is_valid = false;
-                        break;
-                    }
-                    if (r.second->whoami () == "regex") {
-                        // TODO: FIXME: add support for regex rules
-                        is_valid = false;
-                        break;
-                    } else {
-                        auto metric_value = metric_map.find (metric_key);
-                        if (metric_value == metric_map.end ()) {
-                            // metric was not found, it's unavailable, missing in SHM
-                            // TODO: FIXME: this should be used if we decide to merge unavailability detection to alert engine
-                            is_valid = false;
-                            break;
-                        }
-                        metric_values.push_back (metric_value->second);
-                    }
-                }
-                if (is_valid) {
-                    alert.setOutcomes (rule.evaluate (metric_values));
+            auto rule_results = rule.evaluate (metric_map, unavailables);
+            if (rule_results.size () != 0) {
+                for (auto &one_rule_result : rule_results) {
+                    Alert alert (rule.getName (), Rule::ResultsMap ());
+                    alert.setOutcomes (one_rule_result);
                     alert.setState ("ACTIVE");
-                } else {
-                    // TODO: FIXME: are alerts for unavailable metrics supposed to be resolved?
-                    alert.setState ("RESOLVED");
+                    zmsg_t *msg = alert.TriggeredToFtyProto ();
+                    mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
-                // send alert on stream
+            } else {
+                Alert alert (rule.getName (), Rule::ResultsMap ());
+                alert.setState ("RESOLVED");
                 zmsg_t *msg = alert.TriggeredToFtyProto ();
                 mlm_client_send (client_, alert.id ().c_str (), &msg);
             }
@@ -892,16 +860,14 @@ fty_alert_trigger_test (bool verbose)
         "function main (i1) if tonumber (i1) < tonumber (var1) then return 'ok' else return 'fail' end end",
         {{"var1", "50"}});
     // create pattern rule with lua
-    /*
     PatternRule pr1 ("pattern1@asset5",
-        {"pattern.*.metric1"},
-        {"asset5"},
+        {"pattern..metric1@.*"},
+        {},
         {"CAT_ALL"},
         {   {"ok", {{}, "OK", "ok_description"}},
             {"fail", {{}, "CRITICAL", "fail_description"}}},
         "function main (metric, i1) if tonumber (i1) < tonumber (var1) then return 'ok' else return 'fail' end end",
         {{"var1", "50"}});
-    */
 
     log_debug ("Test 2: adding rules");
     // send mailbox add, check response
@@ -1122,7 +1088,6 @@ fty_alert_trigger_test (bool verbose)
     assert (counter < 20);
     assert (responses.size () == 2);
     responses.clear ();
-    /*
     message = zmsg_new ();
     zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
     zmsg_addstr (message, "ADD");
@@ -1177,7 +1142,6 @@ fty_alert_trigger_test (bool verbose)
     assert (counter < 20);
     assert (responses.size () == 2);
     responses.clear ();
-    */
 
     log_debug ("Test 3: adding known rule");
     // send mailbox add (on known, should fail)
@@ -1252,8 +1216,7 @@ fty_alert_trigger_test (bool verbose)
         }
     }
     assert (counter < 20);
-    //assert (rules_count == 5);
-    assert (rules_count == 4);
+    assert (rules_count == 5);
 
     log_debug ("Test 5: getting rule");
     // send mailbox get
@@ -1340,13 +1303,11 @@ fty_alert_trigger_test (bool verbose)
         } else {
             ++counter;
         }
-        //if (responses.size () == 5)
-        if (responses.size () == 4)
+        if (responses.size () == 5)
             break;
     }
     assert (counter < 20);
-    //assert (responses.size () == 5); // all alarms should be triggered
-    assert (responses.size () == 4); // all alarms but pattern should be triggered
+    assert (responses.size () == 5); // all alarms should be triggered
     responses.clear ();
 
     log_debug ("Test 7: evaluating shm metrics");
@@ -1382,13 +1343,11 @@ fty_alert_trigger_test (bool verbose)
         } else {
             ++counter;
         }
-        //if (responses.size () == 5)
-        if (responses.size () == 4)
+        if (responses.size () == 5)
             break;
     }
     assert (counter < 20);
-    //assert (responses.size () == 5); // all alarms should be triggered
-    assert (responses.size () == 4); // all alarms but pattern should be triggered
+    assert (responses.size () == 5); // all alarms should be triggered
     responses.clear ();
 
     log_debug ("Test 8: evaluating mixed metrics");
@@ -1432,13 +1391,11 @@ fty_alert_trigger_test (bool verbose)
         } else {
             ++counter;
         }
-        //if (responses.size () == 5)
-        if (responses.size () == 4)
+        if (responses.size () == 5)
             break;
     }
     assert (counter < 20);
-    //assert (responses.size () == 5); // all alarms should be triggered
-    assert (responses.size () == 4); // all alarms but pattern should be triggered
+    assert (responses.size () == 5); // all alarms should be triggered
     responses.clear ();
 
     log_debug ("Test 9: missing single metric");
@@ -1474,13 +1431,11 @@ fty_alert_trigger_test (bool verbose)
         } else {
             ++counter;
         }
-        //if (responses.size () == 5)
-        if (responses.size () == 4)
+        if (responses.size () == 5)
             break;
     }
     assert (counter < 20);
-    //assert (responses.size () == 5); // all alarms should be triggered
-    assert (responses.size () == 4); // all alarms but pattern should be triggered
+    assert (responses.size () == 5); // all alarms should be triggered
     responses.clear ();
 
     log_debug ("Test 10: missing one of multiple metrics");
@@ -1516,13 +1471,11 @@ fty_alert_trigger_test (bool verbose)
         } else {
             ++counter;
         }
-        //if (responses.size () == 5)
-        if (responses.size () == 4)
+        if (responses.size () == 5)
             break;
     }
     assert (counter < 20);
-    //assert (responses.size () == 5); // all alarms should be triggered
-    assert (responses.size () == 4); // all alarms but pattern should be triggered
+    assert (responses.size () == 5); // all alarms should be triggered
     responses.clear ();
 
     log_debug ("Test 11: touch rule, check result");

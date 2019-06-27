@@ -1,40 +1,150 @@
 {
     "flexible" : {
-        "name"			: "licensing.expiration@__name__",
+        "name"          : "licensing.expiration@__name__",
         "description"   : "TRANSLATE_LUA(Sends alert when license is about to expire.)",
-        "categories"      : ["CAT_OTHER", "CAT_ALL"],
+        "categories"    : ["CAT_OTHER", "CAT_ALL"],
         "metrics"       : ["licensing.expire"],
-        "assets"       	: ["__name__"],
-        "types"			: ["rackcontroller"],
-	      "results"		: {
-	          "low_warning"   : {"action" : [{"action": "EMAIL"} ] },
-	          "low_critical"  : {"action" : [{"action": "EMAIL"} ] }
-	      },
-	      "evaluation"		: "
-	          function main(remaining_days)
-	              if remaining_days == '60' then
-		                return WARNING, 'TRANSLATE_LUA(Your license is going to expire in 60 days)'
-		            end
-	              if remaining_days == '40' then
-		                return WARNING, 'TRANSLATE_LUA(Your license is going to expire in 40 days)'
-		            end
-	              if remaining_days == '30' then
-		                return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 30 days)'
-		            end
-	              if remaining_days == '15' then
-		                return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 15 days)'
-		            end
-	              if (tonumber (remaining_days <= 7) and tonumber (remaining_days => 1)) then
-                    return CRITICAL, string.format('{\"key\" : \"TRANSLATE_LUA(Your license is going to expire in {{remaining_days}} days)\", \"variables\" : {\"remaining_days\" : \"%s\"}}', remaining_days)
-		            end
-	              if remaining_days == '0' then
-		                return CRITICAL, 'TRANSLATE_LUA(Your license expires today)'
-		            end
-	              if (tonumber(remaining_days) < 0) then
-		                return CRITICAL, 'TRANSLATE_LUA(Your license is expired.)'
-		            end
-		            return OK, 'TRANSLATE_LUA(Your license is valid.)'
-	          end
-	 "
+        "assets"        : ["__name__"],
+        "types"         : ["rackcontroller"],
+        "results"       : [
+                  {
+                    "60days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "WARNING",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 60 days)"
+                    }
+                  },
+                  {
+                    "40days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "WARNING",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 40 days)"
+                    }
+                  },
+                  {
+                    "30days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 30 days)"
+                    }
+                  },
+                  {
+                    "15days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 15 days)"
+                    }
+                  },
+                  {
+                    "7days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 7 days)"
+                    }
+                  },
+                  {
+                    "6days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 6 days)"
+                    }
+                  },
+                  {
+                    "5days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 5 days)"
+                    }
+                  },
+                  {
+                    "4days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 4 days)"
+                    }
+                  },
+                  {
+                    "3days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 3 days)"
+                    }
+                  },
+                  {
+                    "2days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 2 days)"
+                    }
+                  },
+                  {
+                    "1days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is going to expire in 1 day)"
+                    }
+                  },
+                  {
+                    "0days"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license expires today)"
+                    }
+                  },
+                  {
+                    "expired"   :
+                    {
+                        "action"        : [{"action": "EMAIL"}],
+                        "severity"      : "CRITICAL",
+                        "description"   : "TRANSLATE_LUA(Your license is expired)"
+                    }
+                  },
+                  {
+                    "ok"   :
+                    {
+                        "action"        : [ ],
+                        "severity"      : "OK",
+                        "description"   : "TRANSLATE_LUA(Your license is valid)"
+                    }
+                  }
+          ],
+          "evaluation"        : "
+              function main(remaining_days)
+                  if remaining_days == '60' then
+                        return '60days'
+                    end
+                  if remaining_days == '40' then
+                        return '40days'
+                    end
+                  if remaining_days == '30' then
+                        return '30days'
+                    end
+                  if remaining_days == '15' then
+                        return '15days'
+                    end
+                  if tonumber(remaining_days) <= 7 and tonumber(remaining_days) >= 1 then
+                        return string.format('%ddays', remaining_days)
+                    end
+                  if remaining_days == '0' then
+                        return '0days'
+                    end
+                  if tonumber(remaining_days) < 0 then
+                        return 'expired'
+                    end
+                    return 'ok'
+              end
+     "
     }
 }

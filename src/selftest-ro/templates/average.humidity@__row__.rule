@@ -1,11 +1,11 @@
 {
     "threshold" : {
-        "rule_name"     :   "average.humidity@__name__",
-        "rule_desc"     :   "Humidity",
-        "rule_class"    :   "Humidity in row",
-        "rule_hierarchy" :   "environment.humidity.row",
-        "target"        :   "average.humidity@__name__",
-        "element"       :   "__name__",
+        "name"          :   "average.humidity@__name__",
+        "desc"          :   "Humidity",
+        "class"         :   "Humidity in row",
+        "hierarchy"     :   "environment.humidity.row",
+        "metrics"       :   "average.humidity@__name__",
+        "assets"        :   "__name__",
         "values_unit"   :   "%",
         "values"        :   [ {"low_warning"   : "40"},
                               {"low_critical"  : "30"},

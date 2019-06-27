@@ -25,6 +25,7 @@ save.xml
 # Executables
 src/fty-alert-engine_selftest
 src/fty-alert-engine
+src/rule-checker
 src/fty_alert_engine_selftest
 *.exe
 *.out

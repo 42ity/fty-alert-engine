@@ -1,11 +1,11 @@
 {
     "threshold" : {
-        "rule_name"     :   "average.temperature@__name__",
-        "rule_desc"     :   "Temperature",
-        "rule_class"    :   "Temperature in row",
-        "rule_hierarchy":   "environment.temperature.row",
-        "target"        :   "average.temperature@__name__",
-        "element"       :   "__name__",
+        "name"          :   "average.temperature@__name__",
+        "desc"          :   "Temperature",
+        "class"         :   "Temperature in row",
+        "hierarchy"     :   "environment.temperature.row",
+        "metrics"       :   "average.temperature@__name__",
+        "assets"        :   "__name__",
         "values_unit"   :   "C",
         "values"        :   [ {"low_critical"   :   "14"},
                               {"low_warning"    :   "17"},

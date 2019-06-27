@@ -28,6 +28,7 @@
 #include <string>
 #include <cxxtools/directory.h>
 #include <fstream>
+#include <regex>
 
 #include "fty_alert_engine_classes.h"
 
@@ -182,42 +183,30 @@ std::vector<FullAssetSPtr> AlertConfig::getMatchingAssets (std::pair<const std::
 
 void AlertConfig::listTemplates (std::string corr_id, std::string type) {
     log_debug ("Listing template");
-    std::function<bool (const std::string & s) > filter_class, filter_type;
+    std::function<bool (const std::string & s) > filter;
     if (type.empty ())
         type = "all";
     if (type == "all") {
-        filter_type = [](const std::string & s) {
+        filter = [](const std::string & s) {
             return true;
         };
-    } else if (type == "threshold") {
-        filter_type = [](const std::string & s) {
-            return s.compare ("threshold") == 0;
-        };
-    } else if (type == "single") {
-        filter_type = [](const std::string & s) {
-            return s.compare ("single") == 0;
-        };
-    } else if (type == "pattern") {
-        filter_type = [](const std::string & s) {
-            return s.compare ("pattern") == 0;
-        };
     } else {
-        //invalid type
-        log_warning ("type '%s' is invalid", type.c_str ());
-        zmsg_t *reply = zmsg_new ();
-        zmsg_addstr (reply, corr_id.c_str ());
-        zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "INVALID_TYPE");
-        mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT,
-                mlm_client_tracker (client_), 1000, &reply);
-        return;
+        // TODO: FIXME: add proper filtering system like key value filter rather than regex on json representation
+        filter = [&](const std::string & s) {
+            std::regex r (type);
+            if (std::regex_match (s, r)) {
+                return true;
+            } else {
+                return false;
+            }
+        };
     }
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, corr_id.c_str ());
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type.c_str ());
     for (auto &template_pair : getAllTemplatesMap ()) {
-        if (filter_type (template_pair.second->whoami ())) {
+        if (filter (template_pair.second->whoami ())) {
             zmsg_addstr (reply, template_pair.first.c_str ());
             zmsg_addstr (reply, template_pair.second->getJsonRule ().c_str ());
             std::vector<FullAssetSPtr> matching_assets = getMatchingAssets (template_pair);
@@ -309,11 +298,23 @@ void AlertConfig::handleStreamMessages (zmsg_t **msg) {
     }
     const char *operation = fty_proto_operation (bmessage);
     if (streq (operation, FTY_PROTO_ASSET_OP_UPDATE)) {
-        FullAssetSPtr assetptr = getFullAssetFromFtyProto (bmessage);
-        FullAssetDatabase::getInstance ().insertOrUpdateAsset (assetptr);
+        try {
+            FullAssetSPtr assetptr = getFullAssetFromFtyProto (bmessage);
+            FullAssetDatabase::getInstance ().insertOrUpdateAsset (assetptr);
+        } catch (std::exception &e) {
+            log_error ("Unable to create asset due to :", e.what ());
+        } catch (...) {
+            log_error ("Unable to create asset due to : unknown error");
+        }
     } else if (streq (operation, FTY_PROTO_ASSET_OP_DELETE)) {
-        const char *assetname = fty_proto_name (bmessage);
-        FullAssetDatabase::getInstance ().deleteAsset (assetname);
+        try {
+            const char *assetname = fty_proto_name (bmessage);
+            FullAssetDatabase::getInstance ().deleteAsset (assetname);
+        } catch (std::exception &e) {
+            log_error ("Unable to delete asset due to :", e.what ());
+        } catch (...) {
+            log_error ("Unable to delete asset due to : unknown error");
+        }
     }
     fty_proto_destroy (&bmessage);
 }
@@ -533,17 +534,17 @@ fty_alert_config_test (bool verbose)
     }
     assert (counter < 20);
 
-    log_debug ("Test 2: send asset ups, expected no rules");
+    log_debug ("Test 2: send asset room, expected no rules");
     // send asset - device ups
     // expected: empty result
     asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
-    zhash_insert (asset_aux, "type", (void *) "device");
-    zhash_insert (asset_aux, "subtype", (void *) "ups");
+    zhash_insert (asset_aux, "type", (void *) "room");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
     asset_ext = zhash_new ();
     zhash_autofree (asset_ext);
-    zhash_insert (asset_ext, "name", (void *) "MyUPS");
-    asset = fty_proto_encode_asset (asset_aux, "ups-22", FTY_PROTO_ASSET_OP_UPDATE, asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyRoom");
+    asset = fty_proto_encode_asset (asset_aux, "room-22", FTY_PROTO_ASSET_OP_UPDATE, asset_ext);
     rv = mlm_client_send (client_assets, "CREATE", &asset);
     assert (rv == 0);
     zhash_destroy (&asset_ext);
@@ -657,19 +658,19 @@ fty_alert_config_test (bool verbose)
         }
     }
     assert (counter < 20);
-    assert (rules_count == 5);
+    assert (rules_count == 13);
 
-    log_debug ("Test 5: send asset ups delete");
+    log_debug ("Test 5: send asset room delete");
     // send asset - device ups
     // expected: empty result
     asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
-    zhash_insert (asset_aux, "type", (void *) "device");
-    zhash_insert (asset_aux, "subtype", (void *) "ups");
+    zhash_insert (asset_aux, "type", (void *) "room");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
     asset_ext = zhash_new ();
     zhash_autofree (asset_ext);
-    zhash_insert (asset_ext, "name", (void *) "MyUPS");
-    asset = fty_proto_encode_asset (asset_aux, "ups-22", FTY_PROTO_ASSET_OP_DELETE, asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyRoom");
+    asset = fty_proto_encode_asset (asset_aux, "room-22", FTY_PROTO_ASSET_OP_DELETE, asset_ext);
     rv = mlm_client_send (client_assets, "DELETE", &asset);
     assert (rv == 0);
     zhash_destroy (&asset_ext);
@@ -688,7 +689,7 @@ fty_alert_config_test (bool verbose)
             char *command = zmsg_popstr (zmessage);
             char *param = zmsg_popstr (zmessage);
             assert (std::string ("DELETE_ELEMENT") == command);
-            assert (std::string (param) == "ups-22");
+            assert (std::string (param) == "room-22");
             // proper reply
             mlm_client_sendtox (client_mailbox, mlm_client_sender (client_mailbox), RULES_SUBJECT, corr_id, "OK",
                     nullptr);
@@ -701,7 +702,105 @@ fty_alert_config_test (bool verbose)
     }
     assert (counter <= 20);
 
-    log_debug ("Test 6 no messages in queue");
+    log_debug ("Test 6: list rules with filter type");
+    // send mailbox list, check response
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "LIST");
+    zmsg_addstr (message, "single");
+    mlm_client_sendto (client_mailbox, "fty_alert_config_test", RULES_SUBJECT, mlm_client_tracker (client_mailbox),
+        1000, &message);
+    counter = 0;
+    rules_count = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            zmsg_t *zmessage = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (zmessage);
+            char *command = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            assert (streq ("uuidtest", corr_id));
+            assert (streq ("LIST", command));
+            assert (streq ("single", param));
+            for (;;) {
+                char *filename = zmsg_popstr (zmessage);
+                if (filename == nullptr)
+                    break;
+                char *rulejson = zmsg_popstr (zmessage);
+                assert (rulejson != nullptr);
+                char *assets = zmsg_popstr (zmessage);
+                assert (assets!= nullptr);
+                // TODO: FIXME: add more complex tests to check content
+                ++rules_count;
+                zstr_free (&filename);
+                zstr_free (&rulejson);
+                zstr_free (&assets);
+            }
+            zstr_free (&command);
+            zstr_free (&corr_id);
+            zstr_free (&param);
+            zmsg_destroy (&zmessage);
+            break;
+        }
+    }
+    assert (counter < 20);
+    assert (rules_count == 3);
+
+    log_debug ("Test 7: list rules with filter cat");
+    // send mailbox list, check response
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "LIST");
+    zmsg_addstr (message, "CAT_ENVIRONMENTAL");
+    mlm_client_sendto (client_mailbox, "fty_alert_config_test", RULES_SUBJECT, mlm_client_tracker (client_mailbox),
+        1000, &message);
+    counter = 0;
+    rules_count = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            zmsg_t *zmessage = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (zmessage);
+            char *command = zmsg_popstr (zmessage);
+            char *param = zmsg_popstr (zmessage);
+            assert (streq ("uuidtest", corr_id));
+            assert (streq ("LIST", command));
+            assert (streq ("CAT_ENVIRONMENTAL", param));
+            for (;;) {
+                char *filename = zmsg_popstr (zmessage);
+                if (filename == nullptr)
+                    break;
+                char *rulejson = zmsg_popstr (zmessage);
+                assert (rulejson != nullptr);
+                char *assets = zmsg_popstr (zmessage);
+                assert (assets!= nullptr);
+                // TODO: FIXME: add more complex tests to check content
+                ++rules_count;
+                zstr_free (&filename);
+                zstr_free (&rulejson);
+                zstr_free (&assets);
+            }
+            zstr_free (&command);
+            zstr_free (&corr_id);
+            zstr_free (&param);
+            zmsg_destroy (&zmessage);
+            break;
+        }
+    }
+    assert (counter < 20);
+    log_debug ("rules_count = %d", rules_count);
+    // TODO: FIXME: fix rules using CAT_ENVIRONMENTAL to be loaded
+    assert (rules_count == 0);
+
+    log_debug ("Test 8 no messages in queue");
     while (counter < 20) {
         void *which = zpoller_wait (poller, 1000);
         if (which != nullptr)

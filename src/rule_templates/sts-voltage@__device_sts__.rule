@@ -5,9 +5,16 @@
         "categories"      : ["CAT_OTHER", "CAT_ALL"],
         "metrics"       : ["status.input.1.voltage", "status.input.2.voltage"],
         "assets"        : ["__name__"],
-        "results"       :  {
-            "high_warning"  : { "action" : [ ] }
-        },
+        "results"       : [
+            {
+                "high_warning"  :
+                {
+                    "action" : [ ],
+                    "severity" : "WARNING",
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(Voltage status of both inputs of {{NAME}} is good.)\", \"variables\": {\"NAME\": \"NAME\"}}"
+                }
+            }
+        ],
         "evaluation"    : "
             function main(i1, i2)
                 if i1 == 'good' and i2 == 'good' then
