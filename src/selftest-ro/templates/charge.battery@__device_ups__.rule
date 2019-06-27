@@ -1,11 +1,11 @@
 {
     "threshold" : {
-        "rule_name"     :   "charge.battery@__name__",
-        "rule_desc"     :   "Battery Level",
-        "rule_class"    :   "Battery Level in UPS",
-        "rule_hierarchy":   "internal.batterylevel.ups",
-        "target"        :   "charge.battery@__name__",
-        "element"       :   "__name__",
+        "name"          :   "charge.battery@__name__",
+        "desc"          :   "Battery Level",
+        "class"         :   "Battery Level in UPS",
+        "hierarchy"     :   "internal.batterylevel.ups",
+        "metrics"       :   "charge.battery@__name__",
+        "assets"        :   "__name__",
         "values_unit"   :   "%",
         "values"        :   [
             {"low_warning"  : "50"},

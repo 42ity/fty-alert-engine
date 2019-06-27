@@ -1,13 +1,13 @@
 {
     "threshold": {
-        "name"	     : "phase_imbalance@__name__",
-        "desc"	     : "TRANSLATE_LUA(Rack phase imbalance)",
-        "class"	 : "TRANSLATE_LUA(Phase imbalance in rack)",
-        "hierarchy" : "power.phaseimbalance.rack",
-        "categories"       : ["CAT_OTHER", "CAT_ALL"],
-        "metrics"	     : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
-        "assets"	     : "__name__",
-        "values_unit"	 : "%",
+        "name"	        : "phase_imbalance@__name__",
+        "desc"	        : "TRANSLATE_LUA(Rack phase imbalance)",
+        "class"	        : "TRANSLATE_LUA(Phase imbalance in rack)",
+        "hierarchy"     : "power.phaseimbalance.rack",
+        "categories"    : ["CAT_OTHER", "CAT_ALL"],
+        "metrics"	    : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
+        "assets"	    : "__name__",
+        "values_unit"   : "%",
         "values"	: [
             { "high_warning": "10" },
             { "high_critical": "20"} ],
