@@ -201,6 +201,10 @@ void AlertConfig::listTemplates (std::string corr_id, std::string type) {
         filter_type = [](const std::string & s) {
             return s.compare ("pattern") == 0;
         };
+    } else if (type == "flexible") {
+        filter_type = [](const std::string & s) {
+            return s.compare ("flexible") == 0;
+        };
     } else {
         //invalid type
         log_warning ("type '%s' is invalid", type.c_str ());
