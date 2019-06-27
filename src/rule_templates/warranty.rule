@@ -1,0 +1,39 @@
+{
+    "pattern" : {
+        "rule_name"     :   "warranty",
+        "target"        :   "^end_warranty_date@.+",
+        "comment"       :   "/!\ Warning, target trick hardcoded in fty_alert_engine_server.cc:evaluate_metric",
+        "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"}, {"high_critical":"0"} ],
+        "values_unit": "days",
+        "results"       :   [
+                                {
+                                    "high_critical"  : 
+                                    { 
+                                        "action" : [{ "action": "EMAIL" }],
+                                        "severity" : "CRITICAL",
+                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}",
+                                        "threshold_name" : "TRANSLATE_LUA (Warranty expired)"
+                                    },
+                                },
+                                {
+                                    "low_critical"  :
+                                    {
+                                        "action" : [{ "action": "EMAIL" }],
+                                        "severity" : "CRITICAL",
+                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}",
+                                        "threshold_name" : "TRANSLATE_LUA (Warranty expires in)"
+                                    }
+                                },
+                                {
+                                    "low_warning"  :
+                                    {
+                                        "action" : [{ "action": "EMAIL" }],
+                                        "severity" : "WARNING",
+                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}",
+                                        "threshold_name" : "TRANSLATE_LUA (Warranty expires in)"
+                                    }
+                                }
+                            ],
+        "evaluation"    : "function main(value) if( value < high_critical ) then return HIGH_CRITICAL end if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= low_warning ) then return LOW_WARNING end return OK end"
+    }
+}
