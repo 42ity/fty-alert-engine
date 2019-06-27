@@ -309,11 +309,23 @@ void AlertConfig::handleStreamMessages (zmsg_t **msg) {
     }
     const char *operation = fty_proto_operation (bmessage);
     if (streq (operation, FTY_PROTO_ASSET_OP_UPDATE)) {
-        FullAssetSPtr assetptr = getFullAssetFromFtyProto (bmessage);
-        FullAssetDatabase::getInstance ().insertOrUpdateAsset (assetptr);
+        try {
+            FullAssetSPtr assetptr = getFullAssetFromFtyProto (bmessage);
+            FullAssetDatabase::getInstance ().insertOrUpdateAsset (assetptr);
+        } catch (std::exception &e) {
+            log_error ("Unable to create asset due to :", e.what ());
+        } catch (...) {
+            log_error ("Unable to create asset due to : unknown error");
+        }
     } else if (streq (operation, FTY_PROTO_ASSET_OP_DELETE)) {
-        const char *assetname = fty_proto_name (bmessage);
-        FullAssetDatabase::getInstance ().deleteAsset (assetname);
+        try {
+            const char *assetname = fty_proto_name (bmessage);
+            FullAssetDatabase::getInstance ().deleteAsset (assetname);
+        } catch (std::exception &e) {
+            log_error ("Unable to delete asset due to :", e.what ());
+        } catch (...) {
+            log_error ("Unable to delete asset due to : unknown error");
+        }
     }
     fty_proto_destroy (&bmessage);
 }
