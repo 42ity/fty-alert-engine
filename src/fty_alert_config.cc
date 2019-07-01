@@ -328,8 +328,11 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
     for (auto &rule_it : rules) {
         if (ruleMatchAsset (rule_it, assetptr)) {
             auto name_it = rule_it.second->getName ().find ("__name__");
-            rule_it.second->setName (rule_it.second->getName ().replace (name_it, name_it+std::strlen ("__name__"),
-                assetptr->getId ()));
+            while (name_it != std::string::npos) {
+                rule_it.second->setName (rule_it.second->getName ().replace (name_it, name_it+std::strlen ("__name__"),
+                    assetptr->getId ()));
+                name_it = rule_it.second->getName ().find ("__name__");
+            }
             zmsg_t *message = zmsg_new ();
             zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
             zmsg_addstr (message, "ADD");

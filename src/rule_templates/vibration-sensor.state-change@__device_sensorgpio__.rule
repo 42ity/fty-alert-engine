@@ -10,7 +10,15 @@
         "types" 	    : ["sensorgpio", "rackcontroller"],
         "results"       :  [
             {
-                "high___rule_result__"   :
+                "ok"   :
+                {
+                    "action" : [ ],
+                    "severity" : "OK",
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(Vibration in {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}"
+                }
+            },
+            {
+                "notok"   :
                 {
                     "action" : [ ],
                     "severity" : "__severity__",
@@ -21,9 +29,9 @@
         "evaluation"    : "
             function main(current_state)
                 if current_state == '__normalstate__' then
-                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(Vibration in {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}')
+                    return 'ok'
                 end
-                    return __severity__ , string.format('{ \"key\": \"TRANSLATE_LUA(Vibration detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}')
+                    return 'notok'
             end
         "
     }

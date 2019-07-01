@@ -7,20 +7,29 @@
         "assets"        : ["__name__"],
         "results"       :  [
             {
+                "ok"  :
+                {
+                    "action" : [ ],
+                    "severity" : "OK",
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  preferred input.)\", \"variables\": {\"NAME\": \"NAME\"}}"
+                }
+            },
+            {
                 "high_warning"  :
                 {
                     "action" : [ ],
                     "severity" : "WARNING",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"prefered\" : \"%s\"}}"
+                    "description" : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"__outcome_1__\", \"prefered\" : \"__outcome_2__\"}}"
                 }
             }
         ],
+        "outcome_item_count" : "3",
         "evaluation"    : "
             function main(input, preferred)
                 if input == preferred then
-                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  preferred input.)\", \"variables\": {\"NAME\": \"NAME\"}}')
+                    return 'ok', '0', '0'
                 end
-                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"%s\", \"prefered\" : \"%s\"}}', input, prefered)
+                return 'high_warning', input, preferred
             end
         "
     }
