@@ -13,4 +13,5 @@ Installation model
     <item path = "/usr/share/bios/setup" name = "../src/23-alert-setup.sh" />
     <item path = "/usr/share/fty-alert-engine/data" name = "../src/rule_templates/warranty.rule" />
     <item path = "/usr/share/bios/fty-autoconfig" />
+    <item type = "systemd-tmpfiles" />
 </install>
