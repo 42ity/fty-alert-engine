@@ -38,7 +38,7 @@ std::mutex AlertTrigger::known_rules_mutex_;
 std::vector<fty_proto_t *> AlertTrigger::streamed_metrics_;
 std::unordered_set<std::string> AlertTrigger::unavailable_metrics_;
 std::mutex AlertTrigger::stream_metrics_mutex_;
-int64_t AlertTrigger::timeout_ = fty_get_polling_interval ();
+int64_t AlertTrigger::timeout_ = fty_get_polling_interval () * 1000;
 
 AlertTrigger::AlertTrigger (std::string name) : name_(name) {
     client_ = mlm_client_new ();
