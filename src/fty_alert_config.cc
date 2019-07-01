@@ -192,9 +192,11 @@ void AlertConfig::listTemplates (std::string corr_id, std::string type) {
         };
     } else {
         // TODO: FIXME: add proper filtering system like key value filter rather than regex on json representation
-        filter = [&](const std::string & s) {
+        log_debug ("Filtering out in function for %s", type.c_str ());
+        filter = [&](std::string s) {
             std::regex r (type);
-            if (std::regex_match (s, r)) {
+            s.erase (remove_if (s.begin (), s.end (), isspace), s.end ());
+            if (std::regex_search (s, r)) {
                 return true;
             } else {
                 return false;
@@ -206,7 +208,7 @@ void AlertConfig::listTemplates (std::string corr_id, std::string type) {
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, type.c_str ());
     for (auto &template_pair : getAllTemplatesMap ()) {
-        if (filter (template_pair.second->whoami ())) {
+        if (filter (template_pair.second->getJsonRule ())) {
             zmsg_addstr (reply, template_pair.first.c_str ());
             zmsg_addstr (reply, template_pair.second->getJsonRule ().c_str ());
             std::vector<FullAssetSPtr> matching_assets = getMatchingAssets (template_pair);
@@ -236,6 +238,7 @@ void AlertConfig::handleMailboxMessages (zmsg_t **msg) {
         log_debug ("Incoming message: subject: '%s', command: '%s', param: '%s'", RULES_SUBJECT, command, param);
         if (command != nullptr) {
             if (streq (command, "LIST")) {
+                log_debug ("param = %s", param == nullptr ? "" : param);
                 listTemplates (corr_id, param == nullptr ? "" : param);
             }
             /*
@@ -658,7 +661,7 @@ fty_alert_config_test (bool verbose)
         }
     }
     assert (counter < 20);
-    assert (rules_count == 13);
+    assert (rules_count == 30);
 
     log_debug ("Test 5: send asset room delete");
     // send asset - device ups
@@ -796,9 +799,7 @@ fty_alert_config_test (bool verbose)
         }
     }
     assert (counter < 20);
-    log_debug ("rules_count = %d", rules_count);
-    // TODO: FIXME: fix rules using CAT_ENVIRONMENTAL to be loaded
-    assert (rules_count == 0);
+    assert (rules_count == 9);
 
     log_debug ("Test 8 no messages in queue");
     while (counter < 20) {

@@ -4,6 +4,7 @@
 		"class"         : "Phase imbalance in PDU",
         "hierarchy"     : "power.phaseimbalance.epdu",
 		"desc"          : "Phase Imbalance for epdu __name__",
+        "categories"    :   [ ],
 		"metrics"       : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
 		"assets"        : "__name__",
 		"values_unit"   : "%",

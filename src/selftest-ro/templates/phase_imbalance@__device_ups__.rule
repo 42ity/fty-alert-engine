@@ -4,6 +4,7 @@
 		"desc"          : "Phase Imbalance for ups __name__",
 		"class"         : "Phase imbalance in UPS",
         "hierarchy"     : "power.phaseimbalance.ups",
+        "categories"    :   [ ],
 		"metrics"       : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
 		"assets"        : "__name__",
 		"values_unit"   : "%",

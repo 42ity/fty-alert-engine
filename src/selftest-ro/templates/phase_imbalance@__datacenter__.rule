@@ -4,6 +4,7 @@
 		"desc"          : "Phase imbalance in data center",
         "hierarchy"     : "power.phaseimbalance.dc",
 		"class"         : "Datacenter __name__ phase imbalance",
+        "categories"    :   [ ],
 		"metrics"       : [ "realpower.output.L1@__name__", "realpower.output.L2@__name__", "realpower.output.L3@__name__" ],
 		"assets"        : "__name__",
 		"values_unit"   : "%",

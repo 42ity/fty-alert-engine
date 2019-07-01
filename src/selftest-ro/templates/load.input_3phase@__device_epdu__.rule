@@ -4,6 +4,7 @@
         "desc"          :   "input load 3 phase for epdu __name__",
         "class"         :   "Input load (3 phase) in PDU",
         "hierarchy"     :   "power.load.input.3phase.epdu",
+        "categories"    :   ["CAT_POWER", "CAT_ALL"],
         "metrics"       :   [ "load.input.L1@__name__", "load.input.L2@__name__", "load.input.L3@__name__" ],
         "assets"        :   "__name__",
         "values_unit"   :   "W",

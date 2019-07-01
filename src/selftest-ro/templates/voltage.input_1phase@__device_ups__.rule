@@ -4,6 +4,7 @@
         "desc"          :   "Input voltage 1 phase for ups __name__",
         "class"         :   "Input voltage (1 phase) in UPS",
         "hierarchy"     :   "internal.input.voltage.1phase.ups",
+        "categories"    :   [ ],
         "metrics"       :   "voltage.input.L1@__name__",
         "assets"        :   "__name__",
         "values_unit"   :   "V",

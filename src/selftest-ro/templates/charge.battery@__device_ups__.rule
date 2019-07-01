@@ -3,6 +3,7 @@
         "name"          :   "charge.battery@__name__",
         "desc"          :   "Battery Level",
         "class"         :   "Battery Level in UPS",
+        "categories"    :   ["CAT_POWER", "CAT_ALL"],
         "hierarchy"     :   "internal.batterylevel.ups",
         "metrics"       :   "charge.battery@__name__",
         "assets"        :   "__name__",

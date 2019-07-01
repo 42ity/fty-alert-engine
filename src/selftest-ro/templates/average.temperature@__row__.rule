@@ -3,6 +3,7 @@
         "name"          :   "average.temperature@__name__",
         "desc"          :   "Temperature",
         "class"         :   "Temperature in row",
+        "categories"    :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
         "hierarchy"     :   "environment.temperature.row",
         "metrics"       :   "average.temperature@__name__",
         "assets"        :   "__name__",

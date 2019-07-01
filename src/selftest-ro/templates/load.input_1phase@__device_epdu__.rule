@@ -4,6 +4,7 @@
         "desc"          :   "Input load",
         "class"         :   "Input load (1 phase) in PDU",
         "hierarchy"     :   "power.load.input.1phase.epdu",
+        "categories"    :   ["CAT_POWER", "CAT_ALL"],
         "metrics"       :   "load.input.L1@__name__",
         "assets"        :   "__name__",
         "values_unit"   :   "W",
