@@ -11,8 +11,10 @@
         "values"        :   [
             {"low_warning"  : "50"},
             {"low_critical" : "25"} ],
-        "results"       :   [ {"low_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level low on UPS {{ename}})\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Battery Level low)" }},
-                              {"low_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level critically low on UPS {{ename}})\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Battery Level critically low)" }} ],
-        "evaluation" : "function main(v1) if (v1 < low_critical) then return LOW_CRITICAL end; if (v1 > low_critical and v1 < low_warning) then return LOW_WARNING end; return OK; end"
+        "results"       :   [
+                {"ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level OK on UPS {{ename}})\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Battery Level OK)" }},
+                {"low_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level low on UPS {{ename}})\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Battery Level low)" }},
+                {"low_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Level critically low on UPS {{ename}})\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Battery Level critically low)" }} ],
+        "evaluation" : "function main(v1) if (v1 < low_critical) then return 'low_critical' end; if (v1 > low_critical and v1 < low_warning) then return 'low_warning' end; return 'ok'; end"
     }
 }

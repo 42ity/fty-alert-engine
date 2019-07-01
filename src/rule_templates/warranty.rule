@@ -8,6 +8,15 @@
         "values_unit": "days",
         "results"       :   [
                                 {
+                                    "ok"  : 
+                                    { 
+                                        "action" : [ ],
+                                        "severity" : "OK",
+                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty OK)\"}",
+                                        "threshold_name" : "TRANSLATE_LUA (Warranty OK)"
+                                    }
+                                },
+                                {
                                     "high_critical"  : 
                                     { 
                                         "action" : [{ "action": "EMAIL" }],
@@ -35,6 +44,7 @@
                                     }
                                 }
                             ],
-        "evaluation"    : "function main(match, value) if( value < high_critical ) then return HIGH_CRITICAL end if( value <= low_critical ) then return LOW_CRITICAL, match end if ( value <= low_warning ) then return LOW_WARNING, match end return OK, match end"
+        "outcome_item_count" : "2",
+        "evaluation"    : "function main(match, value) if( value < high_critical ) then return 'high_critical', match end if( value <= low_critical ) then return 'low_critical', match end if ( value <= low_warning ) then return 'low_warning', match end return 'ok', match end"
     }
 }
