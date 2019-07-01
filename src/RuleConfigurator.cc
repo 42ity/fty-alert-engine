@@ -41,8 +41,8 @@
 #include <string>
 //#include <math.h>
 
-#include "autoconfig.h"
-#include "ruleconfigurator.h"
+#include "Autoconfig.h"
+#include "RuleConfigurator.h"
 
 bool RuleConfigurator::sendNewRule (const std::string& rule, mlm_client_t *client)
 {

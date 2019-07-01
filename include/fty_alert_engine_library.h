@@ -91,7 +91,7 @@ typedef struct _fty_alert_actions_t fty_alert_actions_t;
 
 //  Public classes, each with its own header file
 #include "utils.h"
-#include "autoconfig.h"
+#include "Autoconfig.h"
 #include "fty_alert_engine_server.h"
 #include "fty_alert_actions.h"
 

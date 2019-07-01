@@ -30,8 +30,8 @@
 
 #include <algorithm>
 #include <cxxtools/directory.h>
-#include "templateruleconfigurator.h"
-#include "autoconfig.h"
+#include "TemplateRuleConfigurator.h"
+#include "Autoconfig.h"
 
 bool
 TemplateRuleConfigurator::configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &ename_la, mlm_client_t *client){

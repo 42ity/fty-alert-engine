@@ -69,8 +69,8 @@ utils.txt: $(top_srcdir)/src/utils.cc
 	"$(srcdir)/mkman" "utils" "$(builddir)/utils.txt" "$(srcdir)/.."
 
 GENERATED_DOCS += autoconfig.txt autoconfig.doc
-autoconfig.txt: $(top_srcdir)/src/autoconfig.cc
-	"$(srcdir)/mkman" "autoconfig" "$(builddir)/autoconfig.txt" "$(srcdir)/.."
+autoconfig.txt: $(top_srcdir)/src/Autoconfig.cc
+	"$(srcdir)/mkman" "Autoconfig" "$(builddir)/autoconfig.txt" "$(srcdir)/.."
 
 GENERATED_DOCS += fty_alert_engine_server.txt fty_alert_engine_server.doc
 fty_alert_engine_server.txt: $(top_srcdir)/src/fty_alert_engine_server.cc
@@ -84,9 +84,9 @@ fty_alert_actions.txt: $(top_srcdir)/src/fty_alert_actions.cc
 ### so that the manpages for binary programs match their name, at expense
 ### of perhaps being built in a subdirectory under doc/.
 GENERATED_DOCS += fty-alert-engine.txt fty-alert-engine.doc
-fty-alert-engine.txt: $(top_srcdir)/src/fty_alert_engine.cc
+fty-alert-engine.txt: $(top_srcdir)/src/fty-alert-engine.cc
 	mkdir -p "$(builddir)/$(@D)"
-	"$(srcdir)/mkman" "fty_alert_engine" "$(builddir)/fty-alert-engine.txt" "$(srcdir)/.."
+	"$(srcdir)/mkman" "fty-alert-engine" "$(builddir)/fty-alert-engine.txt" "$(srcdir)/.."
 
 
 clean-local:

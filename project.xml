@@ -13,13 +13,15 @@
     <target name = "travis" >
         <!-- option name = "clangformat_implem" value = "autotools" / -->
         <option name = "use_cmake" value = "0" />
+        <option name = "dist" value = "trusty" />
+        <option name = "shadow_gcc" value = "2" />
         <!-- option name = "clangformat_require_good" value = "1" / -->
         <option name = "clangformat_allow_failures" value = "1" />
         <option name = "use_pkg_deps_prereqs_source" value = "0" />
         <option name = "require_gitignore" value = "1" />
     </target>
     <target name = "jenkins" >
-        <option name = "agent_label" value = "devel-image &amp;&amp; x86_64" />
+        <option name = "agent_label" value = "devel-image-ipm_2.0.0 &amp;&amp; x86_64" />
         <option name = "triggers_pollSCM" value = "H/2 * * * *" />
         <option name = "test_cppcheck" value = "1" />
         <option name = "build_docs" value = "1" />
@@ -41,22 +43,26 @@
         <option name = "use_checkout_explicit" value = "1" />
     </target>
 
+	<classfilename use-cxx = "true" source-extension = "cc" header-extension = "h"
+		pretty-print = "no" keep-tree = "true" pkgincludedir = "false"
+		use-cxx-gcc-4-9 = "true" />
+    
     <include filename = "license.xml" />
     <version major = "1" minor = "0" patch = "0" />
     <abi current = "0" revision = "0" age = "0" />
 
     <use project = "czmq"
         repository = "https://github.com/42ity/czmq.git"
-        release = "v3.0.2-FTY-master"
+        release = "release/IPM-2.0.0"
         min_major = "3" min_minor = "0" min_patch = "2" >
 
         <use project = "libzmq"
             repository = "https://github.com/42ity/libzmq.git"
-            release = "4.2.0-FTY-master" >
+            release = "release/IPM-2.0.0" >
 
             <use project = "libsodium" prefix = "sodium"
                 repository = "https://github.com/42ity/libsodium.git"
-                release = "1.0.5-FTY-master"
+                release = "release/IPM-2.0.0"
                 test = "sodium_init"
                 />
         </use>
@@ -64,14 +70,14 @@
 
     <use project = "malamute" min_major = "1" test = "mlm_server_test"
         repository = "https://github.com/42ity/malamute.git"
-        release = "1.0-FTY-master"
+        release = "release/IPM-2.0.0"
         />
 
     <!-- Note: pure C projects should use fty-log/fty_logger.h, C++ use fty_log.h -->
     <use project = "fty-common-logging" libname = "libfty_common_logging"
         header = "fty_log.h"
         repository = "https://github.com/42ity/fty-common-logging.git"
-        release = "master"
+        release = "release/IPM-2.0.0"
         test = "fty_common_logging_selftest" >
 
         <!-- Note: pure C projects should use clogger.h, C++ use logger.h -->
@@ -79,28 +85,28 @@
             header = "log4cplus/logger.h"
             test = "appender_test"
             repository = "https://github.com/42ity/log4cplus.git"
-            release = "1.1.2-FTY-master"
+            release = "release/IPM-2.0.0"
             />
     </use>
 
     <use project = "fty-proto" libname = "libfty_proto" header = "ftyproto.h" prefix = "fty_proto"
         min_major = "1" min_minor = "0" min_patch = "0"
         repository = "https://github.com/42ity/fty-proto.git"
-        release = "master"
+        release = "release/IPM-2.0.0"
         test = "fty_proto_test" >
 
         <use project = "czmq"
             repository = "https://github.com/42ity/czmq.git"
-            release = "v3.0.2-FTY-master"
+            release = "release/IPM-2.0.0"
             min_major = "3" min_minor = "0" min_patch = "2" >
 
             <use project = "libzmq"
                 repository = "https://github.com/42ity/libzmq.git"
-                release = "4.2.0-FTY-master" >
+                release = "release/IPM-2.0.0" >
 
                 <use project = "libsodium" prefix = "sodium"
                     repository = "https://github.com/42ity/libsodium.git"
-                    release = "1.0.5-FTY-master"
+                    release = "release/IPM-2.0.0"
                     test = "sodium_init"
                     />
             </use>
@@ -108,17 +114,17 @@
 
         <use project = "malamute" min_major = "1" test = "mlm_server_test"
             repository = "https://github.com/42ity/malamute.git"
-            release = "1.0-FTY-master"
+            release = "release/IPM-2.0.0"
             />
 
         <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
             repository = "https://github.com/42ity/fty-common-logging.git"
-            release = "master"
+            release = "release/IPM-2.0.0"
             test = "fty_common_logging_selftest" >
 
             <use project = "log4cplus" header = "log4cplus/logger.h" test = "appender_test"
                 repository = "https://github.com/42ity/log4cplus.git"
-                release = "1.1.2-FTY-master"
+                release = "release/IPM-2.0.0"
                 />
         </use>
     </use>
@@ -130,28 +136,31 @@
         test = "cxxtools::Utf8Codec::Utf8Codec"
         header = "cxxtools/allocator.h"
         repository = "https://github.com/42ity/cxxtools.git"
-        release = "2.2-FTY-master"
+        release = "release/IPM-2.0.0"
         />
 
     <use project = "fty-common" libname = "libfty_common" header = "fty_common.h"
         repository = "https://github.com/42ity/fty-common.git"
-        release = "master"
+        release = "release/IPM-2.0.0"
         test = "fty_common_selftest" >
 
         <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
             repository = "https://github.com/42ity/fty-common-logging.git"
-            release = "master"
+            release = "release/IPM-2.0.0"
             test = "fty_common_logging_selftest" >
 
             <use project = "log4cplus" header = "log4cplus/logger.h" test = "appender_test"
                 repository = "https://github.com/42ity/log4cplus.git"
-                release = "1.1.2-FTY-master"
+                release = "release/IPM-2.0.0"
                 />
         </use>
     </use>
 
-    <use project = "fty_shm" libname = "libfty_shm" header="fty_shm.h" min_major = "1" test = "fty_shm_test" 
-        repository = "https://github.com/42ity/fty-shm.git"/>
+       
+     <use project = "fty_shm" libname = "libfty_shm" header="fty_shm.h" min_major = "1" test = "fty_shm_test"
+        repository = "https://github.com/42ity/fty-shm.git"
+        release = "release/IPM-2.0.0"
+        />
 
     <class name = "metriclist" private = "1" selftest = "0">MetricList</class>
     <class name = "alertconfiguration" private = "1">alertconfiguration</class>

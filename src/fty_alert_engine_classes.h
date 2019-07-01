@@ -30,13 +30,7 @@
 #include "platform.h"
 
 //  External API
-#include "../include/fty_alert_engine.h"
-
-//  Extra headers
-#include "normalrule.h"
-#include "thresholdrulesimple.h"
-#include "thresholdruledevice.h"
-#include "regexrule.h"
+#include "../include/fty-alert-engine.h"
 
 //  Opaque class structures to allow forward references
 #ifndef METRICLIST_T_DEFINED
@@ -72,6 +66,12 @@ typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 #define TEMPLATERULECONFIGURATOR_T_DEFINED
 #endif
 
+//  Extra headers
+#include "normalrule.h"
+#include "thresholdrulesimple.h"
+#include "thresholdruledevice.h"
+#include "regexrule.h"
+
 //  Internal API
 
 #include "metriclist.h"
@@ -80,8 +80,8 @@ typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 #include "purealert.h"
 #include "rule.h"
 #include "thresholdrulecomplex.h"
-#include "ruleconfigurator.h"
-#include "templateruleconfigurator.h"
+#include "RuleConfigurator.h"
+#include "TemplateRuleConfigurator.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ALERT_ENGINE_BUILD_DRAFT_API

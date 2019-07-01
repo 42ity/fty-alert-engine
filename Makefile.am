@@ -71,8 +71,8 @@ EXTRA_DIST += \
     src/purealert.h \
     src/rule.h \
     src/thresholdrulecomplex.h \
-    src/ruleconfigurator.h \
-    src/templateruleconfigurator.h \
+    src/RuleConfigurator.h \
+    src/TemplateRuleConfigurator.h \
     src/normalrule.h \
     src/thresholdrulesimple.h \
     src/thresholdruledevice.h \

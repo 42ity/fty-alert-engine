@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Starts the alert agent
  */
 
-#include "fty_alert_engine.h"
+#include "fty-alert-engine.h"
 
 static const char *CONFIG = "/etc/fty-alert-engine/fty-alert-engine.cfg";
 // path to the directory, where rules are stored. Attention: without last slash!

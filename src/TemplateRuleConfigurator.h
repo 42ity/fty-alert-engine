@@ -25,7 +25,7 @@
 #include <string>
 #include <fstream>
 
-#include "ruleconfigurator.h"
+#include "RuleConfigurator.h"
 
 
 class TemplateRuleConfigurator : public RuleConfigurator {
