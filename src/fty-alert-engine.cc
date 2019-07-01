@@ -89,13 +89,13 @@ int main (int argc, char *argv [])
     // trigger mailbox
     zstr_sendx (agent_trigger_mailbox, "CONFIG", rule_location.c_str (), NULL);
     zstr_sendx (agent_trigger_mailbox, "CONNECT", ENDPOINT, NULL);
-    zstr_sendx (agent_trigger_mailbox, "TIMEOUT", std::to_string (fty_get_polling_interval () * 1000).c_str (), NULL);
+    zstr_sendx (agent_trigger_mailbox, "TIMEOUT", std::to_string (fty_get_polling_interval ()).c_str (), NULL);
     zstr_sendx (agent_trigger_mailbox, "ALERT_LIST_MB_NAME", LIST_AGENT_NAME, NULL); // trigger mailbox name
     zstr_sendx (agent_trigger_mailbox, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL); // due to TOUCH mailbox
     zstr_sendx (agent_trigger_mailbox, "LOAD_PERSISTENCE", NULL); // due to TOUCH mailbox
     // trigger stream + alert evaluation
     zstr_sendx (agent_trigger_stream, "CONNECT", ENDPOINT, NULL);
-    zstr_sendx (agent_trigger_stream, "TIMEOUT", std::to_string (fty_get_polling_interval () * 1000).c_str (), NULL);
+    zstr_sendx (agent_trigger_stream, "TIMEOUT", std::to_string (fty_get_polling_interval ()).c_str (), NULL);
     zstr_sendx (agent_trigger_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     //zstr_sendx (agent_trigger_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL); // disabled in favor of SHM
     zstr_sendx (agent_trigger_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
