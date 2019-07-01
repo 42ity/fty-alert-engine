@@ -35,6 +35,6 @@
                                     }
                                 }
                             ],
-        "evaluation"    : "function main(value) if( value < high_critical ) then return HIGH_CRITICAL end if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= low_warning ) then return LOW_WARNING end return OK end"
+        "evaluation"    : "function main(match, value) if( value < high_critical ) then return HIGH_CRITICAL end if( value <= low_critical ) then return LOW_CRITICAL, match end if ( value <= low_warning ) then return LOW_WARNING, match end return OK, match end"
     }
 }

@@ -35,6 +35,16 @@ class Alert {
             m_Mtime (0),
             m_Ttl (std::numeric_limits<uint64_t>::max ())
         {}
+        explicit Alert (std::string rulename, std::string asset, std::string state):
+            m_Id (rulename + "/" + asset),
+            m_Name (asset),
+            m_Rule (rulename),
+            m_State (StringToAlertState (state)),
+            m_Outcome ({"ok"}),
+            m_Ctime (0),
+            m_Mtime (0),
+            m_Ttl (std::numeric_limits<uint64_t>::max ())
+        {}
 
         std::string id () { return m_Id; }
         void setResults (Rule::ResultsMap results)
@@ -122,6 +132,8 @@ class Alert {
         }
 
         std::string m_Id;
+        std::string m_Name;
+        std::string m_Rule;
         Rule::ResultsMap m_Results;
         AlertState m_State;
         std::vector<std::string> m_Outcome;

@@ -81,6 +81,10 @@ Alert::update (fty_proto_t *msg)
         m_Ctime = fty_proto_time (msg);
         m_Mtime = fty_proto_time (msg);
     }
+    if (m_Name.empty ())
+        m_Name = fty_proto_name (msg);
+    if (m_Rule.empty ())
+        m_Rule = fty_proto_rule (msg);
     m_Ttl = fty_proto_ttl (msg);
     m_Severity = m_Results[outcome].severity_;
     m_Description = m_Results[outcome].description_;
@@ -109,7 +113,7 @@ Alert::overwrite (fty_proto_t *msg)
 void
 Alert::overwrite (GenericRule rule)
 {
-    m_Id = rule.getName ();
+    //m_Id = rule.getName ();
     m_Results = rule.getResults ();
     m_State = RESOLVED;
     m_Outcome.clear ();
@@ -193,14 +197,14 @@ Alert::toFtyProto (
         zlist_append (actions, (void *) action.c_str ());
     }
 
-    int sep = m_Id.find ('@');
-    std::string rule = m_Id.substr (0, sep);
-    std::string name = m_Id.substr (sep+1);
+    //int sep = m_Id.find ('@');
+    //std::string rule = m_Id.substr (0, sep);
+    //std::string name = m_Id.substr (sep+1);
 
     std::string description = s_replace_tokens (
             m_Description,
             m_Severity,
-            name,
+            m_Name,
             ename,
             logical_asset,
             logical_asset_ename,
@@ -211,8 +215,8 @@ Alert::toFtyProto (
             aux,
             m_Mtime,
             m_Ttl,
-            rule.c_str (),
-            name.c_str (),
+            m_Rule.c_str (),
+            m_Name.c_str (),
             AlertStateToString (m_State).c_str (),
             m_Severity.c_str (),
             description.c_str (),
@@ -230,16 +234,16 @@ Alert::StaleToFtyProto ()
     zhash_t *aux = zhash_new ();
     zlist_t *actions = zlist_new ();
 
-    int sep = m_Id.find ('@');
-    std::string rule = m_Id.substr (0, sep);
-    std::string name = m_Id.substr (sep+1);
+    //int sep = m_Id.find ('@');
+    //std::string rule = m_Id.substr (0, sep);
+    //std::string name = m_Id.substr (sep+1);
 
     zmsg_t *tmp = fty_proto_encode_alert (
             aux,
             m_Mtime,
             m_Ttl,
-            rule.c_str (),
-            name.c_str (),
+            m_Rule.c_str (),
+            m_Name.c_str (),
             AlertStateToString (m_State).c_str (),
             "",
             "",
@@ -267,16 +271,12 @@ Alert::TriggeredToFtyProto ()
 
     zlist_t *actions = zlist_new ();
 
-    int sep = m_Id.find ('@');
-    std::string rule = m_Id.substr (0, sep);
-    std::string name = m_Id.substr (sep+1);
-
     zmsg_t *tmp = fty_proto_encode_alert (
             aux,
             m_Mtime,
             m_Ttl,
-            rule.c_str (),
-            name.c_str (),
+            m_Rule.c_str (),
+            m_Name.c_str (),
             AlertStateToString (m_State).c_str (),
             "",
             "",
@@ -308,7 +308,7 @@ alert_test (bool verbose)
 {
     //  @selftest
     printf (" * alert: ");
-    std::string rule = "average.temperature";
+    std::string rule = "average.temperature@datacenter-3";
     std::string name = "datacenter-3";
 
     // put in proper results
@@ -342,7 +342,8 @@ alert_test (bool verbose)
     uint64_t now = zclock_time () / 1000;
     // create fty-proto msg
     {
-        Alert alert (rule + "@" + name, tmp);
+        Alert alert (rule, name, "RESOLVED");
+        alert.setResults (tmp);
         assert (alert.outcome () == "ok");
         assert (alert.ctime () == 0);
         assert (alert.mtime () == 0);
@@ -377,6 +378,7 @@ alert_test (bool verbose)
         assert (alert.outcome () == "high_warning");
         assert (alert.ctime () == now);
         assert (alert.ttl () == ttl);
+        log_error ("%s", alert.severity ().c_str ());
         assert (alert.severity () == "WARNING");
         assert (alert.description () == "Average temperature in __ename__ is high");
         assert (alert.actions ()[0] == "EMAIL");
@@ -399,6 +401,7 @@ alert_test (bool verbose)
         fty_proto_t *fty_alert_msg = fty_proto_decode (&alert_msg);
         assert (fty_proto_aux_number (fty_alert_msg, "ctime", 0) == now);
         assert (fty_proto_time (fty_alert_msg) == now);
+        log_error ("%s", fty_proto_rule (fty_alert_msg));
         assert (streq (fty_proto_rule (fty_alert_msg), rule.c_str ()));
         assert (streq (fty_proto_name (fty_alert_msg), name.c_str ()));
         assert (fty_proto_ttl (fty_alert_msg) == ttl);
@@ -434,38 +437,41 @@ alert_test (bool verbose)
 
     {
         // create alert2 - triggered
-        Alert alert2 (rule + "@" + name, tmp);
+        Alert alert2 (rule, name, "ACTIVE");
+        std::vector<std::string> outcomes = {"high_critical"};
+        alert2.setOutcomes (outcomes);
 
-        zhash_t *aux = zhash_new ();
-        zhash_autofree (aux);
-        zhash_insert (aux, "outcome", (void *) "high_critical");
-        zlist_t *fty_actions = zlist_new ();
+        //zhash_t *aux = zhash_new ();
+        //zhash_autofree (aux);
+        //zhash_insert (aux, "outcome", (void *) "high_critical");
+        //zlist_t *fty_actions = zlist_new ();
 
-        uint64_t mtime = now;
-        uint64_t ttl = 5;
+        //uint64_t mtime = now;
+        //uint64_t ttl = 5;
 
-        zmsg_t *msg = fty_proto_encode_alert (
-                aux,
-                mtime,
-                ttl,
-                rule.c_str (),
-                name.c_str (),
-                "ACTIVE",
-                "",
-                "",
-                fty_actions
-                );
-        fty_proto_t *fty_msg = fty_proto_decode (&msg);
-        alert2.update (fty_msg);
-        fty_proto_destroy (&fty_msg);
-        zlist_destroy (&fty_actions);
-        zhash_destroy (&aux);
+        //zmsg_t *msg = fty_proto_encode_alert (
+        //        aux,
+        //        mtime,
+        //        ttl,
+        //        rule.c_str (),
+        //        name.c_str (),
+        //        "ACTIVE",
+        //        "",
+        //        "",
+        //        fty_actions
+        //        );
+        //fty_proto_t *fty_msg = fty_proto_decode (&msg);
+        //alert2.update (fty_msg);
+        //fty_proto_destroy (&fty_msg);
+        //zlist_destroy (&fty_actions);
+        //zhash_destroy (&aux);
 
         // convert basic alert (triggered by rule evaluation) to fty-proto
         zmsg_t *alert2_msg = alert2.TriggeredToFtyProto ();
         fty_proto_t *fty_alert2_msg = fty_proto_decode (&alert2_msg);
         assert (streq (fty_proto_aux_string (fty_alert2_msg, "outcome", ""), "high_critical"));
         assert (streq (fty_proto_rule (fty_alert2_msg), rule.c_str ()));
+
         assert (streq (fty_proto_name (fty_alert2_msg), name.c_str ()));
         fty_proto_destroy (&fty_alert2_msg);
     }
@@ -524,8 +530,8 @@ alert_test (bool verbose)
         fty_proto_t *fty_alert_msg = fty_proto_decode (&alert_msg);
         assert (fty_proto_aux_number (fty_alert_msg, "ctime", 0) == now);
         assert (fty_proto_time (fty_alert_msg) == now);
-        assert (streq (fty_proto_rule (fty_alert_msg), "metric"));
-        assert (streq (fty_proto_name (fty_alert_msg), "asset1"));
+        assert (streq (fty_proto_rule (fty_alert_msg), "average.temperature@datacenter-3"));
+        assert (streq (fty_proto_name (fty_alert_msg), "datacenter-3"));
         assert (fty_proto_ttl (fty_alert_msg) == ttl);
         assert (streq (fty_proto_severity (fty_alert_msg), "CRITICAL"));
         assert (streq (fty_proto_state (fty_alert_msg), "RESOLVED"));

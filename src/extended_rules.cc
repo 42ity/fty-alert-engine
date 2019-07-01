@@ -63,6 +63,7 @@ Rule::VectorVectorStrings evaluate_helper (
         }
         if (valid) {
             result.push_back (evaluate (metric_values));
+            result.back ().push_back (asset);
         }
     }
     return result;
@@ -215,6 +216,12 @@ Rule::VectorVectorStrings PatternRule::evaluate (const Rule::MapStrings &active_
             metric_values.push_back (active_metric_it.first);
             metric_values.push_back (active_metric_it.second);
             result.push_back (evaluate (metric_values));
+            auto at_pos = active_metric_it.first.find ('@');
+            if (at_pos != std::string::npos) {
+                result.back ().push_back (active_metric_it.first.substr (at_pos + 1));
+            } else {
+                result.back ().push_back (active_metric_it.first);
+            }
             metric_values.clear ();
         }
     }
@@ -402,7 +409,7 @@ extended_rules_test (bool verbose)
     assert (sr1_eval1_results == sr1_eval1_expected);
     Rule::VectorVectorStrings sr1_eval2_results = sr1.evaluate ({{"single1.metric1@asset4", "40"}},
         Rule::SetStrings ());
-    Rule::VectorVectorStrings sr1_eval2_expected = {{"ok"}};
+    Rule::VectorVectorStrings sr1_eval2_expected = {{"ok", "asset4"}};
     assert (sr1_eval2_results == sr1_eval2_expected);
 
     // create pattern rule with lua
@@ -426,7 +433,7 @@ extended_rules_test (bool verbose)
     assert (pr1_eval1_results == pr1_eval1_expected);
     Rule::VectorVectorStrings pr1_eval2_results = pr1.evaluate ({{"pattern1.metric1@asset5", "40"}},
         Rule::SetStrings ());
-    Rule::VectorVectorStrings pr1_eval2_expected = {{"ok", "pattern1.metric1@asset5"}};
+    Rule::VectorVectorStrings pr1_eval2_expected = {{"ok", "pattern1.metric1@asset5", "asset5"}};
     assert (pr1_eval2_results == pr1_eval2_expected);
     pr1_eval2_results = pr1.evaluate ({
             {"pattern1.metric1@asset5", "40"},
@@ -434,9 +441,9 @@ extended_rules_test (bool verbose)
             {"pattern30.metric1@asset7", "40"},
             {"pattern4.metric1@", "40"},
             {"patern5.metric1@asset8", "40"}}, Rule::SetStrings ());
-    pr1_eval2_expected = {{"ok", "pattern1.metric1@asset5"},
-            {"fail", "pattern2.metric1@asset6"},
-            {"ok", "pattern4.metric1@"}};
+    pr1_eval2_expected = {{"ok", "pattern1.metric1@asset5", "asset5"},
+            {"fail", "pattern2.metric1@asset6", "asset6"},
+            {"ok", "pattern4.metric1@", ""}};
     assert (pr1_eval2_results == pr1_eval2_expected);
 
     // create threshold rule for single metric without lua
@@ -458,7 +465,7 @@ extended_rules_test (bool verbose)
     assert (tr1_eval1_results == tr1_eval1_expected);
     Rule::VectorVectorStrings tr1_eval2_results = tr1.evaluate ({{"threshold1.metric1@asset1", "40"}},
         Rule::SetStrings ());
-    Rule::VectorVectorStrings tr1_eval2_expected = {{"ok"}};
+    Rule::VectorVectorStrings tr1_eval2_expected = {{"ok", "asset1"}};
     assert (tr1_eval2_results == tr1_eval2_expected);
 
     // create threshold rule for multiple metrics with lua
@@ -478,7 +485,7 @@ extended_rules_test (bool verbose)
     assert (tr2_eval1_results == tr2_eval1_expected);
     Rule::VectorVectorStrings tr2_eval2_results = tr2.evaluate ({{"threshold2.metric1@asset2", "5"},
             {"threshold2.metric2@asset2", "15"}}, Rule::SetStrings ());
-    Rule::VectorVectorStrings tr2_eval2_expected = {{"ok"}};
+    Rule::VectorVectorStrings tr2_eval2_expected = {{"ok", "asset2"}};
     assert (tr2_eval2_results == tr2_eval2_expected);
 
     // create flexible rule with lua
@@ -497,7 +504,7 @@ extended_rules_test (bool verbose)
     assert (fr1_eval1_results == fr1_eval1_expected);
     Rule::VectorVectorStrings fr1_eval2_results = fr1.evaluate ({{"flexible1.metric1@asset3", "good"}},
         Rule::SetStrings ());
-    Rule::VectorVectorStrings fr1_eval2_expected = {{"ok"}};
+    Rule::VectorVectorStrings fr1_eval2_expected = {{"ok", "asset3"}};
     assert (fr1_eval2_results == fr1_eval2_expected);
 
     printf ("OK\n");
