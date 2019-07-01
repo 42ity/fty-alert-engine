@@ -25,3 +25,5 @@
 #
 
 ln  -s /usr/share/fty-alert-engine/data/*.rule /var/lib/fty/fty-alert-engine/
+
+exit 0
