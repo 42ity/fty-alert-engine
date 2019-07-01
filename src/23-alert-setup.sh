@@ -24,7 +24,7 @@
 #  \author  Clement Perrette <ClementPerrette@Eaton.com>
 #
 
-mkdir -p /var/lib/fty/fty-alert-engine/
-ln  -s /usr/share/fty-alert-engine/data/*.rule /var/lib/fty/fty-alert-engine/
+ln  -sr /usr/share/fty-alert-engine/data/*.rule /var/lib/fty/fty-alert-engine/ \
+|| echo "WARNING : Some error happened during symlinkins, see above" >&2
 
 exit 0
