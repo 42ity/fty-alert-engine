@@ -2,7 +2,7 @@
     "pattern" : {
         "rule_name"     :   "warranty",
         "target"        :   "^end_warranty_date@.+",
-        "comment"       :   "/!\ Warning, target trick hardcoded in fty_alert_engine_server.cc:evaluate_metric",
+        "comment"       :   "/!\\ Warning, target trick hardcoded in fty_alert_engine_server.cc:evaluate_metric",
         "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"}, {"high_critical":"0"} ],
         "values_unit": "days",
         "results"       :   [
