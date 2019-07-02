@@ -70,18 +70,22 @@ void AlertTrigger::loadFromPersistence () {
         return;
     }
     cxxtools::Directory directory (rule_location_);
+    int cnt = 0;
     for ( const auto &filename : directory) {
         if ( filename.compare (".")!=0  && filename.compare ("..")!=0) {
             std::ifstream file (directory.path () + "/" + filename);
             std::string file_content ((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             try {
+                log_debug ("Loading from persistence: %s", filename.c_str ());
                 std::shared_ptr<Rule> rule = RuleFactory::createFromJson (file_content);
                 known_rules_.insertElement (rule->getName (), rule);
+                ++cnt;
             } catch (std::exception &e) {
                 log_warning ("Unable to load file %s/%s", directory.path ().c_str (), filename.c_str ());
             }
         }
     }
+    log_info ("Loaded %d rules from persistence", cnt);
 }
 void AlertTrigger::onRuleCreateCallback (RuleSPtr ruleptr) {
     log_debug ("callback create for rule %s", ruleptr->getName ().c_str ());

@@ -348,8 +348,13 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
                 char *command = zmsg_popstr (message);
                 if (!streq (command, "OK")) {
                     char *param = zmsg_popstr (message);
-                    log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (),
-                        rule_it.second->getJsonRule ().c_str ());
+                    if (streq (param, "ALREADY_EXISTS")) {
+                        log_debug ("Rule %s for asset %s already known", rule_it.first.c_str (),
+                                assetptr->getId ().c_str ());
+                    } else {
+                        log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (),
+                                rule_it.second->getJsonRule ().c_str ());
+                    }
                     zstr_free (&param);
                 }
                 zstr_free (&corr_id);
