@@ -327,16 +327,16 @@ void AlertConfig::onAssetCreateCallback (FullAssetSPtr assetptr) {
     std::map<std::string, std::shared_ptr<Rule>> rules = getAllTemplatesMap ();
     for (auto &rule_it : rules) {
         if (ruleMatchAsset (rule_it, assetptr)) {
-            auto name_it = rule_it.second->getName ().find ("__name__");
-            while (name_it != std::string::npos) {
-                rule_it.second->setName (rule_it.second->getName ().replace (name_it, name_it+std::strlen ("__name__"),
-                    assetptr->getId ()));
-                name_it = rule_it.second->getName ().find ("__name__");
+            std::string json = rule_it.second->getJsonRule ();
+            auto pos = json.find ("__name__");
+            while (pos != std::string::npos) {
+                json.replace (pos, std::strlen ("__name__"), assetptr->getId ());
+                pos = json.find ("__name__", pos);
             }
             zmsg_t *message = zmsg_new ();
             zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
             zmsg_addstr (message, "ADD");
-            zmsg_addstr (message, rule_it.second->getJsonRule ().c_str ());
+            zmsg_addstr (message, json.c_str ());
             mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT,
                     mlm_client_tracker (client_), 1000, &message);
             // expect response
