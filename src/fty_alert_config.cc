@@ -501,7 +501,7 @@ fty_alert_config_test (bool verbose)
     sleep (1);
 
     log_debug ("Test 1: send asset datacenter, expected rule average.temperature@dc-1");
-    // send asset - DC
+    // send asset - datacenter n_a
     // expected: rule average.temperature@dc-1
     zhash_t *asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
@@ -546,7 +546,7 @@ fty_alert_config_test (bool verbose)
     assert (counter < 20);
 
     log_debug ("Test 2: send asset room, expected no rules");
-    // send asset - device ups
+    // send asset - room n_a
     // expected: empty result
     asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
@@ -672,7 +672,7 @@ fty_alert_config_test (bool verbose)
     assert (rules_count == 30);
 
     log_debug ("Test 5: send asset room delete");
-    // send asset - device ups
+    // send asset - room n_a
     // expected: empty result
     asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
@@ -809,7 +809,59 @@ fty_alert_config_test (bool verbose)
     assert (counter < 20);
     assert (rules_count == 9);
 
-    log_debug ("Test 8 no messages in queue");
+    log_debug ("Test 8: send asset room twice, expected no rules");
+    // send asset - room n_a
+    // expected: empty result
+    asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "room");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
+    asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyRoom");
+    asset = fty_proto_encode_asset (asset_aux, "room-22", FTY_PROTO_ASSET_OP_UPDATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            assert (false); // there are no test rules for ups, so no message should come
+        }
+    }
+    assert (counter >= 20);
+    asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "room");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
+    asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyRoom");
+    asset = fty_proto_encode_asset (asset_aux, "room-22", FTY_PROTO_ASSET_OP_UPDATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            assert (false); // there are no test rules for ups, so no message should come
+        }
+    }
+    assert (counter >= 20);
+
+    log_debug ("Test 9 no messages in queue");
     while (counter < 20) {
         void *which = zpoller_wait (poller, 1000);
         if (which != nullptr)
