@@ -1398,10 +1398,10 @@ fty_alert_trigger_test (bool verbose)
                 // TODO: FIXME: add more precise unit tests
                 fty_proto_destroy (&fty_msg);
             } else {
-                assert (std::string ("threshold1@asset1/") == mlm_client_subject (client_stream) ||
-                    std::string ("flexible1@asset3/") == mlm_client_subject (client_stream) ||
-                    std::string ("single1@asset4/") == mlm_client_subject (client_stream) ||
-                    std::string ("pattern1@asset5/") == mlm_client_subject (client_stream));
+                assert (std::string ("threshold1@asset1/asset1") == mlm_client_subject (client_stream) ||
+                    std::string ("flexible1@asset3/asset3") == mlm_client_subject (client_stream) ||
+                    std::string ("single1@asset4/asset4") == mlm_client_subject (client_stream) ||
+                    std::string ("pattern1@asset5/*") == mlm_client_subject (client_stream));
                 Alert a (mlm_client_subject (client_stream), {});
                 fty_proto_t *fty_msg = fty_proto_decode (&message);
                 a.overwrite (fty_msg);
@@ -1438,11 +1438,11 @@ fty_alert_trigger_test (bool verbose)
         void *which = zpoller_wait (poller, 10000);
         if (which == mlm_client_msgpipe (client_stream)) {
             message = mlm_client_recv (client_stream);
-            assert (std::string ("threshold1@asset1/") == mlm_client_subject (client_stream) ||
-                    std::string ("threshold2@asset2/") == mlm_client_subject (client_stream) ||
-                    std::string ("flexible1@asset3/") == mlm_client_subject (client_stream) ||
-                    std::string ("single1@asset4/") == mlm_client_subject (client_stream) ||
-                    std::string ("pattern1@asset5/") == mlm_client_subject (client_stream));
+            assert (std::string ("threshold1@asset1/asset1") == mlm_client_subject (client_stream) ||
+                    std::string ("threshold2@asset2/asset2") == mlm_client_subject (client_stream) ||
+                    std::string ("flexible1@asset3/asset3") == mlm_client_subject (client_stream) ||
+                    std::string ("single1@asset4/asset4") == mlm_client_subject (client_stream) ||
+                    std::string ("pattern1@asset5/*") == mlm_client_subject (client_stream));
             Alert a (mlm_client_subject (client_stream), {});
             fty_proto_t *fty_msg = fty_proto_decode (&message);
             a.overwrite (fty_msg);
@@ -1478,11 +1478,11 @@ fty_alert_trigger_test (bool verbose)
         void *which = zpoller_wait (poller, 10000);
         if (which == mlm_client_msgpipe (client_stream)) {
             message = mlm_client_recv (client_stream);
-            assert (std::string ("threshold1@asset1/") == mlm_client_subject (client_stream) ||
-                    std::string ("threshold2@asset2/") == mlm_client_subject (client_stream) ||
-                    std::string ("flexible1@asset3/") == mlm_client_subject (client_stream) ||
-                    std::string ("single1@asset4/") == mlm_client_subject (client_stream) ||
-                    std::string ("pattern1@asset5/") == mlm_client_subject (client_stream));
+            assert (std::string ("threshold1@asset1/asset1") == mlm_client_subject (client_stream) ||
+                    std::string ("threshold2@asset2/asset2") == mlm_client_subject (client_stream) ||
+                    std::string ("flexible1@asset3/asset3") == mlm_client_subject (client_stream) ||
+                    std::string ("single1@asset4/asset4") == mlm_client_subject (client_stream) ||
+                    std::string ("pattern1@asset5/*") == mlm_client_subject (client_stream));
             Alert a (mlm_client_subject (client_stream), {});
             fty_proto_t *fty_msg = fty_proto_decode (&message);
             a.overwrite (fty_msg);
