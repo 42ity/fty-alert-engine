@@ -422,10 +422,20 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
             } else {
-                Alert alert (rule_ptr->getName (), "", "ACTIVE");
-                alert.setState ("RESOLVED");
-                zmsg_t *msg = alert.TriggeredToFtyProto ();
-                mlm_client_send (client_, alert.id ().c_str (), &msg);
+                if (rule_ptr->getAssets ().size () == 0) {
+                    log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
+                    Alert alert (rule_ptr->getName (), "*", "ACTIVE");
+                    alert.setState ("RESOLVED");
+                    zmsg_t *msg = alert.TriggeredToFtyProto ();
+                    mlm_client_send (client_, alert.id ().c_str (), &msg);
+                }
+                for (std::string &asset : rule_ptr->getAssets ()) {
+                    log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
+                    Alert alert (rule_ptr->getName (), asset, "ACTIVE");
+                    alert.setState ("RESOLVED");
+                    zmsg_t *msg = alert.TriggeredToFtyProto ();
+                    mlm_client_send (client_, alert.id ().c_str (), &msg);
+                }
             }
         }
         // send alert on stream
@@ -623,10 +633,20 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
                 }
             } else {
                 // unable to evaluate any of alerts for the rule
-                Alert alert (rule.getName (), "", "ACTIVE");
-                alert.setState ("RESOLVED");
-                zmsg_t *msg = alert.TriggeredToFtyProto ();
-                mlm_client_send (client_, alert.id ().c_str (), &msg);
+                if (rule.getAssets ().size () == 0) {
+                    log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
+                    Alert alert (rule.getName (), "*", "ACTIVE");
+                    alert.setState ("RESOLVED");
+                    zmsg_t *msg = alert.TriggeredToFtyProto ();
+                    mlm_client_send (client_, alert.id ().c_str (), &msg);
+                }
+                for (std::string &asset : rule.getAssets ()) {
+                    log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
+                    Alert alert (rule.getName (), asset, "ACTIVE");
+                    alert.setState ("RESOLVED");
+                    zmsg_t *msg = alert.TriggeredToFtyProto ();
+                    mlm_client_send (client_, alert.id ().c_str (), &msg);
+                }
             }
         }
     }
