@@ -75,9 +75,9 @@ class DecoratorLuaEvaluate {
         typedef std::map<std::string, std::string> VariableMap;
         typedef std::vector<std::string> VectorStrings;
     public:
-        DecoratorLuaEvaluate () : outcome_items_(1) { };
-        DecoratorLuaEvaluate (const DecoratorLuaEvaluate &r) : global_variables_ (r.global_variables_),
-                code_ (r.code_), outcome_items_(1) { } ;
+        DecoratorLuaEvaluate () : valid_(false), lstate_(nullptr), outcome_items_(1) { };
+        DecoratorLuaEvaluate (const DecoratorLuaEvaluate &r) : global_variables_(r.global_variables_), valid_(false),
+                lstate_(nullptr), code_(r.code_), outcome_items_(1) { } ;
         /// get number of outcome variables (size of evaluation result)
         int getOutcomeItems () const { return outcome_items_; };
         /// get number of outcome variables (size of evaluation result)
@@ -98,8 +98,8 @@ class DecoratorLuaEvaluate {
         void setGlobalVariablesToLUAStack ();
 
         VariableMap global_variables_;
-        bool valid_ = false;
-        lua_State *lstate_ = NULL;
+        bool valid_;
+        lua_State *lstate_;
     private:
         /// plain code
         std::string code_;

@@ -116,7 +116,7 @@ void SingleRule::saveToSerializedObject (cxxtools::SerializationInfo &si) const 
 SingleRule::SingleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
         const Rule::VectorStrings categories, const ResultsMap results, std::string code,
         DecoratorLuaEvaluate::VariableMap variables) :
-        Rule (name, metrics, assets, categories, results) {
+        Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     if (assets_.size () != 1)
         throw invalid_metrics_count ();
     Rule::setGlobalVariables (variables);
@@ -124,7 +124,7 @@ SingleRule::SingleRule (const std::string name, const Rule::VectorStrings metric
     setCode (code);
 }
 
-SingleRule::SingleRule (const std::string json) : Rule (json) {
+SingleRule::SingleRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
@@ -175,7 +175,7 @@ void PatternRule::saveToSerializedObject (cxxtools::SerializationInfo &si) const
 PatternRule::PatternRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
         const Rule::VectorStrings categories, const ResultsMap results, std::string code,
         DecoratorLuaEvaluate::VariableMap variables) :
-        Rule (name, metrics, assets, categories, results) {
+        Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     if (metrics_.size () != 1)
         throw invalid_metrics_count ();
     metric_regex_ = std::regex (metrics_[0]);
@@ -184,7 +184,7 @@ PatternRule::PatternRule (const std::string name, const Rule::VectorStrings metr
     setCode (code);
 }
 
-PatternRule::PatternRule (const std::string json) : Rule (json) {
+PatternRule::PatternRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     if (metrics_.size () != 1)
         throw invalid_metrics_count ();
     std::istringstream iss (json);
@@ -260,7 +260,7 @@ void ThresholdRule::saveToSerializedObject (cxxtools::SerializationInfo &si) con
 ThresholdRule::ThresholdRule (const std::string name, const Rule::VectorStrings metrics,
         const Rule::VectorStrings assets, const Rule::VectorStrings categories,
         const ResultsMap results, std::string code, DecoratorLuaEvaluate::VariableMap variables) :
-        Rule (name, metrics, assets, categories, results) {
+        Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     Rule::setGlobalVariables (variables);
     if (!code.empty ()) {
         DecoratorLuaEvaluate::setGlobalVariables (variables);
@@ -268,7 +268,7 @@ ThresholdRule::ThresholdRule (const std::string name, const Rule::VectorStrings 
     }
 }
 
-ThresholdRule::ThresholdRule (const std::string json) : Rule (json) {
+ThresholdRule::ThresholdRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
@@ -312,7 +312,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, ThresholdRule &rule) {
 FlexibleRule::FlexibleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
         const Rule::VectorStrings categories, const ResultsMap results, std::string code,
         DecoratorLuaEvaluate::VariableMap variables) :
-        Rule (name, metrics, assets, categories, results) {
+        Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     Rule::setGlobalVariables (variables);
     if (!code.empty ()) {
         DecoratorLuaEvaluate::setGlobalVariables (variables);
@@ -320,7 +320,7 @@ FlexibleRule::FlexibleRule (const std::string name, const Rule::VectorStrings me
     }
 }
 
-FlexibleRule::FlexibleRule (const std::string json) : Rule (json) {
+FlexibleRule::FlexibleRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
