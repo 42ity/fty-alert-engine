@@ -6,7 +6,7 @@
 all-local: doc
 
 # Public programs ("main" tags in project.xml), auto-regenerated:
-MAN1 = fty-alert-engine.1
+MAN1 = fty-alert-engine.1 rule-checker.1
 # Public classes ("class" tags in project.xml), auto-regenerated:
 MAN3 = fty_alert_trigger.3 fty_alert_config.3
 # Project overview, written by a human after initial skeleton:
@@ -79,6 +79,11 @@ GENERATED_DOCS += fty-alert-engine.txt fty-alert-engine.doc
 fty-alert-engine.txt: $(top_srcdir)/src/fty-alert-engine.cc
 	mkdir -p "$(builddir)/$(@D)"
 	"$(srcdir)/mkman" "fty-alert-engine" "$(builddir)/fty-alert-engine.txt" "$(srcdir)/.."
+
+GENERATED_DOCS += rule-checker.txt rule-checker.doc
+rule-checker.txt: $(top_srcdir)/src/rule-checker.cc
+	mkdir -p "$(builddir)/$(@D)"
+	"$(srcdir)/mkman" "rule-checker" "$(builddir)/rule-checker.txt" "$(srcdir)/.."
 
 
 clean-local:
