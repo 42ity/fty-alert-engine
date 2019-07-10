@@ -47,6 +47,7 @@ AlertConfig::~AlertConfig () {
     zpoller_destroy (&client_mb_sender_poller_);
     mlm_client_destroy (&client_);
     mlm_client_destroy (&client_mb_sender_);
+    FullAssetDatabase::getInstance ().clear ();
 }
 
 /// handle pipe messages for this actor

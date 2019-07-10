@@ -301,6 +301,10 @@ runAssetDatabaseUT (bool verbose)
     assetDatabaseUT2 ();
     // test hooks
     assetDatabaseUT3 ();
+    // be nice and clean up after yourself
+    BasicAssetDatabase::getInstance ().clear ();
+    ExtendedAssetDatabase::getInstance ().clear ();
+    FullAssetDatabase::getInstance ().clear ();
 }
 
 void
