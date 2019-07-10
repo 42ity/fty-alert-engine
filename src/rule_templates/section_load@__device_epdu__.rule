@@ -15,7 +15,7 @@
                               {"ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Section load is OK on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Section Load OK)" }},
                               {"high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Section load is high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Section Load high warning)" }},
                               {"high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Section load is critically high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Section Load high critical)"}} ],
-        "evaluation"    :   "function main(v1) if (v1 > high_critical) then return 'high_critical' end; if (v1 > high_warning) then return 'high_warning' end; return 'ok'; end"
+        "evaluation"    :   "function main(v1) if (tonumber(v1) > tonumber(high_critical)) then return 'high_critical' end; if (tonumber(v1) > tonumber(high_warning)) then return 'high_warning' end; return 'ok'; end"
 
     }
 }
