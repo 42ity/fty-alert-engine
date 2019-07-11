@@ -2,37 +2,26 @@
     "flexible" : {
         "name"          : "water-leak-detector.state-change@__name__",
         "description"   : "TRANSLATE_LUA(Water leak detected)",
-        "categories"      : ["CAT_GPIO", "CAT_ALL"],
-        "metrics"       : ["status.__port__"],
-        "assets"	    : ["__name__"],
+        "categories"    : [ "CAT_GPIO", "CAT_ALL" ],
+        "metrics"       : [ "status.__port__" ],
+        "assets"        : [ "__name__" ],
         "logical_asset" : "__logicalasset_iname__",
-        "models"	    : ["WLD012"],
-        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "models"        : [ "WLD012" ],
+        "types"         : [ "sensorgpio", "rackcontroller" ],
         "results"       : [
-            {
-                "ok"   :
-                { 
-                    "action" : [{ "action": "EMAIL" }],
-                    "severity" : "OK",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Water leak is OK in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}"
-                }
-            },
-            {
-                "notok"   :
-                { 
-                    "action" : [{ "action": "EMAIL" }],
-                    "severity" : "__severity__",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Water leak detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}"
-                }
-            }
-        ],
-        "evaluation"    : "
-            function main(current_state)
-                if current_state == '__normalstate__' then
-                    return 'ok'
-                end
-                    return 'notok'
-            end
-        "
+            { "ok" : { 
+                "action"        : [ { "action": "EMAIL" } ],
+                "severity"      : "OK",
+                "description"   : "{ \"key\": \"TRANSLATE_LUA(Water leak is OK in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}" } },
+            { "notok" : { 
+                "action"        : [ { "action": "EMAIL" } ],
+                "severity"      : "__severity__",
+                "description"   : "{ \"key\": \"TRANSLATE_LUA(Water leak detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}" } } ],
+        "evaluation"    : " function main(current_state)
+                                if current_state == '__normalstate__' then
+                                    return 'ok';
+                                end;
+                                return 'notok';
+                            end"
     }
 }

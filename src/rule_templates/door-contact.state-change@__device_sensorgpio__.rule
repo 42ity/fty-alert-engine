@@ -1,38 +1,27 @@
 {
     "flexible" : {
         "name"          : "door-contact.state-change@__name__",
-        "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logical_asset}} is not {{normal_state}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\", \"normal_state\" : \"__normalstate__\"}}",
-        "categories"      : ["CAT_GPIO", "CAT_ALL"],
-        "metrics"       : ["status.__port__"],
-        "assets"	    : ["__name__"],
+        "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logical_asset}} is not {{normal_state}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\", \"normal_state\" : \"__normalstate__\" }}",
+        "categories"    : [ "CAT_GPIO", "CAT_ALL" ],
+        "metrics"       : [ "status.__port__" ],
+        "assets"        : [ "__name__" ],
         "logical_asset" : "__logicalasset_iname__",
-        "models"	    : ["DCS001"],
-        "types" 	    : ["sensorgpio", "rackcontroller"],
+        "models"        : [ "DCS001" ],
+        "types"         : [ "sensorgpio", "rackcontroller" ],
         "results"       :  [
-            {
-                "ok"   :
-                {
-                    "action" : [ ],
-                    "severity" : "OK",
-                    "description" : "{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } , \"state\" : \"%s\"}}"
-                }
-            },
-            {
-                "notok"   :
-                {
-                    "action" : [ ],
-                    "severity" : "__severity__",
-                    "description" : "{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } , \"state\" : \"%s\"}}"
-                }
-            }
-        ],
-        "evaluation"    : "
-            function main(current_state)
-                if current_state == '__normalstate__' then
-                return 'ok'
-                end
-            return 'notok'
-            end
-        "
+            { "ok" : {
+                "action"        : [ ],
+                "severity"      : "OK",
+                "description"   : "{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } , \"state\" : \"%s\" }}" } },
+            { "notok" : {
+                "action"        : [ ],
+                "severity"      : "__severity__",
+                "description"   : "{\"key\": \"TRANSLATE_LUA(Door to {{logical_asset}} is {{state}}.)\", \"variables\": {\"logical_asset\" : { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } , \"state\" : \"%s\" }}" } } ],
+        "evaluation"    : " function main(current_state)
+                                if current_state == '__normalstate__' then
+                                    return 'ok';
+                                end;
+                                return 'notok';
+                            end"
     }
 }

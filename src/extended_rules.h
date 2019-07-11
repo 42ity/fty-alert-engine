@@ -53,8 +53,8 @@ class SingleRule : public Rule, public DecoratorLuaEvaluate {
     public:
         // ctors, dtors, =
         SingleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-                const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-                DecoratorLuaEvaluate::VariableMap variables);
+                const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+                const DecoratorLuaEvaluate::VariableMap variables);
         SingleRule (const std::string json);
         virtual ~SingleRule () {};
         // virtual functions
@@ -76,8 +76,8 @@ class PatternRule : public Rule, public DecoratorLuaEvaluate {
     public:
         // ctors, dtors, =
         PatternRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-                const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-                DecoratorLuaEvaluate::VariableMap variables);
+                const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+                const DecoratorLuaEvaluate::VariableMap variables);
         PatternRule (const std::string json);
         virtual ~PatternRule () {};
         // virtual functions
@@ -99,8 +99,8 @@ class ThresholdRule : public Rule, public DecoratorLuaEvaluate {
     public:
         // ctors, dtors, =
         ThresholdRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-                const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-                DecoratorLuaEvaluate::VariableMap variables);
+                const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+                const DecoratorLuaEvaluate::VariableMap variables);
         ThresholdRule (const std::string json);
         virtual ~ThresholdRule () {};
         // virtual functions
@@ -124,8 +124,8 @@ class FlexibleRule : public Rule, public DecoratorLuaEvaluate {
     public:
         // ctors, dtors, =
         FlexibleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-                const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-                DecoratorLuaEvaluate::VariableMap variables);
+                const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+                const DecoratorLuaEvaluate::VariableMap variables);
         FlexibleRule (const std::string json);
         virtual ~FlexibleRule () {};
         // virtual functions

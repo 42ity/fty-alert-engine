@@ -854,7 +854,7 @@ fty_alert_trigger_test (bool verbose)
             {"low_warning", {{}, "WARNING", "low_warning_description"}},
             {"high_critical", {{}, "CRITICAL", "high_critical_description"}},
             {"high_warning", {{}, "WARNING", "high_warning_description"}}},
-        "",
+        "function main (i1) if tonumber (i1) < tonumber (high_critical) then return 'ok' else return 'fail' end end",
         {{"low_critical", "10"}, {"low_warning", "20"}, {"high_critical", "90"}, {"high_warning", "80"}});
     // create threshold rule for multiple metrics with lua
     ThresholdRule tr2 ("threshold2@asset2",
@@ -863,9 +863,9 @@ fty_alert_trigger_test (bool verbose)
         {"CAT_ALL"},
         {   {"ok", {{}, "OK", "ok_description"}},
             {"fail", {{}, "CRITICAL", "fail_description"}}},
-        "function main (i1, i2) if tonumber (i1) < tonumber (var1) and tonumber (i2) < tonumber (var2) then "
-                "return 'ok' else return 'fail' end end",
-        {{"var1", "10"}, {"var2", "20"}});
+        "function main (i1, i2) if tonumber (i1) < tonumber (low_warning) and tonumber (i2) < tonumber (high_warning) "
+                "then return 'ok' else return 'fail' end end",
+        {{"low_warning", "10"}, {"high_warning", "20"}});
     // create flexible rule with lua
     FlexibleRule fr1 ("flexible1@asset3",
         {"flexible1.metric1"},

@@ -150,7 +150,7 @@ void Rule::save (const std::string &path) const {
         ofs << getJsonRule ();
         ofs.close ();
     } catch (...) {
-        throw unable_to_save ();
+        throw unable_to_save (name_);
     }
 }
 

@@ -1,22 +1,56 @@
 {
     "threshold" : {
-        "name"     :   "average.humidity@__name__",
-        "description"     :   "TRANSLATE_LUA(Humidity)",
-        "class"    :   "TRANSLATE_LUA(Humidity in data center)",
-        "hierarchy" :  "environment.humidity.dc",
-        "categories"      :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
-        "metrics"        :   "average.humidity",
-        "assets"       :   "__name__",
+        "name"          :   "average.humidity@__name__",
+        "description"   :   "TRANSLATE_LUA(Humidity)",
+        "class"         :   "TRANSLATE_LUA(Humidity in data center)",
+        "hierarchy"     :  "environment.humidity.dc",
+        "categories"    :   [ "CAT_ENVIRONMENTAL", "CAT_ALL" ],
+        "metrics"       :   "average.humidity",
+        "assets"        :   "__name__",
         "values_unit"   :   "%",
-        "values"        :   [ {"low_warning"   : "40"},
-                                {"low_critical"  : "30"},
-                                {"high_warning"  : "60"},
-                                {"high_critical" : "70"} ],
-        "results"       :   [
-            { "ok"   : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is OK)" }},
-            { "low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is low)" }},
-            { "low_critical"  : { "action" : [ { "action": "EMAIL" } ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is critically low)" }},
-            { "high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is high)" }},
-            { "high_critical" : { "action" : [ { "action": "EMAIL" } ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is critically high)" }} ]
+        "values"        : [
+            { "low_warning"   : "40" },
+            { "low_critical"  : "30" },
+            { "high_warning"  : "60" },
+            { "high_critical" : "70" } ],
+        "results"       : [
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Humidity in datacenter is OK)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Humidity in datacenter is low)" } },
+            { "low_critical" : {
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Humidity in datacenter is critically low)" } },
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Humidity in datacenter is high)" } },
+            { "high_critical" : {
+                "action" : [ { "action": "EMAIL" } ],
+                "severity" : "CRITICAL",
+                "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity in datacenter {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name" : "TRANSLATE_LUA(Humidity in datacenter is critically high)" } } ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

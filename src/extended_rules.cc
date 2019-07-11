@@ -101,10 +101,7 @@ void SingleRule::loadFromSerializedObject (const cxxtools::SerializationInfo &si
         DecoratorLuaEvaluate::setGlobalVariables (variables_);
         setCode (code);
     } else {
-        std::ostringstream oss;
-        si.dump (oss);
-        log_error ("No evaluation function provided for rule %s", oss.str ().c_str ());
-        throw missing_mandatory_item ("evaluation");
+        setCode ("");
     }
 }
 
@@ -114,11 +111,13 @@ void SingleRule::saveToSerializedObject (cxxtools::SerializationInfo &si) const 
 }
 
 SingleRule::SingleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-        const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-        DecoratorLuaEvaluate::VariableMap variables) :
+        const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+        const DecoratorLuaEvaluate::VariableMap variables) :
         Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     if (assets_.size () != 1)
-        throw invalid_metrics_count ();
+        throw invalid_argument_count ("assets");
+    if (code.empty ())
+        throw missing_mandatory_item ("evaluation");
     Rule::setGlobalVariables (variables);
     DecoratorLuaEvaluate::setGlobalVariables (variables);
     setCode (code);
@@ -129,7 +128,9 @@ SingleRule::SingleRule (const std::string json) : Rule (json), DecoratorLuaEvalu
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
     if (assets_.size () != 1)
-        throw invalid_metrics_count ();
+        throw invalid_argument_count ("assets");
+    if (getCode ().empty ())
+        throw missing_mandatory_item ("evaluation");
 }
 
 Rule::VectorStrings SingleRule::evaluate (const Rule::VectorStrings &metrics) {
@@ -160,10 +161,7 @@ void PatternRule::loadFromSerializedObject (const cxxtools::SerializationInfo &s
         DecoratorLuaEvaluate::setGlobalVariables (variables_);
         setCode (code);
     } else {
-        std::ostringstream oss;
-        si.dump (oss);
-        log_error ("No evaluation function provided for rule %s", oss.str ().c_str ());
-        throw missing_mandatory_item ("evaluation");
+        setCode ("");
     }
 }
 
@@ -173,11 +171,13 @@ void PatternRule::saveToSerializedObject (cxxtools::SerializationInfo &si) const
 }
 
 PatternRule::PatternRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-        const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-        DecoratorLuaEvaluate::VariableMap variables) :
+        const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+        const DecoratorLuaEvaluate::VariableMap variables) :
         Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     if (metrics_.size () != 1)
-        throw invalid_metrics_count ();
+        throw invalid_argument_count ("metrics");
+    if (code.empty ())
+        throw missing_mandatory_item ("evaluation");
     metric_regex_ = std::regex (metrics_[0]);
     Rule::setGlobalVariables (variables);
     DecoratorLuaEvaluate::setGlobalVariables (variables);
@@ -186,11 +186,13 @@ PatternRule::PatternRule (const std::string name, const Rule::VectorStrings metr
 
 PatternRule::PatternRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     if (metrics_.size () != 1)
-        throw invalid_metrics_count ();
+        throw invalid_argument_count ("metrics");
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
     metric_regex_ = std::regex (metrics_[0]);
+    if (getCode ().empty ())
+        throw missing_mandatory_item ("evaluation");
 }
 
 Rule::VectorStrings PatternRule::evaluate (const Rule::VectorStrings &metrics) {
@@ -202,7 +204,7 @@ Rule::VectorStrings PatternRule::evaluate (const Rule::VectorStrings &metrics) {
         // name of pattern expected as first argument
         return DecoratorLuaEvaluate::evaluate (metrics);
     } else {
-        throw invalid_metrics_count ();
+        throw invalid_argument_count ("metrics");
     }
 }
 
@@ -234,21 +236,16 @@ void operator>>= (const cxxtools::SerializationInfo& si, PatternRule &rule) {
 }
 
 void ThresholdRule::loadFromSerializedObject (const cxxtools::SerializationInfo &si) {
-    if (metrics_.size () != 1) {
-        int outcome_items = -1;
-        std::string code = std::string ();
-        loadLuaFromSerializedObject (si, code, outcome_items);
-        if (outcome_items != -1)
-            setOutcomeItems (outcome_items);
-        if (!code.empty ()) {
-            DecoratorLuaEvaluate::setGlobalVariables (variables_);
-            setCode (code);
-        } else {
-            std::ostringstream oss;
-            si.dump (oss);
-            log_error ("No evaluation function provided for rule %s", oss.str ().c_str ());
-            throw missing_mandatory_item ("evaluation");
-        }
+    int outcome_items = -1;
+    std::string code = std::string ();
+    loadLuaFromSerializedObject (si, code, outcome_items);
+    if (outcome_items != -1)
+        setOutcomeItems (outcome_items);
+    if (!code.empty ()) {
+        DecoratorLuaEvaluate::setGlobalVariables (variables_);
+        setCode (code);
+    } else {
+        setCode ("");
     }
 }
 
@@ -259,40 +256,34 @@ void ThresholdRule::saveToSerializedObject (cxxtools::SerializationInfo &si) con
 
 ThresholdRule::ThresholdRule (const std::string name, const Rule::VectorStrings metrics,
         const Rule::VectorStrings assets, const Rule::VectorStrings categories,
-        const ResultsMap results, std::string code, DecoratorLuaEvaluate::VariableMap variables) :
+        const ResultsMap results, const std::string code, const DecoratorLuaEvaluate::VariableMap variables) :
         Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     Rule::setGlobalVariables (variables);
     if (!code.empty ()) {
         DecoratorLuaEvaluate::setGlobalVariables (variables);
         setCode (code);
     }
+    if (code.empty ())
+        throw missing_mandatory_item ("evaluation");
 }
 
 ThresholdRule::ThresholdRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
+    if (variables_.size () == 0)
+        throw invalid_argument_count ("values");
+    for (auto &var_it : variables_) {
+        if (var_it.first != "low_critical" && var_it.first != "low_warning" && var_it.first != "high_critical" &&
+                var_it.first != "high_warning")
+            throw wrong_argument ("values");
+    }
+    if (getCode ().empty ())
+        throw missing_mandatory_item ("evaluation");
 }
 
 Rule::VectorStrings ThresholdRule::evaluate (const Rule::VectorStrings &metrics) {
-    if (metrics_.size () == 1) {
-        // TODO: FIXME: fix this afwul hardcoded list
-        if (stod (metrics[0], nullptr) <= stod (variables_["low_critical"], nullptr)) {
-            return Rule::VectorStrings { "low_critical" };
-        }
-        if (stod (metrics[0], nullptr) <= stod (variables_["low_warning"], nullptr)) {
-            return Rule::VectorStrings { "low_warning" };
-        }
-        if (stod (metrics[0], nullptr) >= stod (variables_["high_critical"], nullptr)) {
-            return Rule::VectorStrings { "high_critical" };
-        }
-        if (stod (metrics[0], nullptr) >= stod (variables_["high_warning"], nullptr)) {
-            return Rule::VectorStrings { "high_warning" };
-        }
-        return Rule::VectorStrings { "ok" };
-    } else {
-        return DecoratorLuaEvaluate::evaluate (metrics);
-    }
+    return DecoratorLuaEvaluate::evaluate (metrics);
 }
 
 Rule::VectorVectorStrings ThresholdRule::evaluate (const Rule::MapStrings &active_metrics,
@@ -310,20 +301,24 @@ void operator>>= (const cxxtools::SerializationInfo& si, ThresholdRule &rule) {
 }
 
 FlexibleRule::FlexibleRule (const std::string name, const Rule::VectorStrings metrics, const Rule::VectorStrings assets,
-        const Rule::VectorStrings categories, const ResultsMap results, std::string code,
-        DecoratorLuaEvaluate::VariableMap variables) :
+        const Rule::VectorStrings categories, const ResultsMap results, const std::string code,
+        const DecoratorLuaEvaluate::VariableMap variables) :
         Rule (name, metrics, assets, categories, results), DecoratorLuaEvaluate () {
     Rule::setGlobalVariables (variables);
     if (!code.empty ()) {
         DecoratorLuaEvaluate::setGlobalVariables (variables);
         setCode (code);
     }
+    if (code.empty ())
+        throw missing_mandatory_item ("evaluation");
 }
 
 FlexibleRule::FlexibleRule (const std::string json) : Rule (json), DecoratorLuaEvaluate () {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
+    if (getCode ().empty ())
+        throw missing_mandatory_item ("evaluation");
 }
 
 void FlexibleRule::loadFromSerializedObject (const cxxtools::SerializationInfo &si) {
@@ -338,10 +333,7 @@ void FlexibleRule::loadFromSerializedObject (const cxxtools::SerializationInfo &
         DecoratorLuaEvaluate::setGlobalVariables (variables_);
         setCode (code);
     } else {
-        std::ostringstream oss;
-        si.dump (oss);
-        log_error ("No evaluation function provided for rule %s", oss.str ().c_str ());
-        throw missing_mandatory_item ("evaluation");
+        setCode ("");
     }
 }
 
@@ -456,7 +448,7 @@ extended_rules_test (bool verbose)
             {"low_warning", {{}, "WARNING", "low_warning_description"}},
             {"high_critical", {{}, "CRITICAL", "high_critical_description"}},
             {"high_warning", {{}, "WARNING", "high_warning_description"}}},
-        "",
+        "function main (i1) if tonumber (i1) < tonumber (high_critical) then return 'ok' else return 'fail' end end",
         {{"low_critical", "10"}, {"low_warning", "20"}, {"high_critical", "90"}, {"high_warning", "80"}});
     ThresholdRule tr1j (tr1.getJsonRule ());
     assert (tr1 == tr1j);
@@ -469,15 +461,16 @@ extended_rules_test (bool verbose)
     assert (tr1_eval2_results == tr1_eval2_expected);
 
     // create threshold rule for multiple metrics with lua
+log_debug ("HERE: %d", __LINE__);
     ThresholdRule tr2 ("threshold2@asset2",
         {"threshold2.metric1", "threshold2.metric2"},
         {"asset2"},
         {"CAT_ALL"},
         {   {"ok", {{}, "OK", "ok_description"}},
             {"fail", {{}, "CRITICAL", "fail_description"}}},
-        "function main (i1, i2) if tonumber (i1) < tonumber (var1) and tonumber (i2) < tonumber (var2) then "
-                "return 'ok' else return 'fail' end end",
-        {{"var1", "10"}, {"var2", "20"}});
+        "function main (i1, i2) if tonumber (i1) < tonumber (low_warning) and tonumber (i2) < tonumber (high_warning) "
+                "then return 'ok' else return 'fail' end end",
+        {{"low_warning", "10"}, {"high_warning", "20"}});
     ThresholdRule tr2j (tr2.getJsonRule ());
     assert (tr2 == tr2j);
     Rule::VectorStrings tr2_eval1_results = tr2.evaluate ({"5", "15"});
@@ -489,6 +482,7 @@ extended_rules_test (bool verbose)
     assert (tr2_eval2_results == tr2_eval2_expected);
 
     // create flexible rule with lua
+log_debug ("HERE: %d", __LINE__);
     FlexibleRule fr1 ("flexible1@asset3",
         {"flexible1.metric1"},
         {"asset3"},

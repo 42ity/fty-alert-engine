@@ -1,22 +1,56 @@
 {
     "threshold" : {
-        "name"     :   "load.input_1phase@__name__",
-        "description"     :   "TRANSLATE_LUA(Input load)",
-        "class"    :   "TRANSLATE_LUA(Input load (1 phase) on PDU)",
-        "hierarchy":   "power.load.input.1phase.epdu",
-        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
-        "metrics"        :   "load.input.L1",
-        "assets"       :   "__name__",
+        "name"          :   "load.input_1phase@__name__",
+        "description"   :   "TRANSLATE_LUA(Input load)",
+        "class"         :   "TRANSLATE_LUA(Input load (1 phase) on PDU)",
+        "hierarchy"     :   "power.load.input.1phase.epdu",
+        "categories"    :   [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"       :   "load.input.L1",
+        "assets"        :   "__name__",
         "values_unit"   :   "W",
-        "values"        :   [ {"low_warning"   : "0"},
-                              {"low_critical"  : "0"},
-                              {"high_warning"  : "1500"},
-                              {"high_critical" : "2000"} ],
-        "results"       :   [
-            { "ok"   : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is OK on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (1 phase) is OK on device)"  }},
-            { "low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is low on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (1 phase) is low on device)"  }},
-            { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is critically low on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (1 phase) is critically low on device)" }},
-            { "high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (1 phase) is high on device)" }},
-            { "high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is critically high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input load (1 phase) is critically high on device)"}} ]
+        "values"        : [
+            { "low_warning"   : "0" },
+            { "low_critical"  : "0" },
+            { "high_warning"  : "1500" },
+            { "high_critical" : "2000" } ],
+        "results"       : [
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is OK on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input load (1 phase) is OK on device)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is low on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input load (1 phase) is low on device)" } },
+            { "low_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is critically low on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input load (1 phase) is critically low on device)" } },
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input load (1 phase) is high on device)" } },
+            { "high_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input load (1 phase) is critically high on {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input load (1 phase) is critically high on device)" } } ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

@@ -1,23 +1,56 @@
 {
     "threshold" : {
-        "name"     :   "temperature.default@__name__",
-        "description"     :   "TRANSLATE_LUA(Internal temperature for UPS)",
-        "class"    :   "TRANSLATE_LUA(Internal temperature in UPS)",
-        "hierarchy":   "internal.temperature.ups",
-        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
-        "metrics"        :   "temperature.default",
-        "assets"       :   "__name__",
+        "name"          :   "temperature.default@__name__",
+        "description"   :   "TRANSLATE_LUA(Internal temperature for UPS)",
+        "class"         :   "TRANSLATE_LUA(Internal temperature in UPS)",
+        "hierarchy"     :   "internal.temperature.ups",
+        "categories"    :   [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"       :   "temperature.default",
+        "assets"        :   "__name__",
         "values_unit"   :   "C",
         "values"        :   [
-            {"low_critical"  : "0"},
-            {"low_warning"   : "0"},
-            {"high_warning"  : "45"},
-            {"high_critical" : "50"} ],
-        "results" :   [
-            { "ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is OK in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Internal temperature in ups is OK)" }},
-            { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Internal temperature in ups is critically low)" }},
-            { "low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Internal temperature in ups is low)" }},
-            { "high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Internal temperature in ups is high)" }},
-            { "high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Internal temperature in ups is critically high)" }} ]
+            { "low_critical"  : "0" },
+            { "low_warning"   : "0" },
+            { "high_warning"  : "45" },
+            { "high_critical" : "50" } ],
+        "results"       :   [
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is OK in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Internal temperature in ups is OK)" } },
+            { "low_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Internal temperature in ups is critically low)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Internal temperature in ups is low)" } },
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Internal temperature in ups is high)" } },
+            { "high_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Internal temperature is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Internal temperature in ups is critically high)" } } ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

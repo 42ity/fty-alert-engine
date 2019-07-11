@@ -1,14 +1,34 @@
 {
     "single" : {
-        "name"     :   "internal-failure@__name__",
-        "class"    :   "TRANSLATE_LUA(UPS has an internal failure)",
-        "categories"      :   ["CAT_POWER", "CAT_ALL"],
-        "metrics"        :   ["status.ups", "ups.alarm"],
-        "assets"       :   "__name__",
+        "name"          :   "internal-failure@__name__",
+        "class"         :   "TRANSLATE_LUA(UPS has an internal failure)",
+        "categories"    :   [ "CAT_POWER", "CAT_ALL" ],
+        "metrics"       :   [ "status.ups", "ups.alarm" ],
+        "assets"        :   "__name__",
         "values"        :   [ ],
-        "results"       :   [
-            {"ok"  : { "action" : [], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} has no internal failure.)\", \"variable\" : {\"ename\" : \"__ename__\"} }" }},
-            {"high_critical"  : { "action" : [], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} has an internal failure.)\", \"variable\" : {\"ename\" : \"__ename__\"} }" }} ],
-        "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status,alarm) if has_bit(status,15) and has_bit(alarm,9) then return 'high_critical' end return 'ok' end"
+        "results"       : [
+            { "ok" : {
+                "action"        : [],
+                "severity"      : "OK",
+                "description"   : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} has no internal failure.)\", \"variable\" : {\"ename\" : \"__ename__\" } }" }},
+            { "high_critical" : {
+                "action"        : [],
+                "severity"      : "CRITICAL",
+                "description"   : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} has an internal failure.)\", \"variable\" : {\"ename\" : \"__ename__\" } }" }} ],
+        "evaluation"    : " function has_bit(x,bit)
+                                local mask = 2 ^ (bit - 1);
+                                x = x % (2*mask);
+                                if x >= mask then
+                                    return true;
+                                else
+                                    return false;
+                                end;
+                            end;
+                            function main(status,alarm)
+                                if has_bit(status,15) and has_bit(alarm,9) then
+                                    return 'high_critical';
+                                end;
+                                return 'ok';
+                            end"
     }
 }

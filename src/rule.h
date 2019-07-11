@@ -53,15 +53,19 @@ utf8eq (const std::string& s1, const std::string& s2);
 
 class missing_mandatory_item : public std::runtime_error {
     public:
-        missing_mandatory_item (std::string item) : runtime_error ("missing mandatory item " + item) { }
+        missing_mandatory_item (const std::string item) : runtime_error ("missing mandatory item " + item) { }
 };
-class invalid_metrics_count : public std::runtime_error {
+class invalid_argument_count : public std::runtime_error {
     public:
-        invalid_metrics_count () : runtime_error ("invalid metrics count") { }
+        invalid_argument_count (const std::string item) : runtime_error ("invalid argument " + item + "count ") { }
+};
+class wrong_argument : public std::runtime_error {
+    public:
+        wrong_argument (const std::string item) : runtime_error ("wrong argument " + item) { }
 };
 class unable_to_save : public std::runtime_error {
     public:
-        unable_to_save () : runtime_error ("unable to save rule") { }
+        unable_to_save (const std::string item) : runtime_error ("unable to save rule " + item) { }
 };
 
 class InterfaceRule {
