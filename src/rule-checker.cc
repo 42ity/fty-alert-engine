@@ -112,10 +112,10 @@ int main (int argc, char *argv [])
                     return 0;
                 } else if (streq (argv [argn], "--pairs")) {
                     ++argn;
-                    Rule::MapStrings active;
+                    Rule::MapMetrics active;
                     Rule::SetStrings inactive;
                     for ( ; argn + 2 < argc; argn += 2) {
-                        active.emplace (argv [argn], argv [argn + 1]);
+                        active.emplace (argv [argn], Rule::Metric (argv [argn + 1], 1000));
                     }
                     if (argn < argc) {
                         std::cerr << "Expected even amount of arguments after --pairs, but odd one found" << std::endl;

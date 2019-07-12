@@ -37,9 +37,10 @@
 Rule::VectorVectorStrings evaluate_helper (
         const Rule::VectorStrings &metrics,
         const Rule::VectorStrings &assets,
-        const Rule::MapStrings &active_metrics,
+        const Rule::MapMetrics &active_metrics,
         const Rule::SetStrings &inactive_metrics,
-        std::function<Rule::VectorStrings (const Rule::VectorStrings &)> evaluate) {
+        std::function<Rule::VectorStrings (const Rule::VectorStrings &)> evaluate,
+        std::function<void (const uint64_t &)> updateMaxObservedTtl) {
     Rule::VectorVectorStrings result;
     for (const std::string &asset : assets) {
         Rule::VectorStrings metric_values;
@@ -59,7 +60,8 @@ Rule::VectorVectorStrings evaluate_helper (
                 valid = false;
                 break;
             }
-            metric_values.push_back (metric_value_it->second);
+            updateMaxObservedTtl (metric_value_it->second.ttl_);
+            metric_values.push_back (metric_value_it->second.value_);
         }
         if (valid) {
             result.push_back (evaluate (metric_values));
@@ -137,12 +139,14 @@ Rule::VectorStrings SingleRule::evaluate (const Rule::VectorStrings &metrics) {
     return DecoratorLuaEvaluate::evaluate (metrics);
 }
 
-Rule::VectorVectorStrings SingleRule::evaluate (const Rule::MapStrings &active_metrics,
+Rule::VectorVectorStrings SingleRule::evaluate (const Rule::MapMetrics &active_metrics,
         const Rule::SetStrings &inactive_metrics) {
     return evaluate_helper (metrics_, assets_, active_metrics, inactive_metrics,
         std::bind (
             static_cast<Rule::VectorStrings (SingleRule::*)(const Rule::VectorStrings &)>(&SingleRule::evaluate),
-            this, std::placeholders::_1)
+            this, std::placeholders::_1),
+        std::bind (
+            static_cast<void (SingleRule::*)(const uint64_t &)>(&SingleRule::updateMaxObservedTtl), this, std::placeholders::_1)
         );
 }
 
@@ -208,7 +212,7 @@ Rule::VectorStrings PatternRule::evaluate (const Rule::VectorStrings &metrics) {
     }
 }
 
-Rule::VectorVectorStrings PatternRule::evaluate (const Rule::MapStrings &active_metrics,
+Rule::VectorVectorStrings PatternRule::evaluate (const Rule::MapMetrics &active_metrics,
         const Rule::SetStrings &inactive_metrics) {
     Rule::VectorVectorStrings result;
     Rule::VectorStrings metric_values;
@@ -216,7 +220,8 @@ Rule::VectorVectorStrings PatternRule::evaluate (const Rule::MapStrings &active_
     for (const auto active_metric_it : active_metrics) {
         if (std::regex_match (active_metric_it.first, metric_regex_)) {
             metric_values.push_back (active_metric_it.first);
-            metric_values.push_back (active_metric_it.second);
+            updateMaxObservedTtl (active_metric_it.second.ttl_);
+            metric_values.push_back (active_metric_it.second.value_);
             result.push_back (evaluate (metric_values));
             auto at_pos = active_metric_it.first.find ('@');
             if (at_pos != std::string::npos) {
@@ -286,12 +291,15 @@ Rule::VectorStrings ThresholdRule::evaluate (const Rule::VectorStrings &metrics)
     return DecoratorLuaEvaluate::evaluate (metrics);
 }
 
-Rule::VectorVectorStrings ThresholdRule::evaluate (const Rule::MapStrings &active_metrics,
+Rule::VectorVectorStrings ThresholdRule::evaluate (const Rule::MapMetrics &active_metrics,
         const Rule::SetStrings &inactive_metrics) {
     return evaluate_helper (metrics_, assets_, active_metrics, inactive_metrics,
         std::bind (
             static_cast<Rule::VectorStrings (ThresholdRule::*)(const Rule::VectorStrings &)>(&ThresholdRule::evaluate),
-            this, std::placeholders::_1)
+            this, std::placeholders::_1),
+        std::bind (
+            static_cast<void (ThresholdRule::*)(const uint64_t &)>(&ThresholdRule::updateMaxObservedTtl), this,
+            std::placeholders::_1)
         );
 }
 
@@ -350,12 +358,15 @@ Rule::VectorStrings FlexibleRule::evaluate (const Rule::VectorStrings &metrics) 
     return DecoratorLuaEvaluate::evaluate (metrics);
 }
 
-Rule::VectorVectorStrings FlexibleRule::evaluate (const Rule::MapStrings &active_metrics,
+Rule::VectorVectorStrings FlexibleRule::evaluate (const Rule::MapMetrics &active_metrics,
         const Rule::SetStrings &inactive_metrics) {
     return evaluate_helper (metrics_, assets_, active_metrics, inactive_metrics,
         std::bind (
             static_cast<Rule::VectorStrings (FlexibleRule::*)(const Rule::VectorStrings &)>(&FlexibleRule::evaluate),
-            this, std::placeholders::_1)
+            this, std::placeholders::_1),
+        std::bind (
+            static_cast<void (FlexibleRule::*)(const uint64_t &)>(&FlexibleRule::updateMaxObservedTtl), this,
+            std::placeholders::_1)
         );
 }
 
@@ -399,7 +410,7 @@ extended_rules_test (bool verbose)
     Rule::VectorStrings sr1_eval1_results = sr1.evaluate ({"40"});
     Rule::VectorStrings sr1_eval1_expected = {"ok"};
     assert (sr1_eval1_results == sr1_eval1_expected);
-    Rule::VectorVectorStrings sr1_eval2_results = sr1.evaluate ({{"single1.metric1@asset4", "40"}},
+    Rule::VectorVectorStrings sr1_eval2_results = sr1.evaluate ({{"single1.metric1@asset4", {"40", 1000}}},
         Rule::SetStrings ());
     Rule::VectorVectorStrings sr1_eval2_expected = {{"ok", "asset4"}};
     assert (sr1_eval2_results == sr1_eval2_expected);
@@ -423,16 +434,16 @@ extended_rules_test (bool verbose)
     pr1_eval1_results = pr1.evaluate ({"pattern1.metric1@asset5", "40"});
     pr1_eval1_expected = {"ok", "pattern1.metric1@asset5"};
     assert (pr1_eval1_results == pr1_eval1_expected);
-    Rule::VectorVectorStrings pr1_eval2_results = pr1.evaluate ({{"pattern1.metric1@asset5", "40"}},
+    Rule::VectorVectorStrings pr1_eval2_results = pr1.evaluate ({{"pattern1.metric1@asset5", {"40", 1000}}},
         Rule::SetStrings ());
     Rule::VectorVectorStrings pr1_eval2_expected = {{"ok", "pattern1.metric1@asset5", "asset5"}};
     assert (pr1_eval2_results == pr1_eval2_expected);
     pr1_eval2_results = pr1.evaluate ({
-            {"pattern1.metric1@asset5", "40"},
-            {"pattern2.metric1@asset6", "60"},
-            {"pattern30.metric1@asset7", "40"},
-            {"pattern4.metric1@", "40"},
-            {"patern5.metric1@asset8", "40"}}, Rule::SetStrings ());
+            {"pattern1.metric1@asset5", {"40", 1000}},
+            {"pattern2.metric1@asset6", {"60", 1000}},
+            {"pattern30.metric1@asset7", {"40", 1000}},
+            {"pattern4.metric1@", {"40", 1000}},
+            {"patern5.metric1@asset8", {"40", 1000}}}, Rule::SetStrings ());
     pr1_eval2_expected = {{"ok", "pattern1.metric1@asset5", "asset5"},
             {"fail", "pattern2.metric1@asset6", "asset6"},
             {"ok", "pattern4.metric1@", ""}};
@@ -455,7 +466,7 @@ extended_rules_test (bool verbose)
     Rule::VectorStrings tr1_eval1_results = tr1.evaluate ({"40"});
     Rule::VectorStrings tr1_eval1_expected = {"ok"};
     assert (tr1_eval1_results == tr1_eval1_expected);
-    Rule::VectorVectorStrings tr1_eval2_results = tr1.evaluate ({{"threshold1.metric1@asset1", "40"}},
+    Rule::VectorVectorStrings tr1_eval2_results = tr1.evaluate ({{"threshold1.metric1@asset1", {"40", 1000}}},
         Rule::SetStrings ());
     Rule::VectorVectorStrings tr1_eval2_expected = {{"ok", "asset1"}};
     assert (tr1_eval2_results == tr1_eval2_expected);
@@ -476,10 +487,12 @@ log_debug ("HERE: %d", __LINE__);
     Rule::VectorStrings tr2_eval1_results = tr2.evaluate ({"5", "15"});
     Rule::VectorStrings tr2_eval1_expected = {"ok"};
     assert (tr2_eval1_results == tr2_eval1_expected);
-    Rule::VectorVectorStrings tr2_eval2_results = tr2.evaluate ({{"threshold2.metric1@asset2", "5"},
-            {"threshold2.metric2@asset2", "15"}}, Rule::SetStrings ());
+    assert (tr2.getMaxObservedTtl () == MAX_OBSERVED_TTL_DEFAULT);
+    Rule::VectorVectorStrings tr2_eval2_results = tr2.evaluate ({{"threshold2.metric1@asset2", {"5", 1900}},
+            {"threshold2.metric2@asset2", {"15", 2000}}}, Rule::SetStrings ());
     Rule::VectorVectorStrings tr2_eval2_expected = {{"ok", "asset2"}};
     assert (tr2_eval2_results == tr2_eval2_expected);
+    assert (tr2.getMaxObservedTtl () == 2000);
 
     // create flexible rule with lua
 log_debug ("HERE: %d", __LINE__);
@@ -496,7 +509,7 @@ log_debug ("HERE: %d", __LINE__);
     Rule::VectorStrings fr1_eval1_results = fr1.evaluate ({"good"});
     Rule::VectorStrings fr1_eval1_expected = {"ok"};
     assert (fr1_eval1_results == fr1_eval1_expected);
-    Rule::VectorVectorStrings fr1_eval2_results = fr1.evaluate ({{"flexible1.metric1@asset3", "good"}},
+    Rule::VectorVectorStrings fr1_eval2_results = fr1.evaluate ({{"flexible1.metric1@asset3", {"good", 1000}}},
         Rule::SetStrings ());
     Rule::VectorVectorStrings fr1_eval2_expected = {{"ok", "asset3"}};
     assert (fr1_eval2_results == fr1_eval2_expected);

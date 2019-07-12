@@ -60,7 +60,7 @@ class SingleRule : public Rule, public DecoratorLuaEvaluate {
         // virtual functions
         virtual std::string whoami () const { return std::string ("single"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
-        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapMetrics &active_metrics,
                 const Rule::SetStrings &inactive_metrics);
         // friends
         friend void operator>>= (const cxxtools::SerializationInfo& si, SingleRule &rule); // support cxxtools
@@ -83,7 +83,7 @@ class PatternRule : public Rule, public DecoratorLuaEvaluate {
         // virtual functions
         virtual std::string whoami () const { return std::string ("pattern"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
-        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapMetrics &active_metrics,
                 const Rule::SetStrings &inactive_metrics);
         bool metricNameMatchesPattern (std::string &metric_name);
         // friends
@@ -106,7 +106,7 @@ class ThresholdRule : public Rule, public DecoratorLuaEvaluate {
         // virtual functions
         virtual std::string whoami () const { return std::string ("threshold"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
-        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapMetrics &active_metrics,
                 const Rule::SetStrings &inactive_metrics);
         // friends
         friend void operator>>= (const cxxtools::SerializationInfo& si, ThresholdRule &rule); // support cxxtools
@@ -131,7 +131,7 @@ class FlexibleRule : public Rule, public DecoratorLuaEvaluate {
         // virtual functions
         virtual std::string whoami () const { return std::string ("flexible"); };
         virtual Rule::VectorStrings evaluate (const Rule::VectorStrings &metrics);
-        virtual Rule::VectorVectorStrings evaluate (const Rule::MapStrings &active_metrics,
+        virtual Rule::VectorVectorStrings evaluate (const Rule::MapMetrics &active_metrics,
                 const Rule::SetStrings &inactive_metrics);
         // friends
         friend void operator>>= (const cxxtools::SerializationInfo& si, FlexibleRule &rule); // support cxxtools

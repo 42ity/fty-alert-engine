@@ -390,7 +390,7 @@ void AlertTrigger::updateRule (std::string corr_id, std::string json, std::strin
 void AlertTrigger::touchRule (std::string corr_id, std::string name) {
     log_debug ("touching rule '%s'", name.c_str ());
     zmsg_t *reply = zmsg_new ();
-    std::map<std::string, std::string> metric_map;
+    std::map<std::string, Rule::Metric> metric_map;
     std::unordered_set<std::string> unavailables;
     try {
         fty::shm::shmMetrics shm_metrics;
@@ -398,14 +398,14 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
         // evaluate this rule
         for (fty_proto_t *metric : shm_metrics) {
             std::string key = std::string (fty_proto_type (metric)) + "@" + fty_proto_name (metric);
-            metric_map[key] = fty_proto_value (metric);
+            metric_map[key] = Rule::Metric (fty_proto_value (metric), fty_proto_ttl (metric));
         }
         // put streamed metrics to map
         {
             std::lock_guard<std::mutex> lock (stream_metrics_mutex_);
             for (fty_proto_t *metric : streamed_metrics_) {
                 std::string key = std::string (fty_proto_type (metric)) + "@" + fty_proto_name (metric);
-                metric_map[key] = fty_proto_value (metric);
+                metric_map[key] = Rule::Metric (fty_proto_value (metric), fty_proto_ttl (metric));
             }
             unavailables = unavailable_metrics_;
         }
@@ -416,6 +416,7 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
             if (rule_results.size () != 0) {
                 for (auto &one_rule_result : rule_results) {
                     Alert alert (rule_ptr->getName (), one_rule_result.back (), "ACTIVE");
+                    alert.setTtl (rule_ptr->getMaxObservedTtl () * 3);
                     one_rule_result.pop_back ();
                     alert.setOutcomes (one_rule_result);
                     if (alert.outcome () == "ok")
@@ -427,12 +428,14 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
                 if (rule_ptr->getAssets ().size () == 0) {
                     log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
                     Alert alert (rule_ptr->getName (), "*", "OUTAGED");
+                    alert.setTtl (rule_ptr->getMaxObservedTtl () * 3);
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
                 for (std::string &asset : rule_ptr->getAssets ()) {
                     log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
                     Alert alert (rule_ptr->getName (), asset, "OUTAGED");
+                    alert.setTtl (rule_ptr->getMaxObservedTtl () * 3);
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
@@ -599,19 +602,23 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
     log_debug ("evaluating triggers");
     // to ensure all metrics are of the same date/time, SHM metrics are all loaded at once
     // put shm metrics to metric map
-    std::map<std::string, std::string> metric_map;
+    std::map<std::string, Rule::Metric> metric_map;
     std::unordered_set<std::string> unavailables;
     for (fty_proto_t *metric : shm_metrics) {
         std::string key = std::string (fty_proto_type (metric)) + "@" + fty_proto_name (metric);
-        metric_map[key] = fty_proto_value (metric);
+        metric_map[key] = Rule::Metric (fty_proto_value (metric), fty_proto_ttl (metric));
     }
     // put streamed metrics to map
     {
         std::lock_guard<std::mutex> lock (stream_metrics_mutex_);
-        for (fty_proto_t *metric : streamed_metrics_) {
-            std::string key = std::string (fty_proto_type (metric)) + "@" + fty_proto_name (metric);
-            metric_map[key] = fty_proto_value (metric);
-            fty_proto_destroy (&metric);
+        for (auto metric_it = streamed_metrics_.begin (); metric_it != streamed_metrics_.end (); metric_it++) {
+            if (fty_proto_time (*metric_it) + fty_proto_ttl (*metric_it) < zclock_time () / 1000) {
+                streamed_metrics_.erase (metric_it);
+                continue;
+            }
+            std::string key = std::string (fty_proto_type (*metric_it)) + "@" + fty_proto_name (*metric_it);
+            metric_map[key] = Rule::Metric (fty_proto_value (*metric_it), fty_proto_ttl (*metric_it));
+            fty_proto_destroy (&(*metric_it));
         }
         streamed_metrics_.clear ();
         unavailables = unavailable_metrics_;
@@ -626,6 +633,7 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
             if (rule_results.size () != 0) {
                 for (auto &one_rule_result : rule_results) {
                     Alert alert (rule.getName (), one_rule_result.back (), "ACTIVE");
+                    alert.setTtl (rule.getMaxObservedTtl () * 3);
                     one_rule_result.pop_back ();
                     alert.setOutcomes (one_rule_result);
                     if (alert.outcome () == "ok")
@@ -638,12 +646,14 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
                 if (rule.getAssets ().size () == 0) {
                     log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
                     Alert alert (rule.getName (), "*", "OUTAGED");
+                    alert.setTtl (rule.getMaxObservedTtl () * 3);
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
                 for (std::string &asset : rule.getAssets ()) {
                     log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
                     Alert alert (rule.getName (), asset, "OUTAGED");
+                    alert.setTtl (rule.getMaxObservedTtl () * 3);
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
