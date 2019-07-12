@@ -418,21 +418,21 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
                     Alert alert (rule_ptr->getName (), one_rule_result.back (), "ACTIVE");
                     one_rule_result.pop_back ();
                     alert.setOutcomes (one_rule_result);
+                    if (alert.outcome () == "ok")
+                        alert.setState ("RESOLVED");
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
             } else {
                 if (rule_ptr->getAssets ().size () == 0) {
                     log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
-                    Alert alert (rule_ptr->getName (), "*", "ACTIVE");
-                    alert.setState ("RESOLVED");
+                    Alert alert (rule_ptr->getName (), "*", "OUTAGED");
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
                 for (std::string &asset : rule_ptr->getAssets ()) {
                     log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
-                    Alert alert (rule_ptr->getName (), asset, "ACTIVE");
-                    alert.setState ("RESOLVED");
+                    Alert alert (rule_ptr->getName (), asset, "OUTAGED");
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
@@ -628,6 +628,8 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
                     Alert alert (rule.getName (), one_rule_result.back (), "ACTIVE");
                     one_rule_result.pop_back ();
                     alert.setOutcomes (one_rule_result);
+                    if (alert.outcome () == "ok")
+                        alert.setState ("RESOLVED");
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
@@ -635,15 +637,13 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
                 // unable to evaluate any of alerts for the rule
                 if (rule.getAssets ().size () == 0) {
                     log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
-                    Alert alert (rule.getName (), "*", "ACTIVE");
-                    alert.setState ("RESOLVED");
+                    Alert alert (rule.getName (), "*", "OUTAGED");
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
                 for (std::string &asset : rule.getAssets ()) {
                     log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
-                    Alert alert (rule.getName (), asset, "ACTIVE");
-                    alert.setState ("RESOLVED");
+                    Alert alert (rule.getName (), asset, "OUTAGED");
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
                 }
@@ -1318,10 +1318,17 @@ fty_alert_trigger_test (bool verbose)
                     std::string ("pattern1@asset5/asset5") == mlm_client_subject (client_stream));
             Alert a (mlm_client_subject (client_stream), {});
             fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.update (fty_msg);
             a.overwrite (fty_msg);
             responses.insert (a.id ());
-            assert (a.state () == "ACTIVE"); // all alarms should be active
-            // TODO: FIXME: add more precise unit tests
+            if (std::string ("flexible1@asset3/asset3") == mlm_client_subject (client_stream) ||
+                    std::string ("threshold2@asset2/asset2") == mlm_client_subject (client_stream)) {
+                assert (a.outcome () == "fail");
+                assert (a.state () == "ACTIVE");
+            } else {
+                assert (a.outcome () == "ok");
+                assert (a.state () == "RESOLVED");
+            }
             fty_proto_destroy (&fty_msg);
         } else if (which != nullptr) {
             assert (false); // unexpected message from other sources
@@ -1358,10 +1365,16 @@ fty_alert_trigger_test (bool verbose)
                     std::string ("pattern1@asset5/asset5") == mlm_client_subject (client_stream));
             Alert a (mlm_client_subject (client_stream), {});
             fty_proto_t *fty_msg = fty_proto_decode (&message);
+            a.update (fty_msg);
             a.overwrite (fty_msg);
+            if (std::string ("threshold1@asset1/asset1") == mlm_client_subject (client_stream)) {
+                assert (a.outcome () == "ok");
+                assert (a.state () == "RESOLVED");
+            } else {
+                assert (a.outcome () == "fail");
+                assert (a.state () == "ACTIVE");
+            }
             responses.insert (a.id ());
-            assert (a.state () == "ACTIVE"); // all alarms should be active
-            // TODO: FIXME: add more precise unit tests
             fty_proto_destroy (&fty_msg);
         } else if (which != nullptr) {
             assert (false); // unexpected message from other sources
@@ -1394,8 +1407,8 @@ fty_alert_trigger_test (bool verbose)
                 fty_proto_t *fty_msg = fty_proto_decode (&message);
                 a.overwrite (fty_msg);
                 responses.insert (a.id ());
-                assert (a.state () == "ACTIVE"); // alarm should be active
-                // TODO: FIXME: add more precise unit tests
+                assert (a.outcome () == "ok");
+                assert (a.state () == "RESOLVED"); // alarm should be active
                 fty_proto_destroy (&fty_msg);
             } else {
                 assert (std::string ("threshold1@asset1/asset1") == mlm_client_subject (client_stream) ||
@@ -1404,10 +1417,10 @@ fty_alert_trigger_test (bool verbose)
                     std::string ("pattern1@asset5/*") == mlm_client_subject (client_stream));
                 Alert a (mlm_client_subject (client_stream), {});
                 fty_proto_t *fty_msg = fty_proto_decode (&message);
+                a.update (fty_msg);
                 a.overwrite (fty_msg);
+                assert (a.state () == "OUTAGED"); // all other alarms should be resolved
                 responses.insert (a.id ());
-                assert (a.state () == "RESOLVED"); // all other alarms should be resolved
-                // TODO: FIXME: add more precise unit tests
                 fty_proto_destroy (&fty_msg);
             }
         } else if (which != nullptr) {
@@ -1447,7 +1460,7 @@ fty_alert_trigger_test (bool verbose)
             fty_proto_t *fty_msg = fty_proto_decode (&message);
             a.overwrite (fty_msg);
             responses.insert (a.id ());
-            assert (a.state () == "RESOLVED"); // all alarms should be active
+            assert (a.state () == "OUTAGED"); // all alarms should be active
             // TODO: FIXME: add more precise unit tests
             fty_proto_destroy (&fty_msg);
         } else if (which != nullptr) {
@@ -1487,7 +1500,7 @@ fty_alert_trigger_test (bool verbose)
             fty_proto_t *fty_msg = fty_proto_decode (&message);
             a.overwrite (fty_msg);
             responses.insert (a.id ());
-            assert (a.state () == "RESOLVED"); // all alarms should be active
+            assert (a.state () == "OUTAGED"); // all alarms should be active
             // TODO: FIXME: add more precise unit tests
             fty_proto_destroy (&fty_msg);
         } else if (which != nullptr) {
