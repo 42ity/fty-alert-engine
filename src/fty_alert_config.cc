@@ -50,6 +50,45 @@ AlertConfig::~AlertConfig () {
     FullAssetDatabase::getInstance ().clear ();
 }
 
+void AlertConfig::loadAndSendRule (const std::string rulename) {
+    log_debug ("loadAndSendRule %s", rulename.c_str ());
+    std::ifstream file (template_location_ + "/" + rulename);
+    std::string file_content ((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    try {
+        std::shared_ptr<Rule> rule = RuleFactory::createFromJson (file_content);
+        zmsg_t *message = zmsg_new ();
+        zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
+        zmsg_addstr (message, "ADD");
+        zmsg_addstr (message, rule->getJsonRule ().c_str ());
+        mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_),
+                1000, &message);
+                // expect response
+        void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
+        if (which != nullptr) {
+            message = mlm_client_recv (client_mb_sender_);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mb_sender_));
+            char *corr_id = zmsg_popstr (message);
+            char *command = zmsg_popstr (message);
+            if (!streq (command, "OK")) {
+                char *param = zmsg_popstr (message);
+                if (streq (param, "ALREADY_EXISTS")) {
+                    log_debug ("Rule %s already known", rule->getName ().c_str ());
+                } else {
+                    log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (), rule->getJsonRule ().c_str ());
+                }
+                zstr_free (&param);
+            }
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        }
+    } catch (std::runtime_error &re) {
+        log_error ("Exception %s caught while trying to send rule %s", re.what (), rulename.c_str ());
+    } catch (...) {
+        log_error ("Undefined exception caught while trying to send rule %s", rulename.c_str ());
+    }
+}
+
 /// handle pipe messages for this actor
 int AlertConfig::handlePipeMessages (zsock_t *pipe) {
     log_debug ("Handling pipe messages");
@@ -119,6 +158,17 @@ int AlertConfig::handlePipeMessages (zsock_t *pipe) {
             log_error ("in CONFIG command next frame is missing");
         }
         zstr_free (&filename);
+    }
+    else
+    if (streq (cmd, "SEND_RULE")) {
+        log_debug ("SEND_RULE received");
+        char* rulename = zmsg_popstr (msg);
+        if (rulename) {
+            loadAndSendRule (rulename);
+        } else {
+            log_error ("missing rulename");
+        }
+        zstr_free (&rulename);
     }
     zstr_free (&cmd);
     zmsg_destroy (&msg);

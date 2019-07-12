@@ -70,6 +70,7 @@ class AlertConfig {
         // // updates are not tracked for alert rule purposes
         // void onAssetUpdateCallback (std::shared_ptr<FullAsset> assetptr);
         void onAssetDeleteCallback (std::shared_ptr<FullAsset> assetptr);
+        void loadAndSendRule (const std::string rulename);
     protected:
         // internal functions
         void handleStreamMessages (zmsg_t **msg);
