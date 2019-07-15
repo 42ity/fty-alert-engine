@@ -612,7 +612,7 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
     {
         std::lock_guard<std::mutex> lock (stream_metrics_mutex_);
         for (auto metric_it = streamed_metrics_.begin (); metric_it != streamed_metrics_.end (); metric_it++) {
-            if (fty_proto_time (*metric_it) + fty_proto_ttl (*metric_it) < zclock_time () / 1000) {
+            if (fty_proto_time (*metric_it) + fty_proto_ttl (*metric_it) < static_cast<uint64_t> (zclock_time () / 1000)) {
                 streamed_metrics_.erase (metric_it);
                 continue;
             }
