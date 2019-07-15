@@ -1,22 +1,56 @@
 {
     "threshold" : {
-        "name"     :   "voltage.input_1phase@__name__",
-        "description"     :   "TRANSLATE_LUA(Input Voltage)",
-        "class"    :   "TRANSLATE_LUA(Input voltage (1 phase) in PDU)",
-        "hierarchy":   "internal.input.voltage.1phase.epdu",
-        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
-        "metrics"        :   "voltage.input.L1",
-        "assets"       :   "__name__",
+        "name"          :   "voltage.input_1phase@__name__",
+        "description"   :   "TRANSLATE_LUA(Input Voltage)",
+        "class"         :   "TRANSLATE_LUA(Input voltage (1 phase) in PDU)",
+        "hierarchy"     :   "internal.input.voltage.1phase.epdu",
+        "categories"    :   [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"       :   "voltage.input.L1",
+        "assets"        :   "__name__",
         "values_unit"   :   "V",
-        "values"        :   [ {"low_warning"   : "215"},
-                              {"low_critical"  : "210"},
-                              {"high_warning"  : "235"},
-                              {"high_critical" : "240"} ],
+        "values"        :   [
+            { "low_warning"   : "215" },
+            { "low_critical"  : "210" },
+            { "high_warning"  : "235" },
+            { "high_critical" : "240" } ],
         "results"       :   [
-            { "ok"   : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is OK in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is OK in device)" }},
-            { "low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is low in device)" }},
-            { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is critically low in device)" }},
-            { "high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is high in device)" }},
-            { "high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is critically high in device)"}} ]
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is OK in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input voltage (1 phase) is OK in device)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input voltage (1 phase) is low in device)" } },
+            { "low_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input voltage (1 phase) is critically low in device)" } },
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input voltage (1 phase) is high in device)" } },
+            { "high_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Input voltage (1 phase) is critically high in device)" } } ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

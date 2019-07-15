@@ -1475,6 +1475,16 @@ AC_ARG_ENABLE([fty-alert-engine],
 AM_CONDITIONAL([ENABLE_FTY_ALERT_ENGINE], [test x$enable_fty_alert_engine != xno])
 AM_COND_IF([ENABLE_FTY_ALERT_ENGINE], [AC_MSG_NOTICE([ENABLE_FTY_ALERT_ENGINE defined])])
 
+# Check for rule-checker intent
+AC_ARG_ENABLE([rule-checker],
+    AS_HELP_STRING([--enable-rule-checker],
+        [Compile and install 'rule-checker' [default=yes]]),
+    [enable_rule_checker=$enableval],
+    [enable_rule_checker=yes])
+
+AM_CONDITIONAL([ENABLE_RULE_CHECKER], [test x$enable_rule_checker != xno])
+AM_COND_IF([ENABLE_RULE_CHECKER], [AC_MSG_NOTICE([ENABLE_RULE_CHECKER defined])])
+
 # Check for fty_alert_engine_selftest intent
 AC_ARG_ENABLE([fty_alert_engine_selftest],
     AS_HELP_STRING([--enable-fty_alert_engine_selftest],
@@ -1593,7 +1603,16 @@ AS_IF([test "x$enable_Werror" = "xyes" || test "x$enable_Werror" = "xauto"],
 # One of big missing features in gcc-4.8 was std::regex support fixed in 4.9
 # Testing code from https://stackoverflow.com/a/41186162/4715872
 # caveats apply (use of unguaranteed private macros)
+AC_ARG_ENABLE([gcc-std-regex],
+    AS_HELP_STRING([--enable-gcc-std-regex],
+        [Check for std::regex support if compiler is GCC, assuming it means satisfactory level of C++11 there [default=yes]]),
+    [enable_gcc_std_regex=$enableval],
+    [enable_gcc_std_regex=$defaultval])
+
+AM_CONDITIONAL([ENABLE_GCC_STD_REGEX], [test x$enable_gcc_std_regex != xno])
+
 AS_IF([test -n "$CXX"],[AS_IF([$CXX --version 2>&1 | grep 'Free Software Foundation' > /dev/null && test "x$GCC" = "xyes"],
+  [AS_IF([test "x$enable_gcc_std_regex" = "xyes" || test "x$enable_gcc_std_regex" = "xauto"],
     [AC_MSG_CHECKING([for GNU C++11 support level expected by gcc-4.9 release or newer])
      CXXFLAGS="$CXXFLAGS --std=c++11"
      AC_LANG_PUSH([C++])
@@ -1624,9 +1643,12 @@ int main() {
 #endif
   return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-], AC_MSG_RESULT([ok]), AC_MSG_ERROR([test for std::regex failed]) )
+     ], AC_MSG_RESULT([ok]), AC_MSG_ERROR([test for std::regex failed]) )
      AC_LANG_POP([C++])
     ]
+  ,[AC_MSG_WARN([Not checking for GNU C++11 support level expected by gcc-4.9 release or newer, due to explicit configure option])
+    AC_MSG_WARN([YOU ARE AT RISK OF SOMETHING NOT WORKING WITH THIS BUILD OF THE CODEBASE])]
+  )]
 )])
 
 # Specify output files

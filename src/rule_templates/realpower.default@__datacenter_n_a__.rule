@@ -1,12 +1,12 @@
 {
     "threshold" : {
-        "name"     :   "realpower.default@__name__",
-        "description"     :   "TRANSLATE_LUA(Total Power in datacenter)",
-        "class"    :   "TRANSLATE_LUA(Total power in data center)",
-        "hierarchy":   "power.realpower.default.dc",
-        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
-        "metrics"        :   "realpower.default",
-        "assets"       :   "__name__",
+        "name"          :   "realpower.default@__name__",
+        "description"   :   "TRANSLATE_LUA(Total Power in datacenter)",
+        "class"         :   "TRANSLATE_LUA(Total power in data center)",
+        "hierarchy"     :   "power.realpower.default.dc",
+        "categories"    :   [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"       :   "realpower.default",
+        "assets"        :   "__name__",
         "values_unit"   :   "W",
         "values"        :   [
             { "low_critical"    : "0" },
@@ -14,10 +14,43 @@
             { "high_warning"    : "0" },
             { "high_critical"   : "0" } ],
         "results"       :   [
-            {"ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Total power in datacenter is OK)" }},
-            {"low_critical"  : { "action" : [  { "action": "EMAIL" } ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Total power in datacenter is critically low)" }},
-            {"low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Total power in datacenter is low)" }},
-            {"high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Total power in datacenter is high)" }},
-            {"high_critical" : { "action" : [  { "action": "EMAIL" } ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Total power in datacenter is critically high)" }} ]
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Total power in datacenter is OK)" } },
+            { "low_critical" : {
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Total power in datacenter is critically low)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Total power in datacenter is low)" } },
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Total power in datacenter is high)" } },
+            { "high_critical" : {
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Total power in datacenter {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Total power in datacenter is critically high)" } } ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

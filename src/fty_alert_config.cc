@@ -47,6 +47,46 @@ AlertConfig::~AlertConfig () {
     zpoller_destroy (&client_mb_sender_poller_);
     mlm_client_destroy (&client_);
     mlm_client_destroy (&client_mb_sender_);
+    FullAssetDatabase::getInstance ().clear ();
+}
+
+void AlertConfig::loadAndSendRule (const std::string rulename) {
+    log_debug ("loadAndSendRule %s", rulename.c_str ());
+    std::ifstream file (template_location_ + "/" + rulename);
+    std::string file_content ((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    try {
+        std::shared_ptr<Rule> rule = RuleFactory::createFromJson (file_content);
+        zmsg_t *message = zmsg_new ();
+        zmsg_addstr (message, name_.c_str ()); // uuid, no need to generate it
+        zmsg_addstr (message, "ADD");
+        zmsg_addstr (message, rule->getJsonRule ().c_str ());
+        mlm_client_sendto (client_mb_sender_, alert_trigger_mb_name_.c_str (), RULES_SUBJECT, mlm_client_tracker (client_),
+                1000, &message);
+                // expect response
+        void *which = zpoller_wait (client_mb_sender_poller_, timeout_internal_);
+        if (which != nullptr) {
+            message = mlm_client_recv (client_mb_sender_);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mb_sender_));
+            char *corr_id = zmsg_popstr (message);
+            char *command = zmsg_popstr (message);
+            if (!streq (command, "OK")) {
+                char *param = zmsg_popstr (message);
+                if (streq (param, "ALREADY_EXISTS")) {
+                    log_debug ("Rule %s already known", rule->getName ().c_str ());
+                } else {
+                    log_error ("%s refused rule %s", alert_trigger_mb_name_.c_str (), rule->getJsonRule ().c_str ());
+                }
+                zstr_free (&param);
+            }
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+        }
+    } catch (std::runtime_error &re) {
+        log_error ("Exception %s caught while trying to send rule %s", re.what (), rulename.c_str ());
+    } catch (...) {
+        log_error ("Undefined exception caught while trying to send rule %s", rulename.c_str ());
+    }
 }
 
 /// handle pipe messages for this actor
@@ -118,6 +158,17 @@ int AlertConfig::handlePipeMessages (zsock_t *pipe) {
             log_error ("in CONFIG command next frame is missing");
         }
         zstr_free (&filename);
+    }
+    else
+    if (streq (cmd, "SEND_RULE")) {
+        log_debug ("SEND_RULE received");
+        char* rulename = zmsg_popstr (msg);
+        if (rulename) {
+            loadAndSendRule (rulename);
+        } else {
+            log_error ("missing rulename");
+        }
+        zstr_free (&rulename);
     }
     zstr_free (&cmd);
     zmsg_destroy (&msg);
@@ -501,7 +552,7 @@ fty_alert_config_test (bool verbose)
     sleep (1);
 
     log_debug ("Test 1: send asset datacenter, expected rule average.temperature@dc-1");
-    // send asset - DC
+    // send asset - datacenter n_a
     // expected: rule average.temperature@dc-1
     zhash_t *asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
@@ -546,7 +597,7 @@ fty_alert_config_test (bool verbose)
     assert (counter < 20);
 
     log_debug ("Test 2: send asset room, expected no rules");
-    // send asset - device ups
+    // send asset - room n_a
     // expected: empty result
     asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
@@ -672,7 +723,7 @@ fty_alert_config_test (bool verbose)
     assert (rules_count == 30);
 
     log_debug ("Test 5: send asset room delete");
-    // send asset - device ups
+    // send asset - room n_a
     // expected: empty result
     asset_aux = zhash_new ();
     zhash_autofree (asset_aux);
@@ -809,7 +860,59 @@ fty_alert_config_test (bool verbose)
     assert (counter < 20);
     assert (rules_count == 9);
 
-    log_debug ("Test 8 no messages in queue");
+    log_debug ("Test 8: send asset room twice, expected no rules");
+    // send asset - room n_a
+    // expected: empty result
+    asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "room");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
+    asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyRoom");
+    asset = fty_proto_encode_asset (asset_aux, "room-22", FTY_PROTO_ASSET_OP_UPDATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            assert (false); // there are no test rules for ups, so no message should come
+        }
+    }
+    assert (counter >= 20);
+    asset_aux = zhash_new ();
+    zhash_autofree (asset_aux);
+    zhash_insert (asset_aux, "type", (void *) "room");
+    zhash_insert (asset_aux, "subtype", (void *) "n_a");
+    asset_ext = zhash_new ();
+    zhash_autofree (asset_ext);
+    zhash_insert (asset_ext, "name", (void *) "MyRoom");
+    asset = fty_proto_encode_asset (asset_aux, "room-22", FTY_PROTO_ASSET_OP_UPDATE, asset_ext);
+    rv = mlm_client_send (client_assets, "CREATE", &asset);
+    assert (rv == 0);
+    zhash_destroy (&asset_ext);
+    zhash_destroy (&asset_aux);
+    // this should produce a message with rule datacenter
+    counter = 0;
+    while (counter++ < 20) {
+        void *which = zpoller_wait (poller, 1000);
+        if (which == mlm_client_msgpipe (client_assets)) {
+            assert (false); // unexpected message to this client
+        }
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            assert (false); // there are no test rules for ups, so no message should come
+        }
+    }
+    assert (counter >= 20);
+
+    log_debug ("Test 9 no messages in queue");
     while (counter < 20) {
         void *which = zpoller_wait (poller, 1000);
         if (which != nullptr)

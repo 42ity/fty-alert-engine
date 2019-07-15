@@ -1,36 +1,25 @@
 {
     "flexible" : {
-        "name"          : "sts-preferred-source@__name__",
-        "description"   : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
-        "categories"      : ["CAT_OTHER", "CAT_ALL"],
-        "metrics"       : ["input.source", "input.source.preferred"],
-        "assets"        : ["__name__"],
-        "results"       :  [
-            {
-                "ok"  :
-                {
-                    "action" : [ ],
-                    "severity" : "OK",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  preferred input.)\", \"variables\": {\"NAME\": \"NAME\"}}"
-                }
-            },
-            {
-                "high_warning"  :
-                {
-                    "action" : [ ],
-                    "severity" : "WARNING",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"__outcome_1__\", \"prefered\" : \"__outcome_2__\"}}"
-                }
-            }
-        ],
-        "outcome_item_count" : "3",
-        "evaluation"    : "
-            function main(input, preferred)
-                if input == preferred then
-                    return 'ok', '0', '0'
-                end
-                return 'high_warning', input, preferred
-            end
-        "
+        "name"                  : "sts-preferred-source@__name__",
+        "description"           : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
+        "categories"            : [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"               : [ "input.source", "input.source.preferred" ],
+        "assets"                : [ "__name__" ],
+        "results"               :  [
+            { "ok" : {
+                "action"        : [ ],
+                "severity"      : "OK",
+                "description"   : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from  preferred input.)\", \"variables\": {\"NAME\": \"NAME\" }}" } },
+            { "high_warning" : {
+                "action"        : [ ],
+                "severity"      : "WARNING",
+                "description"   : "{ \"key\": \"TRANSLATE_LUA(ATS {{NAME}} is running from input {{input}} (preferred is {{prefered}}).)\", \"variables\": {\"NAME\": \"NAME\", \"input\" : \"__outcome_1__\", \"prefered\" : \"__outcome_2__\" }}" } } ],
+        "outcome_item_count"    : "3",
+        "evaluation"            : " function main(input, preferred)
+                                        if input == preferred then
+                                            return 'ok', '0', '0';
+                                        end;
+                                        return 'high_warning', input, preferred;
+                                    end"
     }
 }

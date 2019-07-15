@@ -1,50 +1,47 @@
 {
     "pattern" : {
-        "name"          :   "warranty",
-        "metrics"       :   "^end_warranty_date@.+",
-        "values"        :   [ { "low_warning":"60"}, {"low_critical":"10"}, {"high_critical":"0"} ],
-        "categories"    :   ["CAT_OTHER", "CAT_ALL"],
-        "assets"        :   [ ],
-        "values_unit": "days",
-        "results"       :   [
-                                {
-                                    "ok"  : 
-                                    { 
-                                        "action" : [ ],
-                                        "severity" : "OK",
-                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty OK)\"}",
-                                        "threshold_name" : "TRANSLATE_LUA (Warranty OK)"
-                                    }
-                                },
-                                {
-                                    "high_critical"  : 
-                                    { 
-                                        "action" : [{ "action": "EMAIL" }],
-                                        "severity" : "CRITICAL",
-                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}",
-                                        "threshold_name" : "TRANSLATE_LUA (Warranty expired)"
-                                    }
-                                },
-                                {
-                                    "low_critical"  :
-                                    {
-                                        "action" : [{ "action": "EMAIL" }],
-                                        "severity" : "CRITICAL",
-                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}",
-                                        "threshold_name" : "TRANSLATE_LUA (Warranty expires in)"
-                                    }
-                                },
-                                {
-                                    "low_warning"  :
-                                    {
-                                        "action" : [{ "action": "EMAIL" }],
-                                        "severity" : "WARNING",
-                                        "description" : "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}",
-                                        "threshold_name" : "TRANSLATE_LUA (Warranty expires in)"
-                                    }
-                                }
-                            ],
-        "outcome_item_count" : "2",
-        "evaluation"    : "function main(match, value) if( value < high_critical ) then return 'high_critical', match end if( value <= low_critical ) then return 'low_critical', match end if ( value <= low_warning ) then return 'low_warning', match end return 'ok', match end"
+        "name"                  :   "warranty",
+        "metrics"               :   "^end_warranty_date@.+",
+        "values"                :   [
+            { "low_warning"     : "60" },
+            { "low_critical"    : "10" },
+            { "high_critical"   : "0" } ],
+        "categories"            :   [ "CAT_OTHER", "CAT_ALL" ],
+        "assets"                :   [ ],
+        "values_unit"           :   "days",
+        "results"               :   [
+            { "ok" : { 
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\":\"TRANSLATE_LUA (Warranty OK)\" }",
+                "threshold_name"    : "TRANSLATE_LUA (Warranty OK)" } },
+            { "high_critical" : { 
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\":\"TRANSLATE_LUA (Warranty expired)\" }",
+                "threshold_name"    : "TRANSLATE_LUA (Warranty expired)" } },
+            { "low_critical" : {
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\" }",
+                "threshold_name"    : "TRANSLATE_LUA (Warranty expires in)" } },
+            { "low_warning" : {
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\" }",
+                "threshold_name"    : "TRANSLATE_LUA (Warranty expires in)" } } ],
+        "outcome_item_count"    : "2",
+        "evaluation"            : " function main(match, value)
+                                        if( value < high_critical ) then
+                                            return 'high_critical', match;
+                                        end;
+                                        if( value <= low_critical ) then
+                                            return 'low_critical', match;
+                                        end;
+                                        if ( value <= low_warning ) then
+                                            return 'low_warning', match;
+                                        end;
+                                        return 'ok', match;
+                                    end"
     }
 }

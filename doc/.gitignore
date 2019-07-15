@@ -17,6 +17,8 @@ fty_alert_config.txt
 fty_alert_config.doc
 fty-alert-engine.txt
 fty-alert-engine.doc
+rule-checker.txt
+rule-checker.doc
 
 # Make sure to track the manually maintained project description
 !*.adoc

@@ -1,50 +1,35 @@
 {
     "flexible" : {
-        "name"          : "sts-frequency@__name__",
-        "description"   : "TRANSLATE_LUA(The STS/ATS frequency is out of tolerance)",
-        "categories"      : ["CAT_OTHER", "CAT_ALL"],
-        "metrics"       : ["status.input.1.frequency", "status.input.2.frequency"],
-        "assets"        : ["__name__"],
-        "results"       :  [
-            {
-                "ok"  :
-                {
-                    "action" : [ ],
-                    "severity" : "OK",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Input 1 frequency status of {{NAME}} is OK.)\", \"variables\": {\"NAME\": \"NAME\"}}"
-                }
-            },
-            {
-                "warning_one"  :
-                {
-                    "action" : [ ],
-                    "severity" : "WARNING",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Input {{input}} frequency status of {{NAME}} is out of tolerance {{value}}!)\", \"variables\": {\"NAME\": \"NAME\", \"input\": \"__outcome_1__\", \"value\": \"__outcome_2__\"}}"
-                }
-            },
-            {
-                "warning_both"  :
-                {
-                    "action" : [ ],
-                    "severity" : "WARNING",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Frequency status of {{NAME}} is out of tolerance for both inputs {{i1}}, {{i2}}!)\", \"variables\": {\"NAME\": \"NAME\", \"i1\": \"__outcome_1\", \"i2\": \"__outcome_2__\"}}"
-                }
-            }
-        ],
-        "outcome_item_count" : "3",
-        "evaluation"    : "
-            function main(i1, i2)
-                if i1 == 'good' and i2 == 'good' then
-                    return 'ok', '0', '0'
-                end
-                if i1 == 'good' then
-                    return 'warning_one', '2', i2
-                end
-                if i2 == 'good' then
-                    return 'warning_one', '1', i1
-                end
-                return 'warning_both', i1, i2
-            end
-        "
+        "name"                  : "sts-frequency@__name__",
+        "description"           : "TRANSLATE_LUA(The STS/ATS frequency is out of tolerance)",
+        "categories"            : [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"               : [ "status.input.1.frequency", "status.input.2.frequency" ],
+        "assets"                : [ "__name__" ],
+        "results"               : [
+            { "ok" : {
+                "action" : [ ],
+                "severity" : "OK",
+                "description" : "{ \"key\": \"TRANSLATE_LUA(Input 1 frequency status of {{NAME}} is OK.)\", \"variables\": {\"NAME\": \"NAME\" }}" } },
+            { "warning_one" : {
+                "action" : [ ],
+                "severity" : "WARNING",
+                "description" : "{ \"key\": \"TRANSLATE_LUA(Input {{input}} frequency status of {{NAME}} is out of tolerance {{value}}!)\", \"variables\": {\"NAME\": \"NAME\", \"input\": \"__outcome_1__\", \"value\": \"__outcome_2__\" }}" } },
+            { "warning_both" : {
+                "action" : [ ],
+                "severity" : "WARNING",
+                "description" : "{ \"key\": \"TRANSLATE_LUA(Frequency status of {{NAME}} is out of tolerance for both inputs {{i1}}, {{i2}}!)\", \"variables\": {\"NAME\": \"NAME\", \"i1\": \"__outcome_1\", \"i2\": \"__outcome_2__\" }}" } } ],
+        "outcome_item_count"    : "3",
+        "evaluation"            : " function main(i1, i2)
+                                        if i1 == 'good' and i2 == 'good' then
+                                            return 'ok', '0', '0';
+                                        end;
+                                        if i1 == 'good' then
+                                            return 'warning_one', '2', i2;
+                                        end;
+                                        if i2 == 'good' then
+                                            return 'warning_one', '1', i1;
+                                        end;
+                                        return 'warning_both', i1, i2;
+                                    end"
     }
 }

@@ -1,20 +1,43 @@
 {
     "threshold": {
-        "name"	     : "phase_imbalance@__name__",
-        "description"	     : "TRANSLATE_LUA(Rack phase imbalance)",
-        "class"	 : "TRANSLATE_LUA(Phase imbalance in rack)",
-        "hierarchy" : "power.phaseimbalance.rack",
-        "categories"       : ["CAT_OTHER", "CAT_ALL"],
-        "metrics"	     : [ "realpower.output.L1", "realpower.output.L2", "realpower.output.L3" ],
-        "assets"	     : "__name__",
-        "values_unit"	 : "%",
-        "values"	: [
-            { "high_warning": "10" },
-            { "high_critical": "20"} ],
-        "results"	: [
-            { "ok" : { "action": [ ], "severity": "OK", "description": "{\"key\" : \"TRANSLATE_LUA(Phase imbalance in rack {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Phase imbalance in rack is OK)" }},
-            { "high_critical" : { "action": [ ], "severity": "CRITICAL", "description": "{\"key\" : \"TRANSLATE_LUA(Phase imbalance in rack {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Phase imbalance in rack is critically high)" }},
-            { "high_warning" : { "action": [ ], "severity": "WARNING", "description": "{\"key\" : \"TRANSLATE_LUA(Phase imbalance in rack {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Phase imbalance in rack is high)" }} ],
-        "evaluation": "function main(f1, f2, f3) local avg = (f1 + f2 + f3) / 3; local deviation = math.max (math.abs (f1 - avg), math.abs (f2 - avg), math.abs (f3 - avg)); local percentage = deviation / avg * 100; if (percentage > high_critical) then return 'high_critical' end; if (percentage > high_warning) then return 'high_warning' end; return 'ok'; end "
+        "name"          : "phase_imbalance@__name__",
+        "description"   : "TRANSLATE_LUA(Rack phase imbalance)",
+        "class"         : "TRANSLATE_LUA(Phase imbalance in rack)",
+        "hierarchy"     : "power.phaseimbalance.rack",
+        "categories"    : [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"       : [ "realpower.output.L1", "realpower.output.L2", "realpower.output.L3" ],
+        "assets"        : "__name__",
+        "values_unit"   : "%",
+        "values"        : [
+            { "high_warning"    : "10" },
+            { "high_critical"   : "20" } ],
+        "results"       : [
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Phase imbalance in rack {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Phase imbalance in rack is OK)" }},
+            { "high_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Phase imbalance in rack {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Phase imbalance in rack is critically high)" }},
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Phase imbalance in rack {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Phase imbalance in rack is high)" }} ],
+        "evaluation"    : " function main(f1, f2, f3)
+                                local avg = (f1 + f2 + f3) / 3;
+                                local deviation = math.max (math.abs (f1 - avg), math.abs (f2 - avg), math.abs (f3 - avg));
+                                local percentage = deviation / avg * 100;
+                                if (percentage > tonumber(high_critical)) then
+                                    return 'high_critical';
+                                end;
+                                if (percentage > tonumber(high_warning)) then
+                                    return 'high_warning';
+                                end;
+                                return 'ok';
+                            end"
     }
 }

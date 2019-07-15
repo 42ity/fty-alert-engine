@@ -17,6 +17,19 @@
             { "low_critical"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Default load in ups is critically low" }},
             { "low_warning"   : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Default load in ups is low" }},
             { "high_warning"  : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "WARNING", "description" : "Default load in ups is high" }},
-            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Default load in ups is critically high" }} ]
+            { "high_critical" : { "action" : [{ "action": "EMAIL" },{ "action": "SMS" }], "severity" : "CRITICAL", "description" : "Default load in ups is critically high" }} ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

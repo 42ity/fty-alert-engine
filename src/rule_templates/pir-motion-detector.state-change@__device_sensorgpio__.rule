@@ -2,39 +2,26 @@
     "flexible" : {
         "name"          : "motion-detector-sensor.state-change@__name__",
         "description"   : "TRANSLATE_LUA(Motion detected)",
-        "categories"      : ["CAT_GPIO", "CAT_ALL"],
-        "metrics"       : ["status.__port__"],
-        "assets"	    : ["__name__"],
+        "categories"    : [ "CAT_GPIO", "CAT_ALL" ],
+        "metrics"       : [ "status.__port__" ],
+        "assets"        : [ "__name__" ],
         "logical_asset" : "__logicalasset_iname__",
-        "models"	    : ["XCELW"],
-        "types" 	    : ["sensorgpio", "rackcontroller"],
-        "results"       :  [
-            {
-                "ok"   : 
-                { 
-                    "action" : [ ],
-                    "severity" : "OK",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Motion {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}"
-                }
-            
-            },
-            {
-                "notok"   : 
-                { 
-                    "action" : [ ],
-                    "severity" : "__severity__",
-                    "description" : "{ \"key\": \"TRANSLATE_LUA(Motion detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}"
-                }
-            
-            }
-        ],
-        "evaluation"    : "
-            function main(current_state)
-                if current_state == '__normalstate__' then
-                return 'ok'
-                end
-                    return 'notok'
-            end
-        "
+        "models"        : [ "XCELW" ],
+        "types"         : [ "sensorgpio", "rackcontroller" ],
+        "results"       : [
+            { "ok" : { 
+                "action" : [ ],
+                "severity" : "OK",
+                "description" : "{ \"key\": \"TRANSLATE_LUA(Motion {{logicalasset}} is OK.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}" } },
+            { "notok" : { 
+                "action" : [ ],
+                "severity" : "__severity__",
+                "description" : "{ \"key\": \"TRANSLATE_LUA(Motion detected in {{logicalasset}}.)\", \"variables\": {\"logical_asset\": { \"value\" : \"__logicalasset__\", \"assetLink\" : \"__logicalasset_iname__\" } }}" } } ],
+        "evaluation"    : " function main(current_state)
+                                if current_state == '__normalstate__' then
+                                return 'ok';
+                                end;
+                                return 'notok';
+                            end"
     }
 }

@@ -67,7 +67,8 @@ utf8_octets (const std::string& s, std::string::size_type pos)
 // 0 - same
 // 1 - different
 static int
-utf8_compare_octets (const std::string& s1, std::string::size_type s1_pos, const std::string& s2, std::string::size_type s2_pos, uint8_t count)
+utf8_compare_octets (const std::string& s1, std::string::size_type s1_pos, const std::string& s2,
+        std::string::size_type s2_pos, uint8_t count)
 {
     assert (count >= 1 && count <= 4);
     assert (s1_pos + count <= s1.length ());
@@ -119,6 +120,7 @@ Rule::Rule (const std::string json) {
     std::istringstream iss (json);
     cxxtools::JsonDeserializer jd (iss);
     jd.deserialize (*this); // runs operator >>= on this object
+    max_observed_ttl_ = MAX_OBSERVED_TTL_DEFAULT;
 }
 
 void Rule::setGlobalVariables (const VariableMap vars) {
@@ -150,7 +152,7 @@ void Rule::save (const std::string &path) const {
         ofs << getJsonRule ();
         ofs.close ();
     } catch (...) {
-        throw unable_to_save ();
+        throw unable_to_save (name_);
     }
 }
 
@@ -496,7 +498,7 @@ GenericRule::VectorStrings GenericRule::evaluate (const GenericRule::VectorStrin
     return VectorStrings ();
 }
 
-GenericRule::VectorVectorStrings GenericRule::evaluate (const GenericRule::MapStrings &active_metrics,
+GenericRule::VectorVectorStrings GenericRule::evaluate (const GenericRule::MapMetrics &active_metrics,
         const GenericRule::SetStrings &inactive_metrics) {
     return VectorVectorStrings ();
 }

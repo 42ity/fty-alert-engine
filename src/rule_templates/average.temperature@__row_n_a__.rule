@@ -1,22 +1,56 @@
 {
     "threshold" : {
-        "name"     :   "average.temperature@__name__",
-        "description"     :   "TRANSLATE_LUA(Temperature)",
-        "class"    :   "TRANSLATE_LUA(Temperature in row)",
-        "hierarchy":   "environment.temperature.row",
-        "categories"      :   ["CAT_ENVIRONMENTAL", "CAT_ALL"],
-        "metrics"        :   "average.temperature",
-        "assets"       :   "__name__",
+        "name"          :   "average.temperature@__name__",
+        "description"   :   "TRANSLATE_LUA(Temperature)",
+        "class"         :   "TRANSLATE_LUA(Temperature in row)",
+        "hierarchy"     :   "environment.temperature.row",
+        "categories"    :   [ "CAT_ENVIRONMENTAL", "CAT_ALL" ],
+        "metrics"       :   "average.temperature",
+        "assets"        :   "__name__",
         "values_unit"   :   "C",
-        "values"        :   [ {"low_critical"   :   "14"},
-                              {"low_warning"    :   "17"},
-                              {"high_warning"   :   "27"},
-                              {"high_critical"  :   "30"} ],
-        "results"       :   [
-            {"ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Temperature in row is OK)" }},
-            {"low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Temperature in row is critically low)" }},
-            {"low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Temperature in row is low)"  }},
-            {"high_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Temperature in row is high)" }},
-            {"high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Temperature in row is critically high)" }} ]
+        "values"        : [
+            { "low_critical"   :   "14" },
+            { "low_warning"    :   "17" },
+            { "high_warning"   :   "27" },
+            { "high_critical"  :   "30" } ],
+        "results"       : [
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Temperature in row is OK)" } },
+            { "low_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is critically low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Temperature in row is critically low)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is low.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Temperature in row is low)" } },
+            { "high_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Temperature in row is high)" } },
+            { "high_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Temperature in row {{ename}} is critically high.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }",
+                "threshold_name"    : "TRANSLATE_LUA(Temperature in row is critically high)" } } ],
+        "evaluation"    : " function main(v1)
+                                if tonumber(v1) <= tonumber(low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                elseif tonumber(v1) <= tonumber(low_warning) then
+                                    return 'low_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
     }
 }

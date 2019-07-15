@@ -88,7 +88,8 @@ class Alert {
             ACKIGNORE,
             ACKPAUSE,
             ACKSILENCE,
-            ACKWIP
+            ACKWIP,
+            OUTAGED
         };
 
         std::string AlertStateToString (AlertState state)
@@ -101,6 +102,7 @@ class Alert {
                 case ACKPAUSE: tmp = "ACK-PAUSE"; break;
                 case ACKSILENCE: tmp = "ACK-SILENCE"; break;
                 case ACKWIP: tmp = "ACK-WIP"; break;
+                case OUTAGED: tmp = "OUTAGED"; break;
                 default: break; // return empty string
             }
 
@@ -122,6 +124,8 @@ class Alert {
                 state = ACKSILENCE;
             else if (state_str == "ACK-WIP")
                 state = ACKWIP;
+            else if (state_str == "OUTAGED")
+                state = OUTAGED;
 
             return state;
         }

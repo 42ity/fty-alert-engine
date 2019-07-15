@@ -1,4 +1,5 @@
 usr/bin/fty-alert-engine
+usr/bin/rule-checker
 etc/fty-alert-engine/fty-alert-engine.cfg
 lib/systemd/system/fty-alert-engine.service
 

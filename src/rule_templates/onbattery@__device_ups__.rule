@@ -1,15 +1,35 @@
 {
     "single" : {
-        "name"     :   "onbattery@__name__",
-        "class"    :   "TRANSLATE_LUA(UPS running on battery)",
-        "hierarchy":   "power.onbattery.ups",
-        "categories"      :   ["CAT_OTHER", "CAT_ALL"],
-        "metrics"        :   ["status.ups"],
-        "assets"       :   "__name__",
+        "name"          :   "onbattery@__name__",
+        "class"         :   "TRANSLATE_LUA(UPS running on battery)",
+        "hierarchy"     :   "power.onbattery.ups",
+        "categories"    :   [ "CAT_OTHER", "CAT_ALL" ],
+        "metrics"       :   [ "status.ups" ],
+        "assets"        :   "__name__",
         "values"        :   [ ],
         "results"       :   [
-            {"ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }" }},
-            {"high_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} is running on battery!)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }" }} ],
-        "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(status) if has_bit(status,5) then return 'high_critical' end return 'ok' end"
+            { "ok" : {
+                "action"        : [ ],
+                "severity"      : "OK",
+                "description"   : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} is OK.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }" }},
+            { "high_critical" : {
+                "action"        : [ ],
+                "severity"      : "CRITICAL",
+                "description"   : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} is running on battery!)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }" }} ],
+        "evaluation"    : " function has_bit(x,bit)
+                                local mask = 2 ^ (bit - 1);
+                                x = x % (2*mask);
+                                if x >= mask then
+                                    return true;
+                                else
+                                    return false;
+                                end;
+                            end;
+                            function main(status)
+                                if has_bit(tonumber(status),5) then
+                                    return 'high_critical';
+                                end;
+                                return 'ok';
+                            end"
     }
 }

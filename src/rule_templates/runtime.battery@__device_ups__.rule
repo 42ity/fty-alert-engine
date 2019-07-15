@@ -1,20 +1,40 @@
 {
     "threshold" : {
-        "name"     :   "runtime.battery@__name__",
-        "description"     :   "TRANSLATE_LUA(Battery Runtime)",
-        "class"    :   "TRANSLATE_LUA(Battery Runtime remaining in UPS)",
-        "hierarchy":   "runtime.batterylevel.ups",
-        "categories"      :   ["CAT_POWER", "CAT_ALL"],
-        "metrics"        :   "runtime.battery",
-        "assets"       :   "__name__",
+        "name"          :   "runtime.battery@__name__",
+        "description"   :   "TRANSLATE_LUA(Battery Runtime)",
+        "class"         :   "TRANSLATE_LUA(Battery Runtime remaining in UPS)",
+        "hierarchy"     :   "runtime.batterylevel.ups",
+        "categories"    :   [ "CAT_POWER", "CAT_ALL" ],
+        "metrics"       :   "runtime.battery",
+        "assets"        :   "__name__",
         "values_unit"   :   "s",
         "values"        :   [
-            {"low_warning"  : "180"},
-            {"low_critical" : "60"} ],
+            { "low_warning"  : "180" },
+            { "low_critical" : "60" } ],
         "results"       :   [
-                {"ok"  : { "action" : [ ], "severity" : "OK", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is OK in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime is OK in device)" }},
-                {"low_warning"  : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime is low in device)" }},
-                {"low_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is critically low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\"} }", "threshold_name" : "TRANSLATE_LUA(Battery Runtime critically is low in device)" }} ],
-        "evaluation" : "function main(v1) if (v1 < low_critical) then return 'low_critical' end; if (v1 > low_critical and v1 < low_warning) then return 'low_warning' end; return 'ok'; end"
+            { "ok" : {
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is OK in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\" } }",
+                "threshold_name"    : "TRANSLATE_LUA(Battery Runtime is OK in device)" } },
+            { "low_warning" : {
+                "action"            : [ ],
+                "severity"          : "WARNING",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\" } }",
+                "threshold_name"    : "TRANSLATE_LUA(Battery Runtime is low in device)" } },
+            { "low_critical" : {
+                "action"            : [ ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA(Battery Runtime is critically low in {{ename}})\", \"variables\" : {\"ename\" : \"__ename__\" } }",
+                "threshold_name"    : "TRANSLATE_LUA(Battery Runtime critically is low in device)" } } ],
+        "evaluation"    : " function main(v1)
+                                if (v1 < low_critical) then
+                                    return 'low_critical';
+                                end;
+                                if (v1 > low_critical and v1 < low_warning) then
+                                    return 'low_warning';
+                                end;
+                                return 'ok';
+                            end"
     }
 }

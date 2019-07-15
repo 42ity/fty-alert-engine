@@ -44,14 +44,12 @@ Rules loaded at start up are stored in the directory /var/lib/fty/fty-alert-engi
 Rules are currently of types flexible, single, pattern and threshold, refer to templates for more details
 Major differences and use cases:
 * pattern rule don't require assets, and uses metrics as regex patterns - asset is determined by matching a metric name
-by metric, always runs LUA evaluation
-* threshold accepts multiple metrics and either compare values of one metric to values list (hardcoded names
-low_warning, low_critical, high_warning, high_critical) or aggregates multiple metrics via LUA function and return
-respective result
-* single accepts specified metrics for one asset, but always runs LUA evaluation (difference to threshold)
-* flexible supports string variables (other accept just doubles), runs LUA evaluation for specified metrics, is supposed
-to work with multiple assets (never used so far, not tested), metrics are evaluated as metric@asset for every asset in
-list
+by metric
+* threshold accepts multiple metrics and possibly supports multiple assets, use hardcoded thresholds "low_critcical",
+"low_warning", "high_warning" and "high_critical"
+* single accepts specified metrics for one asset, use custom thresholds
+* flexible supports string variables (other accept just doubles), is supposed to work with multiple assets, metrics are
+evaluated as metric@asset for every asset in list
 
 ### Rule templates
 

@@ -45,6 +45,8 @@ FTY_ALERT_ENGINE_PRIVATE void
 }
 #endif
 
+#define MAX_OBSERVED_TTL_DEFAULT 1000
+
 //  1  - equals
 //  0  - different
 // -1  - error
@@ -53,22 +55,35 @@ utf8eq (const std::string& s1, const std::string& s2);
 
 class missing_mandatory_item : public std::runtime_error {
     public:
-        missing_mandatory_item (std::string item) : runtime_error ("missing mandatory item " + item) { }
+        missing_mandatory_item (const std::string item) : runtime_error ("missing mandatory item " + item) { }
 };
-class invalid_metrics_count : public std::runtime_error {
+class invalid_argument_count : public std::runtime_error {
     public:
-        invalid_metrics_count () : runtime_error ("invalid metrics count") { }
+        invalid_argument_count (const std::string item) : runtime_error ("invalid argument " + item + "count ") { }
+};
+class wrong_argument : public std::runtime_error {
+    public:
+        wrong_argument (const std::string item) : runtime_error ("wrong argument " + item) { }
 };
 class unable_to_save : public std::runtime_error {
     public:
-        unable_to_save () : runtime_error ("unable to save rule") { }
+        unable_to_save (const std::string item) : runtime_error ("unable to save rule " + item) { }
 };
 
 class InterfaceRule {
     public:
+        struct Metric {
+            std::string value_;
+            uint64_t ttl_;
+            //
+            Metric (const std::string value, const uint64_t ttl) : value_(value), ttl_(ttl) { };
+            Metric () = default;
+        };
+    public:
         typedef std::vector<std::string> VectorStrings;
         typedef std::vector<std::vector<std::string>> VectorVectorStrings;
         typedef std::map<std::string, std::string> MapStrings;
+        typedef std::map<std::string, Metric> MapMetrics;
         typedef std::unordered_set<std::string> SetStrings;
         /// identifies rule type
         virtual std::string whoami () const = 0;
@@ -81,7 +96,7 @@ class InterfaceRule {
          * \throw std::exception in case of evaluation failure
          */
         virtual VectorStrings evaluate (const VectorStrings &metrics) = 0;
-        virtual VectorVectorStrings evaluate (const MapStrings &active_metrics, const SetStrings &inactive_metrics) = 0;
+        virtual VectorVectorStrings evaluate (const MapMetrics &active_metrics, const SetStrings &inactive_metrics) = 0;
         /// identifies rule with unique name
         std::string getName (void) const;
         /// returns a list of metrics in order in which evaluation expects them to be
@@ -175,6 +190,8 @@ class Rule : public InterfaceRule {
         std::string value_unit_;
         /// alert hierarchy
         std::string hierarchy_;
+        /// longest ttl of metrics involved
+        uint64_t max_observed_ttl_;
 
         //internal functions
         virtual void loadFromSerializedObject (const cxxtools::SerializationInfo &si);
@@ -191,7 +208,7 @@ class Rule : public InterfaceRule {
         // ctors, dtors, =
         Rule (const std::string name, const VectorStrings metrics, const VectorStrings assets,
                 const VectorStrings categories, const ResultsMap results) : name_(name), categories_(categories),
-                metrics_(metrics), results_(results), assets_(assets) { };
+                metrics_(metrics), results_(results), assets_(assets), max_observed_ttl_(MAX_OBSERVED_TTL_DEFAULT) { };
         Rule (const std::string json);
         virtual ~Rule () {};
         // getters/setters
@@ -223,6 +240,10 @@ class Rule : public InterfaceRule {
         std::string getHierarchy () const { return hierarchy_; };
         /// set rule hierarchy location
         void setHierarchy (const std::string hierarchy) { hierarchy_ = hierarchy; };
+        /// update ttl if lower
+        void updateMaxObservedTtl (const uint64_t &ttl) { if (max_observed_ttl_ < ttl) max_observed_ttl_ = ttl; }
+        /// get max observed TTL
+        uint64_t getMaxObservedTtl () { return max_observed_ttl_; }
         // handling
         /// checks if rule has the same name as this rule
         bool hasSameNameAs (const std::unique_ptr<Rule> &rule) const { return hasSameNameAs (rule->name_); };
@@ -248,7 +269,7 @@ class GenericRule final : public Rule {
     private:
          // evaluation on general rules is not allowed
         VectorStrings evaluate (const VectorStrings &metrics);
-        VectorVectorStrings evaluate (const MapStrings &active_metrics, const SetStrings &inactive_metrics);
+        VectorVectorStrings evaluate (const MapMetrics &active_metrics, const SetStrings &inactive_metrics);
     public:
         std::string whoami () const { return rule_type_; };
         GenericRule (const std::string name, const VectorStrings metrics, const VectorStrings assets,
