@@ -633,6 +633,8 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
             if (rule_results.size () != 0) {
                 for (auto &one_rule_result : rule_results) {
                     Alert alert (rule.getName (), one_rule_result.back (), "ACTIVE");
+                    alert.setMtime (zclock_mono () / 1000);
+                    alert.setCtime (zclock_mono () / 1000);
                     alert.setTtl (rule.getMaxObservedTtl () * 3);
                     one_rule_result.pop_back ();
                     alert.setOutcomes (one_rule_result);
@@ -646,6 +648,8 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
                 if (rule.getAssets ().size () == 0) {
                     log_debug ("Resolved alarm (no data) for no assets, probably pattern rule");
                     Alert alert (rule.getName (), "*", "OUTAGED");
+                    alert.setMtime (zclock_mono () / 1000);
+                    alert.setCtime (zclock_mono () / 1000);
                     alert.setTtl (rule.getMaxObservedTtl () * 3);
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
@@ -653,6 +657,8 @@ void AlertTrigger::evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics)
                 for (std::string &asset : rule.getAssets ()) {
                     log_debug ("Resolved alarm (no data) for asset %s", asset.c_str ());
                     Alert alert (rule.getName (), asset, "OUTAGED");
+                    alert.setMtime (zclock_mono () / 1000);
+                    alert.setCtime (zclock_mono () / 1000);
                     alert.setTtl (rule.getMaxObservedTtl () * 3);
                     zmsg_t *msg = alert.TriggeredToFtyProto ();
                     mlm_client_send (client_, alert.id ().c_str (), &msg);
