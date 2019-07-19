@@ -68,6 +68,8 @@ zmsg_t *AlertConfig::sendRule (const std::shared_ptr<Rule> rule, const std::stri
             zstr_free (&corr_id);
             return message;
         } else {
+            if (message != nullptr)
+                zmsg_destroy (&message);
             return nullptr;
         }
     }
@@ -307,7 +309,7 @@ void AlertConfig::passRule (std::string corr_id, zmsg_t *msg, std::string sender
         std::shared_ptr<Rule> rule_ptr = RuleFactory::createFromJson (json);
         if (rule_ptr->getSource ().empty ())
             rule_ptr->setSource (sender);
-        zmsg_t *message = AlertConfig::sendRule (rule_ptr, old_name);
+        zmsg_t *message = sendRule (rule_ptr, old_name);
         if (message != nullptr) {
             // pass content of message to reply
             zmsg_addstr (reply, corr_id.c_str ());
@@ -316,6 +318,7 @@ void AlertConfig::passRule (std::string corr_id, zmsg_t *msg, std::string sender
                 zmsg_addstr (reply, str);
                 zstr_free (&str);
             }
+            zmsg_destroy (&message);
         } else {
             throw std::logic_error ("no response");
         }

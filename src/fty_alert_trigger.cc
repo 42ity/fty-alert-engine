@@ -143,7 +143,6 @@ int AlertTrigger::handlePipeMessages (zsock_t *pipe) {
     log_debug ("handling pipe message");
     zmsg_t *msg = zmsg_recv (pipe);
     char *cmd = zmsg_popstr (msg);
-    log_debug ("Command : %s", cmd);
     if (streq (cmd, "$TERM")) {
         log_debug ("$TERM received");
         zstr_free (&cmd);
@@ -2152,7 +2151,6 @@ fty_alert_trigger_test (bool verbose)
                 responses.insert ("ack");
                 zstr_free (&corr_id);
                 zstr_free (&command);
-                zmsg_destroy (&message);
             } else if (std::string (LIST_RULE_MB) == mlm_client_subject (client_mailbox)) {
                 char *corr_id = zmsg_popstr (message);
                 assert (streq (corr_id, "fty_alert_trigger_mailbox_test"));
@@ -2167,6 +2165,7 @@ fty_alert_trigger_test (bool verbose)
                 zstr_free (&command);
                 responses.insert ("list rule");
             }
+            zmsg_destroy (&message);
         } else if (which != nullptr) {
             assert (false); // unexpected message
         } else {
