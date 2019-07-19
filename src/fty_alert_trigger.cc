@@ -546,6 +546,7 @@ void AlertTrigger::updateThresholds (std::string corr_id, zmsg_t *msg) {
     try {
         auto rule = known_rules_.getElementForManipulation (rule_name);
         rule->setGlobalVariableValue (threshold_name, threshold_value);
+        //onRuleUpdateCallback (rule); // not necessary to pass this to alert-list
         zmsg_addstr (reply, corr_id.c_str ());
         zmsg_addstr (reply, "OK");
     } catch (element_not_found &error) {
@@ -590,6 +591,7 @@ void AlertTrigger::updateActions (std::string corr_id, zmsg_t *msg) {
             zstr_free (&param);
             param = zmsg_popstr (msg);
         }
+        onRuleUpdateCallback (rule);
         zmsg_addstr (reply, corr_id.c_str ());
         zmsg_addstr (reply, "OK");
     } catch (std::out_of_range &oor) {
@@ -2142,21 +2144,39 @@ fty_alert_trigger_test (bool verbose)
         void *which = zpoller_wait (poller, 10000);
         if (which == mlm_client_msgpipe (client_mailbox)) {
             message = mlm_client_recv (client_mailbox);
-            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
-            char *corr_id = zmsg_popstr (message);
-            assert (streq (corr_id, "uuidtest"));
-            char *command = zmsg_popstr (message);
-            assert (streq (command, "OK"));
-            zstr_free (&corr_id);
-            zstr_free (&command);
-            zmsg_destroy (&message);
-            break;
+            if (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox)) {
+                char *corr_id = zmsg_popstr (message);
+                assert (streq (corr_id, "uuidtest"));
+                char *command = zmsg_popstr (message);
+                assert (streq (command, "OK"));
+                responses.insert ("ack");
+                zstr_free (&corr_id);
+                zstr_free (&command);
+                zmsg_destroy (&message);
+            } else if (std::string (LIST_RULE_MB) == mlm_client_subject (client_mailbox)) {
+                char *corr_id = zmsg_popstr (message);
+                assert (streq (corr_id, "fty_alert_trigger_mailbox_test"));
+                char *command = zmsg_popstr (message);
+                assert (streq (command, "UPDATE"));
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
+                zmsg_addstr (reply, "OK");
+                mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
+                zstr_free (&corr_id);
+                zstr_free (&command);
+                responses.insert ("list rule");
+            }
         } else if (which != nullptr) {
             assert (false); // unexpected message
         } else {
             ++counter;
         }
+        if (responses.size () == 2)
+            break;
     }
+    assert (responses.size () == 2);
+    responses.clear ();
     assert (counter < 20);
     // send mailbox get
     message = zmsg_new ();
