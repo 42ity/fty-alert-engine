@@ -87,6 +87,7 @@ void AlertTrigger::loadFromPersistence () {
     }
     log_info ("Loaded %d rules from persistence", cnt);
 }
+
 void AlertTrigger::onRuleCreateCallback (RuleSPtr ruleptr) {
     log_debug ("callback create for rule %s", ruleptr->getName ().c_str ());
     zmsg_t *msg = zmsg_new ();
@@ -142,8 +143,6 @@ int AlertTrigger::handlePipeMessages (zsock_t *pipe) {
     log_debug ("handling pipe message");
     zmsg_t *msg = zmsg_recv (pipe);
     char *cmd = zmsg_popstr (msg);
-    log_debug ("Command : %s", cmd);
-
     if (streq (cmd, "$TERM")) {
         log_debug ("$TERM received");
         zstr_free (&cmd);
@@ -226,8 +225,14 @@ int AlertTrigger::handlePipeMessages (zsock_t *pipe) {
     return 0;
 }
 
-void AlertTrigger::listRules (std::string corr_id, std::string type, std::string ruleclass) {
-    log_debug ("listing rules of type '%s' and class '%s'", type.c_str (), ruleclass.c_str ());
+void AlertTrigger::listRules (std::string corr_id, zmsg_t *msg) {
+    log_debug ("listing rules");
+    char *param1 = zmsg_popstr (msg);
+    std::string type (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
+    char *param2 = zmsg_popstr (msg);
+    std::string ruleclass (param2 == nullptr ? "" : param2);
+    zstr_free (&param2);
     std::function<bool (const std::string & s) > filter_class, filter_type;
     if (type == "all") {
         filter_type = [](const std::string & s) {
@@ -279,8 +284,11 @@ void AlertTrigger::listRules (std::string corr_id, std::string type, std::string
         mlm_client_tracker (client_), 1000, &reply);
 }
 
-void AlertTrigger::getRule (std::string corr_id, std::string name) {
-    log_debug ("getting rule named '%s'", name.c_str ());
+void AlertTrigger::getRule (std::string corr_id, zmsg_t *msg) {
+    log_debug ("getting rule");
+    char *param1 = zmsg_popstr (msg);
+    std::string name (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
     zmsg_t *reply = zmsg_new ();
     try {
         std::lock_guard<std::mutex> lock (known_rules_mutex_);
@@ -297,7 +305,21 @@ void AlertTrigger::getRule (std::string corr_id, std::string name) {
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
 
-void AlertTrigger::addRule (std::string corr_id, std::string json) {
+void AlertTrigger::addOrUpdateRule (std::string corr_id, zmsg_t *msg) {
+    char *param1 = zmsg_popstr (msg);
+    std::string json (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
+    char *param2 = zmsg_popstr (msg);
+    std::string old_name (param2 == nullptr ? "" : param2);
+    zstr_free (&param2);
+    if (old_name.empty ()) {
+        addRule (corr_id, json);
+    } else {
+        updateRule (corr_id, json, old_name);
+    }
+}
+
+void AlertTrigger::addRule (std::string &corr_id, std::string &json) {
     log_debug ("adding rule '%s'", json.c_str ());
     zmsg_t *reply = zmsg_new ();
     try {
@@ -335,15 +357,15 @@ void AlertTrigger::addRule (std::string corr_id, std::string json) {
         zmsg_addstr (reply, "Internal error");
     } catch (...) {
         log_debug ("Unidentified rule exception caught!");
-        zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "Internal error");
     }
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
 
 // TODO: FIXME: should this trigger
-void AlertTrigger::updateRule (std::string corr_id, std::string json, std::string old_name) {
+void AlertTrigger::updateRule (std::string &corr_id, std::string &json, std::string &old_name) {
     log_debug ("updating rule '%s' with json '%s'", old_name.c_str (), json.c_str ());
     zmsg_t *reply = zmsg_new ();
     try {
@@ -380,15 +402,18 @@ void AlertTrigger::updateRule (std::string corr_id, std::string json, std::strin
         zmsg_addstr (reply, "Internal error");
     } catch (...) {
         log_debug ("Unidentified rule exception caught!");
-        zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "Internal error");
     }
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
 
-void AlertTrigger::touchRule (std::string corr_id, std::string name) {
-    log_debug ("touching rule '%s'", name.c_str ());
+void AlertTrigger::touchRule (std::string corr_id, zmsg_t *msg) {
+    log_debug ("touching rule");
+    char *param1 = zmsg_popstr (msg);
+    std::string name (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
     zmsg_t *reply = zmsg_new ();
     std::map<std::string, Rule::Metric> metric_map;
     std::unordered_set<std::string> unavailables;
@@ -452,7 +477,23 @@ void AlertTrigger::touchRule (std::string corr_id, std::string name) {
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
 
-void AlertTrigger::deleteRules (std::string corr_id, RuleMatcher *matcher) {
+void AlertTrigger::deleteRule (std::string corr_id, zmsg_t *msg) {
+    char *param1 = zmsg_popstr (msg);
+    std::string param (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
+    RuleNameMatcher matcher (param);
+    deleteRules (corr_id, &matcher);
+}
+
+void AlertTrigger::deleteRulesForAsset (std::string corr_id, zmsg_t *msg) {
+    char *param1 = zmsg_popstr (msg);
+    std::string param (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
+    RuleAssetMatcher matcher (param);
+    deleteRules (corr_id, &matcher);
+}
+
+void AlertTrigger::deleteRules (std::string &corr_id, RuleMatcher *matcher) {
     log_debug ("deleting rules");
     assert (matcher != nullptr);
     std::vector< std::shared_ptr<Rule> > deleted_rules;
@@ -490,75 +531,151 @@ void AlertTrigger::deleteRules (std::string corr_id, RuleMatcher *matcher) {
     mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
 }
 
+void AlertTrigger::updateThresholds (std::string corr_id, zmsg_t *msg) {
+    char *param1 = zmsg_popstr (msg);
+    std::string rule_name (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
+    char *param2 = zmsg_popstr (msg);
+    std::string threshold_name (param2 == nullptr ? "" : param2);
+    zstr_free (&param2);
+    char *param3 = zmsg_popstr (msg);
+    std::string threshold_value (param3 == nullptr ? "" : param3);
+    zstr_free (&param3);
+    zmsg_t *reply = zmsg_new ();
+    try {
+        auto rule = known_rules_.getElementForManipulation (rule_name);
+        rule->setGlobalVariableValue (threshold_name, threshold_value);
+        //onRuleUpdateCallback (rule); // not necessary to pass this to alert-list
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "OK");
+    } catch (element_not_found &error) {
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "NOT_FOUND");
+    } catch (...) {
+        log_debug ("Unidentified rule exception caught!");
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "Internal error");
+    }
+    mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
+}
+
+void AlertTrigger::updateActions (std::string corr_id, zmsg_t *msg) {
+    char *param1 = zmsg_popstr (msg);
+    std::string rule_name (param1 == nullptr ? "" : param1);
+    zstr_free (&param1);
+    char *param2 = zmsg_popstr (msg);
+    std::string outcome_name (param2 == nullptr ? "" : param2);
+    zstr_free (&param2);
+    zmsg_t *reply = zmsg_new ();
+    try {
+        auto rule = known_rules_.getElementForManipulation (rule_name);
+        auto &outcome = rule->getResult (outcome_name);
+        outcome.actions_.clear ();
+        char *param = zmsg_popstr (msg);
+        while (param != nullptr) {
+            if (streq (param, "EMAIL") || streq (param, "SMS")) {
+                outcome.actions_.push_back (param);
+            } else if (streq (param, "GPO_INTERACTION")) {
+                char *asset = zmsg_popstr (msg);
+                char *mode = zmsg_popstr (msg);
+                std::string gpo_interaction = std::string (param) + ":" + asset + ":" + mode;
+                outcome.actions_.push_back (gpo_interaction);
+                zstr_free (&asset);
+                zstr_free (&mode);
+            } else {
+                log_error ("Received invalid argument '%s' to update actions", param);
+            }
+            zstr_free (&param);
+            param = zmsg_popstr (msg);
+        }
+        onRuleUpdateCallback (rule);
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "OK");
+    } catch (std::out_of_range &oor) {
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "INVALID_IDENTIFIER");
+    } catch (element_not_found &error) {
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "NOT_FOUND");
+    } catch (...) {
+        log_debug ("Unidentified rule exception caught!");
+        zmsg_addstr (reply, corr_id.c_str ());
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "Internal error");
+    }
+    mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000, &reply);
+}
+
 /// handle mailbox messages
 void AlertTrigger::handleMailboxMessages () {
     log_debug ("handling mailbox message");
+    bool send_error = false;
+    char *corr_id = nullptr;
+    char *command = nullptr;
     zmsg_t *zmessage = mlm_client_recv (client_);
     if (zmessage == NULL) {
         return;
     }
     if (streq (mlm_client_subject (client_), RULES_SUBJECT)) {
-        char *corr_id = zmsg_popstr (zmessage);
-        char *command = zmsg_popstr (zmessage);
-        char *param = zmsg_popstr (zmessage);
-        log_debug ("Incoming message: subject: '%s', command: '%s', param: '%s'", RULES_SUBJECT, command, param);
-        if (command != nullptr && param != nullptr) {
+        corr_id = zmsg_popstr (zmessage);
+        command = zmsg_popstr (zmessage);
+        log_debug ("Incoming message: subject: '%s', command: '%s'", RULES_SUBJECT, command);
+        if (command != nullptr && corr_id != nullptr) {
             if (streq (command, "LIST")) {
-                char *rule_class = zmsg_popstr (zmessage);
-                listRules (corr_id, param, rule_class == nullptr ? "" : rule_class);
-                zstr_free (&rule_class);
+                listRules (corr_id, zmessage);
             }
             else if (streq (command, "GET")) {
-                getRule (corr_id, param);
+                getRule (corr_id, zmessage);
             }
             else if (streq (command, "ADD")) {
-                if ( zmsg_size (zmessage) == 0 ) {
-                    // ADD/json
-                    addRule (corr_id, param);
-                }
-                else {
-                    // ADD/json/old_name
-                    char *param1 = zmsg_popstr (zmessage);
-                    updateRule (corr_id, param, param1);
-                    if (param1)
-                        zstr_free (&param1);
-                }
+                addOrUpdateRule (corr_id, zmessage);
             }
             else if (streq (command, "TOUCH")) {
-                touchRule (corr_id, param);
+                touchRule (corr_id, zmessage);
             }
             else if (streq (command, "DELETE")) {
-                RuleNameMatcher matcher (param);
-                deleteRules (corr_id, &matcher);
+                deleteRule (corr_id, zmessage);
             }
             else if (streq (command, "DELETE_ELEMENT")) {
-                RuleAssetMatcher matcher (param);
-                deleteRules (corr_id, &matcher);
+                deleteRulesForAsset (corr_id, zmessage);
+            }
+            else if (streq (command, "UPDATE_THRESHOLDS")) {
+                updateThresholds (corr_id, zmessage);
+            }
+            else if (streq (command, "UPDATE_ACTIONS")) {
+                updateActions (corr_id, zmessage);
             }
             else {
                 log_error ("Received unexpected message to MAILBOX with command '%s'", command);
+                send_error = true;
             }
-        }
-        zstr_free (&corr_id);
-        zstr_free (&command);
-        zstr_free (&param);
-    } else {
-        char *corr_id = zmsg_popstr (zmessage);
-        char *command = zmsg_popstr (zmessage);
-        if (command != nullptr) {
-            log_error ("Unexpected mailbox message received with command : %s", command);
         } else {
-            log_error ("Unexpected mailbox message received without any commands");
+            send_error = true;
         }
+    } else {
+        send_error = true;
+    }
+    if (send_error) {
+        if (corr_id == nullptr)
+            corr_id = zmsg_popstr (zmessage);
+        if (command == nullptr)
+            command = zmsg_popstr (zmessage);
+        log_error ("Unexpected mailbox message received with command : %s", command);
         zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, corr_id);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "UNKNOWN_MESSAGE");
         mlm_client_sendto (client_, mlm_client_sender (client_), RULES_SUBJECT, mlm_client_tracker (client_), 1000,
                 &reply);
-        zstr_free (&corr_id);
-        zstr_free (&command);
     }
+    if (corr_id != nullptr)
+        zstr_free (&corr_id);
+    if (command != nullptr)
+        zstr_free (&command);
     if (zmessage) {
         zmsg_destroy (&zmessage);
     }
@@ -1867,7 +1984,238 @@ fty_alert_trigger_test (bool verbose)
     }
     assert (counter < 20);
 
-    log_debug ("Test 14 no messages in queue");
+    log_debug ("Test 14 update thresholds");
+    // send mailbox get
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "threshold2@asset2");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    std::shared_ptr<Rule> original_rule = nullptr;
+    counter = 0;
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *param1 = zmsg_popstr (message);
+            assert (param1 != nullptr);
+            original_rule = RuleFactory::createFromJson (param1);
+            zstr_free (&param1);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        } else {
+            ++counter;
+        }
+    }
+    assert (counter < 20);
+    // send mailbox update thresholds
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "UPDATE_THRESHOLDS");
+    zmsg_addstr (message, "threshold2@asset2");
+    zmsg_addstr (message, "high_warning");
+    zmsg_addstr (message, "40");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        } else {
+            ++counter;
+        }
+    }
+    assert (counter < 20);
+    // send mailbox get
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "threshold2@asset2");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *param1 = zmsg_popstr (message);
+            assert (param1 != nullptr);
+            std::shared_ptr<Rule> new_rule = RuleFactory::createFromJson (param1);
+            assert (*new_rule != *original_rule);
+            std::string new_rule_key = "high_warning";
+            std::string new_rule_value = "40";
+            original_rule->setGlobalVariableValue (new_rule_key, new_rule_value);
+            assert (*new_rule == *original_rule);
+            zstr_free (&param1);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        } else {
+            ++counter;
+        }
+    }
+    assert (counter < 20);
+
+    log_debug ("Test 15 update actions");
+    // send mailbox get
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "threshold2@asset2");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    original_rule = nullptr;
+    counter = 0;
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *param1 = zmsg_popstr (message);
+            assert (param1 != nullptr);
+            original_rule = RuleFactory::createFromJson (param1);
+            zstr_free (&param1);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        } else {
+            ++counter;
+        }
+    }
+    assert (counter < 20);
+    // send mailbox update thresholds
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "UPDATE_ACTIONS");
+    zmsg_addstr (message, "threshold2@asset2");
+    zmsg_addstr (message, "ok");
+    zmsg_addstr (message, "EMAIL");
+    zmsg_addstr (message, "SMS");
+    zmsg_addstr (message, "GPO_INTERACTION");
+    zmsg_addstr (message, "noasset");
+    zmsg_addstr (message, "nomode");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            if (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox)) {
+                char *corr_id = zmsg_popstr (message);
+                assert (streq (corr_id, "uuidtest"));
+                char *command = zmsg_popstr (message);
+                assert (streq (command, "OK"));
+                responses.insert ("ack");
+                zstr_free (&corr_id);
+                zstr_free (&command);
+            } else if (std::string (LIST_RULE_MB) == mlm_client_subject (client_mailbox)) {
+                char *corr_id = zmsg_popstr (message);
+                assert (streq (corr_id, "fty_alert_trigger_mailbox_test"));
+                char *command = zmsg_popstr (message);
+                assert (streq (command, "UPDATE"));
+                zmsg_t *reply = zmsg_new ();
+                zmsg_addstr (reply, "uuidtest"); // uuid, no need to generate it
+                zmsg_addstr (reply, "OK");
+                mlm_client_sendto (client_mailbox, mlm_client_sender (client_mailbox), LIST_RULE_MB,
+                        mlm_client_tracker (client_mailbox), 1000, &reply);
+                zstr_free (&corr_id);
+                zstr_free (&command);
+                responses.insert ("list rule");
+            }
+            zmsg_destroy (&message);
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        } else {
+            ++counter;
+        }
+        if (responses.size () == 2)
+            break;
+    }
+    assert (responses.size () == 2);
+    responses.clear ();
+    assert (counter < 20);
+    // send mailbox get
+    message = zmsg_new ();
+    zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
+    zmsg_addstr (message, "GET");
+    zmsg_addstr (message, "threshold2@asset2");
+    mlm_client_sendto (client_mailbox, "fty_alert_trigger_mailbox_test", RULES_SUBJECT,
+        mlm_client_tracker (client_mailbox), 1000, &message);
+    // expect response
+    counter = 0;
+    while (counter < 20) {
+        void *which = zpoller_wait (poller, 10000);
+        if (which == mlm_client_msgpipe (client_mailbox)) {
+            message = mlm_client_recv (client_mailbox);
+            assert (std::string (RULES_SUBJECT) == mlm_client_subject (client_mailbox));
+            char *corr_id = zmsg_popstr (message);
+            assert (streq (corr_id, "uuidtest"));
+            char *command = zmsg_popstr (message);
+            assert (streq (command, "OK"));
+            char *param1 = zmsg_popstr (message);
+            assert (param1 != nullptr);
+            std::shared_ptr<Rule> new_rule = RuleFactory::createFromJson (param1);
+            assert (*new_rule != *original_rule);
+            std::string original_rule_key = "ok";
+            original_rule->getResult (original_rule_key).actions_ = {"EMAIL", "SMS", "GPO_INTERACTION:noasset:nomode"};
+            assert (*new_rule == *original_rule);
+            zstr_free (&param1);
+            zstr_free (&corr_id);
+            zstr_free (&command);
+            zmsg_destroy (&message);
+            break;
+        } else if (which != nullptr) {
+            assert (false); // unexpected message
+        } else {
+            ++counter;
+        }
+    }
+    assert (counter < 20);
+
+    log_debug ("Test 16 no messages in queue");
     // send licensing metric
     // TODO: FIXME: add this as there was no support in previous version
     while (counter < 20) {

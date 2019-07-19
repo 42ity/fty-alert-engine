@@ -472,7 +472,6 @@ extended_rules_test (bool verbose)
     assert (tr1_eval2_results == tr1_eval2_expected);
 
     // create threshold rule for multiple metrics with lua
-log_debug ("HERE: %d", __LINE__);
     ThresholdRule tr2 ("threshold2@asset2",
         {"threshold2.metric1", "threshold2.metric2"},
         {"asset2"},
@@ -495,7 +494,6 @@ log_debug ("HERE: %d", __LINE__);
     assert (tr2.getMaxObservedTtl () == 2000);
 
     // create flexible rule with lua
-log_debug ("HERE: %d", __LINE__);
     FlexibleRule fr1 ("flexible1@asset3",
         {"flexible1.metric1"},
         {"asset3"},

@@ -59,17 +59,23 @@ class AlertConfig {
         int64_t timeout_internal_;
         std::string name_;
         // supportive functions
-        void listTemplates (std::string corr_id, std::string type);
+        void listTemplates (std::string corr_id, zmsg_t *msg);
+        void passRule (std::string corr_id, zmsg_t *msg, std::string sender);
+        void addTemplate (std::string corr_id, zmsg_t *msg, std::string sender);
+        void getTemplate (std::string corr_id, zmsg_t *msg);
         std::vector<std::shared_ptr<FullAsset>> getMatchingAssets (std::pair<const std::string,
                 std::shared_ptr<Rule>> &rule_template);
         bool ruleMatchAsset (const std::pair<std::string, std::shared_ptr<Rule>> &rule_template,
                 std::shared_ptr<FullAsset> asset);
-        std::string convertTypeSubType2Name (const char *type, const char *subtype);
+        std::string convertTypeSubType2Name (const std::string &type, const std::string &subtype);
         std::map<std::string, std::shared_ptr<Rule>> getAllTemplatesMap ();
+        void sendRuleForAsset (std::shared_ptr<FullAsset> assetptr, std::shared_ptr<Rule> rule_ptr,
+                std::string rule_name);
         void onAssetCreateCallback (std::shared_ptr<FullAsset> assetptr);
         // // updates are not tracked for alert rule purposes
         // void onAssetUpdateCallback (std::shared_ptr<FullAsset> assetptr);
         void onAssetDeleteCallback (std::shared_ptr<FullAsset> assetptr);
+        zmsg_t *sendRule (const std::shared_ptr<Rule> rule, const std::string &rule_old_name);
         void loadAndSendRule (const std::string rulename);
     protected:
         // internal functions
