@@ -690,6 +690,7 @@ fty_alert_config_test (bool verbose)
     // clean up RW directory
     system ("rm -rf " SELFTEST_DIR_RW "/*");
     system ("cp -r " SELFTEST_DIR_RO "/templates " SELFTEST_DIR_RW);
+    system ("chmod -R ug+w " SELFTEST_DIR_RW "/templates");
     sleep (1);
     zactor_t *server = zactor_new (mlm_server, (void *) "Malamute");
     zstr_sendx (server, "BIND", "inproc://@/malamute", NULL);
