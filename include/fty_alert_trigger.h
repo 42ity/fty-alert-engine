@@ -87,12 +87,17 @@ class AlertTrigger {
         std::string alert_list_mb_name_;
         // supportive functions
         void evaluateAlarmsForTriggers (fty::shm::shmMetrics &shm_metrics);
-        void deleteRules (std::string corr_id, RuleMatcher *matcher);
-        void touchRule (std::string corr_id, std::string name);
-        void updateRule (std::string corr_id, std::string json, std::string old_name);
-        void addRule (std::string corr_id, std::string json);
-        void getRule (std::string corr_id, std::string name);
-        void listRules (std::string corr_id, std::string type, std::string ruleclass);
+        void updateThresholds (std::string corr_id, zmsg_t *msg);
+        void updateActions (std::string corr_id, zmsg_t *msg);
+        void deleteRule (std::string corr_id, zmsg_t *msg);
+        void deleteRulesForAsset (std::string corr_id, zmsg_t *msg);
+        void deleteRules (std::string &corr_id, RuleMatcher *matcher);
+        void touchRule (std::string corr_id, zmsg_t *msg);
+        void addOrUpdateRule (std::string corr_id, zmsg_t *msg);
+        void updateRule (std::string &corr_id, std::string &json, std::string &old_name);
+        void addRule (std::string &corr_id, std::string &json);
+        void getRule (std::string corr_id, zmsg_t *msg);
+        void listRules (std::string corr_id, zmsg_t *msg);
         void setTimeout (int64_t timeout) { timeout_ = timeout; }
         void loadFromPersistence ();
         // callbacks for rule database

@@ -71,7 +71,7 @@ class GenericDatabase {
         GenericDatabase & operator= (GenericDatabase &&ad) = delete;
         // data manipulation
         /// getter for possible updates, user needs to check unique () to ensure at least basic thread safety
-        ElementT getElementForManipulation (const KeyT key) {
+        ElementT &getElementForManipulation (const KeyT key) {
             iterator it = getElementIt (key);
             if (it != database_.end ()) {
                 return getElementIt (key)->second;

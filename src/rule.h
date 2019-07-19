@@ -226,16 +226,22 @@ class Rule : public InterfaceRule {
         void setRuleClass (const std::string rule_class) { class_ = rule_class; }
         /// get rule element (asset)
         VectorStrings getAssets (void) const { return assets_; }
+        /// get rule element (asset)
+        void setAssets (VectorStrings assets) { assets_ = assets; }
         /// returns a list of metrics in order in which evaluation expects them to be
         VectorStrings getTargetMetrics (void) const { return metrics_; };
         /// returns a list of categories that apply for the rule
         VectorStrings getCategories (void) const { return categories_; };
         /// returns a list of results that rule can publish
         ResultsMap getResults (void) const { return results_; };
+        /// returns a list of results that rule can publish
+        Outcome &getResult (std::string &key) { return results_.at (key); };
         /// get global variable list
-        void setGlobalVariables (const VariableMap vars);
-        /// set global varible list
         VariableMap getGlobalVariables (void) const { return variables_; }
+        /// set global varible list
+        void setGlobalVariables (const VariableMap vars);
+        /// set global varible value
+        void setGlobalVariableValue (std::string &key, std::string &value) { variables_[key] = value; };
         /// get rule hierarchy location
         std::string getHierarchy () const { return hierarchy_; };
         /// set rule hierarchy location
@@ -243,7 +249,11 @@ class Rule : public InterfaceRule {
         /// update ttl if lower
         void updateMaxObservedTtl (const uint64_t &ttl) { if (max_observed_ttl_ < ttl) max_observed_ttl_ = ttl; }
         /// get max observed TTL
-        uint64_t getMaxObservedTtl () { return max_observed_ttl_; }
+        uint64_t getMaxObservedTtl (void) const { return max_observed_ttl_; }
+        /// get source
+        std::string getSource (void) const { return source_; }
+        /// get source
+        void setSource (std::string source) { source_ = source; }
         // handling
         /// checks if rule has the same name as this rule
         bool hasSameNameAs (const std::unique_ptr<Rule> &rule) const { return hasSameNameAs (rule->name_); };
@@ -261,6 +271,7 @@ class Rule : public InterfaceRule {
         int remove (const std::string &path);
         /// full comparator
         bool operator == (const Rule &rule) const;
+        bool operator != (const Rule &rule) const { return !(*this == rule); };
         // friends
         friend void operator>>= (const cxxtools::SerializationInfo& si, Rule &rule); // support cxxtools deserialization
 };
