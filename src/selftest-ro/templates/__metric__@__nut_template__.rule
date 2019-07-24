@@ -1,0 +1,51 @@
+{   "threshold"     : {
+    "name"          : "__name__",
+    "source"        : "NUT",
+    "class"         : "Device internal",
+    "hierarchy"     : "internal.device",
+    "categories"    : [ "CAT_ALL", "CAT_OTHER" ],
+    "description"   : "__description__",
+    "metrics"       : "__metrics__",
+    "assets"        : "__assets__",
+    "values_unit"   : "__values_unit__",
+    "values"        : [
+        { "low_warning"     : "__low_warning__" },
+        { "low_critical"    : "__low_critical__" },
+        { "high_warning"    : "__high_warning__" },
+        { "high_critical"   : "__high_critical__" }
+    ],
+    "results"       : [
+       { "low_critical"     : {
+           "action"         : [ { "action" : "EMAIL" }, { "action" : "SMS" } ],
+           "severity"       : "CRITICAL",
+           "description"    : { "key" : "TRANSLATE_LUA ({{alert_name}} is critically low for {{ename}}.)", "variables" : { "alert_name" : "__alert_name__", "ename" : { "value" : "__ename__", "assetLink" : "__name__" } } } } },
+       { "low_warning"      : {
+           "action"         : [ { "action" : "EMAIL" }, { "action": "SMS" } ],
+           "severity"       : "WARNING",
+           "description"    : { "key" : "TRANSLATE_LUA ({{alert_name}} is low for {{ename}}.)", "variables" : { "alert_name" : "__alert_name__", "ename" : { "value" : "__ename__", "assetLink" : "__name__" } } } } },
+       { "high_warning"     : {
+           "action"         : [ { "action": "EMAIL" }, { "action": "SMS" } ],
+           "severity"       : "WARNING",
+           "description"    : { "key" : "TRANSLATE_LUA ({{alert_name}} is high for {{ename}}.)", "variables" : { "alert_name" : "__alert_name__", "ename" : { "value" : "__ename__", "assetLink" : "__name__" } } } } },
+       { "high_critical"    : {
+           "action"         : [ { "action": "EMAIL" }, { "action": "SMS" } ],
+           "severity"       : "CRITICAL",
+           "description"    : { "key" : "TRANSLATE_LUA ({{alert_name}} is critically high for {{ename}}.)", "variables" : { "alert_name" : "__alert_name__", "ename" : { "value" : "__ename__", "assetLink" : "__name__" } } } } } ],
+    "evaluation"      : "   function main (v1)
+                                if (tonumber (low_critical) == nil or tonumber (low_warning) == nil or tonumber (high_warning) == nil or tonumber (high_critical) == nil) then
+                                    return 'LUA_ERROR';
+                                end;
+                                if tonumber (v1) <= tonumber (low_critical) then
+                                    return 'low_critical';
+                                elseif tonumber (v1) <= tonumber (low_warning) then
+                                    return 'low_warning';
+                                elseif tonumber (v1) >= tonumber (high_warning) then
+                                    return 'high_warning';
+                                elseif tonumber (v1) >= tonumber (high_critical) then
+                                    return 'high_critical';
+                                else
+                                    return 'ok';
+                                end;
+                            end"
+    }
+}

@@ -110,6 +110,7 @@ int main (int argc, char *argv [])
     zstr_sendx (agent_config, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (agent_config, "ALERT_TRIGGER_MB_NAME", TRIGGER_AGENT_NAME_MAILBOX, NULL); // trigger mailbox name
     zstr_sendx (agent_config, "SEND_RULE", "warranty.rule", NULL);
+    zstr_sendx (agent_config, "SEND_RULE", "outage.rule", NULL);
 
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license
