@@ -890,7 +890,7 @@ fty_alert_config_test (bool verbose)
         }
     }
     assert (counter < 20);
-    assert (rules_count == 30);
+    assert (rules_count == 31);
 
     log_debug ("Test 5: send asset room delete");
     // send asset - room n_a
