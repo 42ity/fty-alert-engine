@@ -1192,7 +1192,7 @@ fty_alert_config_test (bool verbose)
     message = zmsg_new ();
     zmsg_addstr (message, "uuidtest"); // uuid, no need to generate it
     zmsg_addstr (message, "GET_TEMPLATE");
-    zmsg_addstr (message, "load.input_1phase@__device_epdu__");
+    zmsg_addstr (message, "__metric__@__nut_template__");
     mlm_client_sendto (client_mailbox, "fty_alert_config_test", RULES_SUBJECT, mlm_client_tracker (client_mailbox),
         1000, &message);
     counter = 0;

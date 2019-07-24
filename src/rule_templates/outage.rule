@@ -1,0 +1,27 @@
+{
+    "pattern" : {
+        "name"                  :   "outage",
+        "metrics"               :   "^outage@.+",
+        "values"                :   [ ],
+        "categories"            :   [ "CAT_OTHER", "CAT_ALL" ],
+        "assets"                :   [ ],
+        "values_unit"           :   "",
+        "results"               :   [
+            { "ok" : { 
+                "action"            : [ ],
+                "severity"          : "OK",
+                "description"       : "{\"key\":\"TRANSLATE_LUA (No outage detected on device {{device}})\", \"variables\": {\"device\": \"__outcome_1\"}}",
+                "threshold_name"    : "TRANSLATE_LUA (Warranty OK)" } },
+            { "high_critical" : { 
+                "action"            : [ { "action": "EMAIL" } ],
+                "severity"          : "CRITICAL",
+                "description"       : "{\"key\" : \"TRANSLATE_LUA (Device {{device}} does not provide expected data. It may be offline or not correctly configured.Warranty expired)\", \"variables\": {\"device\": \"__outcome_1\"}}" } } ],
+        "outcome_item_count"    : "2",
+        "evaluation"            : " function main(match, value)
+                                        if( value == '1' ) then
+                                            return 'high_critical', match;
+                                        end;
+                                        return 'ok', match;
+                                    end"
+    }
+}
