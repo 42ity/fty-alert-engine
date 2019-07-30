@@ -38,7 +38,8 @@ RULE_TEMPLATES = \
 	src/rule_templates/smoke-detector.state-change@__device_sensorgpio__.rule \
 	src/rule_templates/pir-motion-detector.state-change@__device_sensorgpio__.rule \
 	src/rule_templates/warranty.rule \
-	src/rule_templates/internal-failure@__device_ups__.rule
+	src/rule_templates/internal-failure@__device_ups__.rule \
+	src/rule_templates/__metric__@__nut_template__.rule
 
 template_rule_DATA =	$(RULE_TEMPLATES)
 EXTRA_DIST +=		$(RULE_TEMPLATES)
