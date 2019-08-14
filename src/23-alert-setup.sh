@@ -24,7 +24,10 @@
 #  \author  Clement Perrette <ClementPerrette@Eaton.com>
 #
 
+# Note: For some reason (TODO?) we do not want to break OS startup if
+# the "ln" below fails for whatever reason, so explicitly "exit 0" and
+# use the ...||echo construct that is deemed always successful.
 ln  -sr /usr/share/fty-alert-engine/data/*.rule /var/lib/fty/fty-alert-engine/ \
-|| echo "WARNING : Some error happened during symlinkins, see above" >&2
+|| echo "WARNING : Some error happened during symlinking, see above" >&2
 
 exit 0
