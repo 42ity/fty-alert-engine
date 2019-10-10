@@ -1445,6 +1445,57 @@ AS_IF([test "x$enable_Werror" = "xyes" || test "x$enable_Werror" = "xauto"],
         ])])])
 ])
 
+# One of big missing features in gcc-4.8 was std::regex support fixed in 4.9
+# Testing code from https://stackoverflow.com/a/41186162/4715872
+# caveats apply (use of unguaranteed private macros)
+AC_ARG_ENABLE([gcc-std-regex],
+    AS_HELP_STRING([--enable-gcc-std-regex],
+        [Check for std::regex support if compiler is GCC, assuming it means satisfactory level of C++11 there [default=yes]]),
+    [enable_gcc_std_regex=$enableval],
+    [enable_gcc_std_regex=$defaultval])
+
+AM_CONDITIONAL([ENABLE_GCC_STD_REGEX], [test x$enable_gcc_std_regex != xno])
+
+AS_IF([test -n "$CXX"],[AS_IF([$CXX --version 2>&1 | grep 'Free Software Foundation' > /dev/null && test "x$GCC" = "xyes"],
+  [AS_IF([test "x$enable_gcc_std_regex" = "xyes" || test "x$enable_gcc_std_regex" = "xauto"],
+    [AC_MSG_CHECKING([for GNU C++11 support level expected by gcc-4.9 release or newer])
+     CXXFLAGS="$CXXFLAGS --std=c++11"
+     AC_LANG_PUSH([C++])
+     AC_TRY_RUN([/* Note: private macros in use, test can break over time */
+#include <regex>
+
+#if __cplusplus >= 201103L &&                             \
+    (!defined(__GLIBCXX__) || (__cplusplus >= 201402L) || \
+        (defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT) || \
+         defined(_GLIBCXX_REGEX_STATE_LIMIT)           || \
+             (defined(_GLIBCXX_RELEASE)                && \
+             _GLIBCXX_RELEASE > 4)))
+#define HAVE_WORKING_REGEX 1
+#else
+#define HAVE_WORKING_REGEX 0
+#endif
+
+#include <iostream>
+
+int main() {
+  const std::regex regex(".*");
+  const std::string string = "This should match!";
+  const auto result = std::regex_search(string, regex);
+#if HAVE_WORKING_REGEX
+  std::cerr << "<regex> works, look: " << std::boolalpha << result << std::endl;
+#else
+  std::cerr << "<regex> doesn't work, look: " << std::boolalpha << result << std::endl;
+#endif
+  return result ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+     ], AC_MSG_RESULT([ok]), AC_MSG_ERROR([test for std::regex failed]) )
+     AC_LANG_POP([C++])
+    ]
+  ,[AC_MSG_WARN([Not checking for GNU C++11 support level expected by gcc-4.9 release or newer, due to explicit configure option])
+    AC_MSG_WARN([YOU ARE AT RISK OF SOMETHING NOT WORKING WITH THIS BUILD OF THE CODEBASE])]
+  )]
+)])
+
 # Specify output files
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
