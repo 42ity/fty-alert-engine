@@ -48,6 +48,10 @@
     <version major = "1" minor = "0" patch = "0" />
     <abi current = "0" revision = "0" age = "0" />
 
+    <classfilename use-cxx = "true" use-cxx-gcc-4-9 = "true"
+        source-extension = "cc" header-extension = "h"
+        pretty-print = "no" keep-tree = "true" />
+
     <use project = "czmq"
         repository = "https://github.com/42ity/czmq.git"
         release = "v3.0.2-FTY-master"
