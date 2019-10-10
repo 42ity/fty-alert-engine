@@ -4,7 +4,7 @@
     Runs all selftests.
 
     -------------------------------------------------------------------------
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2015 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,17 +39,17 @@ typedef struct {
 
 static test_item_t
 all_tests [] = {
-// Tests for stable public classes:
-    { "utils", utils_test, true, true, NULL },
-    { "autoconfig", autoconfig_test, true, true, NULL },
-    { "fty_alert_engine_server", fty_alert_engine_server_test, true, true, NULL },
-    { "fty_alert_actions", fty_alert_actions_test, true, true, NULL },
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
 // Tests for stable/draft private classes:
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
     { "alertconfiguration", NULL, true, false, "alertconfiguration_test" },
     { "private_classes", NULL, false, false, "$ALL" }, // compat option for older projects
 #endif // FTY_ALERT_ENGINE_BUILD_DRAFT_API
+// Tests for stable public classes:
+    { "utils", utils_test, true, true, NULL },
+    { "autoconfig", autoconfig_test, true, true, NULL },
+    { "fty_alert_engine_server", fty_alert_engine_server_test, true, true, NULL },
+    { "fty_alert_actions", fty_alert_actions_test, true, true, NULL },
     {NULL, NULL, 0, 0, NULL}          //  Sentinel
 };
 
