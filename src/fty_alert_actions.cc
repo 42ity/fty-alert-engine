@@ -861,18 +861,24 @@ s_handle_stream_deliver_metric(fty_alert_actions_t *self, fty_proto_t *message)
     assert (message);
     if (streq (fty_proto_name(message), "rackcontroller-0") && streq (fty_proto_type(message), "notification_and_action.global"))
     {
-        int allowNotificationAndAction = std::stoi(fty_proto_value(message));
-
-        self->actionEnabled = (allowNotificationAndAction == 1);
-
-        if(self->actionEnabled)
+        try
         {
-            log_debug("Actions and notification enabled");
+            int allowNotificationAndAction = std::stoi(fty_proto_value(message));
+
+            self->actionEnabled = (allowNotificationAndAction == 1);
+
+            if(self->actionEnabled)
+            {
+                log_debug("Actions and notification enabled");
+            }
+            else
+            {
+                log_debug("Actions and notification disabled");
+            }
         }
-        else
-        {
-            log_debug("Actions and notification disabled");
-        }
+        catch(...)
+        {}  
+        
     }
     return;
 }
