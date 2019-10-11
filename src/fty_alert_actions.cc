@@ -858,7 +858,7 @@ static void
 s_handle_stream_deliver_metric(fty_alert_actions_t *self, fty_proto_t *message)
 {
     assert (self);
-    assert (msg_p);
+    assert (message);
     if (streq (fty_proto_name(message), "rackcontroller-0") && streq (fty_proto_type(message), "notification_and_action.global"))
     {
         int allowNotificationAndAction = std::stoi(fty_proto_value(message));
