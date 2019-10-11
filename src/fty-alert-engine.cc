@@ -115,6 +115,7 @@ int main (int argc, char** argv)
     zstr_sendx (ag_actions, "CONNECT", ENDPOINT, NULL);
     zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
+    zstr_sendx (ag_actions, "CONSUMER", FTY_PROTO_STREAM_LICENSING_ANNOUNCEMENTS, ".*", NULL);
     zstr_sendx (ag_actions, "ASKFORASSETS", NULL);
 
     //  Accept and print any message back from server
