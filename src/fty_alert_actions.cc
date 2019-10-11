@@ -174,6 +174,7 @@ struct _fty_alert_actions_t {
     bool            integration_test;
     uint64_t        notification_override;
     uint64_t        requestreply_timeout;
+    bool            actionEnabled;
 };
 
 typedef struct {
@@ -187,6 +188,7 @@ typedef struct {
 // Forward declaration for function sanity
 static void s_handle_stream_deliver_alert (fty_alert_actions_t *, fty_proto_t **, const char *);
 static void s_handle_stream_deliver_asset (fty_alert_actions_t *, fty_proto_t **, const char *);
+static void s_handle_stream_deliver_metric (fty_alert_actions_t *, fty_proto_t *);
 
 
 //  --------------------------------------------------------------------------
@@ -218,6 +220,7 @@ fty_alert_actions_new (void)
     self->notification_override = 0;
     self->name = NULL;
     self->requestreply_name = NULL;
+    self->actionEnabled = true;
     return self;
 }
 
@@ -348,6 +351,8 @@ delete_alert_cache_item(void *c)
 void
 send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_email)
 {
+    if(!self->actionEnabled) return;
+
     log_debug("sending SENDMAIL_ALERT/SENDSMS_ALERT for %s", fty_proto_name(alert_item->alert_msg));
     fty_proto_t *alert_dup = fty_proto_dup(alert_item->alert_msg);
     zmsg_t *email_msg = fty_proto_encode(&alert_dup);
@@ -405,6 +410,8 @@ send_email(fty_alert_actions_t *self, s_alert_cache *alert_item, char action_ema
 void
 send_gpo_action(fty_alert_actions_t *self, char *gpo_iname, char *gpo_state)
 {
+    if(!self->actionEnabled) return;
+
     log_debug("sending GPO_INTERACTION to %s", gpo_iname);
     zuuid_t *zuuid = zuuid_new ();
     const char *address = (self->integration_test) ? FTY_SENSOR_GPIO_AGENT_ADDRESS_TEST : FTY_SENSOR_GPIO_AGENT_ADDRESS;
@@ -845,6 +852,30 @@ s_handle_stream_deliver_asset(fty_alert_actions_t *self, fty_proto_t **asset_p, 
     }
 }
 
+//  --------------------------------------------------------------------------
+//  Handle incoming metric through stream
+static void
+s_handle_stream_deliver_metric(fty_alert_actions_t *self, fty_proto_t *message)
+{
+    assert (self);
+    assert (msg_p);
+    if (streq (fty_proto_name(message), "rackcontroller-0") && streq (fty_proto_type(message), "notification_and_action.global"))
+    {
+        int allowNotificationAndAction = std::stoi(fty_proto_value(message));
+
+        self->actionEnabled = (allowNotificationAndAction == 1);
+
+        if(self->actionEnabled)
+        {
+            log_debug("Actions and notification enabled");
+        }
+        else
+        {
+            log_debug("Actions and notification disabled");
+        }
+    }
+    return;
+}
 
 //  --------------------------------------------------------------------------
 //  Handle incoming alerts through stream
@@ -861,8 +892,12 @@ s_handle_stream_deliver(fty_alert_actions_t *self, zmsg_t** msg_p, const char *s
     else if (NULL != proto_msg && fty_proto_id (proto_msg) == FTY_PROTO_ASSET) {
         s_handle_stream_deliver_asset(self, &proto_msg, subject);
     }
+    else if (NULL != proto_msg && fty_proto_id (proto_msg) == FTY_PROTO_METRIC  ) {
+        s_handle_stream_deliver_metric(self, proto_msg);
+        fty_proto_destroy (&proto_msg);
+    }
     else {
-        log_warning (" Message not FTY_PROTO_ALERT nor FTY_PROTO_ASSET, ignoring.");
+        log_warning (" Message not FTY_PROTO_ALERT / FTY_PROTO_ASSET / FTY_PROTO_METRIC, ignoring.");
         fty_proto_destroy (&proto_msg);
     }
     return;
