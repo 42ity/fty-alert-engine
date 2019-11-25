@@ -53,15 +53,14 @@ BuildRequires:  xmlto
 BuildRequires:  gcc-c++
 BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
-BuildRequires:  czmq-devel
-BuildRequires:  malamute-devel
-BuildRequires:  log4cplus-devel
+BuildRequires:  czmq-devel >= 3.0.2
+BuildRequires:  malamute-devel >= 1.0.0
 BuildRequires:  fty-common-logging-devel
-BuildRequires:  fty-proto-devel
-BuildRequires:  lua-devel
+BuildRequires:  fty-proto-devel >= 1.0.0
+BuildRequires:  lua-devel >= 5.1.0
 BuildRequires:  cxxtools-devel
 BuildRequires:  fty-common-devel
-BuildRequires:  fty_shm-devel
+BuildRequires:  fty_shm-devel >= 1.0.0
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -88,15 +87,14 @@ Group:          System/Libraries
 Requires:       libfty_alert_engine0 = %{version}
 Requires:       libsodium-devel
 Requires:       zeromq-devel
-Requires:       czmq-devel
-Requires:       malamute-devel
-Requires:       log4cplus-devel
+Requires:       czmq-devel >= 3.0.2
+Requires:       malamute-devel >= 1.0.0
 Requires:       fty-common-logging-devel
-Requires:       fty-proto-devel
-Requires:       lua-devel
+Requires:       fty-proto-devel >= 1.0.0
+Requires:       lua-devel >= 5.1.0
 Requires:       cxxtools-devel
 Requires:       fty-common-devel
-Requires:       fty_shm-devel
+Requires:       fty_shm-devel >= 1.0.0
 
 %description devel
 42ity service evaluating rules written in lua and producing alerts development tools

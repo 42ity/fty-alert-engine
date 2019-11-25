@@ -32,12 +32,6 @@
 //  External API
 #include "../include/fty_alert_engine.h"
 
-//  Extra headers
-#include "normalrule.h"
-#include "thresholdrulesimple.h"
-#include "thresholdruledevice.h"
-#include "regexrule.h"
-
 //  Opaque class structures to allow forward references
 #ifndef METRICLIST_T_DEFINED
 typedef struct _metriclist_t metriclist_t;
@@ -71,6 +65,12 @@ typedef struct _ruleconfigurator_t ruleconfigurator_t;
 typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 #define TEMPLATERULECONFIGURATOR_T_DEFINED
 #endif
+
+//  Extra headers
+#include "normalrule.h"
+#include "thresholdrulesimple.h"
+#include "thresholdruledevice.h"
+#include "regexrule.h"
 
 //  Internal API
 

@@ -1,7 +1,6 @@
 # Travis CI script
 # This is a skeleton created by zproject.
 # You can add hand-written code here.
-### Note: Customized after generation; take care upon regens
 
 language:
 - cpp
@@ -12,17 +11,15 @@ cache:
 os:
 - linux
 
-# Note: some packages or dependencies may require extended permissions
-# which take longer to set up and boot. If your project does not build
-# in the default container with sudo==false, consider requiring a docker
-# image and/or a newer Ubuntu Trusty baseline VM, by uncommenting below.
-# See the current docs on http://travis-ci.org for up-to-date options.
-# NOTE: Here we need this for .travis.fix* script(s) below.
-#sudo: false
+#Sudo is need because we need to be able to install package for the depencies using apt-get
 sudo: required
 
-#dist:
-#- trusty
+# The default distro for env:/matrix:/* and unspecified-dist matrix:/* tests;
+# for the latter see also addons/apt/sources with the package repos in use.
+# See https://docs.travis-ci.com/user/reference/overview/ for up-to-date
+# allowed values of "dist" supported by the Travis CI service.
+dist:
+- xenial
 
 #services:
 #- docker
@@ -69,11 +66,11 @@ pkg_deps_prereqs_source: &pkg_deps_prereqs_source
     - libzmq3-dev
     - libczmq-dev
     - libmlm-dev
-    - log4cplus-dev
     - libfty-common-logging-dev
     - libfty-proto-dev
     - cxxtools-dev
     - libfty-common-dev
+    - libfty-shm-dev
 
 # NOTE: Our forks are checked out and built without pkg dependencies in use
 pkg_deps_prereqs: &pkg_deps_prereqs
@@ -87,23 +84,30 @@ pkg_deps_doctools: &pkg_deps_doctools
 pkg_deps_devtools: &pkg_deps_devtools
     - git
 
-pkg_src_zeromq_ubuntu12: &pkg_src_zeromq_ubuntu12
-- sourceline: 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_12.04/ ./'
-  key_url: 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_12.04/Release.key'
+# NOTE: Unlike earlier zproject versions, the pkg_src* objects below do not
+# start with a dash, due to peculiarities of YAML alias dereferencing in Travis
 
+# dist==trusty means ubuntu14
 pkg_src_zeromq_ubuntu14: &pkg_src_zeromq_ubuntu14
-- sourceline: 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_14.04/ ./'
+  sourceline: 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_14.04/ ./'
   key_url: 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_14.04/Release.key'
 
-# Note: refer to ubuntu14 if you use dist==Trusty
+# dist==xenial means ubuntu16
+pkg_src_zeromq_ubuntu16: &pkg_src_zeromq_ubuntu16
+  sourceline: 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_16.04/ ./'
+  key_url: 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_16.04/Release.key'
+
+pkg_deps_common: &pkg_deps_common
+- *pkg_deps_devtools
+- *pkg_deps_prereqs
+
 # Also note that as of early 2017, either dist==trusty or services==docker
-# is needed for C++11 support; docker envs are usually faster to start up
+# is needed for some C++11 support; docker envs are usually faster to start up
+# A newer dist==xenial completes the C++11 support with gcc-5+
 addons:
   apt:
-    sources: *pkg_src_zeromq_ubuntu14
-    packages: &pkg_deps_common
-    - *pkg_deps_devtools
-    - *pkg_deps_prereqs
+    packages:
+    - *pkg_deps_common
 
 matrix:
   include:
@@ -111,25 +115,20 @@ matrix:
     os: linux
     addons:
       apt:
-        sources: *pkg_src_zeromq_ubuntu14
         packages:
         - *pkg_deps_common
         - *pkg_deps_doctools
   - env: BUILD_TYPE=valgrind
     os: linux
-    dist: trusty
     addons:
       apt:
-        sources: *pkg_src_zeromq_ubuntu14
         packages:
         - valgrind
         - *pkg_deps_common
   - env: BUILD_TYPE=default ADDRESS_SANITIZER=enabled
     os: linux
-    dist: trusty
     addons:
       apt:
-        sources: *pkg_src_zeromq_ubuntu14
         packages:
         - *pkg_deps_common
 ### Note: we don't use CMake
@@ -140,11 +139,11 @@ matrix:
 # pass its configure script:
   - env: BUILD_TYPE=clang-format-check CLANG_FORMAT=clang-format-5.0
     os: linux
-    dist: trusty
+    dist: xenial
     addons:
       apt:
         sources:
-        - llvm-toolchain-trusty-5.0
+        - llvm-toolchain-xenial-5.0
         packages:
         - clang-5.0
         - clang-format-5.0
@@ -157,10 +156,7 @@ matrix:
 before_install:
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "android" ] ; then brew install binutils ; fi
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "valgrind" ] ; then brew install valgrind ; fi
-
-### Note: Fix up SASL and LUA pkgconfigs before build
-before_script:
-- ./.travis.fixlua
+- if [ -n "${MATRIX_EVAL}" ] ; then eval ${MATRIX_EVAL} ; fi
 
 # Hand off to generated script for each BUILD_TYPE
 script: ./ci_build.sh

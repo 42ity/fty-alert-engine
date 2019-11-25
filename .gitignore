@@ -1,6 +1,6 @@
 # This is a skeleton created by zproject.
 # You can add hand-written code here.
-### Note: Customized after generation; take care upon regens
+### Note: General ignorance of CMake files has been added in gitignore; take care upon regens
 
 save.xml
 # Object files
@@ -30,11 +30,6 @@ src/fty_alert_engine_selftest
 *.out
 *.app
 core
-
-# Generated from templates
-src/fty-alert-engine.service
-src/fty-alert-engine.cfg
-src/*.rule
 
 # Distcheck workspace and archives
 fty-alert-engine-*/
@@ -78,11 +73,6 @@ compile_commands.json
 DartConfiguration.tcl
 install_manifest.txt
 Testing/
-
-# CMake in general
-builds/cmake/
-CMake*
-*.cmake
 
 # Repositories downloaded by CI integration scripts
 tmp-deps/
@@ -141,3 +131,7 @@ nbproject/
 
 # editor backups
 *~
+# CMake in general
+builds/cmake/
+CMake*
+*.cmake
