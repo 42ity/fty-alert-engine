@@ -497,90 +497,6 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libmlm
 dnl END of enabled attempts to search for libmlm
 
 
-was_log4cplus_check_lib_detected=no
-
-search_log4cplus="yes"
-
-AC_ARG_WITH([log4cplus],
-    [
-        AS_HELP_STRING([--with-log4cplus],
-        [yes or no. Optionally specify log4cplus prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
-    ],
-    [
-        search_log4cplus="yes"
-    ],
-    [
-        search_log4cplus="yes"
-    ])
-AS_CASE([x"${with_log4cplus}"],
-    [xyes], [search_log4cplus="yes"],
-    [xno],  [search_log4cplus="no"])
-
-dnl We do not abort right now, because the maintainer/developer may have
-dnl something particular in mind, e.g. to build just parts of a project.
-AS_IF([test x"${search_log4cplus}" = xno],
-    [AC_MSG_WARN([Required dependency on log4cplus was explicitly disabled during configuration by '--with-log4cplus=no'; subsequent full build of fty-alert-engine may fail])])
-
-AS_IF([test x"${search_log4cplus}" = xyes], [
-    # Archive previously detected and supplied flags
-    PRE_SEARCH_CFLAGS="${CFLAGS}"
-    PRE_SEARCH_LIBS="${LIBS}"
-
-    found_pkgconfig=""
-    PKG_CHECK_MODULES([log4cplus], [log4cplus >= 0.0.0],
-    [
-        was_log4cplus_check_lib_detected=pkgcfg
-        found_pkgconfig="log4cplus"
-    ],
-    [
-        AC_MSG_NOTICE([Package log4cplus not found; falling back to defined compilability tests])
-
-        log4cplus_synthetic_cflags=""
-        log4cplus_synthetic_libs="-llog4cplus"
-
-        if test -n "${with_log4cplus}" && test x"${with_log4cplus}" != xyes && test x"${with_log4cplus}" != xno; then
-            if test -r "${with_log4cplus}/include/log4cplus/logger.h"; then
-                log4cplus_synthetic_cflags="-I${with_log4cplus}/include"
-                log4cplus_synthetic_libs="-L${with_log4cplus}/lib -llog4cplus"
-            else
-            AC_MSG_ERROR([Header file ${with_log4cplus}/include/log4cplus/logger.h was not found. Please check log4cplus prefix])
-            fi
-        else
-            AC_CHECK_HEADER([log4cplus/logger.h], [],
-            AC_MSG_ERROR([Header file log4cplus/logger.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([log4cplus], [appender_test],
-            [
-                was_log4cplus_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llog4cplus"
-            ],
-            [AC_MSG_ERROR([cannot link with -llog4cplus, install log4cplus])])
-    ])
-
-dnl END of PKG_CHECK_MODULES and/or direct tests for log4cplus
-    AS_CASE(["x${was_log4cplus_check_lib_detected}"],
-        [xpkgcfg], [
-                PKGCFG_NAMES_PRIVATE="$PKGCFG_NAMES_PRIVATE ${found_pkgconfig}"
-                CFLAGS="${log4cplus_CFLAGS} ${CFLAGS}"
-                LIBS="${log4cplus_LIBS} ${LIBS}"
-            ],
-        [xyes], [
-                CFLAGS="${log4cplus_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${log4cplus_synthetic_libs} ${LDFLAGS}"
-                LIBS="${log4cplus_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([log4cplus_CFLAGS],[${log4cplus_synthetic_cflags}])
-                AC_SUBST([log4cplus_LIBS],[${log4cplus_synthetic_libs}])
-            ],
-        [xno], [
-            AC_MSG_ERROR([Cannot find pkg-config metadata for log4cplus 0.0.0 or higher])
-    ])
-])
-dnl END of enabled attempts to search for log4cplus
-
-
 was_fty_common_logging_check_lib_detected=no
 
 search_libfty_common_logging="yes"
@@ -617,30 +533,7 @@ AS_IF([test x"${search_libfty_common_logging}" = xyes], [
         found_pkgconfig="libfty_common_logging"
     ],
     [
-        AC_MSG_NOTICE([Package libfty_common_logging not found; falling back to defined compilability tests])
-
-        fty_common_logging_synthetic_cflags=""
-        fty_common_logging_synthetic_libs="-lfty-common-logging"
-
-        if test -n "${with_libfty_common_logging}" && test x"${with_libfty_common_logging}" != xyes && test x"${with_libfty_common_logging}" != xno; then
-            if test -r "${with_libfty_common_logging}/include/fty_log.h"; then
-                fty_common_logging_synthetic_cflags="-I${with_libfty_common_logging}/include"
-                fty_common_logging_synthetic_libs="-L${with_libfty_common_logging}/lib -lfty-common-logging"
-            else
-            AC_MSG_ERROR([Header file ${with_libfty_common_logging}/include/fty_log.h was not found. Please check libfty_common_logging prefix])
-            fi
-        else
-            AC_CHECK_HEADER([fty_log.h], [],
-            AC_MSG_ERROR([Header file fty_log.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([fty-common-logging], [fty_common_logging_selftest],
-            [
-                was_fty_common_logging_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lfty-common-logging"
-            ],
-            [AC_MSG_ERROR([cannot link with -lfty-common-logging, install libfty_common_logging])])
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'fty-common-logging' - please ensure it is set])
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_common_logging
@@ -909,30 +802,7 @@ AS_IF([test x"${search_cxxtools}" = xyes], [
         found_pkgconfig="cxxtools"
     ],
     [
-        AC_MSG_NOTICE([Package cxxtools not found; falling back to defined compilability tests])
-
-        cxxtools_synthetic_cflags=""
-        cxxtools_synthetic_libs="-lcxxtools"
-
-        if test -n "${with_cxxtools}" && test x"${with_cxxtools}" != xyes && test x"${with_cxxtools}" != xno; then
-            if test -r "${with_cxxtools}/include/cxxtools/allocator.h"; then
-                cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
-                cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
-            else
-            AC_MSG_ERROR([Header file ${with_cxxtools}/include/cxxtools/allocator.h was not found. Please check cxxtools prefix])
-            fi
-        else
-            AC_CHECK_HEADER([cxxtools/allocator.h], [],
-            AC_MSG_ERROR([Header file cxxtools/allocator.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([cxxtools], [cxxtools::Utf8Codec::Utf8Codec],
-            [
-                was_cxxtools_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lcxxtools"
-            ],
-            [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'cxxtools' - please ensure it is set])
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for cxxtools
@@ -993,30 +863,7 @@ AS_IF([test x"${search_libfty_common}" = xyes], [
         found_pkgconfig="libfty_common"
     ],
     [
-        AC_MSG_NOTICE([Package libfty_common not found; falling back to defined compilability tests])
-
-        fty_common_synthetic_cflags=""
-        fty_common_synthetic_libs="-lfty-common"
-
-        if test -n "${with_libfty_common}" && test x"${with_libfty_common}" != xyes && test x"${with_libfty_common}" != xno; then
-            if test -r "${with_libfty_common}/include/fty_common.h"; then
-                fty_common_synthetic_cflags="-I${with_libfty_common}/include"
-                fty_common_synthetic_libs="-L${with_libfty_common}/lib -lfty-common"
-            else
-            AC_MSG_ERROR([Header file ${with_libfty_common}/include/fty_common.h was not found. Please check libfty_common prefix])
-            fi
-        else
-            AC_CHECK_HEADER([fty_common.h], [],
-            AC_MSG_ERROR([Header file fty_common.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([fty-common], [fty_common_selftest],
-            [
-                was_fty_common_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lfty-common"
-            ],
-            [AC_MSG_ERROR([cannot link with -lfty-common, install libfty_common])])
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'fty-common' - please ensure it is set])
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_common
@@ -1077,30 +924,7 @@ AS_IF([test x"${search_libfty_shm}" = xyes], [
         found_pkgconfig="libfty_shm"
     ],
     [
-        AC_MSG_NOTICE([Package libfty_shm not found with needed constraints; falling back to defined compilability tests])
-
-        fty_shm_synthetic_cflags=""
-        fty_shm_synthetic_libs="-lfty_shm"
-
-        if test -n "${with_libfty_shm}" && test x"${with_libfty_shm}" != xyes && test x"${with_libfty_shm}" != xno; then
-            if test -r "${with_libfty_shm}/include/fty_shm.h"; then
-                fty_shm_synthetic_cflags="-I${with_libfty_shm}/include"
-                fty_shm_synthetic_libs="-L${with_libfty_shm}/lib -lfty_shm"
-            else
-            AC_MSG_ERROR([Header file ${with_libfty_shm}/include/fty_shm.h was not found. Please check libfty_shm prefix])
-            fi
-        else
-            AC_CHECK_HEADER([fty_shm.h], [],
-            AC_MSG_ERROR([Header file fty_shm.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([fty_shm], [fty_shm_test],
-            [
-                was_fty_shm_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lfty_shm"
-            ],
-            [AC_MSG_ERROR([cannot link with -lfty_shm, install libfty_shm])])
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'fty_shm' - please ensure it is set])
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_shm
@@ -1444,57 +1268,6 @@ AS_IF([test "x$enable_Werror" = "xyes" || test "x$enable_Werror" = "xauto"],
              AS_IF([test "x$enable_Werror" = "xyes"], [AC_MSG_ERROR([--enable-Werror=yes was requested and can not be satisfied for CPP: $CPP])])
         ])])])
 ])
-
-# One of big missing features in gcc-4.8 was std::regex support fixed in 4.9
-# Testing code from https://stackoverflow.com/a/41186162/4715872
-# caveats apply (use of unguaranteed private macros)
-AC_ARG_ENABLE([gcc-std-regex],
-    AS_HELP_STRING([--enable-gcc-std-regex],
-        [Check for std::regex support if compiler is GCC, assuming it means satisfactory level of C++11 there [default=yes]]),
-    [enable_gcc_std_regex=$enableval],
-    [enable_gcc_std_regex=$defaultval])
-
-AM_CONDITIONAL([ENABLE_GCC_STD_REGEX], [test x$enable_gcc_std_regex != xno])
-
-AS_IF([test -n "$CXX"],[AS_IF([$CXX --version 2>&1 | grep 'Free Software Foundation' > /dev/null && test "x$GCC" = "xyes"],
-  [AS_IF([test "x$enable_gcc_std_regex" = "xyes" || test "x$enable_gcc_std_regex" = "xauto"],
-    [AC_MSG_CHECKING([for GNU C++11 support level expected by gcc-4.9 release or newer])
-     CXXFLAGS="$CXXFLAGS --std=c++11"
-     AC_LANG_PUSH([C++])
-     AC_TRY_RUN([/* Note: private macros in use, test can break over time */
-#include <regex>
-
-#if __cplusplus >= 201103L &&                             \
-    (!defined(__GLIBCXX__) || (__cplusplus >= 201402L) || \
-        (defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT) || \
-         defined(_GLIBCXX_REGEX_STATE_LIMIT)           || \
-             (defined(_GLIBCXX_RELEASE)                && \
-             _GLIBCXX_RELEASE > 4)))
-#define HAVE_WORKING_REGEX 1
-#else
-#define HAVE_WORKING_REGEX 0
-#endif
-
-#include <iostream>
-
-int main() {
-  const std::regex regex(".*");
-  const std::string string = "This should match!";
-  const auto result = std::regex_search(string, regex);
-#if HAVE_WORKING_REGEX
-  std::cerr << "<regex> works, look: " << std::boolalpha << result << std::endl;
-#else
-  std::cerr << "<regex> doesn't work, look: " << std::boolalpha << result << std::endl;
-#endif
-  return result ? EXIT_SUCCESS : EXIT_FAILURE;
-}
-     ], AC_MSG_RESULT([ok]), AC_MSG_ERROR([test for std::regex failed]) )
-     AC_LANG_POP([C++])
-    ]
-  ,[AC_MSG_WARN([Not checking for GNU C++11 support level expected by gcc-4.9 release or newer, due to explicit configure option])
-    AC_MSG_WARN([YOU ARE AT RISK OF SOMETHING NOT WORKING WITH THIS BUILD OF THE CODEBASE])]
-  )]
-)])
 
 # Specify output files
 AC_CONFIG_FILES([Makefile
