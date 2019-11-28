@@ -1,7 +1,7 @@
 /*
     fty-alert-engine - 42ity service evaluating rules written in Lua and producing alerts
 
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2014 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

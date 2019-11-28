@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_alert_engine_classes - private header file
 
-    Copyright (C) 2014 - 2018 Eaton
+    Copyright (C) 2014 - 2019 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,12 +31,6 @@
 
 //  External API
 #include "../include/fty_alert_engine.h"
-
-//  Extra headers
-#include "normalrule.h"
-#include "thresholdrulesimple.h"
-#include "thresholdruledevice.h"
-#include "regexrule.h"
 
 //  Opaque class structures to allow forward references
 #ifndef METRICLIST_T_DEFINED
@@ -71,6 +65,12 @@ typedef struct _ruleconfigurator_t ruleconfigurator_t;
 typedef struct _templateruleconfigurator_t templateruleconfigurator_t;
 #define TEMPLATERULECONFIGURATOR_T_DEFINED
 #endif
+
+//  Extra headers
+#include "normalrule.h"
+#include "thresholdrulesimple.h"
+#include "thresholdruledevice.h"
+#include "regexrule.h"
 
 //  Internal API
 
