@@ -1,0 +1,22 @@
+{
+    "threshold" : {
+        "rule_name"     :   "temperature.default@__name__",
+        "rule_desc"     :   "TRANSLATE_LUA(Sensor temperature)",
+        "rule_class"    :   "TRANSLATE_LUA(Sensor temperature)",
+        "rule_hierarchy":   "environment.temperature.sensor",
+        "rule_cat"      :   ["CAT_ENVIRONMENTAL", "CAT_INTERNAL"],
+        "target"        :   "temperature.default@__name__",
+        "element"       :   "__name__",
+        "values_unit"   :   "C",
+        "values"        :   [
+            {"low_critical"  : "0"},
+            {"low_warning"   : "0"},
+            {"high_warning"  : "45"},
+            {"high_critical" : "50"} ],
+        "results" :   [
+            { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor temperature is critically low)" }},
+            { "low_warning"   : { "action" : [ ], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor temperature is low)" }},
+            { "high_warning"  : { "action" : [ ], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor temperature is high)" }},
+            { "high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Temperature is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor temperature is critically high)" }} ]
+    }
+}
