@@ -226,9 +226,11 @@ add_rule (
     std::set <std::string> newSubjectsToSubscribe;
     std::vector <PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
+
     mtxAlertConfig.lock ();
     int rv = ac.addRule (f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock ();
+
     zmsg_t *reply = zmsg_new ();
     switch (rv) {
         case -2:
@@ -280,6 +282,15 @@ add_rule (
             // error during the rule creation (lua)
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "Internal error - operating with storage/disk failed.");
+
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+            return;
+        }
+        case -100: // PQSWMBT-3723 rule can't be directly instantiated
+        {
+            log_debug ("rule can't be directly instantiated");
+            zmsg_addstr (reply, "ERROR");
+            zmsg_addstr (reply, "Rule can't be directly instantiated.");
 
             mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
@@ -575,6 +586,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         const char *unit = fty_proto_unit (element);
         uint32_t ttl = fty_proto_ttl (element);
         uint64_t timestamp = fty_proto_aux_number (element, "time", ::time(NULL));
+
         // TODO: 2016-04-27 ACE: fix it later, when "string" values
         // in the metric would be considered as
         // normal behaviour, but for now it is not supposed to be so

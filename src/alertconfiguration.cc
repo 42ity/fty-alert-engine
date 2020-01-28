@@ -196,12 +196,21 @@ int AlertConfiguration::
         log_error ("nothing created, lua error");
         return -5;
     }
+
+    // PQSWMBT-3723, don't instanciate sensor temp./humidity rules directly
+    if ((temp_rule->name().find("humidity.default@sensor-") == 0) // starts with...
+        || (temp_rule->name().find("temperature.default@sensor-") == 0))
+    {
+        log_debug("rule instanciation rejected (%s)", temp_rule->name().c_str());
+        return -100;
+    }
+    // end PQSWMBT-3723
+
     if ( haveRule (temp_rule) ) {
         log_error ("rule already exists");
         return -2;
     }
 
-    std::vector<PureAlert> emptyAlerts{};
     try {
         temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule");
     }
@@ -222,6 +231,7 @@ int AlertConfiguration::
         }
     }
 
+    std::vector<PureAlert> emptyAlerts{};
     _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(temp_rule), emptyAlerts)));
     it = _alerts_map.find(rulename);
     // CURRENT: wait until new measurements arrive
