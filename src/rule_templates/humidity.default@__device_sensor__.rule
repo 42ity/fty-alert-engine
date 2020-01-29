@@ -1,0 +1,22 @@
+{
+    "threshold" : {
+        "rule_name"     :   "humidity.default@__name__",
+        "rule_desc"     :   "TRANSLATE_LUA(Sensor humidity)",
+        "rule_class"    :   "TRANSLATE_LUA(Sensor humidity)",
+        "rule_hierarchy":   "environment.humidity.sensor",
+        "rule_cat"      :   ["CAT_ENVIRONMENTAL", "CAT_INTERNAL"],
+        "target"        :   "humidity.default@__name__",
+        "element"       :   "__name__",
+        "values_unit"   :   "%",
+        "values"        :   [
+            {"low_critical"  : "30"},
+            {"low_warning"   : "40"},
+            {"high_warning"  : "60"},
+            {"high_critical" : "70"} ],
+        "results" :   [
+            { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor humidity is critically low)" }},
+            { "low_warning"   : { "action" : [ ], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor humidity is low)" }},
+            { "high_warning"  : { "action" : [ ], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity is high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor humidity is high)" }},
+            { "high_critical" : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Humidity is critically high in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Sensor humidity is critically high)" }} ]
+    }
+}
