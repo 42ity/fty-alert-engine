@@ -125,7 +125,7 @@ void operator>>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
         case cxxtools::SerializationInfo::Object:
             // [{"action": "EMAIL"}, {"action": "SMS"}]
             a.getMember("action") >>= type;
-            if (type == "EMAIL" || type == "SMS") {
+            if (type == "EMAIL" || type == "SMS" || type == "AUTOMATION") {
                 res = type;
             } else if (type == "GPO_INTERACTION") {
                 std::string asset, mode;
