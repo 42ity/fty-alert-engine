@@ -14,26 +14,26 @@
 	          function main(remaining_days)
 	              if remaining_days == '60' then
 		                return WARNING, 'TRANSLATE_LUA(Your license is going to expire in 60 days)'
-		            end
+                  end
 	              if remaining_days == '40' then
 		                return WARNING, 'TRANSLATE_LUA(Your license is going to expire in 40 days)'
-		            end
+		          end
 	              if remaining_days == '30' then
 		                return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 30 days)'
-		            end
+                  end
 	              if remaining_days == '15' then
 		                return CRITICAL, 'TRANSLATE_LUA(Your license is going to expire in 15 days)'
-		            end
-	              if (tonumber (remaining_days <= 7) and tonumber (1 <= remaining_days)) then
-                                 return CRITICAL, string.format('{\"key\" : \"TRANSLATE_LUA(Your license is going to expire in {{remaining_days}} days)\", \"variables\" : {\"remaining_days\" : \"%s\"}}', remaining_days)
-		            end
+		          end
+	              if ((1 <= tonumber (remaining_days)) and (tonumber (remaining_days) <= 7)) then
+                        return CRITICAL, string.format('{\"key\" : \"TRANSLATE_LUA(Your license is going to expire in {{remaining_days}} days)\", \"variables\" : {\"remaining_days\" : \"%s\"}}', remaining_days)
+		          end
 	              if remaining_days == '0' then
 		                return CRITICAL, 'TRANSLATE_LUA(Your license expires today)'
-		            end
+		          end
 	              if (tonumber(remaining_days) < 0) then
 		                return CRITICAL, 'TRANSLATE_LUA(Your license is expired.)'
-		            end
-		      return OK, 'TRANSLATE_LUA(Your license is valid.)'
+		          end
+		          return OK, 'TRANSLATE_LUA(Your license is valid.)'
 	          end
 	 "
     }
