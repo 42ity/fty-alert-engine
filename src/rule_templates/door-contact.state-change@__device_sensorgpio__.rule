@@ -1,4 +1,4 @@
-{ 
+{
     "flexible" : {
         "name"          : "door-contact.state-change@__name__",
         "description"   : "{\"key\" : \"TRANSLATE_LUA(Door to {{logical_asset}} is not {{normal_state}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\", \"normal_state\" : \"__normalstate__\"}}",
