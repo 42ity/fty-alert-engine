@@ -2,7 +2,7 @@
     "flexible" : {
         "name"          : "sts-frequency@__name__",
         "description"   : "TRANSLATE_LUA(The STS/ATS frequency is out of tolerance)",
-        "rule_cat"      : ["CAT_OTHER", "CAT_ALL"],
+        "rule_cat"      : ["CAT_ALL"],
         "metrics"       : ["status.input.1.frequency", "status.input.2.frequency"],
         "assets"        : ["__name__"],
         "results"       :  {
