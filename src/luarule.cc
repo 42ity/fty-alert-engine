@@ -86,31 +86,45 @@ void LuaRule::code (const std::string &newCode)
 
 int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
 {
+    log_debug("LuaRule::evaluate %s", _name.c_str());
+
     std::vector<double> values;
+    int index = 0;
     for ( const auto &metric : _metrics ) {
         double value = metricList.find (metric);
         if ( std::isnan (value) ) {
-            //log_debug("Don't have everything for '%s' yet\n", _name.c_str());
+            log_debug("metric#%d: %s = NaN", index, metric.c_str());
+            log_debug("Don't have everything for '%s' yet", _name.c_str());
             return RULE_RESULT_UNKNOWN;
         }
         values.push_back(value);
+        log_debug("metric#%d: %s = %lf", index, metric.c_str(), value);
+        index++;
     }
+
     int status = luaEvaluate(values);
     const char *statusText = resultToString (status);
+    //log_debug("LuaRule::evaluate on %s gives '%s'", _name.c_str(), statusText);
+
     auto outcome = _outcomes.find (statusText);
     if ( outcome != _outcomes.cend() ) {
+        log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
+
         // some known outcome was found
         pureAlert = PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
         pureAlert.print();
         return 0;
     }
     if ( status == RULE_RESULT_OK ) {
+        log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
+
         // When alert is resolved, it doesn't have new severity!!!!
         pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everything is ok", _element, "OK", {""});
         pureAlert.print();
         return 0;
     }
-    log_error ("Rule has returned a result %s, but it is not specified in 'result' in the JSON rule definition", statusText);
+
+    log_error ("LuaRule::evaluate %s has returned a result %s, but it is not specified in 'result' in the JSON rule definition", _name.c_str(), statusText);
     return RULE_RESULT_UNKNOWN;
 }
 
