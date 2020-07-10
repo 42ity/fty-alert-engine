@@ -1,7 +1,7 @@
 {
     "single" : {
         "rule_name"     :   "onbattery@__name__",
-        "rule_class"    :   "TRANSLATE_LUA(UPS running on battery)",
+        "rule_class"    :   "TRANSLATE_LUA(UPS is running on battery)",
         "rule_hierarchy":   "power.onbattery.ups",
         "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   ["status.ups@__name__"],
