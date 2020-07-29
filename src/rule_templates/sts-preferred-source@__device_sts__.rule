@@ -2,7 +2,7 @@
     "flexible" : {
         "name"          : "sts-preferred-source@__name__",
         "description"   : "TRANSLATE_LUA(STS/ATS is not running from preferred input)",
-        "rule_cat"      : ["CAT_ALL"],
+        "rule_cat"      : ["CAT_ALL", "CAT_OTHER"],
         "metrics"       : ["input.source", "input.source.preferred"],
         "assets"        : ["__name__"],
         "results"       :  {

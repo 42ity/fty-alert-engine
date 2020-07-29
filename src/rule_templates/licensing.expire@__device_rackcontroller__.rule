@@ -2,7 +2,7 @@
     "flexible" : {
         "name"			: "licensing.expiration@__name__",
         "description"   : "TRANSLATE_LUA(Sends alert when license is about to expire.)",
-        "rule_cat"      : ["CAT_ALL"],
+        "rule_cat"      : ["CAT_ALL", "CAT_OTHER"],
         "metrics"       : ["licensing.expire"],
         "assets"       	: ["__name__"],
         "types"			: ["rackcontroller"],

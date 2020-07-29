@@ -2,7 +2,7 @@
     "flexible" : {
         "name"          : "fire-detector.state-change@__name__",
         "description"   : "{\"key\" : \"TRANSLATE_LUA(Fire detected (pre-alarm) in {{logical_asset}})\", \"variables\" : {\"logical_asset\" : \"__logicalasset__\"}}",
-        "rule_cat"      : ["CAT_GPIO", "CAT_ALL"],
+        "rule_cat"      : ["CAT_GPIO", "CAT_ALL", "CAT_OTHER"],
         "metrics"       : ["status.__port__"],
         "assets"	    : ["__name__"],
         "logical_asset" : "__logicalasset_iname__",

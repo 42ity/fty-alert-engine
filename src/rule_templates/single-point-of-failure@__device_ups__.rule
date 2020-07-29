@@ -2,7 +2,7 @@
     "flexible" : {
         "name"          : "single-point-of-failure@__name__",
         "description"   : "TRANSLATE_LUA(Detection of Single Point of Failure)",
-        "rule_cat"      : ["CAT_ALL"],
+        "rule_cat"      : ["CAT_ALL", "CAT_OTHER"],
         "metrics"       : ["single-point-of-failure"],
         "assets"        : ["__name__"],
         "results"       :  {
