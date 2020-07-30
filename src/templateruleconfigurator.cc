@@ -113,14 +113,14 @@ TemplateRuleConfigurator::isModelOk (const std::string& model,
 bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
     return checkTemplate(info.type.c_str (), info.subtype.c_str ());
 }
-bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info, 
+bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info,
         const std::string& templat_name)
 {
 
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     std::ifstream f(d.path() + "/" + templat_name);
     if(!f.good())return false;
-    
+
     std::string type_name = convertTypeSubType2Name(info.type.c_str(),info.subtype.c_str());
     if ( templat_name.find(type_name.c_str())!= std::string::npos){
         if(info.subtype == "sensorgpio" && info.attributes.find("model") != info.attributes.end()){
@@ -135,7 +135,7 @@ bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info,
         return true;
     }
     return false;
-    
+
 }
 
 std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
@@ -165,12 +165,18 @@ std::vector <std::pair<std::string,std::string>> TemplateRuleConfigurator::loadA
         return templates;
     }
     cxxtools::Directory d(Autoconfig::RuleFilePath);
+    log_info("load all templates from %s", d.path().c_str());
     for ( const auto &fn : d) {
-        if ( fn.compare(".")!=0  && fn.compare("..")!=0){
-            // read the template rule from the file
-            std::ifstream f(d.path() + "/" + fn);
-            std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            templates.push_back(std::make_pair(fn,str));
+        if ( fn.compare(".")!=0  && fn.compare("..")!=0) {
+            try {
+                // read the template rule from the file
+                std::ifstream f(d.path() + "/" + fn);
+                std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                templates.push_back(std::make_pair(fn,str));
+            }
+            catch (const std::exception& e) {
+                log_error("error loading %s/%s (e: %s)", d.path().c_str(), fn.c_str(), e.what());
+            }
         }
     }
     return templates;
