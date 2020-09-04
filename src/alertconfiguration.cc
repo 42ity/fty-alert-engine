@@ -118,6 +118,8 @@ std::set <std::string> AlertConfiguration::
     // list of topics, that are needed to be consumed for rules
     std::set <std::string> result;
 
+    log_debug("read rules files (%s)", _path.c_str());
+
     try {
         if (!cxxtools::Directory::exists (_path)) cxxtools::Directory::create (_path);
         cxxtools::Directory d(_path);
