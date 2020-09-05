@@ -3,7 +3,7 @@
         "rule_name"     :   "charge.battery@__name__",
         "rule_desc"     :   "TRANSLATE_LUA(Battery Level)",
         "rule_class"    :   "TRANSLATE_LUA(Battery Level in CoPS)",
-        "rule_hierarchy":   "internal.batterylevel.ups",
+        "rule_hierarchy":   "internal.batterylevel.cops",
         "rule_cat"      :   ["CAT_OTHER"],
         "target"        :   "charge.battery@__name__",
         "element"       :   "__name__",
