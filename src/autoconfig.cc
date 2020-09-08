@@ -308,11 +308,12 @@ Autoconfig::onSend (fty_proto_t **message)
 
     //filter UPDATE message to ignore it when no change is detected.
     //This code is mainly to prevent overload activity on hourly REPUBLISH $all
-    if (    strcmp(fty_proto_operation (*message), FTY_PROTO_ASSET_OP_UPDATE) == 0 &&
-            _configurableDevices.find(device_name)!=_configurableDevices.end() &&
-            _configurableDevices[device_name]==*message){
-            log_debug("asset %s UPDATED but no change detected => ignore it",device_name.c_str());
-            return;
+    if ((strcmp(fty_proto_operation (*message), FTY_PROTO_ASSET_OP_UPDATE) == 0)
+        && (_configurableDevices.find(device_name) != _configurableDevices.end())
+        && (_configurableDevices[device_name] == *message)
+    ){
+        log_debug("asset %s UPDATED but no change detected => ignore it",device_name.c_str());
+        return;
     }
 
     AutoConfigurationInfo info;
@@ -321,8 +322,9 @@ Autoconfig::onSend (fty_proto_t **message)
     info.operation.assign (fty_proto_operation (*message));
     info.update_ts.assign (fty_proto_ext_string(*message, "update_ts", ""));
 
-    if (_configurableDevices.find(device_name)!=_configurableDevices.end() &&
-            0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""),_configurableDevices[device_name].update_ts.c_str())) {
+    if ((_configurableDevices.find(device_name) != _configurableDevices.end())
+        && (0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""),_configurableDevices[device_name].update_ts.c_str()))
+    ){
         log_debug("Changed asset, updating");
         info.configured = false;
     }
@@ -374,11 +376,12 @@ Autoconfig::onSend (fty_proto_t **message)
         }
         else {
             const char *dest = Autoconfig::AlertEngineName.c_str ();
+            log_info ("Sending DELETE_ELEMENT for %s to %s", device_name.c_str(), dest);
+
             // delete all rules for this asset
             zmsg_t *msg = zmsg_new ();
             zmsg_addstr (msg, "DELETE_ELEMENT");
             zmsg_addstr (msg, device_name.c_str());
-            log_info ("Sending DELETE_ELEMENT for %s to %s", device_name.c_str(), dest);
             if (sendto (dest, "rfc-evaluator-rules", &msg) != 0) {
                 log_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
                             dest, "rfc-evaluator-rules");
@@ -395,6 +398,7 @@ void Autoconfig::onPoll( )
 
     bool save = false;
 
+    //std::map<std::string, AutoConfigurationInfo>
     for (auto& it : _configurableDevices) {
         if (it.second.configured) {
             continue;
@@ -415,8 +419,9 @@ void Autoconfig::onPoll( )
 
             device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, Autoconfig::getEname (la), client ());
         }
-        else
+        else {
             log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
+        }
 
         if (device_configured) {
             log_debug ("Device '%s' configured successfully", it.first.c_str ());
@@ -494,39 +499,36 @@ void Autoconfig::saveState()
     save_agent_info(json );
 }
 
-std::list<std::string> 
+std::list<std::string>
 Autoconfig::getElemenListMatchTemplate(std::string template_name)
 {
     TemplateRuleConfigurator templateRuleConfigurator;
     std::list<std::string> elementList;
+
     for (auto& it : _configurableDevices) {
-        AutoConfigurationInfo info=it.second;
-        if (templateRuleConfigurator.isApplicable (info,template_name))
-        {
+        AutoConfigurationInfo info = it.second;
+        if (templateRuleConfigurator.isApplicable (info, template_name)) {
             elementList.push_back(it.first);
         }
     }
     return elementList;
 }
-    
-void Autoconfig::listTemplates(
-        const char *correlation_id,
-        const char *filter
-    )
+
+void Autoconfig::listTemplates(const char *correlation_id, const char *filter)
 {
-    const char *myfilter=(filter==NULL?"all":filter);
+    const char *myfilter = (filter == NULL ? "all" : filter);
     log_debug ("DO REQUEST LIST template '%s' correl_id '%s'",
             myfilter,correlation_id);
-    
+
     zmsg_t *reply = zmsg_new ();
     zmsg_addstr (reply, correlation_id);
     zmsg_addstr (reply, "LIST");
     zmsg_addstr (reply, myfilter);
-    
+
     cxxtools::Regex reg(myfilter, REG_EXTENDED);
 
     TemplateRuleConfigurator templateRuleConfigurator;
-    std::vector <std::pair<std::string,std::string>> 
+    std::vector <std::pair<std::string,std::string>>
             templates = templateRuleConfigurator.loadAllTemplates();
     log_debug ("number of total templates rules = '%zu'", templates.size ());
     int count=0;
@@ -546,9 +548,9 @@ void Autoconfig::listTemplates(
             element_list_output.append(element);
         }
         zmsg_addstr (reply, element_list_output.c_str());
-        log_debug ("template: '%s', devices:'%s' match", 
+        log_debug ("template: '%s', devices:'%s' match",
                 templat.first.c_str(),element_list_output.c_str());
-        
+
         count++;
     }
     log_debug ("%zu templates match '%s'", count, myfilter);

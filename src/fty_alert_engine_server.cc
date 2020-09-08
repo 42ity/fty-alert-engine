@@ -511,23 +511,29 @@ evaluate_metric (
     // Go through all known rules, and try to evaluate them
     mtxAlertConfig.lock ();
     bool isEvaluate = false;
+
     std::string sTopic;
     //end_warranty_date is the only "regex rule", for optimisation purpose, use some trick for those.
     if(triggeringMetric.getSource() == "end_warranty_date")
       sTopic = "^end_warranty_date@.+";
     else
       sTopic = triggeringMetric.generateTopic ();
+
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
+
+    log_debug(" ### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
+
     for(const auto &rulename : rules_of_metric) {
       if(ac.count(rulename) == 0) {
         log_error("Rule %s must exist but was not found",rulename.c_str());
         continue;
       }
+
       auto &it_ac = ac.at(rulename);
       const auto &rule = it_ac.first;
+      log_debug (" ### Evaluate rule '%s'", rule->name ().c_str ());
 
       try {
-            log_debug (" ### Evaluate rule '%s'", rule->name ().c_str ());
             isEvaluate = true;
             PureAlert pureAlert;
             int rv = rule->evaluate (knownMetricValues, pureAlert);
@@ -604,6 +610,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         	log_error ("%s: can't convert value to double #2, ignore message", name);
         	continue;
         }
+
         log_debug("%s: Got message '%s@%s' with value %s", name, type, name, value);
 
         // Update cache with new value
@@ -613,9 +620,10 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         //search if this metric is already evaluated and if this metric is evaluate
         std::map < std::string, bool>::iterator found = evaluateMetrics.find (m.generateTopic());
         bool metricfound = found != evaluateMetrics.end();
+
         log_debug ("Check metric : %s", m.generateTopic().c_str());
         if (metricfound && ManageFtyLog::getInstanceFtylog()->isLogDebug()) {
-        	log_debug ("This metric is known and %s be evaluated", found->second ? "must" : "will not");
+        	log_debug ("Metric '%s' is known and %s be evaluated", m.generateTopic().c_str(), found->second ? "must" : "will not");
         }
 
         if (!metricfound || found->second) {
