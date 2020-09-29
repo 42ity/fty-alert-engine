@@ -158,6 +158,91 @@ check-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) 
 	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v
 	$(MAKE) check-empty-selftest-rw
 
+check-metriclist: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t metriclist
+	$(MAKE) check-empty-selftest-rw
+check-metriclist-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t metriclist
+	$(MAKE) check-empty-selftest-rw
+
+check-alertconfiguration: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+check-alertconfiguration-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+
+check-luarule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t luarule
+	$(MAKE) check-empty-selftest-rw
+check-luarule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t luarule
+	$(MAKE) check-empty-selftest-rw
+
+check-purealert: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t purealert
+	$(MAKE) check-empty-selftest-rw
+check-purealert-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t purealert
+	$(MAKE) check-empty-selftest-rw
+
+check-rule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t rule
+	$(MAKE) check-empty-selftest-rw
+check-rule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t rule
+	$(MAKE) check-empty-selftest-rw
+
+check-thresholdrulecomplex: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+check-thresholdrulecomplex-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+
+check-utils: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t utils
+	$(MAKE) check-empty-selftest-rw
+check-utils-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t utils
+	$(MAKE) check-empty-selftest-rw
+
+check-autoconfig: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+check-autoconfig-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+
+check-ruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+check-ruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+
+check-templateruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+check-templateruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+
+check-fty_alert_engine_server: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+check-fty_alert_engine_server-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+
+check-fty_alert_actions: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+check-fty_alert_actions-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+
+
 # Run the selftest binary under valgrind to check for memory leaks
 memcheck: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
@@ -175,6 +260,175 @@ memcheck-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_R
 		$(builddir)/src/fty_alert_engine_selftest -v
 	$(MAKE) check-empty-selftest-rw
 
+memcheck-metriclist: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t metriclist
+	$(MAKE) check-empty-selftest-rw
+memcheck-metriclist-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t metriclist
+	$(MAKE) check-empty-selftest-rw
+memcheck-alertconfiguration: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+memcheck-alertconfiguration-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+memcheck-luarule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t luarule
+	$(MAKE) check-empty-selftest-rw
+memcheck-luarule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t luarule
+	$(MAKE) check-empty-selftest-rw
+memcheck-purealert: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t purealert
+	$(MAKE) check-empty-selftest-rw
+memcheck-purealert-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t purealert
+	$(MAKE) check-empty-selftest-rw
+memcheck-rule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t rule
+	$(MAKE) check-empty-selftest-rw
+memcheck-rule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t rule
+	$(MAKE) check-empty-selftest-rw
+memcheck-thresholdrulecomplex: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+memcheck-thresholdrulecomplex-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+memcheck-utils: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t utils
+	$(MAKE) check-empty-selftest-rw
+memcheck-utils-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t utils
+	$(MAKE) check-empty-selftest-rw
+memcheck-autoconfig: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+memcheck-autoconfig-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+memcheck-ruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+memcheck-ruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+memcheck-templateruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+memcheck-templateruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_alert_engine_server: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_alert_engine_server-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_alert_actions: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_alert_actions-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+
 # Run the selftest binary under valgrind to check for performance leaks
 callcheck: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
@@ -188,6 +442,127 @@ callcheck-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_
 		$(builddir)/src/fty_alert_engine_selftest -v
 	$(MAKE) check-empty-selftest-rw
 
+callcheck-metriclist: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t metriclist
+	$(MAKE) check-empty-selftest-rw
+callcheck-metriclist-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t metriclist
+	$(MAKE) check-empty-selftest-rw
+callcheck-alertconfiguration: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+callcheck-alertconfiguration-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+callcheck-luarule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t luarule
+	$(MAKE) check-empty-selftest-rw
+callcheck-luarule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t luarule
+	$(MAKE) check-empty-selftest-rw
+callcheck-purealert: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t purealert
+	$(MAKE) check-empty-selftest-rw
+callcheck-purealert-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t purealert
+	$(MAKE) check-empty-selftest-rw
+callcheck-rule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t rule
+	$(MAKE) check-empty-selftest-rw
+callcheck-rule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t rule
+	$(MAKE) check-empty-selftest-rw
+callcheck-thresholdrulecomplex: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+callcheck-thresholdrulecomplex-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+callcheck-utils: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t utils
+	$(MAKE) check-empty-selftest-rw
+callcheck-utils-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t utils
+	$(MAKE) check-empty-selftest-rw
+callcheck-autoconfig: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+callcheck-autoconfig-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+callcheck-ruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+callcheck-ruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+callcheck-templateruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+callcheck-templateruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_alert_engine_server: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_alert_engine_server-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_alert_actions: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_alert_actions-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+
 # Run the selftest binary under gdb for debugging
 debug: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \
@@ -196,7 +571,104 @@ debug: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_bu
 
 debug-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \
-		$(builddir)/src/fty_alert_engine_selftest -v
+		--args $(builddir)/src/fty_alert_engine_selftest -v
+	$(MAKE) check-empty-selftest-rw
+
+debug-metriclist: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t metriclist
+	$(MAKE) check-empty-selftest-rw
+debug-metriclist-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t metriclist
+	$(MAKE) check-empty-selftest-rw
+debug-alertconfiguration: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+debug-alertconfiguration-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t alertconfiguration
+	$(MAKE) check-empty-selftest-rw
+debug-luarule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t luarule
+	$(MAKE) check-empty-selftest-rw
+debug-luarule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t luarule
+	$(MAKE) check-empty-selftest-rw
+debug-purealert: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t purealert
+	$(MAKE) check-empty-selftest-rw
+debug-purealert-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t purealert
+	$(MAKE) check-empty-selftest-rw
+debug-rule: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t rule
+	$(MAKE) check-empty-selftest-rw
+debug-rule-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t rule
+	$(MAKE) check-empty-selftest-rw
+debug-thresholdrulecomplex: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+debug-thresholdrulecomplex-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t thresholdrulecomplex
+	$(MAKE) check-empty-selftest-rw
+debug-utils: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t utils
+	$(MAKE) check-empty-selftest-rw
+debug-utils-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t utils
+	$(MAKE) check-empty-selftest-rw
+debug-autoconfig: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+debug-autoconfig-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t autoconfig
+	$(MAKE) check-empty-selftest-rw
+debug-ruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+debug-ruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t ruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+debug-templateruleconfigurator: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+debug-templateruleconfigurator-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t templateruleconfigurator
+	$(MAKE) check-empty-selftest-rw
+debug-fty_alert_engine_server: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+debug-fty_alert_engine_server-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_engine_server
+	$(MAKE) check-empty-selftest-rw
+debug-fty_alert_actions: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -t fty_alert_actions
+	$(MAKE) check-empty-selftest-rw
+debug-fty_alert_actions-verbose: src/fty_alert_engine_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_alert_engine_selftest -v -t fty_alert_actions
 	$(MAKE) check-empty-selftest-rw
 
 # Run the selftest binary with verbose switch for tracing

@@ -34,7 +34,7 @@
 #include <malamute.h>
 #include <fty_log.h>
 #include <ftyproto.h>
-#include <lua.h>
+#include <lua5.4/lua.h>
 #include <cxxtools/allocator.h>
 #include <fty_common.h>
 #include <fty_shm.h>

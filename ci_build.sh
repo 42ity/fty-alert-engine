@@ -25,6 +25,161 @@ case "$CI_TRACE" in
         set -x ;;
 esac
 
+case $TRAVIS_OS_NAME in
+windows)
+    export
+    choco install openjdk
+    export JAVA_HOME="C:\Program Files\OpenJDK\jdk-13.0.2"
+    export BUILD_PREFIX=$TEMP/ci_build
+    # Build will fail if processes are still running at the end of the script.
+    # Gradle by default starts a daemon so consequtive builds are faster.
+    # Therefore instruct gradle not to use its daemon.
+    export GRADLE_OPTS=-Dorg.gradle.daemon=false
+
+    cd ..
+
+    git clone --quiet --depth 1 https://github.com/42ity/libsodium.git libsodium
+    cd libsodium
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "libsodium/bindings/jni" ]; then
+        cd libsodium/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/libzmq.git libzmq
+    cd libzmq
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "libzmq/bindings/jni" ]; then
+        cd libzmq/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/czmq.git czmq
+    cd czmq
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "czmq/bindings/jni" ]; then
+        cd czmq/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/malamute.git malamute
+    cd malamute
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "malamute/bindings/jni" ]; then
+        cd malamute/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/fty-common-logging.git fty-common-logging
+    cd fty-common-logging
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "fty-common-logging/bindings/jni" ]; then
+        cd fty-common-logging/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/fty-proto.git fty-proto
+    cd fty-proto
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "fty-proto/bindings/jni" ]; then
+        cd fty-proto/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/cxxtools.git cxxtools
+    cd cxxtools
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "cxxtools/bindings/jni" ]; then
+        cd cxxtools/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/fty-common.git fty-common
+    cd fty-common
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "fty-common/bindings/jni" ]; then
+        cd fty-common/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    git clone --quiet --depth 1 https://github.com/42ity/fty-shm.git fty_shm
+    cd fty_shm
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    cd ../..
+
+    if [ -d "fty_shm/bindings/jni" ]; then
+        cd fty_shm/bindings/jni
+        ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+        cd ../../..
+    fi
+
+    cd fty-alert-engine
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_PREFIX -DCMAKE_PREFIX_PATH=$BUILD_PREFIX
+    cmake --build . --config Release --target install
+    ctest --build-config Release
+    cd ../..
+
+    cd fty-alert-engine
+    cd bindings/jni
+    ./gradlew build jar -PbuildPrefix=$BUILD_PREFIX -x test --info
+    ./gradlew publishToMavenLocal -PbuildPrefix=$BUILD_PREFIX --info
+
+    exit 0
+esac
+
 case "$BUILD_TYPE" in
 default|default-Werror|default-with-docs|valgrind|clang-format-check)
     LANG=C

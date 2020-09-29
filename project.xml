@@ -75,7 +75,8 @@
         min_major = "1" min_minor = "0" min_patch = "0"
         repository = "https://github.com/42ity/fty-proto.git" />
 
-    <use project = "lua-5.1" />
+    <use project = "lua-5.4" header = "lua5.4/lua.h" debian_name = "liblua5.4-dev" redhat_name = "lua-devel"
+        min_major = "5" min_minor = "4" min_patch = "0" />
 
     <!-- alert engine uses patched cxxtools, point to 42ity fork instead of upstream -->
     <use project = "cxxtools"

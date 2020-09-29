@@ -642,128 +642,65 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_proto
 dnl END of enabled attempts to search for libfty_proto
 
 
-was_lua_5_1_check_lib_detected=no
+was_lua_5_4_check_lib_detected=no
 
-search_lua="yes"
+search_lua_5_4="yes"
 
-AC_ARG_WITH([lua],
+AC_ARG_WITH([lua-5.4],
     [
-        AS_HELP_STRING([--with-lua],
-        [yes or no. Optionally specify lua prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+        AS_HELP_STRING([--with-lua-5.4],
+        [yes or no. Optionally specify lua-5.4 prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
     ],
     [
-        search_lua="yes"
+        search_lua_5_4="yes"
     ],
     [
-        search_lua="yes"
+        search_lua_5_4="yes"
     ])
-AS_CASE([x"${with_lua}"],
-    [xyes], [search_lua="yes"],
-    [xno],  [search_lua="no"])
+AS_CASE([x"${with_lua_5_4}"],
+    [xyes], [search_lua_5_4="yes"],
+    [xno],  [search_lua_5_4="no"])
 
 dnl We do not abort right now, because the maintainer/developer may have
 dnl something particular in mind, e.g. to build just parts of a project.
-AS_IF([test x"${search_lua}" = xno],
-    [AC_MSG_WARN([Required dependency on lua_5_1 was explicitly disabled during configuration by '--with-lua=no'; subsequent full build of fty-alert-engine may fail])])
+AS_IF([test x"${search_lua_5_4}" = xno],
+    [AC_MSG_WARN([Required dependency on lua_5_4 was explicitly disabled during configuration by '--with-lua-5.4=no'; subsequent full build of fty-alert-engine may fail])])
 
-AS_IF([test x"${search_lua}" = xyes], [
+AS_IF([test x"${search_lua_5_4}" = xyes], [
     # Archive previously detected and supplied flags
     PRE_SEARCH_CFLAGS="${CFLAGS}"
     PRE_SEARCH_LIBS="${LIBS}"
 
     found_pkgconfig=""
-    PKG_CHECK_MODULES([lua_5_1], [lua >= 5.1.0],
+    PKG_CHECK_MODULES([lua_5_4], [lua-5.4 >= 5.4.0],
     [
-        was_lua_5_1_check_lib_detected=pkgcfg
-        found_pkgconfig="lua"
+        was_lua_5_4_check_lib_detected=pkgcfg
+        found_pkgconfig="lua-5.4"
     ],
     [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.2])
-        PKG_CHECK_MODULES([lua_5_1], [lua5.2 >= 5.1.0],
-            [
-                was_lua_5_1_check_lib_detected=pkgcfg
-                found_pkgconfig="lua5.2"
-            ],
-            [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua52])
-        PKG_CHECK_MODULES([lua_5_1], [lua52 >= 5.1.0],
-            [
-                was_lua_5_1_check_lib_detected=pkgcfg
-                found_pkgconfig="lua52"
-            ],
-            [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua5.1])
-        PKG_CHECK_MODULES([lua_5_1], [lua5.1 >= 5.1.0],
-            [
-                was_lua_5_1_check_lib_detected=pkgcfg
-                found_pkgconfig="lua5.1"
-            ],
-            [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua51])
-        PKG_CHECK_MODULES([lua_5_1], [lua51 >= 5.1.0],
-            [
-                was_lua_5_1_check_lib_detected=pkgcfg
-                found_pkgconfig="lua51"
-            ],
-            [
-        AC_MSG_NOTICE([Retry by looking at another variant of pkg-config metadata: lua])
-        PKG_CHECK_MODULES([lua_5_1], [lua >= 5.1.0],
-            [
-                was_lua_5_1_check_lib_detected=pkgcfg
-                found_pkgconfig="lua"
-            ],
-            [
-        AC_MSG_NOTICE([Packages lua lua5.2 lua52 lua5.1 lua51 lua not found with needed constraints; falling back to defined compilability tests])
-
-        lua_5_1_synthetic_cflags=""
-        lua_5_1_synthetic_libs="-llua"
-
-        if test -n "${with_lua}" && test x"${with_lua}" != xyes && test x"${with_lua}" != xno; then
-            if test -r "${with_lua}/include/lua.h"; then
-                lua_5_1_synthetic_cflags="-I${with_lua}/include"
-                lua_5_1_synthetic_libs="-L${with_lua}/lib -llua"
-            else
-            AC_MSG_ERROR([Header file ${with_lua}/include/lua.h was not found. Please check lua prefix])
-            fi
-        else
-            AC_CHECK_HEADER([lua.h], [],
-            AC_MSG_ERROR([Header file lua.h was not found in default search paths])
-                )
-        fi
-
-        AC_CHECK_LIB([lua], [lua_close],
-            [
-                was_lua_5_1_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -llua"
-            ],
-            [AC_MSG_ERROR([cannot link with -llua, install lua])])
-        ])
-        ])
-        ])
-        ])
-        ])
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'lua-5.4' - please ensure it is set])
     ])
 
-dnl END of PKG_CHECK_MODULES and/or direct tests for lua
-    AS_CASE(["x${was_lua_5_1_check_lib_detected}"],
+dnl END of PKG_CHECK_MODULES and/or direct tests for lua_5_4
+    AS_CASE(["x${was_lua_5_4_check_lib_detected}"],
         [xpkgcfg], [
-                PKGCFG_NAMES_PRIVATE="$PKGCFG_NAMES_PRIVATE ${found_pkgconfig} >= 5.1.0"
-                CFLAGS="${lua_5_1_CFLAGS} ${CFLAGS}"
-                LIBS="${lua_5_1_LIBS} ${LIBS}"
+                PKGCFG_NAMES_PRIVATE="$PKGCFG_NAMES_PRIVATE ${found_pkgconfig} >= 5.4.0"
+                CFLAGS="${lua_5_4_CFLAGS} ${CFLAGS}"
+                LIBS="${lua_5_4_LIBS} ${LIBS}"
             ],
         [xyes], [
-                CFLAGS="${lua_5_1_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${lua_5_1_synthetic_libs} ${LDFLAGS}"
-                LIBS="${lua_5_1_synthetic_libs} ${LIBS}"
+                CFLAGS="${lua_5_4_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${lua_5_4_synthetic_libs} ${LDFLAGS}"
+                LIBS="${lua_5_4_synthetic_libs} ${LIBS}"
 
-                AC_SUBST([lua_5_1_CFLAGS],[${lua_5_1_synthetic_cflags}])
-                AC_SUBST([lua_5_1_LIBS],[${lua_5_1_synthetic_libs}])
+                AC_SUBST([lua_5_4_CFLAGS],[${lua_5_4_synthetic_cflags}])
+                AC_SUBST([lua_5_4_LIBS],[${lua_5_4_synthetic_libs}])
             ],
         [xno], [
-            AC_MSG_ERROR([Cannot find pkg-config metadata for lua 5.1.0 or higher])
+            AC_MSG_ERROR([Cannot find pkg-config metadata for lua-5.4 5.4.0 or higher])
     ])
 ])
-dnl END of enabled attempts to search for lua
+dnl END of enabled attempts to search for lua_5_4
 
 
 was_cxxtools_check_lib_detected=no
@@ -1344,6 +1281,7 @@ echo
 echo Configure complete! Now proceed with:
 echo "    - 'make'               compile the project"
 echo "    - 'make check'         run the project's selftest"
+echo "    - 'make check-<test-name>'    run the project's selftest"
 echo "    - 'make install'       install the project to $prefix"
 echo "    - 'make bindings       install enabled language bindings (Python, etc)"
 echo
@@ -1360,7 +1298,7 @@ echo "    - 'make coverage'      generate project's selftest coverage report"
 echo "                           expects --with-gcov option for configure"
 echo "    - 'make clang-format-check'   check if project sources conform"
 echo "                           to style requirements"
-echo "    - 'make clang-format'         modify project sources to conform"
+echo "    - 'make clang-format'  modify project sources to conform"
 echo "                           to style requirements"
 echo "    - 'make clang-format-diff'    modify as above and print 'git diff'"
 echo

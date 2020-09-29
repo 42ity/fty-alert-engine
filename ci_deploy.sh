@@ -20,10 +20,10 @@ if [ "$BUILD_TYPE" == "default" ]; then
     md5sum *.zip *.tar.gz > MD5SUMS
     sha1sum *.zip *.tar.gz > SHA1SUMS
     cd -
-elif [ "$BUILD_TYPE" == "bindings" ] && [ "$BINDING" == "jni" ]; then
-    ( cd bindings/jni && TERM=dumb PKG_CONFIG_PATH=/tmp/lib/pkgconfig ./gradlew clean bintrayUpload )
-    cp bindings/jni/android/fty_alert_engine-android.jar fty_alert_engine-android-1.0.0.jar
-    export FTY_ALERT_ENGINE_DEPLOYMENT=fty_alert_engine-android-1.0.0.jar
+elif [ "$BUILD_TYPE" == "bindings" ] && [ "$BINDING" == "jni" ] && [ -z "$BINDING_OPTS" ]; then
+    ( cd bindings/jni && TERM=dumb ./gradlew clean bintrayUpload -PisRelease -PbuildPrefix=/tmp/jni_build )
+elif [ "$BUILD_TYPE" == "bindings" ] && [ "$BINDING" == "jni" ] && [ "$BINDING_OPTS" == "android" ]; then
+    export FTY_ALERT_ENGINE_DEPLOYMENT=bindings/jni/fty_alert_engine-jni/android/fty_alert_engine-android-*.jar
 else
     export FTY_ALERT_ENGINE_DEPLOYMENT=""
 fi
