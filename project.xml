@@ -22,7 +22,7 @@
         <option name = "require_gitignore" value = "1" />
     </target>
     <target name = "jenkins" >
-        <option name = "agent_label" value = "feature-image &amp;&amp; FEATURE_BRANCH=PQSW-265-CCOE-assessment" />
+        <option name = "agent_label" value = "feature-image &amp;&amp; FEATURE_BRANCH=PQSW-265-CCOE-assessment-stable" />
         <option name = "triggers_pollSCM" value = "H/2 * * * *" />
         <option name = "test_cppcheck" value = "1" />
         <option name = "build_docs" value = "1" />

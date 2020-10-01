@@ -25,7 +25,7 @@
 */
 
 pipeline {
-    agent { label "feature-image && FEATURE_BRANCH=PQSW-265-CCOE-assessment" }
+    agent { label "feature-image && FEATURE_BRANCH=PQSW-265-CCOE-assessment-stable" }
     parameters {
         // Use DEFAULT_DEPLOY_BRANCH_PATTERN and DEFAULT_DEPLOY_JOB_NAME if
         // defined in this jenkins setup -- in Jenkins Management Web-GUI
