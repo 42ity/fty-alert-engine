@@ -50,7 +50,12 @@ RULE_TEMPLATES = \
 	src/rule_templates/pir-motion-detector.state-change@__device_sensorgpio__.rule \
 	src/rule_templates/internal-failure@__device_ups__.rule \
 	src/rule_templates/humidity.default@__device_sensor__.rule \
-	src/rule_templates/temperature.default@__device_sensor__.rule
+	src/rule_templates/temperature.default@__device_sensor__.rule \
+	src/rule_templates/charge.battery@__cops__.rule \
+	src/rule_templates/lowbattery@__cops__.rule \
+	src/rule_templates/onacpoweroutage@__cops__.rule \
+	src/rule_templates/onbattery@__cops__.rule \
+	src/rule_templates/onbypass@__cops__.rule
 
 template_rule_DATA =	$(RULE_TEMPLATES)
 EXTRA_DIST +=		$(RULE_TEMPLATES)
