@@ -47,7 +47,7 @@ TemplateRuleConfigurator::configure (
     if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE)
         || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE))
     {
-        std::string port, severity, normal_state, model, iname_la, rule_result, ename;
+        std::string port, severity, normal_state, model, iname_la, rule_result, ename, max_power;
 
         for (auto &i : info.attributes)
         {
@@ -66,10 +66,12 @@ TemplateRuleConfigurator::configure (
                 iname_la = i.second;
             else if (i.first == "name")
                 ename = i.second;
+            else if (i.first == "max_power")
+                max_power = i.second;
         }
 
-        std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__","__ename__"};
-        std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result, ename};
+        std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__","__ename__", "__max_power__"};
+        std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result, ename, max_power};
 
         std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
         bool result = true;
