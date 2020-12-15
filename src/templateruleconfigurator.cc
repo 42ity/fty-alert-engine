@@ -51,7 +51,11 @@ TemplateRuleConfigurator::configure (
 
         for (auto &i : info.attributes)
         {
-            if (i.first == "port")
+            if (i.first == "fast_track") {
+                //skip the rules from DC in fast track mode
+                if (i.second == "true") return false;
+            }
+            else if (i.first == "port")
                 port = "GPI" + i.second;
             else if (i.first == "alarm_severity") {
                 severity = i.second;
