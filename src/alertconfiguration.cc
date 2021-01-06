@@ -522,11 +522,14 @@ int AlertConfiguration::
                 }
             }
         } // end of proceesing existing alerts
+
         if ( !isAlertFound )
         {
             // this is completly new alert -> need to add it to the list
             // but  only if alert is not resolved
-            if ( pureAlert._status != ALERT_RESOLVED )
+            // IPMVAL-2411 fix: enlarge to RESOLVED status (eg. any known status)
+            //             was: if (pureAlert._status != ALERT_RESOLVED)
+            if (PureAlert::isStatusKnown(pureAlert._status.c_str()))
             {
                 oneRuleAlerts.second.push_back(pureAlert);
                 log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
