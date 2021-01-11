@@ -46,7 +46,9 @@ class PureAlert{
     std::string _rule_class;
     uint64_t _ttl;
 
-    PureAlert() { _timestamp = 0; };
+    PureAlert() : _timestamp{0}
+    {};
+
     PureAlert(
         const std::string &s,
         uint64_t tm,

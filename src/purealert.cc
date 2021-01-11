@@ -19,6 +19,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 bool PureAlert::isStatusKnown (const char *status)
 {
+    if (!status)
+        return false; // inconsistent
+
+    if ( strcmp (status, ALERT_RESOLVED) == 0 )
+        return true;
     if ( strcmp (status, ALERT_START) == 0 )
         return true;
     if ( strcmp (status, ALERT_ACK1) == 0 )
@@ -29,8 +34,7 @@ bool PureAlert::isStatusKnown (const char *status)
         return true;
     if ( strcmp (status, ALERT_ACK4) == 0 )
         return true;
-    if ( strcmp (status, ALERT_RESOLVED) == 0 )
-        return true;
+
     return false;
 }
 
