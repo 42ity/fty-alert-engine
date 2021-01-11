@@ -48,12 +48,13 @@ TemplateRuleConfigurator::configure (
         || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE))
     {
         std::string port, severity, normal_state, model, iname_la, rule_result, ename;
+        bool fast_track = false;
 
         for (auto &i : info.attributes)
         {
             if (i.first == "fast_track") {
                 //skip the rules from DC in fast track mode
-                if (i.second == "true") return false;
+                fast_track = (i.second == "true");
             }
             else if (i.first == "port")
                 port = "GPI" + i.second;
@@ -79,22 +80,36 @@ TemplateRuleConfigurator::configure (
         bool result = true;
 
         for (auto &templat : templates) {
+            //extra check for sensorgpio
             if (info.subtype == "sensorgpio")
             {
-                if (TemplateRuleConfigurator::isModelOk (model, templat))
+                if (!TemplateRuleConfigurator::isModelOk (model, templat))
                 {
-                    std::string rule = replaceTokens(templat, patterns , replacements);
-                    log_debug("sending rule for gpio:\n %s", rule.c_str());
-                    result &= sendNewRule(rule, client);
+                    log_debug("Skip rule for gpio:\n %s", rule.c_str());
+                    continue;
+                }
+                else
+                {
+                    log_debug("Ready to send rule for gpio:\n %s", rule.c_str());
                 }
             }
-            else
+
+            //generate the rule from the template
+            std::string rule = replaceTokens(templat, patterns , replacements);
+
+            //In fast track mode we skip dc realpower rules
+            if(fast_track)
             {
-                std::string rule = replaceTokens(templat, patterns , replacements);
-                log_debug("sending rule for \n %s", name.c_str());
-                log_trace("rule: %s", rule.c_str());
-                result &= sendNewRule(rule, client);
+                if(std::regex_match(rule, std::regex(.*\"power\\.realpower\\.default\\.dc\".*")))
+                {
+                    log_debug("Fast track mode skip rules:\n %s", rule.c_str());
+                    continue;
+                }
             }
+
+            log_debug("sending rule for \n %s", name.c_str());
+            log_trace("rule: %s", rule.c_str());
+            result &= sendNewRule(rule, client);
         }
 
         return result;
