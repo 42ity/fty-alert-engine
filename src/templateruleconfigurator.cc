@@ -32,6 +32,7 @@
 #include <cxxtools/directory.h>
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
+#include <regex>
 
 bool
 TemplateRuleConfigurator::configure (
@@ -85,12 +86,12 @@ TemplateRuleConfigurator::configure (
             {
                 if (!TemplateRuleConfigurator::isModelOk (model, templat))
                 {
-                    log_debug("Skip rule for gpio:\n %s", rule.c_str());
+                    log_debug("Skip rule for gpio:\n %s", name.c_str());
                     continue;
                 }
                 else
                 {
-                    log_debug("Ready to send rule for gpio:\n %s", rule.c_str());
+                    log_debug("Ready to send rule for gpio:\n %s", name.c_str());
                 }
             }
 
@@ -100,7 +101,7 @@ TemplateRuleConfigurator::configure (
             //In fast track mode we skip dc realpower rules
             if(fast_track)
             {
-                if(std::regex_match(rule, std::regex(.*\"power\\.realpower\\.default\\.dc\".*")))
+                if(std::regex_match(rule, std::regex(".*\"power\\.realpower\\.default\\.dc\".*")))
                 {
                     log_debug("Fast track mode skip rules:\n %s", rule.c_str());
                     continue;
