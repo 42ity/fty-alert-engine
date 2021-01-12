@@ -40,13 +40,13 @@ class TemplateRuleConfigurator : public RuleConfigurator {
         virtual ~TemplateRuleConfigurator() {};
     private:
         bool checkTemplate(const char *type, const char *subtype);
-        std::vector <std::string> loadTemplates(const char *type, const char *subtype);
+        std::vector <std::string> loadTemplates(const char *type, const char *subtype, bool fast_track = false);
         std::string convertTypeSubType2Name(const char *type, const char *subtype);
         std::string replaceTokens( const std::string &text,
                                    const std::vector <std::string> &patterns,
                                    const std::vector <std::string> &replacements) const;
         bool isModelOk (const std::string &model, const std::string &templat);
-        
+
 };
 
 #endif
