@@ -32,6 +32,7 @@
 #include <cxxtools/directory.h>
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
+#include <regex>
 
 bool
 TemplateRuleConfigurator::configure (
@@ -48,12 +49,13 @@ TemplateRuleConfigurator::configure (
         || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE))
     {
         std::string port, severity, normal_state, model, iname_la, rule_result, ename;
+        bool fast_track = false;
 
         for (auto &i : info.attributes)
         {
             if (i.first == "fast_track") {
                 //skip the rules from DC in fast track mode
-                if (i.second == "true") return false;
+                fast_track = (i.second == "true");
             }
             else if (i.first == "port")
                 port = "GPI" + i.second;
@@ -75,26 +77,30 @@ TemplateRuleConfigurator::configure (
         std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__","__ename__"};
         std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result, ename};
 
-        std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str ());
+        std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str (), fast_track);
         bool result = true;
 
         for (auto &templat : templates) {
+            //extra check for sensorgpio
             if (info.subtype == "sensorgpio")
             {
-                if (TemplateRuleConfigurator::isModelOk (model, templat))
+                if (!TemplateRuleConfigurator::isModelOk (model, templat))
                 {
-                    std::string rule = replaceTokens(templat, patterns , replacements);
-                    log_debug("sending rule for gpio:\n %s", rule.c_str());
-                    result &= sendNewRule(rule, client);
+                    log_debug("Skip rule for gpio:\n %s", name.c_str());
+                    continue;
+                }
+                else
+                {
+                    log_debug("Ready to send rule for gpio:\n %s", name.c_str());
                 }
             }
-            else
-            {
-                std::string rule = replaceTokens(templat, patterns , replacements);
-                log_debug("sending rule for \n %s", name.c_str());
-                log_trace("rule: %s", rule.c_str());
-                result &= sendNewRule(rule, client);
-            }
+
+            //generate the rule from the template
+            std::string rule = replaceTokens(templat, patterns , replacements);
+
+            log_debug("sending rule for \n %s", name.c_str());
+            log_debug("rule: %s", rule.c_str());
+            result &= sendNewRule(rule, client);
         }
 
         return result;
@@ -153,7 +159,7 @@ bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info,
 
 }
 
-std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype){
+std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype, bool fast_track){
     std::vector <std::string> templates;
     if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
         log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
@@ -163,7 +169,18 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     for ( const auto &fn : d) {
         if ( fn.find(type_name.c_str())!= std::string::npos){
+
+            if(fast_track)
+            {
+                if(fn == "realpower.default@__datacenter__.rule")
+                {
+                    log_debug("match %s but not use for fast track", fn.c_str());
+                    continue;
+                }
+            }
+
             log_debug("match %s", fn.c_str());
+
             // read the template rule from the file
             std::ifstream f(d.path() + "/" + fn);
             std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
