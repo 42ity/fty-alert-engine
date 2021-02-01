@@ -79,12 +79,17 @@ int main (int argc, char** argv)
         cfg = zconfig_load(CONFIG);
     }
 
-    logConfigFile = std::string(zconfig_get(cfg, "log/config", FTY_COMMON_LOGGING_DEFAULT_CFG));
+    logConfigFile = std::string(zconfig_get(cfg, "log/config", ""));
 
     //If a log config file is configured, try to load it
     if (!logConfigFile.empty())
     {
       ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
+
+      // initialize log for auditability
+      AlertsEngineAuditLogManager::init(logConfigFile.c_str());
+
+      log_debug ("logConfigFile=%s", logConfigFile.c_str());
     }
 
     zactor_t *ag_server_stream = zactor_new(fty_alert_engine_stream, (void*) ENGINE_AGENT_NAME_STREAM);
@@ -145,5 +150,9 @@ int main (int argc, char** argv)
     zactor_destroy (&ag_actions);
     zactor_destroy (&ag_configurator);
     clearEvaluateMetrics();
+
+    // release audit context
+    AlertsEngineAuditLogManager::deinit();
+
     return 0;
 }

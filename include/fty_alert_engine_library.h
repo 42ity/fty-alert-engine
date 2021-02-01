@@ -87,6 +87,8 @@ typedef struct _fty_alert_engine_server_t fty_alert_engine_server_t;
 #define FTY_ALERT_ENGINE_SERVER_T_DEFINED
 typedef struct _fty_alert_actions_t fty_alert_actions_t;
 #define FTY_ALERT_ACTIONS_T_DEFINED
+typedef struct _fty_alert_engine_audit_log_t fty_alert_engine_audit_log_t;
+#define FTY_ALERT_ENGINE_AUDIT_LOG_T_DEFINED
 
 
 //  Public classes, each with its own header file
@@ -94,6 +96,7 @@ typedef struct _fty_alert_actions_t fty_alert_actions_t;
 #include "autoconfig.h"
 #include "fty_alert_engine_server.h"
 #include "fty_alert_actions.h"
+#include "fty_alert_engine_audit_log.h"
 
 #ifdef FTY_ALERT_ENGINE_BUILD_DRAFT_API
 
