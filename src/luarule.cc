@@ -28,6 +28,7 @@ extern "C" {
 #include <lauxlib.h>
 }
 #include "luarule.h"
+#include "fty_alert_engine_audit_log.h"
 
 LuaRule::~LuaRule ()
 {
@@ -87,45 +88,59 @@ void LuaRule::code (const std::string &newCode)
 int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
 {
     log_debug("LuaRule::evaluate %s", _name.c_str());
+    int res = 0;
 
     std::vector<double> values;
+    std::vector<std::string> auditValues;
     int index = 0;
     for ( const auto &metric : _metrics ) {
         double value = metricList.find (metric);
         if ( std::isnan (value) ) {
             log_debug("metric#%d: %s = NaN", index, metric.c_str());
             log_debug("Don't have everything for '%s' yet", _name.c_str());
-            return RULE_RESULT_UNKNOWN;
+            std::stringstream ss;
+            ss << metric.c_str() << " = " << "NaN";
+            auditValues.push_back(ss.str());
+            res = RULE_RESULT_UNKNOWN;
+            break;
         }
         values.push_back(value);
         log_debug("metric#%d: %s = %lf", index, metric.c_str(), value);
+        std::stringstream ss;
+        ss << metric.c_str() << " = " << value;
+        auditValues.push_back(ss.str());
         index++;
     }
 
-    int status = luaEvaluate(values);
-    const char *statusText = resultToString (status);
-    //log_debug("LuaRule::evaluate on %s gives '%s'", _name.c_str(), statusText);
+    if (res != RULE_RESULT_UNKNOWN) {
+        int status = luaEvaluate(values);
+        const char *statusText = resultToString (status);
+        //log_debug("LuaRule::evaluate on %s gives '%s'", _name.c_str(), statusText);
 
-    auto outcome = _outcomes.find (statusText);
-    if ( outcome != _outcomes.cend() ) {
-        log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
+        auto outcome = _outcomes.find (statusText);
+        if ( outcome != _outcomes.cend() ) {
+            log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
 
-        // some known outcome was found
-        pureAlert = PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
-        pureAlert.print();
-        return 0;
+            // some known outcome was found
+            pureAlert = PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
+            pureAlert.print();
+        }
+        else if ( status == RULE_RESULT_OK ) {
+            log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
+
+            // When alert is resolved, it doesn't have new severity!!!!
+            pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everything is ok", _element, "OK", {""});
+            pureAlert.print();
+        }
+        else {
+            log_error ("LuaRule::evaluate %s has returned a result %s, but it is not specified in 'result' in the JSON rule definition", _name.c_str(), statusText);
+            res = RULE_RESULT_UNKNOWN;
+        }
     }
-    if ( status == RULE_RESULT_OK ) {
-        log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
-
-        // When alert is resolved, it doesn't have new severity!!!!
-        pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everything is ok", _element, "OK", {""});
-        pureAlert.print();
-        return 0;
-    }
-
-    log_error ("LuaRule::evaluate %s has returned a result %s, but it is not specified in 'result' in the JSON rule definition", _name.c_str(), statusText);
-    return RULE_RESULT_UNKNOWN;
+    std::stringstream ss;
+    std::for_each(begin(auditValues), end(auditValues), [&ss](const std::string &elem) { if (ss.str().empty()) ss << elem; else ss << ", " << elem; } );
+    log_debug_alarms_engine_audit("Evaluate rule '%s' [%s] -> %s %s", _name.c_str(), ss.str().c_str(), (res == RULE_RESULT_UNKNOWN) ? ALERT_UNKNOWN : pureAlert._status.c_str(), (res == RULE_RESULT_UNKNOWN) ? "" : pureAlert._severity.c_str());
+    return res;
 }
 
 double LuaRule::luaEvaluate(const std::vector<double> &metrics)

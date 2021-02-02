@@ -6,4 +6,4 @@ server
     workdir = .         #   Working directory for daemon
     verbose = 0         #   Do verbose logging of activity?
 log
-    config = "/etc/fty/ftylog.cfg"     #   Path to the log configuration file (optional)
+    config = "/etc/fty/alertsenginelog.cfg"     #   Path to the log configuration file (optional)
