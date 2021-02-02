@@ -1055,6 +1055,12 @@ fty_alert_engine_server_test (
     if (verbose)
         ManageFtyLog::getInstanceFtylog ()->setVeboseMode ();
 
+    std::string logConfigFile = "src/alertsenginelog.cfg";
+    ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
+
+    // initialize log for auditability
+    AlertsEngineAuditLogManager::init(logConfigFile.c_str());
+
     int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str ());
     assert (r == 0); // to make gcc @ CentOS 7 happy
 
@@ -2563,6 +2569,9 @@ fty_alert_engine_server_test (
     mlm_client_destroy (&consumer);
     fty_shm_delete_test_dir();
     zactor_destroy (&server);
+
+    // release audit context
+    AlertsEngineAuditLogManager::deinit();
 
     //  @end
     printf ("OK\n");
