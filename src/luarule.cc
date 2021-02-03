@@ -139,7 +139,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     }
     std::stringstream ss;
     std::for_each(begin(auditValues), end(auditValues), [&ss](const std::string &elem) { if (ss.str().empty()) ss << elem; else ss << ", " << elem; } );
-    log_debug_alarms_engine_audit("Evaluate rule '%s' [%s] -> %s %s", _name.c_str(), ss.str().c_str(), (res == RULE_RESULT_UNKNOWN) ? ALERT_UNKNOWN : pureAlert._status.c_str(), (res == RULE_RESULT_UNKNOWN) ? "" : pureAlert._severity.c_str());
+    log_info_alarms_engine_audit("Evaluate rule '%s' [%s] -> %s %s", _name.c_str(), ss.str().c_str(), (res == RULE_RESULT_UNKNOWN) ? ALERT_UNKNOWN : pureAlert._status.c_str(), (res == RULE_RESULT_UNKNOWN) ? "" : pureAlert._severity.c_str());
     return res;
 }
 
