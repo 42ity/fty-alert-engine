@@ -13,5 +13,5 @@ Installation model
     <item type = "systemd-tmpfiles" />
     <item path = "/var/lib/fty/fty-alert-engine" name = "warranty.rule" />
     <item path = "/usr/share/bios/fty-autoconfig" />
-    <item path = "/etc/fty/alertsenginelog.cfg" name = "../src/alertsenginelog.cfg" />
+    <item path = "/etc/fty/fty-alert-engine" name = "../src/alertsenginelog.cfg" />
 </install>
