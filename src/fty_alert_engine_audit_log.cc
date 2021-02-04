@@ -33,7 +33,10 @@ Ftylog *AlertsEngineAuditLogManager::_alertsauditlog = nullptr;
 //  init audit logger
 void AlertsEngineAuditLogManager::init (const char* configLogFile)
 {
-    _alertsauditlog = ftylog_new ("alerts-engine-audit", configLogFile);
+    if (!_alertsauditlog)
+    {
+        _alertsauditlog = ftylog_new ("alerts-engine-audit", configLogFile);
+    }
 }
 
 //  deinit audit logger

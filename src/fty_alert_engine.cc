@@ -79,7 +79,7 @@ int main (int argc, char** argv)
         cfg = zconfig_load(CONFIG);
     }
 
-    logConfigFile = std::string(zconfig_get(cfg, "log/config", ""));
+    logConfigFile = std::string(zconfig_get(cfg, "log/config", FTY_COMMON_LOGGING_DEFAULT_CFG));
 
     //If a log config file is configured, try to load it
     if (!logConfigFile.empty())

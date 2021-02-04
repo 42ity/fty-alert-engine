@@ -1055,7 +1055,7 @@ fty_alert_engine_server_test (
     if (verbose)
         ManageFtyLog::getInstanceFtylog ()->setVeboseMode ();
 
-    std::string logConfigFile = "src/alertsenginelog.cfg";
+    std::string logConfigFile = "src/fty-alert-engine-log.cfg";
     ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
 
     // initialize log for auditability
