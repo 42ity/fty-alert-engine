@@ -26,10 +26,5 @@
 
 @Library('etn-ipm2-jenkins') _
 
-// Disabled DistCheck option
-// The selftest job generates files with non-ASCII names which cause error during distcheck
-import params.CmakePipelineParams
-CmakePipelineParams parameters = new CmakePipelineParams()
-parameters.enableDistCheck = false
-
-etn_ipm2_build_and_tests_pipeline_zproject(parameters)
+// run with default parameters
+etn_ipm2_build_and_tests_pipeline_zproject()
