@@ -43,6 +43,8 @@
 
 #include "fty_alert_engine_classes.h"
 
+#include "fty_alert_engine_audit_log.h"
+
 //object use by stream and mailbox messages
 static AlertConfiguration alertConfiguration;
 
@@ -1052,6 +1054,12 @@ fty_alert_engine_server_test (
     log_info (" * fty_alert_engine_server: ");
     if (verbose)
         ManageFtyLog::getInstanceFtylog ()->setVeboseMode ();
+
+    std::string logConfigFile = "src/fty-alert-engine-log.cfg";
+    ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
+
+    // initialize log for auditability
+    AlertsEngineAuditLogManager::init(logConfigFile.c_str());
 
     int r = system (("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str ());
     assert (r == 0); // to make gcc @ CentOS 7 happy
@@ -2561,6 +2569,9 @@ fty_alert_engine_server_test (
     mlm_client_destroy (&consumer);
     fty_shm_delete_test_dir();
     zactor_destroy (&server);
+
+    // release audit context
+    AlertsEngineAuditLogManager::deinit();
 
     //  @end
     printf ("OK\n");

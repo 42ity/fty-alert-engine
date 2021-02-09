@@ -8,6 +8,7 @@ include_HEADERS = \
     autoconfig.h \
     fty_alert_engine_server.h \
     fty_alert_actions.h \
+    fty_alert_engine_audit_log.h \
     fty_alert_engine_library.h
 
 
