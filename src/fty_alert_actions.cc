@@ -54,7 +54,13 @@
 #if !defined(MLM_MAKE_VERSION) || !defined(MLM_VERSION)
 #error "MLM_MAKE_VERSION macro not defined"
 #endif
-#if MLM_MAKE_VERSION(1,1,0) != MLM_VERSION
+#if (MLM_MAKE_VERSION(1,1,0) != MLM_VERSION) && (MLM_MAKE_VERSION(1,2,0) != MLM_VERSION)
+/* Hotfix: malamute-1.1 final was released Oct 2020, after holding the pending
+ * version number for several years; now the upstream source is dubbed 1.2 with
+ * no changes as of Feb 2021. So for a quick build fix, check above also trusts
+ * "1.2.0" although the code is allowed to not compile if API does change over
+ * time (should not do so in an incompatible manner across minor releases...)
+ */
 #error "MLM version has changed, please check function signatures are matching for testing framework"
 #endif
 #define TEST_VARS \
