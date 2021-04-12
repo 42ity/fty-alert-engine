@@ -30,6 +30,7 @@
 
 class TemplateRuleConfigurator : public RuleConfigurator {
     public:
+        using RuleConfigurator::configure;
         bool configure (const std::string& name,
                         const AutoConfigurationInfo& info,
                         const std::string &logical_asset,

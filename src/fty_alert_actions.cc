@@ -74,7 +74,7 @@
     {                                                                                                                  \
         assert(client);              /* prevent not-used warning */                                                    \
         assert(tracker || !tracker); /* prevent not-used warning */                                                    \
-        /* assert(timeout >= 0);        /* prevent not-used warning */                                                 \
+        /* assert(timeout >= 0); */       /* prevent not-used warning */                                                 \
         log_debug("%s: called testing sendto on line %ld, function %s for client %s with subject %s", __FILE__, line,  \
             func, address, subject);                                                                                   \
         zmsg_destroy(msg);                                                                                             \
