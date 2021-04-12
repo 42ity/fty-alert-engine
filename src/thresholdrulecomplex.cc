@@ -22,62 +22,60 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Complex threshold rule representation
  */
 
+#include <lua.h>
+#include "thresholdrulecomplex.h"
 #include <sstream>
 
-#include "fty_alert_engine_classes.h"
-
-int ThresholdRuleComplex::fill(
-        const cxxtools::SerializationInfo &si)
+int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
 {
     _si = si;
-    if ( si.findMember("threshold") == NULL ) {
+    if (si.findMember("threshold") == NULL) {
         return 1;
     }
     auto threshold = si.getMember("threshold");
-    if ( threshold.category () != cxxtools::SerializationInfo::Object ) {
-        log_error ("Root of json must be an object with property 'threshold'.");
+    if (threshold.category() != cxxtools::SerializationInfo::Object) {
+        log_error("Root of json must be an object with property 'threshold'.");
         throw std::runtime_error("Root of json must be an object with property 'threshold'.");
     }
 
     // target
     auto target = threshold.getMember("target");
-    if ( target.category () != cxxtools::SerializationInfo::Array ) {
+    if (target.category() != cxxtools::SerializationInfo::Array) {
         return 1;
     }
-    log_debug ("it is complex threshold rule");
+    log_debug("it is complex threshold rule");
 
-    std::vector<std::basic_string <cxxtools::Char>> cxxtools_Char_metrics;
+    std::vector<std::basic_string<cxxtools::Char>> cxxtools_Char_metrics;
     target >>= cxxtools_Char_metrics;
-    for (const auto& ccm: cxxtools_Char_metrics) {
-        _metrics.push_back (cxxtools::Utf8Codec::encode (ccm));
-    } 
+    for (const auto& ccm : cxxtools_Char_metrics) {
+        _metrics.push_back(cxxtools::Utf8Codec::encode(ccm));
+    }
 
-    si_getValueUtf8 (threshold, "rule_name", _name);
-    si_getValueUtf8 (threshold, "element", _element);
+    si_getValueUtf8(threshold, "rule_name", _name);
+    si_getValueUtf8(threshold, "element", _element);
 
     // rule_class
-    if ( threshold.findMember("rule_class") != NULL ) {
+    if (threshold.findMember("rule_class") != NULL) {
         threshold.getMember("rule_class") >>= _rule_class;
     }
     // rule_source
-    if ( threshold.findMember("rule_source") == NULL ) {
+    if (threshold.findMember("rule_source") == NULL) {
         // if key is not there, take default
         _rule_source = "Manual user input";
         threshold.addMember("rule_source") <<= _rule_source;
-    }
-    else {
+    } else {
         auto rule_source = threshold.getMember("rule_source");
-        if ( rule_source.category () != cxxtools::SerializationInfo::Value ) {
+        if (rule_source.category() != cxxtools::SerializationInfo::Value) {
             throw std::runtime_error("'rule_source' in json must be value.");
         }
         rule_source >>= _rule_source;
     }
     // values
     // TODO check low_critical < low_warning < high_warning < high_critical
-    std::map<std::string,double> tmp_values;
-    auto values = threshold.getMember("values");
-    if ( values.category () != cxxtools::SerializationInfo::Array ) {
-        log_error ("parameter 'values' in json must be an array.");
+    std::map<std::string, double> tmp_values;
+    auto                          values = threshold.getMember("values");
+    if (values.category() != cxxtools::SerializationInfo::Array) {
+        log_error("parameter 'values' in json must be an array.");
         throw std::runtime_error("parameter 'values' in json must be an array");
     }
     values >>= tmp_values;
@@ -85,9 +83,9 @@ int ThresholdRuleComplex::fill(
 
     // outcomes
     auto outcomes = threshold.getMember("results");
-    if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-        log_error ("parameter 'results' in json must be an array.");
-        throw std::runtime_error ("parameter 'results' in json must be an array.");
+    if (outcomes.category() != cxxtools::SerializationInfo::Array) {
+        log_error("parameter 'results' in json must be an array.");
+        throw std::runtime_error("parameter 'results' in json must be an array.");
     }
     outcomes >>= _outcomes;
 
@@ -95,12 +93,10 @@ int ThresholdRuleComplex::fill(
     threshold.getMember("evaluation") >>= tmp;
     try {
         code(tmp);
-    }
-    catch ( const std::exception &e ) {
-        log_error ("something with lua function: %s", e.what());
+    } catch (const std::exception& e) {
+        log_error("something with lua function: %s", e.what());
         return 2;
     }
 
     return 0;
 }
-

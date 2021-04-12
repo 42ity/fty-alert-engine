@@ -20,31 +20,34 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
  *  \brief Representation of PATTERN rule
  */
-#ifndef SRC_REGEXRULE_H
-#define SRC_REGEXRULE_H
+#pragma once
 
 extern "C" {
-#include <lua5.1/lua.h>
 #include <lua5.1/lauxlib.h>
+#include <lua5.1/lua.h>
 }
 // because of regex and zsysinfo
+#include "luarule.h"
 #include <czmq.h>
 #include <fty_log.h>
-#include "luarule.h"
 
-class RegexRule : public LuaRule {
+class RegexRule : public LuaRule
+{
 public:
-
     RegexRule()
     {
         _rex = NULL;
     };
 
-    ~RegexRule() {
-        zrex_destroy (&_rex);
+    ~RegexRule()
+    {
+        zrex_destroy(&_rex);
     };
 
-    std::string whoami () const { return "pattern"; }
+    std::string whoami() const
+    {
+        return "pattern";
+    }
 
     /*
      * \brief parse json and check lua and fill the object
@@ -55,45 +58,44 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(const cxxtools::SerializationInfo &si)
+    int fill(const cxxtools::SerializationInfo& si)
     {
         _si = si;
-        if ( si.findMember("pattern") == NULL ) {
+        if (si.findMember("pattern") == NULL) {
             return 1;
         }
-        log_debug ("it is PATTERN rule");
+        log_debug("it is PATTERN rule");
         auto pattern = si.getMember("pattern");
-        if ( pattern.category () != cxxtools::SerializationInfo::Object ) {
-            log_error ("Root of json must be an object with property 'pattern'.");
+        if (pattern.category() != cxxtools::SerializationInfo::Object) {
+            log_error("Root of json must be an object with property 'pattern'.");
             throw std::runtime_error("Root of json must be an object with property 'pattern'.");
         }
 
         pattern.getMember("rule_name") >>= _name;
         pattern.getMember("target") >>= _rex_str;
         // rule_class
-        if ( pattern.findMember("rule_class") != NULL ) {
+        if (pattern.findMember("rule_class") != NULL) {
             pattern.getMember("rule_class") >>= _rule_class;
         }
         // rule_source
-        if ( pattern.findMember("rule_source") == NULL ) {
+        if (pattern.findMember("rule_source") == NULL) {
             // if key is not there, take default
             _rule_source = "Manual user input";
             pattern.addMember("rule_source") <<= _rule_source;
-        }
-        else {
+        } else {
             auto rule_source = pattern.getMember("rule_source");
-            if ( rule_source.category () != cxxtools::SerializationInfo::Value ) {
+            if (rule_source.category() != cxxtools::SerializationInfo::Value) {
                 throw std::runtime_error("'rule_source' in json must be value.");
             }
             rule_source >>= _rule_source;
         }
-        log_debug ("rule_source = %s", _rule_source.c_str());
+        log_debug("rule_source = %s", _rule_source.c_str());
 
         // values
-        std::map<std::string,double> tmp_values;
-        auto values = pattern.getMember("values");
-        if ( values.category () != cxxtools::SerializationInfo::Array ) {
-            log_error ("parameter 'values' in json must be an array.");
+        std::map<std::string, double> tmp_values;
+        auto                          values = pattern.getMember("values");
+        if (values.category() != cxxtools::SerializationInfo::Array) {
+            log_error("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
         }
         values >>= tmp_values;
@@ -101,9 +103,9 @@ public:
 
         // outcomes
         auto outcomes = pattern.getMember("results");
-        if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            log_error ("parameter 'results' in json must be an array.");
-            throw std::runtime_error ("parameter 'results' in json must be an array.");
+        if (outcomes.category() != cxxtools::SerializationInfo::Array) {
+            log_error("parameter 'results' in json must be an array.");
+            throw std::runtime_error("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
 
@@ -111,9 +113,8 @@ public:
         pattern.getMember("evaluation") >>= tmp;
         try {
             code(tmp);
-        }
-        catch ( const std::exception &e ) {
-            log_error ("something with lua function: %s", e.what());
+        } catch (const std::exception& e) {
+            log_error("something with lua function: %s", e.what());
             return 2;
         }
         // TODO what if regexp is not correct?
@@ -121,11 +122,11 @@ public:
         return 0;
     };
 
-    int evaluate (const MetricList &metricList, PureAlert &pureAlert)
+    int evaluate(const MetricList& metricList, PureAlert& pureAlert)
     {
         _metrics = {metricList.getLastMetric().generateTopic()};
-        int rv = LuaRule::evaluate(metricList, pureAlert);
-        if ( rv != 0 ) {
+        int rv   = LuaRule::evaluate(metricList, pureAlert);
+        if (rv != 0) {
             return rv;
         }
         // regexp rule is special, it has to generate alert for the element,
@@ -134,9 +135,9 @@ public:
         return 0;
     };
 
-    bool isTopicInteresting(const std::string &topic) const
+    bool isTopicInteresting(const std::string& topic) const
     {
-        return zrex_matches (_rex, topic.c_str());
+        return zrex_matches(_rex, topic.c_str());
     };
 
     std::vector<std::string> getNeededTopics(void) const
@@ -145,8 +146,6 @@ public:
     };
 
 private:
-    zrex_t *_rex;
+    zrex_t*     _rex;
     std::string _rex_str;
 };
-
-#endif // SRC_REGEXRULE_H

@@ -19,10 +19,10 @@
     =========================================================================
 */
 
-#ifndef RULECONFIGURATOR_H_INCLUDED
-#define RULECONFIGURATOR_H_INCLUDED
+#pragma once
 
 #include "preproc.h"
+#include "autoconfig.h"
 #include <malamute.h>
 #include <map>
 #include <string>
@@ -51,5 +51,3 @@ public:
 
     virtual ~RuleConfigurator(){};
 };
-
-#endif

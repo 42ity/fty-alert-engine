@@ -26,7 +26,8 @@
 @end
 */
 
-#include "fty_alert_engine_classes.h"
+#include <ftyproto.h>
+#include "fty_alert_actions.h"
 
 #define EMAIL_ACTION       "EMAIL"
 #define SMS_ACTION         "SMS"
@@ -74,7 +75,7 @@
     {                                                                                                                  \
         assert(client);              /* prevent not-used warning */                                                    \
         assert(tracker || !tracker); /* prevent not-used warning */                                                    \
-        /* assert(timeout >= 0); */       /* prevent not-used warning */                                                 \
+        /* assert(timeout >= 0); */  /* prevent not-used warning */                                                    \
         log_debug("%s: called testing sendto on line %ld, function %s for client %s with subject %s", __FILE__, line,  \
             func, address, subject);                                                                                   \
         zmsg_destroy(msg);                                                                                             \
@@ -116,12 +117,12 @@
 #define mlm_client_subject(...)  (unlikely(testing) ? (testing_var_subject) : (mlm_client_subject(__VA_ARGS__)))
 #define CLEAN_RECV                                                                                                     \
     {                                                                                                                  \
-        zmsg_t* l = static_cast<zmsg_t*>(zlist_first(testing_var_recv));                                                            \
+        zmsg_t* l = static_cast<zmsg_t*>(zlist_first(testing_var_recv));                                               \
         int     c = 0;                                                                                                 \
         while (NULL != l) {                                                                                            \
             ++c;                                                                                                       \
             zmsg_destroy(&l);                                                                                          \
-            l = static_cast<zmsg_t*>(zlist_next(testing_var_recv));                                                                 \
+            l = static_cast<zmsg_t*>(zlist_next(testing_var_recv));                                                    \
         }                                                                                                              \
         if (0 != c)                                                                                                    \
             log_debug(                                                                                                 \
@@ -178,7 +179,7 @@ static const std::map<std::pair<std::string, uint8_t>, uint32_t> times = {
 
 //  Structure of our class
 
-struct _fty_alert_actions_t
+/* struct _fty_alert_actions_t
 {
     mlm_client_t* client;
     mlm_client_t* requestreply_client;
@@ -190,7 +191,7 @@ struct _fty_alert_actions_t
     bool          integration_test;
     uint64_t      notification_override;
     uint64_t      requestreply_timeout;
-};
+}; */
 
 typedef struct
 {
@@ -1072,7 +1073,7 @@ void fty_alert_actions_test(bool verbose)
     {
         log_debug("test 4");
         {
-            char * s = NULL;
+            char* s = NULL;
             stpcpy(s, "uuid-test");
             SET_UUID(s);
         }
@@ -1104,7 +1105,7 @@ void fty_alert_actions_test(bool verbose)
     {
         log_debug("test 5");
         {
-            char * s = NULL;
+            char* s = NULL;
             stpcpy(s, "uuid-test");
             SET_UUID(s);
         }
@@ -1122,10 +1123,10 @@ void fty_alert_actions_test(bool verbose)
 
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions,  static_cast<void*>( const_cast<char*>("SMS")));
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        zmsg_t* msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "SOME_RULE", "SOME_ASSET", "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("SMS")));
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        zmsg_t* msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "SOME_RULE", "SOME_ASSET",
+            "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
 
         // send an active alert
@@ -1148,8 +1149,8 @@ void fty_alert_actions_test(bool verbose)
         // resolve the alert
         actions = zlist_new();
         zlist_autofree(actions);
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "SOME_RULE", "SOME_ASSET", "RESOLVED", "CRITICAL", "ASDFKLHJH", actions);
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "SOME_RULE", "SOME_ASSET",
+            "RESOLVED", "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
 
         s_handle_stream_deliver(self, &msg, "");
@@ -1200,7 +1201,7 @@ void fty_alert_actions_test(bool verbose)
 
         log_debug("test 7");
         {
-            char * s = NULL;
+            char* s = NULL;
             stpcpy(s, "uuid-test");
             SET_UUID(s);
         }
@@ -1217,11 +1218,11 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info
         const char* asset_name = "ASSET1";
         zhash_t*    aux        = zhash_new();
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("scenario1.email@eaton.com")));
-        zhash_insert(ext, "contact_name", static_cast<void*>( const_cast<char*>("eaton Support team")));
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name)));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("scenario1.email@eaton.com")));
+        zhash_insert(ext, "contact_name", static_cast<void*>(const_cast<char*>("eaton Support team")));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         s_handle_stream_deliver(self, &msg, "Asset message1");
@@ -1233,9 +1234,9 @@ void fty_alert_actions_test(bool verbose)
         //      2. send alert message
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         std::string atopic = "NY_RULE/CRITICAL@" + std::string(asset_name);
         s_handle_stream_deliver(self, &msg, atopic.c_str());
@@ -1262,11 +1263,12 @@ void fty_alert_actions_test(bool verbose)
     const char* TEST_ENDPOINT          = "inproc://fty-alert-actions-test";
     const char* FTY_ALERT_ACTIONS_TEST = "fty-alert-actions-test";
 
-    zactor_t* server = zactor_new(mlm_server, static_cast<void*>( const_cast<char*>("Malamute_alert_actions_test")));
+    zactor_t* server = zactor_new(mlm_server, static_cast<void*>(const_cast<char*>("Malamute_alert_actions_test")));
     assert(server != NULL);
     zstr_sendx(server, "BIND", TEST_ENDPOINT, NULL);
 
-    zactor_t* alert_actions = zactor_new(fty_alert_actions, static_cast<void*>( const_cast<char*>(FTY_ALERT_ACTIONS_TEST)));
+    zactor_t* alert_actions =
+        zactor_new(fty_alert_actions, static_cast<void*>(const_cast<char*>(FTY_ALERT_ACTIONS_TEST)));
     zstr_sendx(alert_actions, "CONNECT", TEST_ENDPOINT, NULL);
     zstr_sendx(alert_actions, "CONSUMER", TEST_ASSETS, ".*", NULL);
     zstr_sendx(alert_actions, "CONSUMER", TEST_ALERTS, ".*", NULL);
@@ -1289,11 +1291,11 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info
         const char* asset_name = "ASSET";
         zhash_t*    aux        = zhash_new();
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("scenario1.email@eaton.com")));
-        zhash_insert(ext, "contact_name", static_cast<void*>( const_cast<char*>("eaton Support team")));
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name)));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("scenario1.email@eaton.com")));
+        zhash_insert(ext, "contact_name", static_cast<void*>(const_cast<char*>("eaton Support team")));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         mlm_client_send(asset_producer, "Asset message1", &msg);
@@ -1304,9 +1306,9 @@ void fty_alert_actions_test(bool verbose)
         //      2. send alert message
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         std::string atopic = "NY_RULE/CRITICAL@" + std::string(asset_name);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
@@ -1356,11 +1358,11 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info
         const char* asset_name1 = "GPO1";
         zhash_t*    aux         = zhash_new();
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("scenario1.email@eaton.com")));
-        zhash_insert(ext, "contact_name", static_cast<void*>( const_cast<char*>("eaton Support team")));
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name1)));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("scenario1.email@eaton.com")));
+        zhash_insert(ext, "contact_name", static_cast<void*>(const_cast<char*>("eaton Support team")));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name1)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name1, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         mlm_client_send(asset_producer, "Asset message1", &msg);
@@ -1371,9 +1373,9 @@ void fty_alert_actions_test(bool verbose)
         //      2. send alert message
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("GPO_INTERACTION:gpo-1:open")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE1", asset_name1, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("GPO_INTERACTION:gpo-1:open")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE1", asset_name1, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         std::string atopic = "NY_RULE1/CRITICAL@" + std::string(asset_name1);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
@@ -1411,10 +1413,10 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info
         const char* asset_name = "ASSET2";
         zhash_t*    aux        = zhash_new();
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
-        zhash_insert(ext, "contact_name", static_cast<void*>( const_cast<char*>("eaton Support team")));
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name)));
+        zhash_insert(ext, "contact_name", static_cast<void*>(const_cast<char*>("eaton Support team")));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         mlm_client_send(asset_producer, "Asset message3", &msg);
@@ -1425,9 +1427,9 @@ void fty_alert_actions_test(bool verbose)
         //      2. send alert message
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE2", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE2", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         std::string atopic2 = "NY_RULE2/CRITICAL@" + std::string(asset_name);
         mlm_client_send(alert_producer, atopic2.c_str(), &msg);
@@ -1464,10 +1466,10 @@ void fty_alert_actions_test(bool verbose)
         log_debug("test 11");
         const char* asset_name = "ASSET3";
         zhash_t*    aux        = zhash_new();
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("eaton Support team")));
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name)));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("eaton Support team")));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         mlm_client_send(asset_producer, "Asset message3", &msg);
@@ -1479,9 +1481,9 @@ void fty_alert_actions_test(bool verbose)
         std::string atopic  = "NY_RULE3/CRITICAL@" + std::string(asset_name);
         zlist_t*    actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE3", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE3", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
         zlist_destroy(&actions);
@@ -1505,9 +1507,9 @@ void fty_alert_actions_test(bool verbose)
         //      4. send an alert on the already known asset
         actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE3", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE3", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
         zlist_destroy(&actions);
@@ -1526,10 +1528,10 @@ void fty_alert_actions_test(bool verbose)
         log_debug("test 12");
         const char* asset_name = "ASSET4";
         zhash_t*    aux        = zhash_new();
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("eaton Support team")));
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name)));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("eaton Support team")));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         mlm_client_send(asset_producer, "Asset message4", &msg);
@@ -1541,8 +1543,8 @@ void fty_alert_actions_test(bool verbose)
         std::string atopic  = "NY_RULE4/CRITICAL@" + std::string(asset_name);
         zlist_t*    actions = zlist_new();
         zlist_autofree(actions);
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE4", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "NY_RULE4", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
         zlist_destroy(&actions);
@@ -1571,10 +1573,10 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info without email
         zhash_t* aux = zhash_new();
         assert(aux);
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
         assert(ext);
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name6)));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name6)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name6, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         int rv = mlm_client_send(asset_producer, "Asset message6", &msg);
@@ -1585,9 +1587,9 @@ void fty_alert_actions_test(bool verbose)
         //      2. send alert message
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name6, asset_name6, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name6, asset_name6, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         rv = mlm_client_send(alert_producer, alert_topic6.c_str(), &msg);
         assert(rv != -1);
@@ -1618,7 +1620,7 @@ void fty_alert_actions_test(bool verbose)
         zstr_free(&zuuid_str);
 
         //      5. send asset info one more time, but with email
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("scenario6.email@eaton.com")));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("scenario6.email@eaton.com")));
         msg = fty_proto_encode_asset(aux, asset_name6, "update", ext);
         assert(msg);
         rv = mlm_client_send(asset_producer, "Asset message6", &msg);
@@ -1631,9 +1633,9 @@ void fty_alert_actions_test(bool verbose)
         //      5. send alert message again
         actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name6, asset_name6, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name6, asset_name6, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         rv = mlm_client_send(alert_producer, alert_topic6.c_str(), &msg);
         assert(rv != -1);
@@ -1662,10 +1664,10 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info without email
         zhash_t* aux = zhash_new();
         assert(aux);
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
         assert(ext);
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name)));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         int rv = mlm_client_send(asset_producer, "Asset message6", &msg);
@@ -1678,9 +1680,9 @@ void fty_alert_actions_test(bool verbose)
         std::string atopic  = "Scenario7/CRITICAL@" + std::string(asset_name);
         zlist_t*    actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "Scenario7", asset_name, "ACTIVE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "Scenario7", asset_name, "ACTIVE",
+            "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
         zlist_destroy(&actions);
@@ -1703,9 +1705,9 @@ void fty_alert_actions_test(bool verbose)
         //      4. send an alert on the already known asset
         actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "Scenario7", asset_name, "ACK-SILENCE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "Scenario7", asset_name,
+            "ACK-SILENCE", "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
         zlist_destroy(&actions);
@@ -1733,9 +1735,9 @@ void fty_alert_actions_test(bool verbose)
         //      7. send an alert again
         actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        msg = fty_proto_encode_alert(
-            NULL, static_cast<uint64_t>(::time(NULL)), 600, "Scenario7", asset_name, "ACK-SILENCE", "CRITICAL", "ASDFKLHJH", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, "Scenario7", asset_name,
+            "ACK-SILENCE", "CRITICAL", "ASDFKLHJH", actions);
         assert(msg);
         mlm_client_send(alert_producer, atopic.c_str(), &msg);
         zlist_destroy(&actions);
@@ -1767,10 +1769,10 @@ void fty_alert_actions_test(bool verbose)
         //      1. send asset info without email
         zhash_t* aux = zhash_new();
         assert(aux);
-        zhash_insert(aux, "priority", static_cast<void*>( const_cast<char*>("1")));
+        zhash_insert(aux, "priority", static_cast<void*>(const_cast<char*>("1")));
         zhash_t* ext = zhash_new();
         assert(ext);
-        zhash_insert(ext, "name", static_cast<void*>( const_cast<char*>(asset_name8)));
+        zhash_insert(ext, "name", static_cast<void*>(const_cast<char*>(asset_name8)));
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name8, FTY_PROTO_ASSET_OP_UPDATE, ext);
         assert(msg);
         int rv = mlm_client_send(asset_producer, "Asset message8", &msg);
@@ -1780,10 +1782,10 @@ void fty_alert_actions_test(bool verbose)
         //      2. send alert message
         zlist_t* actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("SMS")));
-        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name8, asset_name8, "ACTIVE", "WARNING",
-            "Default load in ups ROZ.UPS36 is high", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("SMS")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name8, asset_name8, "ACTIVE",
+            "WARNING", "Default load in ups ROZ.UPS36 is high", actions);
         assert(msg);
         rv = mlm_client_send(alert_producer, alert_topic8.c_str(), &msg);
         assert(rv != -1);
@@ -1841,7 +1843,7 @@ void fty_alert_actions_test(bool verbose)
         zstr_free(&zuuid_str);
 
         //      5. send asset info one more time, but with email
-        zhash_insert(ext, "contact_email", static_cast<void*>( const_cast<char*>("scenario8.email@eaton.com")));
+        zhash_insert(ext, "contact_email", static_cast<void*>(const_cast<char*>("scenario8.email@eaton.com")));
         msg = fty_proto_encode_asset(aux, asset_name8, "update", ext);
         assert(msg);
         rv = mlm_client_send(asset_producer, "Asset message8", &msg);
@@ -1854,10 +1856,10 @@ void fty_alert_actions_test(bool verbose)
         //      6. send alert message again second
         actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("SMS")));
-        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name8, asset_name8, "ACTIVE", "WARNING",
-            "Default load in ups ROZ.UPS36 is high", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("SMS")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name8, asset_name8, "ACTIVE",
+            "WARNING", "Default load in ups ROZ.UPS36 is high", actions);
         assert(msg);
         rv = mlm_client_send(alert_producer, alert_topic8.c_str(), &msg);
         assert(rv != -1);
@@ -1904,10 +1906,10 @@ void fty_alert_actions_test(bool verbose)
         //      8. send alert message again third time
         actions = zlist_new();
         zlist_autofree(actions);
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("EMAIL")));
-        zlist_append(actions, static_cast<void*>( const_cast<char*>("SMS")));
-        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name8, asset_name8, "ACTIVE", "WARNING",
-            "Default load in ups ROZ.UPS36 is high", actions);
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("EMAIL")));
+        zlist_append(actions, static_cast<void*>(const_cast<char*>("SMS")));
+        msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)), 600, rule_name8, asset_name8, "ACTIVE",
+            "WARNING", "Default load in ups ROZ.UPS36 is high", actions);
         assert(msg);
         rv = mlm_client_send(alert_producer, alert_topic8.c_str(), &msg);
         assert(rv != -1);

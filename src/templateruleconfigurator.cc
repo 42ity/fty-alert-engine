@@ -26,46 +26,36 @@
 @end
 */
 
-#include "fty_alert_engine_classes.h"
-#include <fty/convert.h>
-
-#include <algorithm>
-#include <cxxtools/directory.h>
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
+#include <algorithm>
+#include <cxxtools/directory.h>
+#include <fty/convert.h>
+#include <ftyproto.h>
 #include <regex>
 
-bool
-TemplateRuleConfigurator::configure (
-    const std::string& name,
-    const AutoConfigurationInfo& info,
-    const std::string &ename_la,
-    mlm_client_t *client
-)
+bool TemplateRuleConfigurator::configure(
+    const std::string& name, const AutoConfigurationInfo& info, const std::string& ename_la, mlm_client_t* client)
 {
-    log_debug ("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
-                name.c_str(), info.type.c_str (), info.subtype.c_str ());
+    log_debug("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')", name.c_str(),
+        info.type.c_str(), info.subtype.c_str());
 
-    if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_CREATE)
-        || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_UPDATE))
-    {
+    if (streq(info.operation.c_str(), FTY_PROTO_ASSET_OP_CREATE) ||
+        streq(info.operation.c_str(), FTY_PROTO_ASSET_OP_UPDATE)) {
         std::string port, severity, normal_state, model, iname_la, rule_result, ename;
-        bool fast_track = false;
+        bool        fast_track = false;
 
-        for (auto &i : info.attributes)
-        {
+        for (auto& i : info.attributes) {
             if (i.first == "fast_track") {
-                //skip the rules from DC in fast track mode
+                // skip the rules from DC in fast track mode
                 fast_track = (i.second == "true");
-            }
-            else if (i.first == "port")
+            } else if (i.first == "port")
                 port = "GPI" + i.second;
             else if (i.first == "alarm_severity") {
-                severity = i.second;
+                severity    = i.second;
                 rule_result = i.second;
-                std::transform (rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
-            }
-            else if (i.first == "normal_state")
+                std::transform(rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
+            } else if (i.first == "normal_state")
                 normal_state = i.second;
             else if (i.first == "model")
                 model = i.second;
@@ -75,29 +65,27 @@ TemplateRuleConfigurator::configure (
                 ename = i.second;
         }
 
-        std::vector <std::string> patterns = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__", "__severity__", "__normalstate__", "__rule_result__","__ename__"};
-        std::vector <std::string> replacements = {name, port, ename_la, iname_la, severity, normal_state, rule_result, ename};
+        std::vector<std::string> patterns     = {"__name__", "__port__", "__logicalasset__", "__logicalasset_iname__",
+            "__severity__", "__normalstate__", "__rule_result__", "__ename__"};
+        std::vector<std::string> replacements = {
+            name, port, ename_la, iname_la, severity, normal_state, rule_result, ename};
 
-        std::vector <std::string> templates = loadTemplates (info.type.c_str (), info.subtype.c_str (), fast_track);
-        bool result = true;
+        std::vector<std::string> templates = loadTemplates(info.type.c_str(), info.subtype.c_str(), fast_track);
+        bool                     result    = true;
 
-        for (auto &templat : templates) {
-            //extra check for sensorgpio
-            if (info.subtype == "sensorgpio")
-            {
-                if (!TemplateRuleConfigurator::isModelOk (model, templat))
-                {
+        for (auto& templat : templates) {
+            // extra check for sensorgpio
+            if (info.subtype == "sensorgpio") {
+                if (!TemplateRuleConfigurator::isModelOk(model, templat)) {
                     log_debug("Skip rule for gpio:\n %s", name.c_str());
                     continue;
-                }
-                else
-                {
+                } else {
                     log_debug("Ready to send rule for gpio:\n %s", name.c_str());
                 }
             }
 
-            //generate the rule from the template
-            std::string rule = replaceTokens(templat, patterns , replacements);
+            // generate the rule from the template
+            std::string rule = replaceTokens(templat, patterns, replacements);
 
             log_debug("sending rule for \n %s", name.c_str());
             log_debug("rule: %s", rule.c_str());
@@ -105,49 +93,43 @@ TemplateRuleConfigurator::configure (
         }
 
         return result;
-    }
-    else if (streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_DELETE)
-        || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_RETIRE)
-        || streq (info.operation.c_str (), FTY_PROTO_ASSET_OP_INVENTORY)
-    ) {
-        log_warning ("TODO: known operation '%s' without implemented action", info.operation.c_str ());
-    }
-    else {
-        log_error ("Unknown operation '%s' on asset '%s'", info.operation.c_str (), name.c_str ());
+    } else if (streq(info.operation.c_str(), FTY_PROTO_ASSET_OP_DELETE) ||
+               streq(info.operation.c_str(), FTY_PROTO_ASSET_OP_RETIRE) ||
+               streq(info.operation.c_str(), FTY_PROTO_ASSET_OP_INVENTORY)) {
+        log_warning("TODO: known operation '%s' without implemented action", info.operation.c_str());
+    } else {
+        log_error("Unknown operation '%s' on asset '%s'", info.operation.c_str(), name.c_str());
     }
 
     return true;
 }
 
-bool
-TemplateRuleConfigurator::isModelOk (const std::string& model,
-                                     const std::string& templat)
+bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::string& templat)
 {
-    if (templat.find (model) != std::string::npos)
+    if (templat.find(model) != std::string::npos)
         return true;
     else
         return false;
 }
 
-bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info){
-    return checkTemplate(info.type.c_str (), info.subtype.c_str ());
+bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info)
+{
+    return checkTemplate(info.type.c_str(), info.subtype.c_str());
 }
 
-bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info,
-        const std::string& templat_name)
+bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name)
 {
     cxxtools::Directory d(Autoconfig::RuleFilePath);
-    std::ifstream f(d.path() + "/" + templat_name);
-    if (!f.good()) return false;
+    std::ifstream       f(d.path() + "/" + templat_name);
+    if (!f.good())
+        return false;
 
-    std::string type_name = convertTypeSubType2Name(info.type.c_str(),info.subtype.c_str());
+    std::string type_name = convertTypeSubType2Name(info.type.c_str(), info.subtype.c_str());
 
-    if (templat_name.find(type_name.c_str())!= std::string::npos)
-    {
-        if (info.subtype == "sensorgpio" && info.attributes.find("model") != info.attributes.end())
-        {
+    if (templat_name.find(type_name.c_str()) != std::string::npos) {
+        if (info.subtype == "sensorgpio" && info.attributes.find("model") != info.attributes.end()) {
             std::string model = info.attributes.find("model")->second;
-            //for sensor gpio, we need to parse the template content to check model
+            // for sensor gpio, we need to parse the template content to check model
             std::string templat_content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
             if (templat_content.find(model) != std::string::npos)
                 return true;
@@ -157,24 +139,22 @@ bool TemplateRuleConfigurator::isApplicable (const AutoConfigurationInfo& info,
         return true;
     }
     return false;
-
 }
 
-std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *type, const char *subtype, bool fast_track){
-    std::vector <std::string> templates;
-    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
-        log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
+std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const char* type, const char* subtype, bool fast_track)
+{
+    std::vector<std::string> templates;
+    if (!cxxtools::Directory::exists(Autoconfig::RuleFilePath.c_str())) {
+        log_info("TemplateRuleConfigurator '%s' dir does not exist", Autoconfig::RuleFilePath.c_str());
         return templates;
     }
-    std::string type_name = convertTypeSubType2Name(type,subtype);
+    std::string         type_name = convertTypeSubType2Name(type, subtype);
     cxxtools::Directory d(Autoconfig::RuleFilePath);
-    for ( const auto &fn : d) {
-        if ( fn.find(type_name.c_str())!= std::string::npos){
+    for (const auto& fn : d) {
+        if (fn.find(type_name.c_str()) != std::string::npos) {
 
-            if(fast_track)
-            {
-                if(fn == "realpower.default@__datacenter__.rule")
-                {
+            if (fast_track) {
+                if (fn == "realpower.default@__datacenter__.rule") {
                     log_debug("match %s but not use for fast track", fn.c_str());
                     continue;
                 }
@@ -184,30 +164,30 @@ std::vector <std::string> TemplateRuleConfigurator::loadTemplates(const char *ty
 
             // read the template rule from the file
             std::ifstream f(d.path() + "/" + fn);
-            std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            std::string   str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
             templates.push_back(str);
         }
     }
     return templates;
 }
 
-std::vector <std::pair<std::string,std::string>> TemplateRuleConfigurator::loadAllTemplates(){
-    std::vector <std::pair<std::string,std::string>> templates;
-    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath.c_str ())){
-        log_info("TemplateRuleConfigurator '%s' dir does not exist",Autoconfig::RuleFilePath.c_str ());
+std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadAllTemplates()
+{
+    std::vector<std::pair<std::string, std::string>> templates;
+    if (!cxxtools::Directory::exists(Autoconfig::RuleFilePath.c_str())) {
+        log_info("TemplateRuleConfigurator '%s' dir does not exist", Autoconfig::RuleFilePath.c_str());
         return templates;
     }
     cxxtools::Directory d(Autoconfig::RuleFilePath);
     log_info("load all templates from %s", d.path().c_str());
-    for ( const auto &fn : d) {
-        if ( fn.compare(".")!=0  && fn.compare("..")!=0) {
+    for (const auto& fn : d) {
+        if (fn.compare(".") != 0 && fn.compare("..") != 0) {
             try {
                 // read the template rule from the file
                 std::ifstream f(d.path() + "/" + fn);
-                std::string str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                templates.push_back(std::make_pair(fn,str));
-            }
-            catch (const std::exception& e) {
+                std::string   str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                templates.push_back(std::make_pair(fn, str));
+            } catch (const std::exception& e) {
                 log_error("error loading %s/%s (e: %s)", d.path().c_str(), fn.c_str(), e.what());
             }
         }
@@ -215,58 +195,54 @@ std::vector <std::pair<std::string,std::string>> TemplateRuleConfigurator::loadA
     return templates;
 }
 
-bool TemplateRuleConfigurator::checkTemplate(const char *type, const char *subtype)
+bool TemplateRuleConfigurator::checkTemplate(const char* type, const char* subtype)
 {
-    if (!cxxtools::Directory::exists (Autoconfig::RuleFilePath)){
-        log_warning("TemplateRuleConfigurator '%s' dir does not exist", Autoconfig::RuleFilePath.c_str ());
+    if (!cxxtools::Directory::exists(Autoconfig::RuleFilePath)) {
+        log_warning("TemplateRuleConfigurator '%s' dir does not exist", Autoconfig::RuleFilePath.c_str());
         return false;
     }
 
     std::string type_name = convertTypeSubType2Name(type, subtype);
 
     cxxtools::Directory d(Autoconfig::RuleFilePath);
-    for (const auto &fName : d) {
-        log_trace ("Template name is '%s'", fName.c_str ());
+    for (const auto& fName : d) {
+        log_trace("Template name is '%s'", fName.c_str());
         if (fName.find(type_name.c_str()) != std::string::npos) {
-            log_debug ("Using template '%s'", fName.c_str ());
+            log_debug("Using template '%s'", fName.c_str());
             return true;
         }
     }
     return false;
 }
 
-std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char *type, const char *subtype)
+std::string TemplateRuleConfigurator::convertTypeSubType2Name(const char* type, const char* subtype)
 {
-    std::string prefix ("__");
-    std::string subtype_str (subtype);
+    std::string prefix("__");
+    std::string subtype_str(subtype);
 
     std::string name;
-    if (subtype_str.empty () || (subtype_str == "unknown") || (subtype_str == "N_A"))
+    if (subtype_str.empty() || (subtype_str == "unknown") || (subtype_str == "N_A"))
         name = prefix + type + prefix;
     else
         name = prefix + type + '_' + subtype + prefix;
 
-    //log_trace("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
+    // log_trace("convertTypeSubType2Name(info.type = '%s', info.subtype = '%s') = '%s')",
     //        type, subtype,name.c_str());
     return name;
 }
 
-std::string
-TemplateRuleConfigurator::replaceTokens (
-    const std::string &text,
-    const std::vector <std::string> &patterns,
-    const std::vector <std::string> &replacements) const
+std::string TemplateRuleConfigurator::replaceTokens(const std::string& text, const std::vector<std::string>& patterns,
+    const std::vector<std::string>& replacements) const
 {
-    assert (patterns.size () == replacements.size());
-    int i = 0;
+    assert(patterns.size() == replacements.size());
+    int         i      = 0;
     std::string result = text;
 
-    for ( auto &p : patterns)
-    {
+    for (auto& p : patterns) {
         size_t pos = 0;
-        while (( pos = result.find (p, pos)) != std::string::npos){
-            result.replace (pos, p.length(), replacements.at (fty::convert<size_t>(i)));
-            pos += replacements.at (fty::convert<size_t>(i)).length ();
+        while ((pos = result.find(p, pos)) != std::string::npos) {
+            result.replace(pos, p.length(), replacements.at(fty::convert<size_t>(i)));
+            pos += replacements.at(fty::convert<size_t>(i)).length();
         }
         ++i;
     }

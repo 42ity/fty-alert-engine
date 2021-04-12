@@ -21,14 +21,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
  *  \brief Complex threshold rule representation
  */
-#ifndef SRC_THRESHOLDRULECOMPLEX_H
-#define SRC_THRESHOLDRULECOMPLEX_H
-
+#pragma once
 // used for zsys
 
-#include <czmq.h>
-#include <cxxtools/serializationinfo.h>
 #include "luarule.h"
+#include <cxxtools/serializationinfo.h>
+#include <czmq.h>
 extern "C" {
 #include <lua5.1/lua.h>
 }
@@ -36,7 +34,10 @@ extern "C" {
 class ThresholdRuleComplex : public LuaRule
 {
 public:
-    std::string whoami () const { return "threshold"; }
+    std::string whoami() const
+    {
+        return "threshold";
+    }
 
     ThresholdRuleComplex(){};
     /*
@@ -48,8 +49,5 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    virtual int fill(const cxxtools::SerializationInfo &si);
+    virtual int fill(const cxxtools::SerializationInfo& si);
 };
-
-
-#endif // SRC_THRESHOLDRULECOMPLEX_H
