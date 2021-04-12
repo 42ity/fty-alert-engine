@@ -86,36 +86,36 @@ install(
 )
 
 install(
-    FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/var/lib/fty/fty-alert-engine
+    DIRECTORY /usr/share/bios/fty-autoconfig
+    DESTINATION /usr/share/bios/fty-autoconfig
 )
 
 ##############################################################################################################
 
-if(BUILD_TESTING)
-    enable_testing()
-
-    # Create a target for the tests
-    etn_test(${PROJECT_NAME}-test
-        SOURCES
-            src/fty_alert_engine_server.cc
-            test/fty_alert_engine_private_selftest.cc
-            test/fty_alert_engine_selftest.cc
-        INCLUDE_DIRS
-            include
-            src
-        USES
-            ${PROJECT_NAME}-static
-            czmq
-            cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
-            fty_common
-            fty_common_logging
-            fty_proto
-            mlm
-            fty_shm
-            lua5.1
-    )
-    
-endif()
+#if(BUILD_TESTING)
+#    enable_testing()
+#
+#    # Create a target for the tests
+#    etn_test(${PROJECT_NAME}-test
+#        SOURCES
+#            src/fty_alert_engine_server.cc
+#            test/fty_alert_engine_private_selftest.cc
+#            test/fty_alert_engine_selftest.cc
+#        INCLUDE_DIRS
+#            include
+#            src
+#        USES
+#            ${PROJECT_NAME}-static
+#            czmq
+#            cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
+#            fty_common
+#            fty_common_logging
+#            fty_proto
+#            mlm
+#            fty_shm
+#            lua5.1
+#    )
+#    
+#endif()
 
 ##############################################################################################################
