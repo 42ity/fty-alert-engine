@@ -17,6 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "fty_alert_engine_classes.h"
+#include <fty/convert.h>
 
 // 1, ..., 4 - # of utf8 octets
 // -1 - error 
@@ -57,8 +58,8 @@ utf8_compare_octets (const std::string& s1, std::string::size_type s1_pos, const
     assert (s2_pos + count <= s2.length ());
 
     for (int i = 0; i < count; i++) {
-        const char c1 = s1[s1_pos + i];
-        const char c2 = s2[s2_pos + i];
+        const char c1 = s1[s1_pos + fty::convert<size_t>(i)];
+        const char c2 = s2[s2_pos + fty::convert<size_t>(i)];
 
         if ((count == 1 && tolower (c1) != tolower (c2)) ||
             (count > 1  && c1 != c2))
@@ -80,10 +81,10 @@ utf8eq (const std::string& s1, const std::string& s2)
     while (s1_pos < length &&
            s2_pos < length)
     {
-        uint8_t s1_octets = utf8_octets (s1, s1_pos);
-        uint8_t s2_octets = utf8_octets (s2, s2_pos);
+        uint8_t s1_octets = static_cast<uint8_t>(utf8_octets (s1, s1_pos));
+        uint8_t s2_octets = static_cast<uint8_t>(utf8_octets (s2, s2_pos));
 
-        if (s1_octets == -1 || s2_octets == -1)
+        if (s1_octets == UINT8_MAX || s2_octets == UINT8_MAX)
             return -1;
 
         if (s1_octets != s2_octets)

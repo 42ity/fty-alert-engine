@@ -116,7 +116,7 @@ public:
     /**
      * \brief get/set code
      */
-    virtual void code(const std::string &code) {
+    virtual void code(const std::string &/* code */) {
         throw std::runtime_error("Method not supported by this type of rule");
     };
 

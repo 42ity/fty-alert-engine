@@ -184,7 +184,7 @@ int AlertConfiguration::
     addRule (
         std::istream &newRuleString,
         std::set <std::string> &newSubjectsToSubscribe,
-        std::vector <PureAlert> &alertsToSend,
+        std::vector <PureAlert> &/* alertsToSend */,
         AlertConfiguration::iterator &it)
 {
     // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
@@ -217,7 +217,7 @@ int AlertConfiguration::
         temp_rule->save(getPersistencePath(), temp_rule->name () + ".rule");
     }
     catch (const std::exception& e) {
-        log_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule").c_str (), e.what ());
+        log_error ("Error while saving file '%s': %s", getPersistencePath() + temp_rule->name () + ".rule", e.what ());
         return -6;
     }
 
@@ -313,7 +313,7 @@ int AlertConfiguration::
     }
     catch (const std::exception& e) {
         // if error happend, we didn't lose any previous data
-        log_error ("Error while saving file '%s': %s", std::string(getPersistencePath() + temp_rule->name () + ".rule.new").c_str (), e.what ());
+        log_error ("Error while saving file '%s': %s", getPersistencePath() + temp_rule->name () + ".rule.new", e.what ());
         return -6;
     }
     // as we successfuly saved the new file, we can try to remove old one
@@ -324,8 +324,8 @@ int AlertConfiguration::
         return -6;
     }
     // as we successfuly removed old rule, we can rename new rule to the right name
-    rv = std::rename (std::string (getPersistencePath()).append (rule_removed_name).append(".rule.new").c_str (),
-            std::string (getPersistencePath()).append (rule_removed_name).append(".rule").c_str ());
+    rv = std::rename (getPersistencePath().append (rule_removed_name).append(".rule.new").c_str (),
+            getPersistencePath().append (rule_removed_name).append(".rule").c_str ());
     if ( rv != 0 ) {
         log_error ("Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon", rule_removed_name.c_str ());
         return -6;
@@ -501,7 +501,8 @@ int AlertConfiguration::
                     log_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
                 }
                 // in both cases we need to send an alert
-                alert_to_send = PureAlert(oneAlert);
+                alert_to_send = oneAlert;
+                // alert_to_send = PureAlert(oneAlert);
                 return 0;
             }
             if ( pureAlert._status == ALERT_RESOLVED ) {
@@ -513,7 +514,8 @@ int AlertConfiguration::
                     oneAlert._severity = pureAlert._severity;
                     oneAlert._actions = pureAlert._actions;
                     log_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'", oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
-                    alert_to_send = PureAlert(oneAlert);
+                    alert_to_send = oneAlert;
+                    // alert_to_send = PureAlert(oneAlert);
                     return 0;
                 }
                 else {

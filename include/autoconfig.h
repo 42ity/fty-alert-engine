@@ -93,7 +93,7 @@ class Autoconfig {
                 return NULL;
             }
 
-            which = (zsock_t *) zpoller_wait (poller, timeout);
+            which = static_cast<zsock_t *>(zpoller_wait (poller, timeout));
             if (which) {
                 zmsg = mlm_client_recv (_client);
             }

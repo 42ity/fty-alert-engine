@@ -27,6 +27,7 @@
 */
 
 #include "fty_alert_engine_classes.h"
+#include <fty/convert.h>
 
 #include <algorithm>
 #include <cxxtools/directory.h>
@@ -264,8 +265,8 @@ TemplateRuleConfigurator::replaceTokens (
     {
         size_t pos = 0;
         while (( pos = result.find (p, pos)) != std::string::npos){
-            result.replace (pos, p.length(), replacements.at (i));
-            pos += replacements.at (i).length ();
+            result.replace (pos, p.length(), replacements.at (fty::convert<size_t>(i)));
+            pos += replacements.at (fty::convert<size_t>(i)).length ();
         }
         ++i;
     }

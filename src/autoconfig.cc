@@ -56,9 +56,9 @@ load_agent_info(std::string &info)
     std::ifstream f(Autoconfig::StateFile, std::ios::in | std::ios::binary);
     if (f) {
         f.seekg (0, std::ios::end);
-        info.resize (f.tellg ());
+        info.resize (static_cast<size_t>(f.tellg ()));
         f.seekg (0, std::ios::beg);
-        f.read (&info[0], info.size());
+        f.read (&info[0],static_cast<std::streamsize>(info.size()));
         f.close ();
         return 0;
     }
@@ -105,7 +105,7 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
     si.getMember("subtype") >>= temp;
     si.getMember("operation") >>= temp;
     si.getMember("date") >>= temp;
-    info.date = std::stoi (temp);
+    info.date = static_cast<uint64_t>(std::stoi (temp));
     si.getMember("attributes")  >>= info.attributes;
 }
 
@@ -431,7 +431,7 @@ void Autoconfig::onPoll( )
         else {
             log_debug ("Device '%s' NOT configured yet.", it.first.c_str ());
         }
-        it.second.date = zclock_mono ();
+        it.second.date = static_cast<uint64_t>(zclock_mono ());
     }
 
     if (save) {
@@ -560,7 +560,7 @@ void Autoconfig::listTemplates(const char *correlation_id, const char *filter)
 
 void autoconfig (zsock_t *pipe, void *args )
 {
-    char *name = (char *)args;
+    char *name = static_cast<char *>(args);
     log_info ("autoconfig agent started");
     Autoconfig agent( AUTOCONFIG );
     agent.run(pipe, name);
@@ -568,7 +568,7 @@ void autoconfig (zsock_t *pipe, void *args )
 }
 
 void
-autoconfig_test (bool verbose)
+autoconfig_test (bool /* verbose */)
 {
     printf (" * autoconfig: ");
 

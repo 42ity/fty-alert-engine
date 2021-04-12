@@ -89,7 +89,7 @@ public:
     std::string getSource (void) const {
         return _source;
     };
-    void setTime(void) { _timestamp = ::time(NULL); };
+    void setTime(void) { _timestamp = static_cast<uint64_t>(::time(NULL)); };
     void setUnits(const std::string &U) { _units = U; };
     friend inline bool operator==( const MetricInfo &lhs, const MetricInfo &rhs );
     friend inline bool operator!=( const MetricInfo &lhs, const MetricInfo &rhs );

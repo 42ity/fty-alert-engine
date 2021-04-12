@@ -69,7 +69,7 @@ list_rules (
 {
     std::function<bool (const std::string & s) > filter_f;
     if (streq (type, "all")) {
-        filter_f = [](const std::string & s) {
+        filter_f = [](const std::string & /* s */) {
             return true;
         };
     } else if (streq (type, "threshold")) {
@@ -186,8 +186,8 @@ send_alerts (
         zlist_t *actions = makeActionList (alert._actions);
         zmsg_t *msg = fty_proto_encode_alert (
             NULL,
-            ::time (NULL),
-            alert._ttl,
+            static_cast<uint64_t>(::time (NULL)),
+            static_cast<uint32_t>(alert._ttl),
             fullRuleName.c_str (),
             alert._element.c_str (),
             alert._status.c_str (),
@@ -550,7 +550,7 @@ evaluate_metric (
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the corrent message to stream alert description is modified
             if (rule->name () == "warranty") {
-                int remaining_days = (int) triggeringMetric.getValue ();
+                int remaining_days = static_cast<int>( triggeringMetric.getValue () );
                 if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}") {
                     remaining_days = abs (remaining_days);
                     alertToSend._description =
@@ -593,7 +593,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         const char *value = fty_proto_value (element);
         const char *unit = fty_proto_unit (element);
         uint32_t ttl = fty_proto_ttl (element);
-        uint64_t timestamp = fty_proto_aux_number (element, "time", ::time(NULL));
+        uint64_t timestamp = fty_proto_aux_number (element, "time", static_cast<uint64_t>(::time(NULL)));
 
         // TODO: 2016-04-27 ACE: fix it later, when "string" values
         // in the metric would be considered as
@@ -646,7 +646,7 @@ fty_alert_engine_stream (
     void* args)
 {
     MetricList cache; // need to track incoming measurements
-    char *name = (char*) args;
+    char *name = static_cast<char*>(args);
 
     mlm_client_t *client = mlm_client_new ();
     assert (client);
@@ -675,7 +675,7 @@ fty_alert_engine_stream (
           timeout = timeout - timeCurrent;
         }
 
-        void *which = zpoller_wait (poller, timeout);
+        void *which = zpoller_wait (poller, static_cast<int>(timeout));
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
                 log_warning ("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
@@ -820,7 +820,7 @@ fty_alert_engine_mailbox (
     zsock_t *pipe,
     void* args)
 {
-    char *name = (char*) args;
+    char *name = static_cast<char*>(args);
 
     mlm_client_t *client = mlm_client_new ();
     assert (client);
@@ -833,7 +833,7 @@ fty_alert_engine_mailbox (
     zsock_signal (pipe, 0);
     log_info ("Actor %s started",name);
     while (!zsys_interrupted) {
-        void *which = zpoller_wait (poller, timeout);
+        void *which = zpoller_wait (poller, static_cast<int>(timeout));
         if (which == NULL) {
             if (zpoller_terminated (poller) || zsys_interrupted) {
                 log_warning ("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
@@ -982,17 +982,17 @@ s_readall (
 
     size_t fsize = 0;
     fseek (fp, 0, SEEK_END);
-    fsize = ftell (fp);
+    fsize = static_cast<size_t>(ftell (fp));
     fseek (fp, 0, SEEK_SET);
 
-    char *ret = (char*) malloc (fsize * sizeof (char) + 1);
+    char *ret = static_cast<char*>(malloc (fsize * sizeof (char) + 1));
     if (!ret) {
         fclose (fp);
         return NULL;
     }
-    memset ((void*) ret, '\0', fsize * sizeof (char) + 1);
+    memset (static_cast<void*>(ret), '\0', fsize * sizeof (char) + 1);
 
-    size_t r = fread ((void*) ret, 1, fsize, fp);
+    size_t r = fread (static_cast<void*>(ret), 1, fsize, fp);
     fclose (fp);
     if (r == fsize)
         return ret;
@@ -1067,7 +1067,7 @@ fty_alert_engine_server_test (
     //  @selftest
     static const char* endpoint = "inproc://fty-ag-server-test";
 
-    zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
+    zactor_t *server = zactor_new (mlm_server, static_cast<void*>(const_cast<char*>("Malamute")));
     zstr_sendx (server, "BIND", endpoint, NULL);
 
 //    mlm_client_t *producer = mlm_client_new ();
@@ -1086,8 +1086,8 @@ fty_alert_engine_server_test (
     fty_shm_set_default_polling_interval(polling_value);
     assert(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
 
-    zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, (void*) "alert-stream");
-    zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, (void*) "fty-alert-engine");
+    zactor_t *ag_server_stream = zactor_new (fty_alert_engine_stream, static_cast<void*>(const_cast<char*>("alert-stream")));
+    zactor_t *ag_server_mail = zactor_new (fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>("fty-alert-engine")));
 
     zstr_sendx (ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str (), NULL);
     zstr_sendx (ag_server_mail, "CONNECT", endpoint, NULL);
@@ -2197,7 +2197,7 @@ fty_alert_engine_server_test (
     mlm_client_connect (asset_producer, endpoint, 1000, "asset_producer");
     mlm_client_set_producer (asset_producer, FTY_PROTO_STREAM_ASSETS);
 
-    zactor_t *ag_configurator = zactor_new (autoconfig, (void*) "test-autoconfig");
+    zactor_t *ag_configurator = zactor_new (autoconfig, static_cast<void*>(const_cast<char*>("test-autoconfig")));
     assert(ag_configurator);
     zstr_sendx (ag_configurator, "CONFIG", SELFTEST_DIR_RW, NULL);
     zstr_sendx (ag_configurator, "CONNECT", endpoint, NULL);

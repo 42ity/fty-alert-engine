@@ -22,7 +22,7 @@ EnvironmentFile=-@sysconfdir@/default/bios__%n.conf
 EnvironmentFile=-@sysconfdir@/default/fty
 EnvironmentFile=-@sysconfdir@/default/fty__%n.conf
 Environment="prefix=@prefix@"
-ExecStart=@prefix@/bin/fty-alert-engine
+ExecStart=@prefix@/bin/fty-alert-engine-server
 
 [Install]
 WantedBy=bios.target

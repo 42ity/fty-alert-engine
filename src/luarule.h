@@ -26,7 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "rule.h"
 extern "C" {
-#include <lua.h>
+#include <lua5.1/lua.h>
 }
 
 class LuaRule : public Rule {

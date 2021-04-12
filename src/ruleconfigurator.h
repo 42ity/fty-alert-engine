@@ -22,37 +22,34 @@
 #ifndef RULECONFIGURATOR_H_INCLUDED
 #define RULECONFIGURATOR_H_INCLUDED
 
-#include <string>
-#include <string>
+#include "preproc.h"
+#include <malamute.h>
 #include <map>
+#include <string>
 #include <vector>
 
-#include <malamute.h>
 
-#include "preproc.h"
-
-
-
-class RuleConfigurator {
-  public:
-    virtual bool configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &logical_asset)
+class RuleConfigurator
+{
+public:
+    virtual bool configure(const std::string& name, const AutoConfigurationInfo& info, const std::string& logical_asset)
     {
-        return configure (name, info, logical_asset, NULL);
+        return configure(name, info, logical_asset, NULL);
     }
 
-    virtual bool configure (const std::string& name, const AutoConfigurationInfo& info, const std::string &logical_asset, mlm_client_t *client)
+    virtual bool configure(const std::string& /* name */, const AutoConfigurationInfo& /* info */,
+        const std::string& /* logical_asset */, mlm_client_t* /* client */)
     {
         return false;
     }
-    virtual bool isApplicable (UNUSED_PARAM const AutoConfigurationInfo& info)
+    virtual bool isApplicable(UNUSED_PARAM const AutoConfigurationInfo& info)
     {
         return false;
     }
 
-    bool sendNewRule (const std::string& rule, mlm_client_t *client);
+    bool sendNewRule(const std::string& rule, mlm_client_t* client);
 
-    virtual ~RuleConfigurator() {};
-
+    virtual ~RuleConfigurator(){};
 };
 
 #endif

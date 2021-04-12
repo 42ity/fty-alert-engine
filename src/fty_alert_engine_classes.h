@@ -27,10 +27,10 @@
 #define FTY_ALERT_ENGINE_CLASSES_H_INCLUDED
 
 //  Platform definitions, must come first
-#include "platform.h"
+// #include "platform.h"
 
 //  External API
-#include "../include/fty_alert_engine.h"
+#include "fty_alert_engine.h"
 
 //  Opaque class structures to allow forward references
 #ifndef METRICLIST_T_DEFINED

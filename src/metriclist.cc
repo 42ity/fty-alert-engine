@@ -49,7 +49,7 @@ double MetricList::
         return NAN;
     }
     else {
-        uint64_t currentTimestamp = ::time(NULL);
+        uint64_t currentTimestamp = static_cast<uint64_t>(::time(NULL));
         if ( ( currentTimestamp - it->second._timestamp ) > it->second._ttl ) {
             return NAN;
         }
@@ -88,7 +88,7 @@ MetricInfo MetricList::
 
 void MetricList::removeOldMetrics()
 {
-    uint64_t currentTimestamp = ::time(NULL);
+    uint64_t currentTimestamp = static_cast<uint64_t>(::time(NULL));
 
     for ( std::map<std::string, MetricInfo>::iterator iter = _knownMetrics.begin(); iter != _knownMetrics.end() ; /* empty */)
     {

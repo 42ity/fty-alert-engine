@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cxxtools/serializationinfo.h>
 #include "luarule.h"
 extern "C" {
-#include <lua.h>
+#include <lua5.1/lua.h>
 }
 
 class ThresholdRuleComplex : public LuaRule

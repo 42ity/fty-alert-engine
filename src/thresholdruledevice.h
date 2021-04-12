@@ -103,14 +103,14 @@ public:
         return 0;
     }
 
-    int evaluate (const MetricList &metricList, PureAlert &pureAlert) {
+    int evaluate (const MetricList &/* metricList */, PureAlert &/* pureAlert */) {
         // INTENTIONALLY We do not evaluate this rule at all
         // It is evaluated in NUT-agent somewhere
         // rules are here, just to provide webUI access to the rule representation
         return 0;
     };
 
-    bool isTopicInteresting(const std::string &topic) const {
+    bool isTopicInteresting(const std::string &/* topic */) const {
         // we are not interested in any topics
         return false;
     };

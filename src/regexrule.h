@@ -24,8 +24,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define SRC_REGEXRULE_H
 
 extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
+#include <lua5.1/lua.h>
+#include <lua5.1/lauxlib.h>
 }
 // because of regex and zsysinfo
 #include <czmq.h>
