@@ -1,11 +1,11 @@
+#include "autoconfig.h"
+#include "fty_alert_engine_audit_log.h"
+#include "fty_alert_engine_server.h"
+#include "luarule.h"
 #include <catch2/catch.hpp>
-#include <lua.h>
-#include <string.h>
-// #include "fty_alert_engine_server.h"
 #include <cxxtools/directory.h>
-#include <malamute.h>
-#include "fty_alert_engine_classes.h"
-// #include "fty_alert_engine_se.h"
+#include <czmq.h>
+#include <fty_shm.h>
 
 static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
 {
@@ -39,7 +39,7 @@ static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int t
 
     zpoller_destroy(&poller);
     return recv;
-} 
+}
 
 
 TEST_CASE("Alert engine server")
