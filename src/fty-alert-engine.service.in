@@ -22,6 +22,11 @@ EnvironmentFile=-@sysconfdir@/default/bios__%n.conf
 EnvironmentFile=-@sysconfdir@/default/fty
 EnvironmentFile=-@sysconfdir@/default/fty__%n.conf
 Environment="prefix=@prefix@"
+
+# var/lib/fty (rules file) 
+ExecStartPre=+/bin/chown -R @AGENT_USER@ @RULE_TEMPLATES_SHARE_DIR@ 
+ExecStartPre=+/bin/chmod 771 @RULE_TEMPLATES_SHARE_DIR@
+
 ExecStart=@prefix@/bin/fty-alert-engine-server
 
 [Install]

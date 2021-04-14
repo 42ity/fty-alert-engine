@@ -58,7 +58,7 @@ etn_target(exe ${PROJECT_NAME}-server
         lua5.1
 )
 
-#install systemd config
+# install systemd config
 
 etn_configure_file(
     src/${PROJECT_NAME}.service.in
@@ -85,37 +85,52 @@ install(
     DESTINATION ${CMAKE_INSTALL_PREFIX}/var/lib/fty/fty-alert-engine
 )
 
-install(
-    DIRECTORY /usr/share/bios/fty-autoconfig
-    DESTINATION /usr/share/bios/fty-autoconfig
-)
+set(AGENT_USER "bios")
+set(RULE_TEMPLATES_SHARE_DIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/bios/fty-autoconfig")
 
+FILE(GLOB rule_templates "${PROJECT_SOURCE_DIR}/src/rule_templates/*.rule")
+foreach(file ${rule_templates})
+  install(FILES ${file} DESTINATION ${RULE_TEMPLATES_SHARE_DIR}/)
+endforeach()
 ##############################################################################################################
 
-#if(BUILD_TESTING)
-#    enable_testing()
-#
-#    # Create a target for the tests
-#    etn_test(${PROJECT_NAME}-test
-#        SOURCES
-#            src/fty_alert_engine_server.cc
-#            test/fty_alert_engine_private_selftest.cc
-#            test/fty_alert_engine_selftest.cc
-#        INCLUDE_DIRS
-#            include
-#            src
-#        USES
-#            ${PROJECT_NAME}-static
-#            czmq
-#            cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
-#            fty_common
-#            fty_common_logging
-#            fty_proto
-#            mlm
-#            fty_shm
-#            lua5.1
-#    )
-#    
-#endif()
+if(BUILD_TESTING)
+    enable_testing()
+
+    # Create a target for the tests
+    etn_test(${PROJECT_NAME}-test
+        SOURCES
+            src/fty_alert_engine_server.cc
+            test/main.cpp
+            test/engine_server_test.cpp
+        INCLUDE_DIRS
+            include
+            src
+        USES
+            ${PROJECT_NAME}-static
+            czmq
+            cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
+            fty_common
+            fty_common_logging
+            fty_proto
+            mlm
+            fty_shm
+            lua5.1
+    )
+
+    set(RULE_TEMPLATES_TEST "${CMAKE_CURRENT_BINARY_DIR}/test_rules/")
+
+    FILE(GLOB rule_templates_test_f "${PROJECT_SOURCE_DIR}/test/templates/*.rule")
+    foreach(file ${rule_templates_test_f})
+        install(FILES ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
+    endforeach()
+
+    FILE(GLOB rule_templates_test_s "${PROJECT_SOURCE_DIR}/test/testrules/*.rule")
+    foreach(file ${rule_templates_test_s})
+        install(FILES ${file} DESTINATION ${RULE_TEMPLATES_TEST}/testrules)
+    endforeach()
+    
+endif()
+
 
 ##############################################################################################################

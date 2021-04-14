@@ -20,6 +20,9 @@
 */
 
 #pragma once
+#include <malamute.h>
+#include <czmq.h>
+#include <ftyproto.h>
 
 
 //  @interface
@@ -34,4 +37,6 @@ void clearEvaluateMetrics();
 
 //  Self test of this class
 void fty_alert_engine_server_test(bool verbose);
-//  @end
+
+char* s_readall(const char* filename);
+
