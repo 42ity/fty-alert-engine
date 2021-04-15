@@ -44,7 +44,7 @@ etn_target(exe ${PROJECT_NAME}-server
     SOURCES
         src/fty_alert_engine.cc
         src/fty_alert_engine_server.cc
-    INCLUDE_DIRS
+    PUBLIC_INCLUDE_DIR
         include
     USES
         ${PROJECT_NAME}-static
@@ -94,44 +94,37 @@ foreach(file ${rule_templates})
 endforeach()
 ##############################################################################################################
 
-if(BUILD_TESTING)
-    enable_testing()
 
-    # Create a target for the tests
-    etn_test(${PROJECT_NAME}-test
-        SOURCES
-            src/fty_alert_engine_server.cc
-            test/main.cpp
-            test/engine_server_test.cpp
-        INCLUDE_DIRS
-            include
-            src
-        USES
-            ${PROJECT_NAME}-static
-            czmq
-            cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
-            fty_common
-            fty_common_logging
-            fty_proto
-            mlm
-            fty_shm
-            lua5.1
-    )
+# Create a target for the tests
+etn_test_target(${PROJECT_NAME}-server
+    SOURCES
+        src/fty_alert_engine_server.cc
+        test/main.cpp
+        test/engine_server_test.cpp
+    PUBLIC_INCLUDE_DIR
+        src
+    USES
+        ${PROJECT_NAME}-static
+        czmq
+        cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
+        fty_common
+        fty_common_logging
+        fty_proto
+        mlm
+        fty_shm
+        lua5.1
+)
+set(RULE_TEMPLATES_TEST "${CMAKE_CURRENT_BINARY_DIR}/test_rules/")
 
-    set(RULE_TEMPLATES_TEST "${CMAKE_CURRENT_BINARY_DIR}/test_rules/")
+FILE(GLOB rule_templates_test_f "${PROJECT_SOURCE_DIR}/test/templates/*.rule")
+foreach(file ${rule_templates_test_f})
+    file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
+endforeach()
 
-    FILE(GLOB rule_templates_test_f "${PROJECT_SOURCE_DIR}/test/templates/*.rule")
-    foreach(file ${rule_templates_test_f})
-        file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
-        # install(FILES ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
-    endforeach()
-
-    FILE(GLOB rule_templates_test_s "${PROJECT_SOURCE_DIR}/test/testrules/*.rule")
-    foreach(file ${rule_templates_test_s})
-        file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/testrules)
-    endforeach()
-    
-endif()
+FILE(GLOB rule_templates_test_s "${PROJECT_SOURCE_DIR}/test/testrules/*.rule")
+foreach(file ${rule_templates_test_s})
+    file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/testrules)
+endforeach()
 
 
 ##############################################################################################################

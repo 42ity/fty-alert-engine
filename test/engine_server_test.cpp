@@ -9,9 +9,9 @@
 
 static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
 {
-    CHECK(consumer);
+    REQUIRE(consumer);
     zpoller_t* poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
-    CHECK(poller);
+    REQUIRE(poller);
 
     zmsg_t* recv = NULL; // ret value
 
@@ -56,7 +56,7 @@ TEST_CASE("Alert engine server")
     // const char* SELFTEST_DIR_RW = "src/selftest-rw";
     const char* SELFTEST_DIR_RW = "test_rules";
     REQUIRE(SELFTEST_DIR_RO);
-    CHECK(SELFTEST_DIR_RW);
+    REQUIRE(SELFTEST_DIR_RW);
     std::string str_SELFTEST_DIR_RO = std::string(SELFTEST_DIR_RO);
     std::string str_SELFTEST_DIR_RW = std::string(SELFTEST_DIR_RW);
 
@@ -71,7 +71,7 @@ TEST_CASE("Alert engine server")
     AlertsEngineAuditLogManager::init(logConfigFile.c_str());
 
     int r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
-    CHECK(r == 0); // to make gcc @ CentOS 7 happy
+    REQUIRE(r == 0); // to make gcc @ CentOS 7 happy
 
     //  @selftest
     static const char* endpoint = "inproc://fty-ag-server-test";
@@ -93,7 +93,7 @@ TEST_CASE("Alert engine server")
     int polling_value = 2;
     int wanted_ttl    = polling_value + 2;
     fty_shm_set_default_polling_interval(polling_value);
-    CHECK(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
+    REQUIRE(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
 
     zactor_t* ag_server_stream =
         zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>("alert-stream")));
@@ -120,15 +120,15 @@ TEST_CASE("Alert engine server")
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 3);
+        REQUIRE(zmsg_size(recv) == 3);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "LIST"));
+        REQUIRE(streq(foo, "LIST"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "all"));
+        REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, ""));
+        REQUIRE(streq(foo, ""));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -138,16 +138,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* simplethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold3.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -158,16 +158,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* simplethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -177,16 +177,16 @@ TEST_CASE("Alert engine server")
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         simplethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold2.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -194,7 +194,7 @@ TEST_CASE("Alert engine server")
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         simplethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         zmsg_addstrf(rule, "%s", "simplethreshold2");
@@ -202,19 +202,19 @@ TEST_CASE("Alert engine server")
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ALREADY_EXISTS"));
+        REQUIRE(streq(foo, "ALREADY_EXISTS"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
         // Test case #5: generate alert - below the treshold
         //        zmsg_t *m = fty_proto_encode_metric (
         //            NULL, ::time (NULL), 0, "abc", "fff", "20", "X");
-        CHECK(fty::shm::write_metric("fff", "abc", "20", "X", wanted_ttl) == 0);
+        REQUIRE(fty::shm::write_metric("fff", "abc", "20", "X", wanted_ttl) == 0);
         log_debug("first write ok !");
         //        mlm_client_send (producer, "abc@fff", &m);
 
@@ -223,12 +223,12 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(is_fty_proto(recv));
+        REQUIRE(is_fty_proto(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
 
         // Test case #6: generate alert - resolved
@@ -242,11 +242,11 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(is_fty_proto(recv));
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "RESOLVED"));
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
         fty_proto_destroy(&brecv);
         // Test case #6: generate alert - high warning
         //        m = fty_proto_encode_metric (
@@ -259,14 +259,14 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "WARNING"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "WARNING"));
         fty_proto_destroy(&brecv);
         // Test case #7: generate alert - high critical
         //        m = fty_proto_encode_metric (
@@ -279,14 +279,14 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
         // Test case #8: generate alert - resolved again
         //        m = fty_proto_encode_metric (
@@ -299,13 +299,13 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "RESOLVED"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
         fty_proto_destroy(&brecv);
         // Test case #9: generate alert - high again
         //        m = fty_proto_encode_metric (
@@ -318,14 +318,14 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
         // Test case #11: generate alert - high again
         //        m = fty_proto_encode_metric (
@@ -337,14 +337,14 @@ TEST_CASE("Alert engine server")
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
         // Test case #12: generate alert - resolved
         //        m = fty_proto_encode_metric (
@@ -356,13 +356,13 @@ TEST_CASE("Alert engine server")
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "simplethreshold"));
-        CHECK(streq(fty_proto_name(brecv), "fff"));
-        CHECK(streq(fty_proto_state(brecv), "RESOLVED"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
+        REQUIRE(streq(fty_proto_name(brecv), "fff"));
+        REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
         fty_proto_destroy(&brecv);
     }
 
@@ -371,19 +371,19 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* simplethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ALREADY_EXISTS"));
+        REQUIRE(streq(foo, "ALREADY_EXISTS"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -394,16 +394,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* simplethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/ups.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -415,12 +415,12 @@ TEST_CASE("Alert engine server")
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ups"));
+        REQUIRE(streq(foo, "ups"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -434,12 +434,12 @@ TEST_CASE("Alert engine server")
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "NO_MATCH"));
+        REQUIRE(streq(foo, "NO_MATCH"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -453,15 +453,15 @@ TEST_CASE("Alert engine server")
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 6);
+        REQUIRE(zmsg_size(recv) == 6);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "LIST"));
+        REQUIRE(streq(foo, "LIST"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "all"));
+        REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, ""));
+        REQUIRE(streq(foo, ""));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -476,15 +476,15 @@ TEST_CASE("Alert engine server")
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 3);
+        REQUIRE(zmsg_size(recv) == 3);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "LIST"));
+        REQUIRE(streq(foo, "LIST"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "single"));
+        REQUIRE(streq(foo, "single"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, ""));
+        REQUIRE(streq(foo, ""));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -499,15 +499,15 @@ TEST_CASE("Alert engine server")
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 4);
+        REQUIRE(zmsg_size(recv) == 4);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "LIST"));
+        REQUIRE(streq(foo, "LIST"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "all"));
+        REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "example class"));
+        REQUIRE(streq(foo, "example class"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -518,15 +518,15 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* onbattery_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/onbattery-5PX1500-01.rule").c_str());
-        CHECK(onbattery_rule);
+        REQUIRE(onbattery_rule);
         zmsg_addstrf(rule, "%s", onbattery_rule);
         zstr_free(&onbattery_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -541,22 +541,22 @@ TEST_CASE("Alert engine server")
     {
         log_info("######## Test case #14 add new rule, but with lua syntax error");
         zmsg_t* rule = zmsg_new();
-        CHECK(rule);
+        REQUIRE(rule);
         zmsg_addstrf(rule, "%s", "ADD");
         char* complexthreshold_rule_lua_error =
             s_readall((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
-        CHECK(complexthreshold_rule_lua_error);
+        REQUIRE(complexthreshold_rule_lua_error);
         zmsg_addstrf(rule, "%s", complexthreshold_rule_lua_error);
         zstr_free(&complexthreshold_rule_lua_error);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "BAD_LUA"));
+        REQUIRE(streq(foo, "BAD_LUA"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -567,16 +567,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* toohigh_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/too_high-ROZ.ePDU13.rule").c_str());
-        CHECK(toohigh_rule);
+        REQUIRE(toohigh_rule);
         zmsg_addstrf(rule, "%s", toohigh_rule);
         zstr_free(&toohigh_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
 
@@ -593,14 +593,14 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
-        CHECK(streq(fty_proto_name(brecv), "ePDU13"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
+        REQUIRE(streq(fty_proto_name(brecv), "ePDU13"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
 
         // Test case #15.3: evaluate it again
@@ -615,14 +615,14 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
-        CHECK(streq(fty_proto_name(brecv), "ePDU13"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
+        REQUIRE(streq(fty_proto_name(brecv), "ePDU13"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
         zmsg_destroy(&recv);
     }
@@ -632,16 +632,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* rule_with_trash = s_readall((str_SELFTEST_DIR_RO + "/testrules/rule_with_trash.rule").c_str());
-        CHECK(rule_with_trash);
+        REQUIRE(rule_with_trash);
         zmsg_addstrf(rule, "%s", rule_with_trash);
         zstr_free(&rule_with_trash);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -654,16 +654,16 @@ TEST_CASE("Alert engine server")
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
         std::stringstream           s{foo};
         cxxtools::JsonDeserializer  d{s};
         cxxtools::SerializationInfo si;
         d.deserialize(si);
-        CHECK(si.memberCount() == 1);
+        REQUIRE(si.memberCount() == 1);
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -684,16 +684,16 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(rule, "%s", "ADD");
         char* simplethreshold_rule =
             s_readall((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -703,7 +703,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(rule, "%s", "ADD");
         simplethreshold_rule =
             s_readall((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple2.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         zmsg_addstrf(rule, "%s", "check_update_threshold_simple");
@@ -712,9 +712,9 @@ TEST_CASE("Alert engine server")
         // check the result of the operation
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -727,16 +727,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* pattern_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
-        CHECK(pattern_rule);
+        REQUIRE(pattern_rule);
         zmsg_addstrf(rule, "%s", pattern_rule);
         zstr_free(&pattern_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -756,7 +756,7 @@ TEST_CASE("Alert engine server")
         // 18.2.1.1. No ALERT should be generated
         zpoller_t* poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
         void*      which  = zpoller_wait(poller, 2500);
-        CHECK(which == NULL);
+        REQUIRE(which == NULL);
         log_debug("No alert was sent: SUCCESS");
         zpoller_destroy(&poller);
 
@@ -771,13 +771,13 @@ TEST_CASE("Alert engine server")
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv != NULL);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv != NULL);
+        REQUIRE(is_fty_proto(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
-        CHECK(streq(fty_proto_rule(brecv), "warranty2"));
-        CHECK(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "WARNING"));
+        REQUIRE(streq(fty_proto_rule(brecv), "warranty2"));
+        REQUIRE(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "WARNING"));
         fty_proto_destroy(&brecv);
 
         // 18.2.3 LOW_CRITICAL
@@ -791,13 +791,13 @@ TEST_CASE("Alert engine server")
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv != NULL);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv != NULL);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(streq(fty_proto_rule(brecv), "warranty2"));
-        CHECK(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(streq(fty_proto_rule(brecv), "warranty2"));
+        REQUIRE(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
 
         zstr_free(&foo);
@@ -811,16 +811,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* devicethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/devicethreshold.rule").c_str());
-        CHECK(devicethreshold_rule);
+        REQUIRE(devicethreshold_rule);
         zmsg_addstrf(rule, "%s", devicethreshold_rule);
         zstr_free(&devicethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -830,19 +830,19 @@ TEST_CASE("Alert engine server")
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         devicethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
-        CHECK(devicethreshold_rule);
+        REQUIRE(devicethreshold_rule);
         zmsg_addstrf(rule, "%s", devicethreshold_rule);
         zstr_free(&devicethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ALREADY_EXISTS"));
+        REQUIRE(streq(foo, "ALREADY_EXISTS"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -851,7 +851,7 @@ TEST_CASE("Alert engine server")
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         devicethreshold_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
-        CHECK(devicethreshold_rule);
+        REQUIRE(devicethreshold_rule);
         zmsg_addstrf(rule, "%s", devicethreshold_rule);
         zstr_free(&devicethreshold_rule);
         zmsg_addstrf(rule, "%s", "device_threshold_test"); // name of the rule
@@ -859,9 +859,9 @@ TEST_CASE("Alert engine server")
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -875,7 +875,7 @@ TEST_CASE("Alert engine server")
 
         zpoller_t* poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
         void*      which  = zpoller_wait(poller, polling_value * 3);
-        CHECK(which == NULL);
+        REQUIRE(which == NULL);
         if (verbose) {
             log_debug("No alert was sent: SUCCESS");
         }
@@ -891,20 +891,20 @@ TEST_CASE("Alert engine server")
         zmsg_addstr(rule, "ADD");
         char* simplethreshold_rule =
             s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstr(rule, simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
         log_info(foo);
-        CHECK(streq(foo, "BAD_JSON"));
+        REQUIRE(streq(foo, "BAD_JSON"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
 
@@ -917,20 +917,20 @@ TEST_CASE("Alert engine server")
         zmsg_addstr(rule, "ADD");
         simplethreshold_rule =
             s_readall((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
-        CHECK(simplethreshold_rule);
+        REQUIRE(simplethreshold_rule);
         zmsg_addstr(rule, simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
         log_info(foo);
-        CHECK(streq(foo, "BAD_JSON"));
+        REQUIRE(streq(foo, "BAD_JSON"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -939,19 +939,19 @@ TEST_CASE("Alert engine server")
     {
         log_info("######## Test case #23: touch rule, that doesn't exist");
         zmsg_t* touch_request = zmsg_new();
-        CHECK(touch_request);
+        REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch_doesnt_exists");
         int rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         zmsg_t* recv = mlm_client_recv(ui);
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "ERROR"));
+        REQUIRE(streq(foo, "ERROR"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "NOT_FOUND"));
+        REQUIRE(streq(foo, "NOT_FOUND"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
@@ -962,41 +962,41 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* rule_to_touch = s_readall((str_SELFTEST_DIR_RO + "/testrules/rule_to_touch.rule").c_str());
-        CHECK(rule_to_touch);
+        REQUIRE(rule_to_touch);
         zmsg_addstrf(rule, "%s", rule_to_touch);
         zstr_free(&rule_to_touch);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
 
         // 24.1.1 there is no any alerts on the rule; send touch request
         zmsg_t* touch_request = zmsg_new();
-        CHECK(touch_request);
+        REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch");
         int rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         recv = mlm_client_recv(ui);
-        CHECK(recv);
-        CHECK(zmsg_size(recv) == 1);
+        REQUIRE(recv);
+        REQUIRE(zmsg_size(recv) == 1);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
 
         // 24.1.2 No ALERT should be generated/regenerated/closed
         zpoller_t* poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
-        CHECK(poller);
+        REQUIRE(poller);
         void* which = zpoller_wait(poller, polling_value * 2);
-        CHECK(which == NULL);
+        REQUIRE(which == NULL);
         if (verbose) {
             log_debug("No alert was sent: SUCCESS");
         }
@@ -1005,56 +1005,56 @@ TEST_CASE("Alert engine server")
         // 24.2.1.1 there exists ACTIVE alert (as there were no alerts, lets create one :)); send metric
         //        zmsg_t *m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 0, "metrictouch", "assettouch", "10", "X");
-        //        CHECK (m);
+        //        REQUIRE (m);
         //        rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
         fty::shm::write_metric("assettouch", "metrictouch", "10", "X", wanted_ttl);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         // 24.2.1.2 receive alert
         recv = mlm_client_recv(consumer);
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "rule_to_touch"));
-        CHECK(streq(fty_proto_name(brecv), "assettouch"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
+        REQUIRE(streq(fty_proto_name(brecv), "assettouch"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
 
         // 24.2.2 send touch request
         touch_request = zmsg_new();
-        CHECK(touch_request);
+        REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch");
         rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         recv = mlm_client_recv(ui);
-        CHECK(recv);
-        CHECK(zmsg_size(recv) == 1);
+        REQUIRE(recv);
+        REQUIRE(zmsg_size(recv) == 1);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
 
         // 24.2.3 the only existing ALERT must be RESOLVED
         poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
-        CHECK(poller);
+        REQUIRE(poller);
         which = zpoller_wait(poller, polling_value * 2);
-        CHECK(which != NULL);
+        REQUIRE(which != NULL);
         recv = mlm_client_recv(consumer);
-        CHECK(recv != NULL);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv != NULL);
+        REQUIRE(is_fty_proto(recv));
         if (verbose) {
             brecv = fty_proto_decode(&recv);
-            CHECK(streq(fty_proto_rule(brecv), "rule_to_touch"));
-            CHECK(streq(fty_proto_name(brecv), "assettouch"));
-            CHECK(streq(fty_proto_state(brecv), "RESOLVED"));
-            CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+            REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
+            REQUIRE(streq(fty_proto_name(brecv), "assettouch"));
+            REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
+            REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
             fty_proto_destroy(&brecv);
             log_debug("Alert was sent: SUCCESS");
         }
@@ -1063,25 +1063,25 @@ TEST_CASE("Alert engine server")
 
         // 24.3.1: there exists a RESOLVED alert for this rule; send touch request
         touch_request = zmsg_new();
-        CHECK(touch_request);
+        REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch");
         rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         recv = mlm_client_recv(ui);
-        CHECK(recv);
-        CHECK(zmsg_size(recv) == 1);
+        REQUIRE(recv);
+        REQUIRE(zmsg_size(recv) == 1);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         zmsg_destroy(&recv);
 
         // 24.3.2 NO alert should be generated
         poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
-        CHECK(poller);
+        REQUIRE(poller);
         which = zpoller_wait(poller, polling_value * 2);
-        CHECK(which == NULL);
+        REQUIRE(which == NULL);
         if (verbose) {
             log_debug("No alert was sent: SUCCESS");
         }
@@ -1094,16 +1094,16 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* rule_to_touch = s_readall((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch1.rule").c_str());
-        CHECK(rule_to_touch);
+        REQUIRE(rule_to_touch);
         zmsg_addstrf(rule, "%s", rule_to_touch);
         zstr_free(&rule_to_touch);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -1112,16 +1112,16 @@ TEST_CASE("Alert engine server")
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         rule_to_touch = s_readall((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch2.rule").c_str());
-        CHECK(rule_to_touch);
+        REQUIRE(rule_to_touch);
         zmsg_addstrf(rule, "%s", rule_to_touch);
         zstr_free(&rule_to_touch);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
@@ -1129,48 +1129,48 @@ TEST_CASE("Alert engine server")
         // 25.3.1 Generate alert on the First rule; send metric
         //        zmsg_t *m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
-        //        CHECK (m);
+        //        REQUIRE (m);
         //        int rv = mlm_client_send (producer, "metrictouch1@element1", &m);
         int rv = fty::shm::write_metric("element1", "metrictouch1", "100", "X", wanted_ttl);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         // 25.3.2 receive alert
         recv = mlm_client_recv(consumer);
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_print(brecv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "rule_to_metrictouch1"));
-        CHECK(streq(fty_proto_name(brecv), "element3"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "CRITICAL"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "rule_to_metrictouch1"));
+        REQUIRE(streq(fty_proto_name(brecv), "element3"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
 
         // 25.4.1 Generate alert on the Second rule; send metric
         //        m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 0, "metrictouch2", "element2", "80", "X");
-        //        CHECK (m);
+        //        REQUIRE (m);
         //        rv = mlm_client_send (producer, "metrictouch2@element2", &m);
         rv = fty::shm::write_metric("element2", "metrictouch2", "80", "X", wanted_ttl);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         // 25.4.2 receive alert
         recv = mlm_client_recv(consumer);
 
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_rule(brecv), "rule_to_metrictouch2"));
-        CHECK(streq(fty_proto_name(brecv), "element3"));
-        CHECK(streq(fty_proto_state(brecv), "ACTIVE"));
-        CHECK(streq(fty_proto_severity(brecv), "WARNING"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_rule(brecv), "rule_to_metrictouch2"));
+        REQUIRE(streq(fty_proto_name(brecv), "element3"));
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        REQUIRE(streq(fty_proto_severity(brecv), "WARNING"));
         fty_proto_destroy(&brecv);
 
         // 25.5 Send "metric unavailable"
@@ -1181,29 +1181,29 @@ TEST_CASE("Alert engine server")
 
         // 25.5.2. send UNAVAILABLE metric
         zmsg_t* m_unavailable = zmsg_new();
-        CHECK(m_unavailable);
+        REQUIRE(m_unavailable);
         zmsg_addstr(m_unavailable, "METRICUNAVAILABLE");
         zmsg_addstr(m_unavailable, "metrictouch1@element1");
 
         rv = mlm_client_send(metric_unavailable, "metrictouch1@element1", &m_unavailable);
-        CHECK(rv == 0);
+        REQUIRE(rv == 0);
 
         // 25.6 Check that 2 alerts were resolved
         recv = mlm_client_recv(consumer);
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_state(brecv), "RESOLVED"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
         fty_proto_destroy(&brecv);
 
         recv = mlm_client_recv(consumer);
-        CHECK(recv);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto(recv));
         brecv = fty_proto_decode(&recv);
-        CHECK(brecv);
-        CHECK(streq(fty_proto_name(brecv), "element3"));
-        CHECK(streq(fty_proto_state(brecv), "RESOLVED"));
+        REQUIRE(brecv);
+        REQUIRE(streq(fty_proto_name(brecv), "element3"));
+        REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
         fty_proto_destroy(&brecv);
 
         // 25.7 clean up
@@ -1212,12 +1212,12 @@ TEST_CASE("Alert engine server")
 
     // # 26 - # 30 : test autoconfig
     mlm_client_t* asset_producer = mlm_client_new();
-    CHECK(asset_producer);
+    REQUIRE(asset_producer);
     mlm_client_connect(asset_producer, endpoint, 1000, "asset_producer");
     mlm_client_set_producer(asset_producer, FTY_PROTO_STREAM_ASSETS);
 
     zactor_t* ag_configurator = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>("test-autoconfig")));
-    CHECK(ag_configurator);
+    REQUIRE(ag_configurator);
     zstr_sendx(ag_configurator, "CONFIG", SELFTEST_DIR_RW, NULL);
     zstr_sendx(ag_configurator, "CONNECT", endpoint, NULL);
     zstr_sendx(ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
@@ -1236,21 +1236,21 @@ TEST_CASE("Alert engine server")
                 "test",
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
-        CHECK (m);
+        REQUIRE (m);
         zhash_destroy (&aux);
         int rv = mlm_client_send (asset_producer, "datacenter.@test", &m);
-        CHECK ( rv == 0 );
+        REQUIRE ( rv == 0 );
 
         zclock_sleep (20000);
 
         char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
-        CHECK (average_humidity);
+        REQUIRE (average_humidity);
         char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
-        CHECK (average_temperature);
+        REQUIRE (average_temperature);
         char *realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
-        CHECK (realpower_default);
+        REQUIRE (realpower_default);
         char *phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str ());
-        CHECK (phase_imbalance);
+        REQUIRE (phase_imbalance);
 
         zstr_free (&realpower_default);
         zstr_free (&phase_imbalance);
@@ -1260,25 +1260,25 @@ TEST_CASE("Alert engine server")
         int ttl = wanted_ttl;
 //        m = fty_proto_encode_metric (
 //            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-//        CHECK (m);
+//        REQUIRE (m);
 //        rv = mlm_client_send (producer, "average.temperature@test", &m);
         rv = fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
-        CHECK ( rv == 0 );
+        REQUIRE ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
 
     fty_shm_delete_test_dir();
     fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK (recv);
-        CHECK (is_fty_proto (recv));
+        REQUIRE (recv);
+        REQUIRE (is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
-        CHECK (brecv);
+        REQUIRE (brecv);
         ttl = fty_proto_ttl (brecv);
-        CHECK (ttl != -1);
-        CHECK (streq (fty_proto_rule (brecv), "average.temperature@test"));
-        CHECK (streq (fty_proto_name (brecv), "test"));
-        CHECK (streq (fty_proto_state (brecv), "ACTIVE"));
-        CHECK (streq (fty_proto_severity (brecv), "CRITICAL"));
+        REQUIRE (ttl != -1);
+        REQUIRE (streq (fty_proto_rule (brecv), "average.temperature@test"));
+        REQUIRE (streq (fty_proto_name (brecv), "test"));
+        REQUIRE (streq (fty_proto_state (brecv), "ACTIVE"));
+        REQUIRE (streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
     }
 
@@ -1293,45 +1293,45 @@ TEST_CASE("Alert engine server")
                         "test",
                         FTY_PROTO_ASSET_OP_UPDATE,
                         NULL);
-        CHECK (m);
+        REQUIRE (m);
         zhash_destroy (&aux2);
         int rv = mlm_client_send (asset_producer, "row.@test", &m);
-        CHECK ( rv == 0 );
+        REQUIRE ( rv == 0 );
 
         zclock_sleep (20000);
 
         char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
-        CHECK (average_humidity);
+        REQUIRE (average_humidity);
         char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
-        CHECK (average_temperature);
+        REQUIRE (average_temperature);
 
         zstr_free (&average_humidity);
         zstr_free (&average_temperature);
         // TODO: now inapplicable rules should be deleted in the future
         /* realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
         phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str ());
-        CHECK (realpower_default == NULL && phase_imbalance == NULL); */
+        REQUIRE (realpower_default == NULL && phase_imbalance == NULL); */
 
         int ttl = wanted_ttl;
         zclock_sleep (3 * ttl);
 //        m = fty_proto_encode_metric (
 //            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-//        CHECK (m);
+//        REQUIRE (m);
 //        rv = mlm_client_send (producer, "average.temperature@test", &m);
         fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
-        CHECK ( rv == 0 );
+        REQUIRE ( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
 
     fty_shm_delete_test_dir();
     fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        CHECK ( recv != NULL );
-        CHECK ( is_fty_proto (recv));
+        REQUIRE ( recv != NULL );
+        REQUIRE ( is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
-        CHECK (streq (fty_proto_rule (brecv), "average.temperature@test"));
-        CHECK (streq (fty_proto_name (brecv), "test"));
-        CHECK (streq (fty_proto_state (brecv), "ACTIVE"));
-        CHECK (streq (fty_proto_severity (brecv), "CRITICAL"));
+        REQUIRE (streq (fty_proto_rule (brecv), "average.temperature@test"));
+        REQUIRE (streq (fty_proto_name (brecv), "test"));
+        REQUIRE (streq (fty_proto_state (brecv), "ACTIVE"));
+        REQUIRE (streq (fty_proto_severity (brecv), "CRITICAL"));
         if (verbose) {
             log_debug ("Alert was sent: SUCCESS");
         }
@@ -1350,13 +1350,13 @@ TEST_CASE("Alert engine server")
         zmsg_t* recv = mlm_client_recv(ui);
 
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "123456"));
+        REQUIRE(streq(foo, "123456"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "LIST"));
+        REQUIRE(streq(foo, "LIST"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "all"));
+        REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
 
         cxxtools::Directory d((str_SELFTEST_DIR_RO + "/templates").c_str());
@@ -1368,17 +1368,17 @@ TEST_CASE("Alert engine server")
                 std::ifstream f(d.path() + "/" + fn);
                 std::string   str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
                 template_name = zmsg_popstr(recv);
-                CHECK(fn.compare(template_name) == 0);
+                REQUIRE(fn.compare(template_name) == 0);
                 // template content
                 foo = zmsg_popstr(recv);
-                CHECK(str.compare(foo) == 0);
+                REQUIRE(str.compare(foo) == 0);
                 zstr_free(&foo);
                 // element list
                 foo = zmsg_popstr(recv);
 #if 0 // related to 'test' asset created w/ fty-asset (see above)
                 if (fn.find ("__row__")!= std::string::npos){
                     log_debug ("template: '%s', devices :'%s'",template_name,foo);
-                    CHECK (streq (foo,"test"));
+                    REQUIRE (streq (foo,"test"));
                 }
 #endif
                 file_counter++;
@@ -1386,7 +1386,7 @@ TEST_CASE("Alert engine server")
                 zstr_free(&template_name);
             }
         }
-        CHECK(file_counter > 0);
+        REQUIRE(file_counter > 0);
         log_debug("Test #30 : List All templates parse successfully %d files", file_counter);
         zmsg_destroy(&recv);
     }
@@ -1396,24 +1396,24 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
         char* pattern_rule = s_readall((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
-        CHECK(pattern_rule);
+        REQUIRE(pattern_rule);
         zmsg_addstrf(rule, "%s", pattern_rule);
         zmsg_addstrf(rule, "%s", "warranty2");
         zstr_free(&pattern_rule);
         mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-        CHECK(zmsg_size(recv) == 2);
+        REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
-        CHECK(streq(foo, "OK"));
+        REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
 
         // recieve an alert
         recv = mlm_client_recv(consumer);
-        CHECK(recv != NULL);
-        CHECK(is_fty_proto(recv));
+        REQUIRE(recv != NULL);
+        REQUIRE(is_fty_proto(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_destroy(&brecv);
     }
@@ -1424,12 +1424,12 @@ TEST_CASE("Alert engine server")
             "\u017dlu\u0165ou\u010dk\xc3\xbd K\u016f\xc5\x88", "Žluťou\u0165ký kůň", "ŽLUťou\u0165Ký kůň",
             "Ka\xcc\x81rol", "K\xc3\xa1rol", "супер test", "\u0441\u0443\u043f\u0435\u0440 Test"};
 
-        CHECK(utf8eq(strings[0], strings[1]) == 1);
-        CHECK(utf8eq(strings[0], strings[2]) == 0);
-        CHECK(utf8eq(strings[1], strings[2]) == 0);
-        CHECK(utf8eq(strings[2], strings[3]) == 1);
-        CHECK(utf8eq(strings[4], strings[5]) == 0);
-        CHECK(utf8eq(strings[6], strings[7]) == 1);
+        REQUIRE(utf8eq(strings[0], strings[1]) == 1);
+        REQUIRE(utf8eq(strings[0], strings[2]) == 0);
+        REQUIRE(utf8eq(strings[1], strings[2]) == 0);
+        REQUIRE(utf8eq(strings[2], strings[3]) == 1);
+        REQUIRE(utf8eq(strings[4], strings[5]) == 0);
+        REQUIRE(utf8eq(strings[6], strings[7]) == 1);
     }
 
     log_debug("Cleanup");
