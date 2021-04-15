@@ -122,12 +122,13 @@ if(BUILD_TESTING)
 
     FILE(GLOB rule_templates_test_f "${PROJECT_SOURCE_DIR}/test/templates/*.rule")
     foreach(file ${rule_templates_test_f})
-        install(FILES ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
+        file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
+        # install(FILES ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
     endforeach()
 
     FILE(GLOB rule_templates_test_s "${PROJECT_SOURCE_DIR}/test/testrules/*.rule")
     foreach(file ${rule_templates_test_s})
-        install(FILES ${file} DESTINATION ${RULE_TEMPLATES_TEST}/testrules)
+        file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/testrules)
     endforeach()
     
 endif()
