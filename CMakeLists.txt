@@ -4,6 +4,7 @@ cmake_policy(VERSION 3.13)
 project(fty-alert-engine
     VERSION 1.0.0
     DESCRIPTION "42ity service evaluating rules written in Lua and producing alerts"
+    LANGUAGES CXX
 )
 
 ##############################################################################################################
