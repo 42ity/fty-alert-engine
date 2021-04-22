@@ -35,6 +35,7 @@
 #include <fty_common_filesystem.h>
 #include <iostream>
 #include <lua.h>
+#include <fty_log.h>
 
 #define AUTOCONFIG "AUTOCONFIG"
 
