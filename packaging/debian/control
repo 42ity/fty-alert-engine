@@ -41,13 +41,6 @@ Build-Depends: debhelper (>= 9),
     asciidoc-base | asciidoc, xmlto,
     dh-autoreconf
 
-Package: libfty-alert-engine0
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: fty-alert-engine shared library
- This package contains shared library for fty-alert-engine:
- 42ity service evaluating rules written in lua and producing alerts
-
 Package: fty-alert-engine
 Architecture: any
 Section: libdevel
