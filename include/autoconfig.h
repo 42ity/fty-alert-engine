@@ -27,6 +27,7 @@
 #include <string>
 #include <ftyproto.h>
 #include "utils.h"
+#include <fty_log.h>
 
 #define RULES_SUBJECT "rfc-evaluator-rules"
 

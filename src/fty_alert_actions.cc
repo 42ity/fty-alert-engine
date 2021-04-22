@@ -28,6 +28,7 @@
 
 #include <ftyproto.h>
 #include "fty_alert_actions.h"
+#include <fty_log.h>
 
 #define EMAIL_ACTION       "EMAIL"
 #define SMS_ACTION         "SMS"
