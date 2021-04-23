@@ -65,8 +65,7 @@ etn_configure_file(
     src/conf/${PROJECT_NAME}.service.in
 
     TARGET      ${PROJECT_NAME}
-    # DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system/
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
 )
 
 etn_configure_file(
