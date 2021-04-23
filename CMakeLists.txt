@@ -41,7 +41,7 @@ etn_target(static ${PROJECT_NAME}-static
     PRIVATE
 )
 ##############################################################################################################
-etn_target(exe ${PROJECT_NAME}-server
+etn_target(exe ${PROJECT_NAME}
     SOURCES
         src/fty_alert_engine.cc
         src/fty_alert_engine_server.cc
@@ -62,17 +62,23 @@ etn_target(exe ${PROJECT_NAME}-server
 # install systemd config
 
 etn_configure_file(
-    src/${PROJECT_NAME}.service.in
+    src/conf/${PROJECT_NAME}.service.in
 
-    TARGET      ${PROJECT_NAME}-server
-    DESTINATION /usr/lib/systemd/system/
+    TARGET      ${PROJECT_NAME}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
+)
+
+etn_configure_file(
+    ${PROJECT_SOURCE_DIR}/src/conf/fty-alert-engine.conf.in
+    TARGET      ${PROJECT_NAME}
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/tmpfiles.d/"
 )
 
 #install config file
 
 etn_configure_file( 
     src/conf/fty-alert-engine.cfg.in    
-    TARGET ${PROJECT_NAME}-server
+    TARGET ${PROJECT_NAME}
     DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/fty-alert-engine/"
 )
 
@@ -81,9 +87,15 @@ install(
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fty/fty-alert-engine
 )
 
+# install(
+#     FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
+#     DESTINATION ${CMAKE_INSTALL_PREFIX}/var/lib/fty/fty-alert-engine
+# )
+# <item path = "/var/lib/fty/fty-alert-engine" name = "warranty.rule" />
+
 install(
-    FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/var/lib/fty/fty-alert-engine
+    FILES ${PROJECT_BINARY_DIR}/src/warranty.rule
+    DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/lib/fty/${PROJECT_NAME}
 )
 
 set(AGENT_USER "bios")
@@ -97,7 +109,7 @@ endforeach()
 
 
 # Create a target for the tests
-etn_test_target(${PROJECT_NAME}-server
+etn_test_target(${PROJECT_NAME}
     SOURCES
         src/fty_alert_engine_server.cc
         test/main.cpp
