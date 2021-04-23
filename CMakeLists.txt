@@ -94,7 +94,7 @@ install(
 # <item path = "/var/lib/fty/fty-alert-engine" name = "warranty.rule" />
 
 install(
-    FILES ${PROJECT_BINARY_DIR}/src/warranty.rule
+    FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
     DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/lib/fty/${PROJECT_NAME}
 )
 
