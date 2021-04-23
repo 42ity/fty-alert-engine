@@ -65,13 +65,14 @@ etn_configure_file(
     src/conf/${PROJECT_NAME}.service.in
 
     TARGET      ${PROJECT_NAME}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
+    # DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
+    DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/systemd/system/
 )
 
 etn_configure_file(
     ${PROJECT_SOURCE_DIR}/src/conf/fty-alert-engine.conf.in
     TARGET      ${PROJECT_NAME}
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/tmpfiles.d/"
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/tmpfiles.d/
 )
 
 #install config file
@@ -79,19 +80,13 @@ etn_configure_file(
 etn_configure_file( 
     src/conf/fty-alert-engine.cfg.in    
     TARGET ${PROJECT_NAME}
-    DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/fty-alert-engine/"
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/fty-alert-engine/
 )
 
 install(
     FILES ${PROJECT_SOURCE_DIR}/src/conf/fty-alert-engine-log.cfg
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fty/fty-alert-engine
 )
-
-# install(
-#     FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
-#     DESTINATION ${CMAKE_INSTALL_PREFIX}/var/lib/fty/fty-alert-engine
-# )
-# <item path = "/var/lib/fty/fty-alert-engine" name = "warranty.rule" />
 
 install(
     FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
