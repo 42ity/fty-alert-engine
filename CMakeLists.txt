@@ -66,7 +66,7 @@ etn_configure_file(
 
     TARGET      ${PROJECT_NAME}
     # DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
-    DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/systemd/system/
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system/
 )
 
 etn_configure_file(
