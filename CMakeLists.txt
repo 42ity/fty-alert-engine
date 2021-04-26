@@ -121,7 +121,7 @@ etn_test_target(${PROJECT_NAME}
         fty_shm
         lua5.1
 )
-set(RULE_TEMPLATES_TEST "${CMAKE_CURRENT_BINARY_DIR}/test_rules/")
+set(RULE_TEMPLATES_TEST "${CMAKE_BINARY_DIR}/test_rules/")
 
 FILE(GLOB rule_templates_test_f "${PROJECT_SOURCE_DIR}/test/templates/*.rule")
 foreach(file ${rule_templates_test_f})
