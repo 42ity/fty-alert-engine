@@ -50,6 +50,7 @@ all_tests [] = {
     { "autoconfig", autoconfig_test, true, true, NULL },
     { "fty_alert_engine_server", fty_alert_engine_server_test, true, true, NULL },
     { "fty_alert_actions", fty_alert_actions_test, true, true, NULL },
+    { "fty_alert_engine_audit_log", fty_alert_engine_audit_log_test, true, true, NULL },
     {NULL, NULL, 0, 0, NULL}          //  Sentinel
 };
 
