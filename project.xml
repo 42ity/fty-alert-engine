@@ -102,7 +102,7 @@
     <class name = "TemplateRuleConfigurator" private = "1" selftest = "0">Template rule configurator</class>
     <class name = "fty_alert_engine_server" state = "stable" >Actor evaluating rules</class>
     <class name = "fty_alert_actions" state = "stable" >Actor performing actions on alert (sending notifications)</class>
-    <class name = "fty_alert_engine_audit_log" selftest = "0" state = "stable">Manage audit log</class>
+    <class name = "fty_alert_engine_audit_log" state = "stable">Manage audit log</class>
 
     <header name = "normalrule" private = "1" >normalrule</header>
     <header name = "thresholdrulesimple" private = "1" >thresholdrulesimple</header>

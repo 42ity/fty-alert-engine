@@ -65,4 +65,6 @@ public:
     static void deinit ();
 };
 
+void fty_alert_engine_audit_log_test (bool verbose);
+
 #endif
