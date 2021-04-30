@@ -108,5 +108,7 @@ void fty_alert_engine_audit_log_test (bool verbose)
     //delete the log file test
     remove("./src/selftest-rw/alarms-audit-test.log");
 
+    // release audit context
+    AlertsEngineAuditLogManager::deinit();
     printf(" * Check log config file test : OK\n");
 }
