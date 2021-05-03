@@ -1,8 +1,5 @@
-# This is a skeleton created by zproject.
-# You can add hand-written code here.
-
 [Unit]
-Description=fty-alert-engine service
+Description=@PROJECT_NAME@ service
 After=network.target
 Requires=network.target malamute.service fty-asset.service
 After=network.target malamute.service fty-asset.service
@@ -11,23 +8,20 @@ PartOf=bios.target
 
 [Service]
 Type=simple
-User=bios
+User=@AGENT_USER@
 Restart=always
-EnvironmentFile=-@prefix@/share/bios/etc/default/bios
-EnvironmentFile=-@prefix@/share/bios/etc/default/bios__%n.conf
-EnvironmentFile=-@prefix@/share/fty/etc/default/fty
-EnvironmentFile=-@prefix@/share/fty/etc/default/fty__%n.conf
-EnvironmentFile=-@sysconfdir@/default/bios
-EnvironmentFile=-@sysconfdir@/default/bios__%n.conf
-EnvironmentFile=-@sysconfdir@/default/fty
-EnvironmentFile=-@sysconfdir@/default/fty__%n.conf
-Environment="prefix=@prefix@"
+EnvironmentFile=-/usr/share/bios/etc/default/bios
+EnvironmentFile=-/usr/share/bios/etc/default/bios__%n.conf
+EnvironmentFile=-/usr/share/fty/etc/default/fty
+EnvironmentFile=-/usr/share/fty/etc/default/fty__%n.conf
+EnvironmentFile=-/etc/default/bios
+EnvironmentFile=-/etc/default/bios__%n.conf
+EnvironmentFile=-/etc/default/fty
+EnvironmentFile=-/etc/default/fty__%n.conf
+Environment="prefix=/usr"
 
-# var/lib/fty (rules file) 
-ExecStartPre=+/bin/chown -R @AGENT_USER@ @RULE_TEMPLATES_SHARE_DIR@ 
-ExecStartPre=+/bin/chmod 771 @RULE_TEMPLATES_SHARE_DIR@
-
-ExecStart=@prefix@/bin/fty-alert-engine-server
+# exec (no arg)
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/@PROJECT_NAME@
 
 [Install]
 WantedBy=bios.target

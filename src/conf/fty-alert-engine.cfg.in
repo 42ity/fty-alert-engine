@@ -5,5 +5,7 @@ server
     background = 0      #   Run as background process
     workdir = .         #   Working directory for daemon
     verbose = 0         #   Do verbose logging of activity?
+
+#/etc/fty/fty-alert-engine/fty-alert-engine-log.cfg
 log
-    config = "/etc/fty/fty-alert-engine/fty-alert-engine-log.cfg"     #   Path to the log configuration file (optional)
+    config = "@CMAKE_INSTALL_FULL_SYSCONFDIR@/fty/@PROJECT_NAME@/fty-alert-engine-log.cfg"     # Path to the log configuration file (optional)

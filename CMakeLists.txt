@@ -59,6 +59,9 @@ etn_target(exe ${PROJECT_NAME}
         lua5.1
 )
 
+set(AGENT_USER "bios")
+set(RULE_TEMPLATES_SHARE_DIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/bios/fty-autoconfig")
+
 # install systemd config
 
 etn_configure_file(
@@ -79,16 +82,13 @@ etn_configure_file(
 etn_configure_file(
     src/conf/fty-alert-engine.cfg.in
     TARGET ${PROJECT_NAME}
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/fty-alert-engine/
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}${PROJECT_NAME}/
 )
 
 install(
     FILES ${PROJECT_SOURCE_DIR}/src/conf/fty-alert-engine-log.cfg
-    DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fty/fty-alert-engine
+    DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fty/${PROJECT_NAME}
 )
-
-set(AGENT_USER "bios")
-set(RULE_TEMPLATES_SHARE_DIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/bios/fty-autoconfig")
 
 # rules -> usr/share/bios/fty-autoconfig
 FILE(GLOB rule_templates "${PROJECT_SOURCE_DIR}/src/rule_templates/*.rule")
