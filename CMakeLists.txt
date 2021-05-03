@@ -96,6 +96,12 @@ foreach(file ${rule_templates})
   install(FILES ${file} DESTINATION ${RULE_TEMPLATES_SHARE_DIR}/)
 endforeach()
 
+# warranty.rule exception
+install(
+    FILES ${PROJECT_SOURCE_DIR}/src/warranty.rule
+    DESTINATION ${CMAKE_INSTALL_LOCALSTATEDIR}/lib/fty/${PROJECT_NAME}
+)
+
 ##############################################################################################################
 
 # Create a target for the tests
