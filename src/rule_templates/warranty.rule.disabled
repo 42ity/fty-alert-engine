@@ -1,5 +1,6 @@
 {
     "pattern" : {
+        "_note"         : "disabled, see fty-warranty"",
         "rule_name"     :   "warranty",
         "target"        :   "^end_warranty_date@.+",
         "comment"       :   "/!\\ Warning, target trick hardcoded in fty_alert_engine_server.cc:evaluate_metric",
