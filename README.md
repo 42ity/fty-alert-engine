@@ -7,23 +7,23 @@ NB: Rules for fty-alert-engine have strictly defined format. Agents which need d
 
 ## How to build
 
-To build fty-alert-engine project run:
+To build, run:
 
 ```bash
-./autogen.sh
-./configure
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=usr -DBUILD_TESTING=On ..
 make
-make check # to run self-test
+sudo make install
 ```
 
 ## How to run
 
-To run fty-alert-engine project:
+To run:
 
-* from within the source tree, run:
+* from within the build/ tree, run:
 
 ```bash
-./src/fty-alert-engine
+./fty-alert-engine
 ```
 
 For the other options available, refer to the manual page of fty-alert-engine
@@ -253,7 +253,7 @@ peer using MAILBOX SEND.
 
 #### List of templates rules
 
-The USER peer sends the following messages using MAILBOX SEND to 
+The USER peer sends the following messages using MAILBOX SEND to
 FTY-AUTOCONFIG-SERVER ("fty-autoconfig") peer:
 
 * LIST/'correlation_id'/['filter']
