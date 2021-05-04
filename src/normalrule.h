@@ -20,14 +20,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
  *  \brief Representation of normal rule
  */
-#ifndef SRC_NORMALRULE_H
-#define SRC_NORMALRULE_H
+#pragma once
 
-#include <cxxtools/serializationinfo.h>
 #include "luarule.h"
+#include <cxxtools/serializationinfo.h>
 extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
+#include <lua5.1/lauxlib.h>
+#include <lua5.1/lua.h>
 }
 // because of zsys
 #include <czmq.h>
@@ -37,7 +36,10 @@ class NormalRule : public LuaRule
 public:
     NormalRule(){};
 
-    std::string whoami () const { return "single"; }
+    std::string whoami() const
+    {
+        return "single";
+    }
 
     /*
      * \brief parse json and check lua and fill the object
@@ -48,53 +50,52 @@ public:
      *         2 if lua function has errors
      *         0 if everything is ok
      */
-    int fill(const cxxtools::SerializationInfo &si)
+    int fill(const cxxtools::SerializationInfo& si)
     {
         _si = si;
-        if ( si.findMember("single") == NULL ) {
+        if (si.findMember("single") == NULL) {
             return 1;
         }
-        log_debug ("it is SINGLE rule");
+        log_debug("it is SINGLE rule");
         auto single = si.getMember("single");
-        if ( single.category () != cxxtools::SerializationInfo::Object ) {
-            log_error ("Root of json must be an object with property 'single'.");
+        if (single.category() != cxxtools::SerializationInfo::Object) {
+            log_error("Root of json must be an object with property 'single'.");
             throw std::runtime_error("Root of json must be an object with property 'single'.");
         }
 
         // target
         auto target = single.getMember("target");
-        if ( target.category () != cxxtools::SerializationInfo::Array ) {
-            log_error ("property 'target' in json must be an Array");
-            throw std::runtime_error ("property 'target' in json must be an Array");
+        if (target.category() != cxxtools::SerializationInfo::Array) {
+            log_error("property 'target' in json must be an Array");
+            throw std::runtime_error("property 'target' in json must be an Array");
         }
         target >>= _metrics;
         single.getMember("rule_name") >>= _name;
         single.getMember("element") >>= _element;
         // rule_class
-        if ( single.findMember("rule_class") != NULL ) {
+        if (single.findMember("rule_class") != NULL) {
             single.getMember("rule_class") >>= _rule_class;
         }
         // rule_source
-        if ( single.findMember("rule_source") == NULL ) {
+        if (single.findMember("rule_source") == NULL) {
             // if key is not there, take default
             _rule_source = "Manual user input";
             single.addMember("rule_source") <<= _rule_source;
-        }
-        else {
+        } else {
             auto rule_source = single.getMember("rule_source");
-            if ( rule_source.category () != cxxtools::SerializationInfo::Value ) {
+            if (rule_source.category() != cxxtools::SerializationInfo::Value) {
                 throw std::runtime_error("'rule_source' in json must be value.");
             }
             rule_source >>= _rule_source;
         }
-        log_debug ("rule_source = %s", _rule_source.c_str());
+        log_debug("rule_source = %s", _rule_source.c_str());
         // values
         // values are not required for single rule
-        if ( single.findMember("values") != NULL ) {
-            std::map<std::string,double> tmp_values;
-            auto values = single.getMember("values");
-            if ( values.category () != cxxtools::SerializationInfo::Array ) {
-                log_error ("parameter 'values' in json must be an array.");
+        if (single.findMember("values") != NULL) {
+            std::map<std::string, double> tmp_values;
+            auto                          values = single.getMember("values");
+            if (values.category() != cxxtools::SerializationInfo::Array) {
+                log_error("parameter 'values' in json must be an array.");
                 throw std::runtime_error("parameter 'values' in json must be an array");
             }
             values >>= tmp_values;
@@ -103,9 +104,9 @@ public:
 
         // outcomes
         auto outcomes = single.getMember("results");
-        if ( outcomes.category () != cxxtools::SerializationInfo::Array ) {
-            log_error ("parameter 'results' in json must be an array.");
-            throw std::runtime_error ("parameter 'results' in json must be an array.");
+        if (outcomes.category() != cxxtools::SerializationInfo::Array) {
+            log_error("parameter 'results' in json must be an array.");
+            throw std::runtime_error("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
 
@@ -113,13 +114,10 @@ public:
         single.getMember("evaluation") >>= tmp;
         try {
             code(tmp);
-        }
-        catch ( const std::exception &e ) {
-            log_warning ("something with lua function: %s", e.what());
+        } catch (const std::exception& e) {
+            log_warning("something with lua function: %s", e.what());
             return 2;
         }
         return 0;
     }
 };
-
-#endif // SRC_NORMALRULE_H_

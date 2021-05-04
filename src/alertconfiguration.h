@@ -240,7 +240,8 @@ public:
         if(it == _metrics_alerts_map.end())
             return std::vector<std::string>{};
         else
-            return std::vector<std::string>(it->second);
+            return it->second;
+            // return std::vector<std::string>(it->second);
     }
 
 private:

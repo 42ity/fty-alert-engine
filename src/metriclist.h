@@ -20,13 +20,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
  *  \brief This class is intended to handle set of current known metrics
  */
-#ifndef SRC_METRICLIST_H
-#define SRC_METRICLIST_H
-
-#include <string>
-#include <map>
+#pragma once
 
 #include "metricinfo.h"
+#include <map>
+#include <string>
 
 /*
  * \brief This class is intended to handle set of current known metrics.
@@ -34,18 +32,18 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  * You can create it, ad new metrics, find known metrics by topic,
  * and remove metrics that are not valid.
  */
-class MetricList {
+class MetricList
+{
 public:
-
     /*
      * \brief Constrocts the empty list
      */
-    MetricList() {};
+    MetricList(){};
 
     /*
      * \brief Destroys the list
      */
-    ~MetricList() {};
+    ~MetricList(){};
 
     /*
      * \brief Adds new metric
@@ -57,7 +55,7 @@ public:
      *
      * \param[in] metricInfo - metric to add
      */
-    void addMetric (const MetricInfo &metricInfo);
+    void addMetric(const MetricInfo& metricInfo);
 
     /*
      * \brief Finds a value of the metric in the list and checks if
@@ -72,7 +70,7 @@ public:
      *                  it is not present in the list
      *         value - otherwise
      */
-    double findAndCheck (const std::string &topic) const;
+    double findAndCheck(const std::string& topic) const;
 
     /*
      * \brief Finds a value of the metric in the list
@@ -84,7 +82,7 @@ public:
      * \return NAN   - if metric is not present in the list
      *         value - otherwise
      */
-    double find (const std::string &topic) const;
+    double find(const std::string& topic) const;
 
     /*
      * \brief Gets metric by the topic
@@ -95,30 +93,27 @@ public:
      *         MetricInfo empty - if metric isn't found
      *                            ( isUnknown() is true)
      */
-    MetricInfo getMetricInfo (
-        const std::string &topic) const;
+    MetricInfo getMetricInfo(const std::string& topic) const;
 
     /*
      * \brief Removes old metrics from the list
      */
-    void removeOldMetrics (void);
+    void removeOldMetrics(void);
 
     /*
      * \brief Gets the last added metric
      *
      * \return last added (or updated) metric
      */
-    MetricInfo getLastMetric (void) const {
+    MetricInfo getLastMetric(void) const
+    {
         return _lastInsertedMetric;
     };
 
 private:
-
     // Metric list <topic, Metric>
-    std::map <std::string, MetricInfo> _knownMetrics;
+    std::map<std::string, MetricInfo> _knownMetrics;
 
     // Keep track of last inserted metric
     MetricInfo _lastInsertedMetric;
 };
-
-#endif // SRC_METRICLIST_H_

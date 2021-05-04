@@ -18,35 +18,35 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
+#pragma once
 
-#ifndef FTY_ALERT_ACTIONS_H_INCLUDED
-#define FTY_ALERT_ACTIONS_H_INCLUDED
+#include <malamute.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef struct _fty_alert_actions_t
+{
+    mlm_client_t* client;
+    mlm_client_t* requestreply_client;
+    zpoller_t*    requestreply_poller;
+    zhash_t*      alerts_cache;
+    zhash_t*      assets_cache;
+    char*         name;
+    char*         requestreply_name;
+    bool          integration_test;
+    uint64_t      notification_override;
+    uint64_t      requestreply_timeout;
+} fty_alert_actions_t;
 
 //  @interface
 //  Create a new fty_alert_actions
-FTY_ALERT_ENGINE_EXPORT fty_alert_actions_t *
-    fty_alert_actions_new (void);
+fty_alert_actions_t* fty_alert_actions_new(void);
 
 //  Destroy the fty_alert_actions
-FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_actions_destroy (fty_alert_actions_t **self_p);
+void fty_alert_actions_destroy(fty_alert_actions_t** self_p);
 
 //  Main actor function for actions module
-FTY_ALERT_ENGINE_EXPORT void
-fty_alert_actions (zsock_t *pipe, void* args);
+void fty_alert_actions(zsock_t* pipe, void* args);
 
 //  Self test of this class
-FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_actions_test (bool verbose);
+void fty_alert_actions_test(bool verbose);
 
 //  @end
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

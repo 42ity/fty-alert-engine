@@ -31,7 +31,6 @@
 
 //  External dependencies
 #include <czmq.h>
-#include <malamute.h>
 #include <fty_log.h>
 #include <ftyproto.h>
 #include <lua.h>
@@ -85,8 +84,8 @@ typedef struct _autoconfig_t autoconfig_t;
 #define AUTOCONFIG_T_DEFINED
 typedef struct _fty_alert_engine_server_t fty_alert_engine_server_t;
 #define FTY_ALERT_ENGINE_SERVER_T_DEFINED
-typedef struct _fty_alert_actions_t fty_alert_actions_t;
-#define FTY_ALERT_ACTIONS_T_DEFINED
+// typedef struct _fty_alert_actions_t fty_alert_actions_t;
+// #define FTY_ALERT_ACTIONS_T_DEFINED
 typedef struct _fty_alert_engine_audit_log_t fty_alert_engine_audit_log_t;
 #define FTY_ALERT_ENGINE_AUDIT_LOG_T_DEFINED
 

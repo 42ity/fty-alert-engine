@@ -19,34 +19,24 @@
     =========================================================================
 */
 
-#ifndef FTY_ALERT_ENGINE_SERVER_H_INCLUDED
-#define FTY_ALERT_ENGINE_SERVER_H_INCLUDED
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#pragma once
+#include <malamute.h>
+#include <czmq.h>
+#include <ftyproto.h>
 
 
 //  @interface
-FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_stream (zsock_t *pipe, void *args);
+void fty_alert_engine_stream(zsock_t* pipe, void* args);
 
-FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_mailbox (zsock_t *pipe, void *args);
+void fty_alert_engine_mailbox(zsock_t* pipe, void* args);
 
-//FTY_ALERT_ENGINE_EXPORT void
+// FTY_ALERT_ENGINE_EXPORT void
 //    fty_alert_engine_metric(zsock_t *pipe, void *args);
 
-FTY_ALERT_ENGINE_EXPORT void
-    clearEvaluateMetrics ();
+void clearEvaluateMetrics();
 
 //  Self test of this class
-FTY_ALERT_ENGINE_EXPORT void
-    fty_alert_engine_server_test (bool verbose);
-//  @end
+void fty_alert_engine_server_test(bool verbose);
 
-#ifdef __cplusplus
-}
-#endif
+char* s_readall(const char* filename);
 
-#endif

@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <sstream>
 #include <limits>
 #include <cmath>
+#include <fty/convert.h>
 
 #include "utils.h"
 
@@ -107,7 +108,7 @@ stobiosf (const std::string& string, int32_t& integer, int8_t& scale) {
     if (fraction_size - 1 > std::numeric_limits<int8_t>::max ()) {
         return false;
     }
-    scale = -fraction_size;
+    scale = static_cast<int8_t>(-1*(fty::convert<int>(fraction_size)));
     integer = static_cast <int32_t> (sum);
     return true;
 }
@@ -157,12 +158,12 @@ std::string sql_escape(const std::string& in) {
 std::map<std::string,std::string> zhash_to_map(zhash_t *hash)
 {
     std::map<std::string,std::string> map;
-    char *item = (char *)zhash_first(hash);
+    char *item = static_cast<char *>(zhash_first(hash));
     while(item) {
         const char * key = zhash_cursor(hash);
-        const char * val = (const char *)zhash_lookup(hash,key);
+        const char * val = static_cast<const char *>(zhash_lookup(hash,key));
         if( key && val ) map[key] = val;
-        item = (char *)zhash_next(hash);
+        item = static_cast<char *>(zhash_next(hash));
     }
     return map;
 }
@@ -199,7 +200,7 @@ join (const char **str_arr, const char *separator) {
 } // namespace utils
 
 void
-utils_test (bool verbose)
+utils_test (bool /* verbose */)
 {
     printf (" * utils: ");
     printf ("OK\n");

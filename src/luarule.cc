@@ -113,7 +113,7 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
     }
 
     if (res != RULE_RESULT_UNKNOWN) {
-        int status = luaEvaluate(values);
+        int status = static_cast<int>(luaEvaluate(values));
         const char *statusText = resultToString (status);
         //log_debug("LuaRule::evaluate on %s gives '%s'", _name.c_str(), statusText);
 
@@ -122,14 +122,14 @@ int LuaRule::evaluate (const MetricList &metricList, PureAlert &pureAlert)
             log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
 
             // some known outcome was found
-            pureAlert = PureAlert(ALERT_START, ::time(NULL), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
+            pureAlert = PureAlert(ALERT_START, static_cast<uint64_t>(::time(NULL)), outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
             pureAlert.print();
         }
         else if ( status == RULE_RESULT_OK ) {
             log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
 
             // When alert is resolved, it doesn't have new severity!!!!
-            pureAlert = PureAlert(ALERT_RESOLVED, ::time(NULL), "everything is ok", _element, "OK", {""});
+            pureAlert = PureAlert(ALERT_RESOLVED, static_cast<uint64_t>(::time(NULL)), "everything is ok", _element, "OK", {""});
             pureAlert.print();
         }
         else {
@@ -154,7 +154,7 @@ double LuaRule::luaEvaluate(const std::vector<double> &metrics)
     for (const auto x: metrics) {
         lua_pushnumber (_lstate, x);
     }
-    if (lua_pcall (_lstate, metrics.size (), 1, 0) != 0) {
+    if (lua_pcall (_lstate, static_cast<int>(metrics.size ()), 1, 0) != 0) {
         throw std::runtime_error("LUA calling main() failed!");
     }
     if (!lua_isnumber (_lstate, -1)) {

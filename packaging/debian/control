@@ -23,30 +23,26 @@ Priority:       optional
 Maintainer:     fty-alert-engine Developers <eatonipcopensource@eaton.com>
 Standards-Version: 4.0.1.0
 Build-Depends: debhelper (>= 9),
+    cmake (>=3.0),
+    fty-cmake-dev,
     pkg-config,
     libsodium-dev,
     libzmq3-dev,
     libczmq-dev (>= 3.0.2),
     libmlm-dev (>= 1.0.0),
     libfty-common-logging-dev,
-    libfty-proto-dev (>= 1.0.0),
+    libfty-proto-dev,
     liblua5.1-0-dev (>= 5.1.0),
     libcxxtools-dev,
     libfty-common-dev,
-    libfty-shm-dev (>= 1.0.0),
+    libfty-shm-dev,
+    libfty-utils-dev,
     systemd,
     dh-systemd,
     asciidoc-base | asciidoc, xmlto,
     dh-autoreconf
 
-Package: libfty-alert-engine0
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: fty-alert-engine shared library
- This package contains shared library for fty-alert-engine:
- 42ity service evaluating rules written in lua and producing alerts
-
-Package: libfty-alert-engine-dev
+Package: fty-alert-engine
 Architecture: any
 Section: libdevel
 Depends:
@@ -56,30 +52,11 @@ Depends:
     libczmq-dev (>= 3.0.2),
     libmlm-dev (>= 1.0.0),
     libfty-common-logging-dev,
-    libfty-proto-dev (>= 1.0.0),
+    libfty-proto-dev,
     liblua5.1-0-dev (>= 5.1.0),
     libcxxtools-dev,
     libfty-common-dev,
-    libfty-shm-dev (>= 1.0.0),
-    libfty-alert-engine0 (= ${binary:Version})
+    libfty-shm-dev,
 Description: fty-alert-engine development tools
  This package contains development files for fty-alert-engine:
  42ity service evaluating rules written in lua and producing alerts
-
-Package: fty-alert-engine
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends},
-Description: runnable binaries from fty-alert-engine
- Main package for fty-alert-engine:
- 42ity service evaluating rules written in lua and producing alerts
-
-Package: fty-alert-engine-dbg
-Architecture: any
-Section: debug
-Priority: optional
-Depends:
-    fty-alert-engine (= ${binary:Version}),
-    ${misc:Depends}
-Description: fty-alert-engine debugging symbols
- This package contains the debugging symbols for fty-alert-engine:
- 42ity service evaluating rules written in lua and producing alerts.
