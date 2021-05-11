@@ -504,9 +504,9 @@ bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, c
                         triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) +
                         "\"} }";
                 } else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
+                    // Style note: do not break long translated lines, that would break their parser
                     alertToSend._description = std::string(
-                                                   "{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less "
-                                                   "than {{days}} days.)\", ") +
+                                                   "{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
                                                "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                                                triggeringMetric.getElementName() + "\" }, \"days\" : \"" +
                                                std::to_string(remaining_days) + "\"} }";
