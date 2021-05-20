@@ -23,6 +23,56 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "fty_alert_engine_classes.h"
 
+// PQSWMBT-4921 hotfix: exception for AlertConfiguration::addRule()
+// instanciate Xphase rule *only* for Xphase device
+static bool rejectAddRuleXphase(RulePtr& rule)
+{
+    if (rule == nullptr) return true;
+    std::string ruleName{rule->name()};
+    std::string foo;
+
+    // voltage.input_1phase@__device_ups__.rule
+    // voltage.input_1phase@__device_epdu__.rule
+    if (   (ruleName.find("voltage.input_1phase@ups-" ) == 0)
+        || (ruleName.find("voltage.input_1phase@epdu-") == 0))
+    {
+        auto asset = ruleName.substr(ruleName.find("@") + 1);
+        // reject if 3phase device
+        return (fty::shm::read_metric_value(asset, "voltage.input.L2", foo) == 0)
+            || (fty::shm::read_metric_value(asset, "voltage.input.L3", foo) == 0);
+    }
+
+    // voltage.input_3phase@__device_ups__.rule
+    // voltage.input_3phase@__device_epdu__.rule
+    if (   (ruleName.find("voltage.input_3phase@ups-" ) == 0)
+        || (ruleName.find("voltage.input_3phase@epdu-") == 0))
+    {
+        auto asset = ruleName.substr(ruleName.find("@") + 1);
+        // reject if 1phase device
+        return (fty::shm::read_metric_value(asset, "voltage.input.L2", foo) != 0)
+            || (fty::shm::read_metric_value(asset, "voltage.input.L3", foo) != 0);
+    }
+
+    // load.input_1phase@__device_epdu__.rule
+    if (ruleName.find("load.input_1phase@epdu-" ) == 0)
+    {
+        auto asset = ruleName.substr(ruleName.find("@") + 1);
+        // reject if 3phase device
+        return (fty::shm::read_metric_value(asset, "load.input.L2", foo) == 0)
+            || (fty::shm::read_metric_value(asset, "load.input.L3", foo) == 0);
+    }
+
+    // load.input_3phase@__device_epdu__.rule
+    if (ruleName.find("load.input_3phase@epdu-" ) == 0)
+    {
+        auto asset = ruleName.substr(ruleName.find("@") + 1);
+        // reject if 1phase device
+        return (fty::shm::read_metric_value(asset, "load.input.L2", foo) != 0)
+            || (fty::shm::read_metric_value(asset, "load.input.L3", foo) != 0);
+    }
+
+    return false; // don't reject
+}
 
 int readRule (std::istream &f, RulePtr &rule)
 {
@@ -110,8 +160,6 @@ int readRule (std::istream &f, RulePtr &rule)
     }
 }
 
-
-
 std::set <std::string> AlertConfiguration::
     readConfiguration (void)
 {
@@ -158,6 +206,7 @@ std::set <std::string> AlertConfiguration::
                 log_warning ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
                 continue;
             }
+
             std::string rulename = rule->name ();
             // record topics we are interested in
             for ( const auto &interestedTopic : rule->getNeededTopics() ) {
@@ -169,6 +218,7 @@ std::set <std::string> AlertConfiguration::
                   _metrics_alerts_map.insert(std::make_pair(interestedTopic,std::vector<std::string>{rulename}));
                 }
             }
+
             // add rule to the configuration
             _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), emptyAlerts)));
             log_debug ("file '%s' read correctly", fn.c_str());
@@ -207,6 +257,13 @@ int AlertConfiguration::
         return -100;
     }
     // end PQSWMBT-3723
+
+    // PQSWMBT-4921 Xphase rule exceptions
+    if (rejectAddRuleXphase(temp_rule)) {
+        log_debug("Xphase rule instanciation rejected (%s)", temp_rule->name().c_str());
+        return -101;
+    }
+    // end PQSWMBT-4921
 
     if ( haveRule (temp_rule) ) {
         log_error ("rule already exists");
