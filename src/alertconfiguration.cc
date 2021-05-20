@@ -71,6 +71,18 @@ static bool rejectAddRuleXphase(RulePtr& rule)
             || (fty::shm::read_metric_value(asset, "load.input.L3", foo) != 0);
     }
 
+    // phase_imbalance@__datacenter__.rule     (3phase rules)
+    // phase_imbalance@__rack__.rule
+    // phase_imbalance@__device_epdu__.rule
+    // phase_imbalance@__device_ups__.rule
+    if (ruleName.find("phase_imbalance@" ) == 0)
+    {
+        auto asset = ruleName.substr(ruleName.find("@") + 1);
+        // reject if 1phase device
+        return (fty::shm::read_metric_value(asset, "realpower.output.L2", foo) != 0)
+            || (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) != 0);
+    }
+
     return false; // don't reject
 }
 
