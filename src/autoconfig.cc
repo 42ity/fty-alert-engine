@@ -537,16 +537,28 @@ void Autoconfig::listTemplates(const char *correlation_id, const char *filter)
             log_trace ("templates '%s' does not match", templat.first.c_str());
             continue;
         }
-        zmsg_addstr (reply, templat.first.c_str());
-        zmsg_addstr (reply, templat.second.c_str());
+        zmsg_addstr (reply, templat.first.c_str()); //rule name
+        zmsg_addstr (reply, templat.second.c_str()); //json payload
+
         //get list of element which can apply this template
         std::list<std::string> elements=getElemenListMatchTemplate(templat.first.c_str());
         std::string element_list_output; //comma separator device list
+        auto templatAtPos = templat.first.find("@");
         for (const auto &element : elements) {
+            // PQSWMBT-4921 Xphase rule exceptions
+            if (templatAtPos != std::string::npos) {
+                auto assetInfo{_configurableDevices.find(element)->second};
+                std::string ruleName{templat.first.substr(0, templatAtPos + 1) + element};
+                if (!ruleXphaseIsApplicable(ruleName, assetInfo))
+                    continue; // skip element
+            }
+            // end PQSWMBT-4921
+
             if(element_list_output.size()>0)
                 element_list_output.append(",");
             element_list_output.append(element);
         }
+
         zmsg_addstr (reply, element_list_output.c_str());
         log_debug ("template: '%s', devices:'%s' match",
                 templat.first.c_str(),element_list_output.c_str());

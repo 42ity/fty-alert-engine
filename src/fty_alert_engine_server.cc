@@ -1047,6 +1047,8 @@ void
 fty_alert_engine_server_test (
     bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     setenv ("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
     ManageFtyLog::setInstanceFtylog ("fty-alert-engine-server");
     // Note: If your selftest reads SCMed fixture data, please keep it in

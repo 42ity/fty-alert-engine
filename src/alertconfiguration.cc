@@ -23,69 +23,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "fty_alert_engine_classes.h"
 
-// PQSWMBT-4921 hotfix: exception for AlertConfiguration::addRule()
-// instanciate Xphase rule *only* for Xphase device
-static bool rejectAddRuleXphase(RulePtr& rule)
-{
-    if (rule == nullptr) return true;
-    std::string ruleName{rule->name()};
-    std::string foo;
-
-    // voltage.input_1phase@__device_ups__.rule
-    // voltage.input_1phase@__device_epdu__.rule
-    if (   (ruleName.find("voltage.input_1phase@ups-" ) == 0)
-        || (ruleName.find("voltage.input_1phase@epdu-") == 0))
-    {
-        auto asset = ruleName.substr(ruleName.find("@") + 1);
-        // reject if 3phase device
-        return (fty::shm::read_metric_value(asset, "voltage.input.L2", foo) == 0)
-            || (fty::shm::read_metric_value(asset, "voltage.input.L3", foo) == 0);
-    }
-
-    // voltage.input_3phase@__device_ups__.rule
-    // voltage.input_3phase@__device_epdu__.rule
-    if (   (ruleName.find("voltage.input_3phase@ups-" ) == 0)
-        || (ruleName.find("voltage.input_3phase@epdu-") == 0))
-    {
-        auto asset = ruleName.substr(ruleName.find("@") + 1);
-        // reject if 1phase device
-        return (fty::shm::read_metric_value(asset, "voltage.input.L2", foo) != 0)
-            || (fty::shm::read_metric_value(asset, "voltage.input.L3", foo) != 0);
-    }
-
-    // load.input_1phase@__device_epdu__.rule
-    if (ruleName.find("load.input_1phase@epdu-" ) == 0)
-    {
-        auto asset = ruleName.substr(ruleName.find("@") + 1);
-        // reject if 3phase device
-        return (fty::shm::read_metric_value(asset, "load.input.L2", foo) == 0)
-            || (fty::shm::read_metric_value(asset, "load.input.L3", foo) == 0);
-    }
-
-    // load.input_3phase@__device_epdu__.rule
-    if (ruleName.find("load.input_3phase@epdu-" ) == 0)
-    {
-        auto asset = ruleName.substr(ruleName.find("@") + 1);
-        // reject if 1phase device
-        return (fty::shm::read_metric_value(asset, "load.input.L2", foo) != 0)
-            || (fty::shm::read_metric_value(asset, "load.input.L3", foo) != 0);
-    }
-
-    // phase_imbalance@__datacenter__.rule     (3phase rules)
-    // phase_imbalance@__rack__.rule
-    // phase_imbalance@__device_epdu__.rule
-    // phase_imbalance@__device_ups__.rule
-    if (ruleName.find("phase_imbalance@" ) == 0)
-    {
-        auto asset = ruleName.substr(ruleName.find("@") + 1);
-        // reject if 1phase device
-        return (fty::shm::read_metric_value(asset, "realpower.output.L2", foo) != 0)
-            || (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) != 0);
-    }
-
-    return false; // don't reject
-}
-
 int readRule (std::istream &f, RulePtr &rule)
 {
     rule.reset();
@@ -270,8 +207,9 @@ int AlertConfiguration::
     }
     // end PQSWMBT-3723
 
-    // PQSWMBT-4921 Xphase rule exceptions
-    if (rejectAddRuleXphase(temp_rule)) {
+    // PQSWMBT-4921 Xphase rule exceptions (see templateruleconfigurator.cc)
+    // Note: empty AutoConfigurationInfo (no asset info available)
+    if (!ruleXphaseIsApplicable(temp_rule->name(), AutoConfigurationInfo())) {
         log_debug("Xphase rule instanciation rejected (%s)", temp_rule->name().c_str());
         return -101;
     }

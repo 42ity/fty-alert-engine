@@ -31,6 +31,10 @@
 
 struct AutoConfigurationInfo
 {
+    AutoConfigurationInfo () {
+        type.clear();
+    }
+
     std::string type;
     std::string subtype;
     std::string operation;
@@ -38,6 +42,23 @@ struct AutoConfigurationInfo
     bool configured = false;
     uint64_t date = 0;
     std::map <std::string, std::string> attributes;
+
+    bool empty() const {
+        return type.empty(); // not initialized
+    }
+
+    //dbg
+    std::string dump() const {
+        if (empty()) return "<empty>"; // not initialized
+
+        std::string s;
+        s = type + ", " + subtype + ", " + operation;
+        for (auto& it : attributes) {
+            s += ", " + it.first + "(" + it.second + ")";
+        }
+        return s;
+    }
+
     bool operator==(fty_proto_t *message) const
     {
         bool bResult=true;
@@ -47,7 +68,7 @@ struct AutoConfigurationInfo
         //self is implicitly active, so we have to test it
         bResult&=(streq (fty_proto_aux_string (message, FTY_PROTO_ASSET_STATUS, "active"), "active"));
         if(!bResult)return false;
-        
+
         //test all ext attributes
         std::map <std::string, std::string> msg_attributes=utils::zhash_to_map(fty_proto_ext (message));
         return attributes.size()== msg_attributes.size() &&
@@ -156,6 +177,7 @@ class Autoconfig {
             return true;
         };
         void run(zsock_t *pipe, char *name) { onStart(); main(pipe, name); onEnd(); }
+
     private:
         void handleReplies( zmsg_t *message );
         void setPollingInterval();
@@ -166,6 +188,7 @@ class Autoconfig {
         // list of containers with their friendly names
         std::map<std::string, std::string> _containers; // iname | ename
         int64_t _timestamp;
+
     protected:
         mlm_client_t *_client = NULL;
         int _exitStatus = 0;
