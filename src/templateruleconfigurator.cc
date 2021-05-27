@@ -56,7 +56,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 
     bool isAppl = true; // applicable (default)
 
-    if (   (ruleName.find("voltage.input_1phase@ups-" ) == 0)
+    if (   (ruleName.find("voltage.input_1phase@ups-")  == 0)
         || (ruleName.find("voltage.input_1phase@epdu-") == 0))
     {
         // voltage.input_1phase@__device_ups__.rule
@@ -72,7 +72,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
             isAppl = (assetInfo.attributes.find("phases.input")->second == "1");
         }
     }
-    else if (   (ruleName.find("voltage.input_3phase@ups-" ) == 0)
+    else if (   (ruleName.find("voltage.input_3phase@ups-")  == 0)
              || (ruleName.find("voltage.input_3phase@epdu-") == 0))
     {
         // voltage.input_3phase@__device_ups__.rule
@@ -116,7 +116,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
             isAppl = (assetInfo.attributes.find("phases.input")->second == "3");
         }
     }
-    else if (   (ruleName.find("phase_imbalance@ups-" ) == 0)
+    else if (   (ruleName.find("phase_imbalance@ups-")  == 0)
              || (ruleName.find("phase_imbalance@epdu-") == 0))
     {
         // phase_imbalance@__device_ups__.rule     (3phase rules)
@@ -132,14 +132,14 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
             isAppl = (assetInfo.attributes.find("phases.output")->second == "3");
         }
     }
-    else if (   (ruleName.find("phase_imbalance@datacenter-" ) == 0)
-             || (ruleName.find("phase_imbalance@rack-") == 0))
+    else if (   (ruleName.find("phase_imbalance@datacenter-") == 0)
+             || (ruleName.find("phase_imbalance@rack-")       == 0))
     {
         // phase_imbalance@__datacenter__.rule     (3phase rules)
         // phase_imbalance@__rack__.rule
-        // is applicable only for 3phase asset (phases.output | realpower.output.Lx)
+        // is applicable only for 3phase asset (realpower.output.Lx)
+        // Note: no 'phases.output' ext. attributes for these assets
 
-        // no 'phases.output' ext. attributes for these assets
         isAppl =    (fty::shm::read_metric_value(asset, "realpower.output.L1", foo) == 0)
                  && (fty::shm::read_metric_value(asset, "realpower.output.L2", foo) == 0)
                  && (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) == 0);
@@ -147,7 +147,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 
     if (!isAppl) {
         log_debug("ruleXphaseIsApplicable: FALSE for rule '%s'", ruleName.c_str());
-        //log_debug("ruleXphaseIsApplicable, assetInfo(%s): %s ", asset.c_str(), assetInfo.dump().c_str());
+        log_debug("ruleXphaseIsApplicable, assetInfo(%s): %s ", asset.c_str(), assetInfo.dump({"name", "phase"}).c_str());
     }
 
     return isAppl;

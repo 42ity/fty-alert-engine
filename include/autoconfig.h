@@ -23,6 +23,7 @@
 #define AUTOCONFIG_H_INCLUDED
 
 #include <map>
+#include <vector>
 #include <string>
 #include <list>
 #include <malamute.h>
@@ -48,16 +49,25 @@ struct AutoConfigurationInfo
     }
 
     //dbg
-    std::string dump() const {
+    std::string dump(const std::vector<std::string>& attrFilter) const {
         if (empty()) return "<empty>"; // not initialized
 
         std::string s;
-        s = type + ", " + subtype + ", " + operation;
+        s = type + "(" + subtype + ")/" + operation;
         for (auto& it : attributes) {
-            s += ", " + it.first + "(" + it.second + ")";
+            if (!attrFilter.empty()) {
+                bool skip = true;
+                for (auto& occ : attrFilter)
+                    { if (it.first.find(occ) != std::string::npos) { skip = false; break; } }
+                if (skip) continue;
+            }
+
+            s += "," + it.first + "=" + it.second;
         }
         return s;
     }
+
+    std::string dump() const { return dump({}); }
 
     bool operator==(fty_proto_t *message) const
     {
