@@ -33,8 +33,8 @@ sudo rm /var/lib/fty/fty-alert-list/state_file
 echo "+restart services"
 sudo /bin/systemctl start fty-alert-engine fty-alert-list
 
-echo "+trace service (grep)"
-sudo /bin/journalctl -fu fty-alert-engine | grep ruleXphaseIsApplicable
+#echo "+trace service (grep)"
+#sudo /bin/journalctl -fu fty-alert-engine | grep ruleXphaseIsApplicable
 
-#echo "+trace service"
-#sudo /bin/journalctl -fu fty-alert-engine
+echo "+trace service"
+sudo /bin/journalctl -fu fty-alert-engine

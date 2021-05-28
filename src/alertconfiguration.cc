@@ -208,8 +208,8 @@ int AlertConfiguration::
     // end PQSWMBT-3723
 
     // PQSWMBT-4921 Xphase rule exceptions (see templateruleconfigurator.cc)
-    // Note: empty AutoConfigurationInfo (no asset info available)
-    if (!ruleXphaseIsApplicable(temp_rule->name(), AutoConfigurationInfo())) {
+    auto asset = temp_rule->name().substr(temp_rule->name().find("@") + 1);
+    if (!ruleXphaseIsApplicable(temp_rule->name(), getAssetInfoFromAutoconfig(asset))) {
         log_debug("Xphase rule instanciation rejected (%s)", temp_rule->name().c_str());
         return -101;
     }

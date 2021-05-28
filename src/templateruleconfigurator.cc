@@ -36,10 +36,13 @@
 
 bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest
 
-// PQSWMBT-4921 hotfix: isApplicable/addRule exception
-// Instanciate/expose Xphase rule *only* for Xphase device
-// Note: based on shared metrics if assetInfo is empty (not available),
-//       else based on asset ext. attributes
+// PQSWMBT-4921: Instanciate/expose Xphase rule *only* for Xphase device
+// If the rule is a Xphase rule (1ph/3ph):
+//      if the asset match the rule, return true,
+//      else returns false.
+// else return true.
+// Note: based on asset ext. attributes if assetInfo is not empty
+//       else based on shared (un)available metrics.
 bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfigurationInfo& assetInfo)
 {
     if (gDisable_ruleXphaseIsApplicable)
@@ -69,7 +72,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
                      && (fty::shm::read_metric_value(asset, "voltage.input.L3-N", foo) != 0);
         }
         else {
-            isAppl = (assetInfo.attributes.find("phases.input")->second == "1");
+            isAppl = (assetInfo.getAttr("phases.input") == "1");
         }
     }
     else if (   (ruleName.find("voltage.input_3phase@ups-")  == 0)
@@ -85,7 +88,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
                      && (fty::shm::read_metric_value(asset, "voltage.input.L3-N", foo) == 0);
         }
         else {
-            isAppl = (assetInfo.attributes.find("phases.input")->second == "3");
+            isAppl = (assetInfo.getAttr("phases.input") == "3");
         }
     }
     else if (ruleName.find("load.input_1phase@epdu-") == 0)
@@ -99,7 +102,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
                      && (fty::shm::read_metric_value(asset, "load.input.L3", foo) != 0);
         }
         else {
-            isAppl = (assetInfo.attributes.find("phases.input")->second == "1");
+            isAppl = (assetInfo.getAttr("phases.input") == "1");
         }
     }
     else if (ruleName.find("load.input_3phase@epdu-") == 0)
@@ -113,7 +116,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
                      && (fty::shm::read_metric_value(asset, "load.input.L3", foo) == 0);
         }
         else {
-            isAppl = (assetInfo.attributes.find("phases.input")->second == "3");
+            isAppl = (assetInfo.getAttr("phases.input") == "3");
         }
     }
     else if (   (ruleName.find("phase_imbalance@ups-")  == 0)
@@ -129,7 +132,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
                      && (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) == 0);
         }
         else {
-            isAppl = (assetInfo.attributes.find("phases.output")->second == "3");
+            isAppl = (assetInfo.getAttr("phases.output") == "3");
         }
     }
     else if (   (ruleName.find("phase_imbalance@datacenter-") == 0)
