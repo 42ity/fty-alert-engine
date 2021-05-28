@@ -61,12 +61,12 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
     {
         // voltage.input_1phase@__device_ups__.rule
         // voltage.input_1phase@__device_epdu__.rule
-        // is applicable only for 1phase device (phases.input | voltage.input.Lx)
+        // is applicable only for 1phase device (phases.input | voltage.input.Lx-N)
 
         if (assetInfo.empty()) {
-            isAppl =    (fty::shm::read_metric_value(asset, "voltage.input.L1", foo) == 0)
-                     && (fty::shm::read_metric_value(asset, "voltage.input.L2", foo) != 0)
-                     && (fty::shm::read_metric_value(asset, "voltage.input.L3", foo) != 0);
+            isAppl =    (fty::shm::read_metric_value(asset, "voltage.input.L1-N", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L2-N", foo) != 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L3-N", foo) != 0);
         }
         else {
             isAppl = (assetInfo.attributes.find("phases.input")->second == "1");
@@ -77,12 +77,12 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
     {
         // voltage.input_3phase@__device_ups__.rule
         // voltage.input_3phase@__device_epdu__.rule
-        // is applicable only for 3phase device (phases.input | voltage.input.Lx)
+        // is applicable only for 3phase device (phases.input | voltage.input.Lx-N)
 
         if (assetInfo.empty()) {
-            isAppl =    (fty::shm::read_metric_value(asset, "voltage.input.L1", foo) == 0)
-                     && (fty::shm::read_metric_value(asset, "voltage.input.L2", foo) == 0)
-                     && (fty::shm::read_metric_value(asset, "voltage.input.L3", foo) == 0);
+            isAppl =    (fty::shm::read_metric_value(asset, "voltage.input.L1-N", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L2-N", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L3-N", foo) == 0);
         }
         else {
             isAppl = (assetInfo.attributes.find("phases.input")->second == "3");
@@ -147,7 +147,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 
     if (!isAppl) {
         log_debug("ruleXphaseIsApplicable: FALSE for rule '%s'", ruleName.c_str());
-        log_debug("ruleXphaseIsApplicable, assetInfo(%s): %s ", asset.c_str(), assetInfo.dump({"name", "phase"}).c_str());
+        //log_debug("ruleXphaseIsApplicable, assetInfo(%s): %s ", asset.c_str(), assetInfo.dump({"name", "phase"}).c_str());
     }
 
     return isAppl;

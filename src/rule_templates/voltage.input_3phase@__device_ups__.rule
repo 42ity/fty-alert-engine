@@ -2,10 +2,10 @@
     "threshold" : {
         "rule_name"     :   "voltage.input_3phase@__name__",
         "rule_desc"     :   "TRANSLATE_LUA(Input voltage 3 phase for UPS)",
-        "target"        :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
         "rule_class"    :   "TRANSLATE_LUA(Input voltage (3 phase) in UPS)",
         "rule_hierarchy":   "internal.input.voltage.3phase.ups",
         "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
+        "target"        :   [ "voltage.input.L1-N@__name__", "voltage.input.L2-N@__name__", "voltage.input.L3-N@__name__" ],
         "element"       :   "__name__",
         "values_unit"   :   "V",
         "values"        :   [
