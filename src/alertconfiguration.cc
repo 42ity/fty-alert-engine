@@ -602,6 +602,8 @@ static bool double_equals(double d1, double d2)
 
 void alertconfiguration_test (bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     setenv("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
 

@@ -648,6 +648,8 @@ AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName)
 void
 autoconfig_test (bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     printf (" * autoconfig: ");
 
     // Basic test: try to load JSON rules to see if these are well formed
