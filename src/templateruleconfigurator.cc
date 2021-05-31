@@ -132,7 +132,11 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
                      && (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) == 0);
         }
         else {
-            isAppl = (assetInfo.getAttr("phases.output") == "3");
+            // exception for epdu: no phases.output available, assume: phases.input == phases.output
+            if (ruleName.find("@epdu-") != std::string::npos)
+                isAppl = (assetInfo.getAttr("phases.input") == "3");
+            else
+                isAppl = (assetInfo.getAttr("phases.output") == "3");
         }
     }
     else if (   (ruleName.find("phase_imbalance@datacenter-") == 0)
