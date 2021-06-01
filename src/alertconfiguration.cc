@@ -23,7 +23,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "fty_alert_engine_classes.h"
 
-
 int readRule (std::istream &f, RulePtr &rule)
 {
     rule.reset();
@@ -110,8 +109,6 @@ int readRule (std::istream &f, RulePtr &rule)
     }
 }
 
-
-
 std::set <std::string> AlertConfiguration::
     readConfiguration (void)
 {
@@ -158,6 +155,7 @@ std::set <std::string> AlertConfiguration::
                 log_warning ("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
                 continue;
             }
+
             std::string rulename = rule->name ();
             // record topics we are interested in
             for ( const auto &interestedTopic : rule->getNeededTopics() ) {
@@ -169,6 +167,7 @@ std::set <std::string> AlertConfiguration::
                   _metrics_alerts_map.insert(std::make_pair(interestedTopic,std::vector<std::string>{rulename}));
                 }
             }
+
             // add rule to the configuration
             _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), emptyAlerts)));
             log_debug ("file '%s' read correctly", fn.c_str());
@@ -207,6 +206,14 @@ int AlertConfiguration::
         return -100;
     }
     // end PQSWMBT-3723
+
+    // PQSWMBT-4921 Xphase rule exceptions (see templateruleconfigurator.cc)
+    auto asset = temp_rule->name().substr(temp_rule->name().find("@") + 1);
+    if (!ruleXphaseIsApplicable(temp_rule->name(), getAssetInfoFromAutoconfig(asset))) {
+        log_debug("Xphase rule instanciation rejected (%s)", temp_rule->name().c_str());
+        return -101;
+    }
+    // end PQSWMBT-4921
 
     if ( haveRule (temp_rule) ) {
         log_error ("rule already exists");
@@ -595,6 +602,8 @@ static bool double_equals(double d1, double d2)
 
 void alertconfiguration_test (bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     setenv("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
 

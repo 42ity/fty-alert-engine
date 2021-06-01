@@ -27,6 +27,9 @@
 
 #include "ruleconfigurator.h"
 
+// PQSWMBT-4921 Xphase rule exceptions
+extern bool gDisable_ruleXphaseIsApplicable; // to pass selftest
+bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfigurationInfo& assetInfo);
 
 class TemplateRuleConfigurator : public RuleConfigurator {
     public:

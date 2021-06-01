@@ -1019,6 +1019,8 @@ fty_alert_actions(zsock_t *pipe, void* args)
 void
 fty_alert_actions_test (bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     setenv("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-actions");
 
