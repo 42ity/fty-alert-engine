@@ -23,6 +23,8 @@
 #include "alertconfiguration.h"
 #include "autoconfig.h"
 #include <fty_shm.h>
+#include <mutex>
+#include <functional>
 
 #define METRICS_STREAM "METRICS"
 
