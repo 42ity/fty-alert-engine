@@ -100,7 +100,7 @@ int testing = 0;
 TEST_VARS
 TEST_FUNCTIONS
 
-TEST_CASE("alert actions test")
+TEST_CASE("alert actions test", "[.]")
 {
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-actions");
