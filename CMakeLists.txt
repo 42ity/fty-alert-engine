@@ -56,6 +56,7 @@ etn_target(static ${PROJECT_NAME}-static
         fty_shm
         fty-utils
         lua5.1
+        stdc++fs
     PRIVATE
 )
 
