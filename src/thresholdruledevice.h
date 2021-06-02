@@ -16,12 +16,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*!
- *  \file thresholdruledevice.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Threshold rule representation for rules directly extracted
- *          from device
- */
+/// @file thresholdruledevice.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Threshold rule representation for rules directly extracted from device
 #pragma once
 
 #include "rule.h"

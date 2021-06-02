@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "preproc.h"
 #include "autoconfig.h"
 #include <malamute.h>
 #include <map>
@@ -42,7 +41,7 @@ public:
     {
         return false;
     }
-    virtual bool isApplicable(UNUSED_PARAM const AutoConfigurationInfo& info)
+    virtual bool isApplicable(const AutoConfigurationInfo& /*info*/)
     {
         return false;
     }

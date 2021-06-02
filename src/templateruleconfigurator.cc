@@ -19,13 +19,6 @@
     =========================================================================
 */
 
-/*
-@header
-    templateruleconfigurator - Template rule configurator
-@discuss
-@end
-*/
-
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 #include <algorithm>

@@ -22,10 +22,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "thresholdruledevice.h"
 #include "thresholdrulesimple.h"
 #include <algorithm>
-#include <cxxtools/directory.h>
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <czmq.h>
+#include <filesystem>
 
 
 int readRule(std::istream& f, RulePtr& rule)
@@ -122,24 +122,22 @@ std::set<std::string> AlertConfiguration::readConfiguration(void)
     log_debug("read rules files from '%s'", _path.c_str());
 
     try {
-        if (!cxxtools::Directory::exists(_path))
-            cxxtools::Directory::create(_path);
-        cxxtools::Directory d(_path);
+        if (!std::filesystem::exists(_path)) {
+            std::filesystem::create_directories(_path);
+        }
+        std::filesystem::path d(_path);
         // every rule at the beggining has empty set of alerts
         std::vector<PureAlert> emptyAlerts{};
-        for (const auto& fn : d) {
+        for (const auto& fn : std::filesystem::directory_iterator(d)) {
 
             // we are interested only in files with names "*.rule"
-            if (fn.length() < 5) {
-                continue;
-            }
-            if (fn.compare(fn.length() - 5, 5, ".rule") != 0) {
+            if (fn.path().extension() != ".rule") {
                 continue;
             }
 
             // read rule from the file
-            std::ifstream f(d.path() + "/" + fn);
-            log_debug("processing_file: '%s'", (d.path() + "/" + fn).c_str());
+            std::ifstream f(fn.path());
+            log_debug("processing_file: '%s'", fn.path().native().c_str());
             std::unique_ptr<Rule> rule;
             int                   rv = readRule(f, rule);
             if (rv != 0) {
@@ -148,17 +146,19 @@ std::set<std::string> AlertConfiguration::readConfiguration(void)
                 continue;
             }
 
+            std::string fname = fn.path().filename();
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule
-            if (!rule->hasSameNameAs(fn.substr(0, fn.length() - 5))) {
-                log_warning("file name '%s' differs from rule name '%s', ignore it", fn.c_str(), rule->name().c_str());
+            if (!rule->hasSameNameAs(fname.substr(0, fname.length() - 5))) {
+                log_warning(
+                    "file name '%s' differs from rule name '%s', ignore it", fname.c_str(), rule->name().c_str());
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if (haveRule(rule)) {
-                log_warning(
-                    "rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fn.c_str());
+                log_warning("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(),
+                    fname.c_str());
                 continue;
             }
             std::string rulename = rule->name();
@@ -174,7 +174,7 @@ std::set<std::string> AlertConfiguration::readConfiguration(void)
             }
             // add rule to the configuration
             _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), emptyAlerts)));
-            log_debug("file '%s' read correctly", fn.c_str());
+            log_debug("file '%s' read correctly", fname.c_str());
         }
     } catch (std::exception& e) {
         log_error("Can't read configuration: %s", e.what());
@@ -214,7 +214,8 @@ int AlertConfiguration::addRule(std::istream& newRuleString, std::set<std::strin
     try {
         temp_rule->save(getPersistencePath(), temp_rule->name() + ".rule");
     } catch (const std::exception& e) {
-        log_error("Error while saving file '%s': %s", getPersistencePath() + temp_rule->name() + ".rule", e.what());
+        log_error(
+            "Error while saving file '%s': %s", (getPersistencePath() + temp_rule->name() + ".rule").c_str(), e.what());
         return -6;
     }
 
@@ -301,7 +302,8 @@ int AlertConfiguration::updateRule(std::istream& newRuleString, const std::strin
         temp_rule->save(getPersistencePath(), temp_rule->name() + ".rule.new");
     } catch (const std::exception& e) {
         // if error happend, we didn't lose any previous data
-        log_error("Error while saving file '%s': %s", getPersistencePath() + temp_rule->name() + ".rule.new", e.what());
+        log_error("Error while saving file '%s': %s", (getPersistencePath() + temp_rule->name() + ".rule.new").c_str(),
+            e.what());
         return -6;
     }
     // as we successfuly saved the new file, we can try to remove old one
@@ -571,180 +573,3 @@ int AlertConfiguration::updateAlertState(
     return -4;
 }
 
-static bool double_equals(double d1, double d2)
-{
-    return std::abs(d1 - d2) < std::numeric_limits<double>::epsilon() * (std::abs(d1 + d2) + 1);
-}
-
-void alertconfiguration_test(bool verbose)
-{
-    setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
-    ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
-
-    const std::string        dir("src/selftest-ro/testrules/");
-    std::unique_ptr<Rule>    rule;
-    std::vector<std::string> action_EMAIL     = {"EMAIL"};
-    std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
-
-    printf(" * alertconfiguration: ");
-    if (verbose)
-        printf("\n");
-    {
-        if (verbose)
-            printf("######## pattern.rule\n");
-        std::ifstream f(dir + "pattern.rule");
-        assert(readRule(f, rule) == 0);
-        assert(rule->whoami() == "pattern");
-        assert(rule->name() == "warranty2");
-        assert(rule->rule_class() == "");
-        assert(rule->_element == "");
-        assert(rule->getNeededTopics() == std::vector<std::string>{"^end_warranty_date@.+"});
-        std::map<std::string, double> vars = rule->getGlobalVariables();
-        assert(double_equals(vars["low_warning"], 60.0));
-        assert(double_equals(vars["low_critical"], 10.0));
-        assert(double_equals(vars["high_warning"], 0.0));
-        assert(double_equals(vars["high_critical"], 0.0));
-
-        assert(rule->_outcomes["low_warning"]._description == "Warranty for device will expire in less than 60 days");
-        assert(rule->_outcomes["low_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["low_critical"]._description == "Warranty for device will expire in less than 10 days");
-        assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["low_critical"]._actions == action_EMAIL);
-
-        assert(rule->code() ==
-               "function main(value) if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= "
-               "low_warning ) then return LOW_WARNING end return OK end");
-    }
-    {
-        if (verbose)
-            printf("######## simplethreshold.rule\n");
-        std::ifstream f(dir + "simplethreshold.rule");
-        assert(readRule(f, rule) == 0);
-        assert(rule->whoami() == "threshold");
-        assert(rule->name() == "simplethreshold");
-        assert(rule->rule_class() == "example class");
-        assert(rule->_element == "fff");
-        assert(rule->getNeededTopics() == std::vector<std::string>{"abc@fff"});
-        std::map<std::string, double> vars = rule->getGlobalVariables();
-        assert(double_equals(vars["low_warning"], 40.0));
-        assert(double_equals(vars["low_critical"], 30.0));
-        assert(double_equals(vars["high_warning"], 50.0));
-        assert(double_equals(vars["high_critical"], 60.0));
-
-        assert(rule->_outcomes["low_warning"]._description == "wow LOW warning description");
-        assert(rule->_outcomes["low_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["low_critical"]._description == "WOW low critical description");
-        assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["low_critical"]._actions == action_EMAIL_SMS);
-
-        assert(rule->_outcomes["high_warning"]._description == "wow high WARNING description");
-        assert(rule->_outcomes["high_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["high_critical"]._description == "wow high critical DESCTIPRION");
-        assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["high_critical"]._actions == action_EMAIL);
-    }
-    {
-        if (verbose)
-            printf("######## devicethreshold.rule\n");
-        std::ifstream f(dir + "devicethreshold.rule");
-        assert(readRule(f, rule) == 0);
-        assert(rule->whoami() == "threshold");
-        assert(rule->name() == "device_threshold_test");
-        assert(rule->rule_class() == "");
-        assert(rule->_element == "ggg");
-        assert(rule->getNeededTopics().size() == 0);
-        std::map<std::string, double> vars = rule->getGlobalVariables();
-        assert(double_equals(vars["low_warning"], 40.0));
-        assert(double_equals(vars["low_critical"], 30.0));
-        assert(double_equals(vars["high_warning"], 50.0));
-        assert(double_equals(vars["high_critical"], 60.0));
-
-        assert(rule->_outcomes["low_warning"]._description == "wow LOW warning description");
-        assert(rule->_outcomes["low_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["low_critical"]._description == "WOW low critical description");
-        assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["low_critical"]._actions == action_EMAIL_SMS);
-
-        assert(rule->_outcomes["high_warning"]._description == "wow high WARNING description");
-        assert(rule->_outcomes["high_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["high_critical"]._description == "wow high critical DESCTIPRION");
-        assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["high_critical"]._actions == action_EMAIL);
-    }
-    {
-        if (verbose)
-            printf("######## complexthreshold.rule\n");
-        std::ifstream f(dir + "complexthreshold.rule");
-        assert(readRule(f, rule) == 0);
-        assert(rule->whoami() == "threshold");
-        assert(rule->name() == "complexthreshold");
-        assert(rule->rule_class() == "example class");
-        assert(rule->_element == "fff");
-        std::vector<std::string> topics = {"abc@fff1", "abc@fff2"};
-        assert(rule->getNeededTopics() == topics);
-        std::map<std::string, double> vars = rule->getGlobalVariables();
-        assert(double_equals(vars["low_warning"], 40.0));
-        assert(double_equals(vars["low_critical"], 30.0));
-        assert(double_equals(vars["high_warning"], 50.0));
-        assert(double_equals(vars["high_critical"], 60.0));
-
-        assert(rule->_outcomes["low_warning"]._description == "wow LOW warning description");
-        assert(rule->_outcomes["low_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["low_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["low_critical"]._description == "WOW low critical description");
-        assert(rule->_outcomes["low_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["low_critical"]._actions == action_EMAIL_SMS);
-
-        assert(rule->_outcomes["high_warning"]._description == "wow high WARNING description");
-        assert(rule->_outcomes["high_warning"]._severity == "WARNING");
-        assert(rule->_outcomes["high_warning"]._actions == action_EMAIL);
-
-        assert(rule->_outcomes["high_critical"]._description == "wow high critical DESCTIPRION");
-        assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["high_critical"]._actions == action_EMAIL);
-    }
-    {
-        if (verbose)
-            printf("######## single.rule\n");
-        std::ifstream f(dir + "single.rule");
-        assert(readRule(f, rule) == 0);
-        assert(rule->whoami() == "single");
-        assert(rule->name() == "single");
-        assert(rule->rule_class() == "");
-        assert(rule->_element == "aaa");
-        std::vector<std::string> topics = {"abc@sss1", "abc@sss2"};
-        assert(rule->getNeededTopics() == topics);
-        std::map<std::string, double> vars = rule->getGlobalVariables();
-        assert(double_equals(vars["a1"], 2.0));
-        assert(double_equals(vars["a2"], -3.0));
-        assert(double_equals(vars["low_warning"], 0.0));
-        assert(double_equals(vars["low_critical"], 0.0));
-        assert(double_equals(vars["high_warning"], 0.0));
-        assert(double_equals(vars["high_critical"], 0.0));
-
-        assert(rule->_outcomes["high_warning"]._description == "RES r2");
-        assert(rule->_outcomes["high_warning"]._severity == "WARNING");
-        std::vector<std::string> action_EMAIL_GPO = {"EMAIL", "GPO_INTERACTION:gpo-42:open"};
-        assert(rule->_outcomes["high_warning"]._actions == action_EMAIL_GPO);
-
-        assert(rule->_outcomes["high_critical"]._description == "RES r1");
-        assert(rule->_outcomes["high_critical"]._severity == "CRITICAL");
-        assert(rule->_outcomes["high_critical"]._actions == action_EMAIL_SMS);
-
-        assert(rule->code() ==
-               "function main(abc_sss1, abc_sss2) local new_value = abc_sss1*a1 + abc_sss2*a2 if  ( new_value > 0 ) "
-               "then return HIGH_WARNING end if ( new_value < -10 ) then return HIGH_CRITICAL end return OK end");
-    }
-    printf("OK\n");
-}

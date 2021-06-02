@@ -16,20 +16,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file regexrule.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Representation of PATTERN rule
- */
+/// @file regexrule.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Representation of PATTERN rule
 #pragma once
 
-extern "C" {
-#include <lua5.1/lauxlib.h>
-#include <lua5.1/lua.h>
-}
-// because of regex and zsysinfo
 #include "luarule.h"
 #include <czmq.h>
 #include <fty_log.h>
+#include <lua5.1/lauxlib.h>
+#include <lua5.1/lua.h>
 
 class RegexRule : public LuaRule
 {
@@ -49,15 +45,13 @@ public:
         return "pattern";
     }
 
-    /*
-     * \brief parse json and check lua and fill the object
-     *
-     * ATTENTION: throws, if bad JSON
-     *
-     * \return 1 if rule has other type
-     *         2 if lua function has errors
-     *         0 if everything is ok
-     */
+    /// parse json and check lua and fill the object
+    ///
+    /// ATTENTION: throws, if bad JSON
+    ///
+    /// @return 1 if rule has other type
+    ///         2 if lua function has errors
+    ///         0 if everything is ok
     int fill(const cxxtools::SerializationInfo& si)
     {
         _si = si;

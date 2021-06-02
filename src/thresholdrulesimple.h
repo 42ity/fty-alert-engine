@@ -16,11 +16,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*!
- *  \file thresholdrulesimple.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Simple threshold rule representation
- */
+/// @file thresholdrulesimple.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Simple threshold rule representation
 #pragma once
 
 #include "rule.h"
