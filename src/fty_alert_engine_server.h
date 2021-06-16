@@ -21,7 +21,7 @@
 
 #pragma once
 #include <czmq.h>
-#include <ftyproto.h>
+#include <fty_proto.h>
 #include <malamute.h>
 
 

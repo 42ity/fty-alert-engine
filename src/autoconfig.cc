@@ -202,7 +202,7 @@ void Autoconfig::main(zsock_t* pipe, char* name)
                 zsys_interrupted ? "true" : "false", command(), subject(), sender());
             continue;
         }
-        if (is_fty_proto(message)) {
+        if (fty_proto_is(message)) {
             fty_proto_t* bmessage = fty_proto_decode(&message);
             if (!bmessage) {
                 log_error("can't decode message with subject %s, ignoring", subject());

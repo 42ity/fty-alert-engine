@@ -640,7 +640,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
                 continue;
             }
 
-            if (!is_fty_proto(zmsg)) {
+            if (!fty_proto_is(zmsg)) {
                 zmessage = zmsg;
                 topic    = mlm_client_subject(client);
                 break;

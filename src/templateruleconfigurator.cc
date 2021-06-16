@@ -24,7 +24,7 @@
 #include <algorithm>
 #include <cxxtools/directory.h>
 #include <fty/convert.h>
-#include <ftyproto.h>
+#include <fty_proto.h>
 #include <regex>
 
 bool TemplateRuleConfigurator::configure(

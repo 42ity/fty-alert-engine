@@ -219,7 +219,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
         REQUIRE(streq(fty_proto_name(brecv), "fff"));
@@ -238,7 +238,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
         REQUIRE(streq(fty_proto_name(brecv), "fff"));
@@ -256,7 +256,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -276,7 +276,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -296,7 +296,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -315,7 +315,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -334,7 +334,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -353,7 +353,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -590,7 +590,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
@@ -612,7 +612,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
@@ -768,7 +768,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "warranty2"));
         REQUIRE(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
@@ -788,7 +788,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "warranty2"));
         REQUIRE(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
@@ -1012,7 +1012,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
@@ -1044,7 +1044,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(which != NULL);
         recv = mlm_client_recv(consumer);
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         if (verbose) {
             brecv = fty_proto_decode(&recv);
             REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
@@ -1136,7 +1136,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_print(brecv);
         REQUIRE(brecv);
@@ -1160,7 +1160,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "rule_to_metrictouch2"));
@@ -1187,7 +1187,7 @@ TEST_CASE("Alert engine server")
         // 25.6 Check that 2 alerts were resolved
         recv = mlm_client_recv(consumer);
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
@@ -1195,7 +1195,7 @@ TEST_CASE("Alert engine server")
 
         recv = mlm_client_recv(consumer);
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_name(brecv), "element3"));
@@ -1407,7 +1407,7 @@ TEST_CASE("Alert engine server")
         // recieve an alert
         recv = mlm_client_recv(consumer);
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_destroy(&brecv);
     }

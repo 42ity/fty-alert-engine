@@ -21,7 +21,7 @@
 
 #include "fty_alert_actions.h"
 #include <fty_log.h>
-#include <ftyproto.h>
+#include <fty_proto.h>
 
 #define TEST_ASSETS "ASSETS-TEST"
 #define TEST_ALERTS "ALERTS-TEST"
@@ -844,7 +844,7 @@ void fty_alert_actions(zsock_t* pipe, void* args)
         }
         msg = mlm_client_recv(self->client);
         // stream messages - receieve ASSETS and ALERTS
-        if (is_fty_proto(msg)) {
+        if (fty_proto_is(msg)) {
             s_handle_stream_deliver(self, &msg, mlm_client_subject(self->client));
             continue;
         }

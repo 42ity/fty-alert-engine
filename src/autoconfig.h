@@ -23,7 +23,7 @@
 
 #include "utils.h"
 #include <fty_log.h>
-#include <ftyproto.h>
+#include <fty_proto.h>
 #include <list>
 #include <malamute.h>
 #include <map>
