@@ -297,6 +297,15 @@ add_rule (
             mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
             return;
         }
+        case -101: // PQSWMBT-4921 Xphase rule can be *only* instantiated for Xphase device
+        {
+            log_debug ("Xphase rule can't be instantiated");
+            zmsg_addstr (reply, "ERROR");
+            zmsg_addstr (reply, "Xphase rule can't be instantiated.");
+
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+            return;
+        }
         default:
         {
             // error during the rule creation
@@ -1038,6 +1047,8 @@ void
 fty_alert_engine_server_test (
     bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     setenv ("BIOS_LOG_PATTERN","%D %c [%t] -%-5p- %M (%l) %m%n" , 1);
     ManageFtyLog::setInstanceFtylog ("fty-alert-engine-server");
     // Note: If your selftest reads SCMed fixture data, please keep it in

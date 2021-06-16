@@ -1,17 +1,18 @@
 {
     "threshold" : {
         "rule_name"     :   "voltage.input_1phase@__name__",
-        "rule_desc"     :   "TRANSLATE_LUA(Input Voltage)",
-        "rule_class"    :   "TRANSLATE_LUA(Input voltage (1 phase) in PDU)",
+        "rule_desc"     :   "TRANSLATE_LUA(Input Voltage 1 phase for ePDU)",
+        "rule_class"    :   "TRANSLATE_LUA(Input voltage (1 phase) in ePDU)",
         "rule_hierarchy":   "internal.input.voltage.1phase.epdu",
         "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
-        "target"        :   "voltage.input.L1@__name__",
+        "target"        :   "voltage.input.L1-N@__name__",
         "element"       :   "__name__",
         "values_unit"   :   "V",
-        "values"        :   [ {"low_warning"   : "215"},
-                              {"low_critical"  : "210"},
-                              {"high_warning"  : "235"},
-                              {"high_critical" : "240"} ],
+        "values"        :   [
+            {"low_critical"  : "210"},
+            {"low_warning"   : "215"},
+            {"high_warning"  : "235"},
+            {"high_critical" : "240"} ],
         "results"       :   [
             { "low_warning"   : { "action" : [ ], "severity" : "WARNING", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is low in device)" }},
             { "low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (1 phase) is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (1 phase) is critically low in device)" }},

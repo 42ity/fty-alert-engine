@@ -109,6 +109,10 @@ inline void operator>>= (const cxxtools::SerializationInfo& si, AutoConfiguratio
     si.getMember("attributes")  >>= info.attributes;
 }
 
+// multi-thread access guard for _configurableDevices map
+#define ConfigurableDevices_GUARD \
+    std::lock_guard<std::recursive_mutex> guard(_configurableDevicesMutex)
+
 void Autoconfig::main (zsock_t *pipe, char *name)
 {
     if ( _client ) mlm_client_destroy( &_client );
@@ -305,13 +309,14 @@ Autoconfig::onSend (fty_proto_t **message)
         return;
 
     std::string device_name (fty_proto_name (*message));
+    auto currentInfo = configurableDevicesGet(device_name);
 
     //filter UPDATE message to ignore it when no change is detected.
     //This code is mainly to prevent overload activity on hourly REPUBLISH $all
     if ((strcmp(fty_proto_operation (*message), FTY_PROTO_ASSET_OP_UPDATE) == 0)
-        && (_configurableDevices.find(device_name) != _configurableDevices.end())
-        && (_configurableDevices[device_name] == *message)
-    ){
+        && !currentInfo.empty()
+        && (currentInfo == *message))
+    {
         log_debug("asset %s UPDATED but no change detected => ignore it",device_name.c_str());
         return;
     }
@@ -322,8 +327,8 @@ Autoconfig::onSend (fty_proto_t **message)
     info.operation.assign (fty_proto_operation (*message));
     info.update_ts.assign (fty_proto_ext_string(*message, "update_ts", ""));
 
-    if ((_configurableDevices.find(device_name) != _configurableDevices.end())
-        && (0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""),_configurableDevices[device_name].update_ts.c_str()))
+    if (!currentInfo.empty()
+        && (0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""), currentInfo.update_ts.c_str()))
     ){
         log_debug("Changed asset, updating");
         info.configured = false;
@@ -340,11 +345,13 @@ Autoconfig::onSend (fty_proto_t **message)
         } else {
             try {
                 _containers.erase(device_name);
-            } catch (const std::exception &e) {
+            }
+            catch (const std::exception &e) {
                 log_error( "can't erase container %s: %s", device_name.c_str(), e.what() );
             }
         }
     }
+
     if (info.type.empty ()) {
         log_debug("extracting attributes from asset message failed.");
         return;
@@ -353,7 +360,8 @@ Autoconfig::onSend (fty_proto_t **message)
     if (streq(info.type.c_str(), "datacenter") ||
             streq(info.type.c_str(), "room") ||
             streq(info.type.c_str(), "row") ||
-            streq(info.type.c_str(), "rack")) {
+            streq(info.type.c_str(), "rack"))
+    {
         _containers.emplace(device_name, fty_proto_ext_string(*message, "name", ""));
     }
 
@@ -361,15 +369,14 @@ Autoconfig::onSend (fty_proto_t **message)
             device_name.c_str (), info.type.c_str (), info.subtype.c_str (), info.operation.c_str ());
     info.attributes = utils::zhash_to_map(fty_proto_ext (*message));
 
-    if (info.operation != FTY_PROTO_ASSET_OP_DELETE &&
-            streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
-        _configurableDevices[device_name] = info;
-    } else {
-        try {
-            _configurableDevices.erase(device_name);
-        } catch (const std::exception &e) {
-            log_error( "can't erase device %s: %s", device_name.c_str(), e.what() );
-        }
+    if (info.operation != FTY_PROTO_ASSET_OP_DELETE
+        && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active"))
+    {
+        configurableDevicesAdd(device_name, info);
+    }
+    else
+    {
+        configurableDevicesRemove(device_name);
 
         if (info.subtype == "sensorgpio" || info.subtype == "gpo") {
             // don't do anything
@@ -398,40 +405,44 @@ void Autoconfig::onPoll( )
 
     bool save = false;
 
-    //std::map<std::string, AutoConfigurationInfo>
-    for (auto& it : _configurableDevices) {
-        if (it.second.configured) {
-            continue;
-        }
+    {
+        ConfigurableDevices_GUARD;
+        //std::map<std::string, AutoConfigurationInfo>
+        for (auto& it : _configurableDevices) {
+            if (zsys_interrupted)
+                return;
+            if (it.second.configured)
+                continue;
 
-        bool device_configured = true;
-        if (zsys_interrupted)
-            return;
-
-        if ((&iTemplateRuleConfigurator)->isApplicable (it.second))
-        {
-            std::string la;
-            for (auto &i : it.second.attributes)
+            bool device_configured = true;
+            if (iTemplateRuleConfigurator.isApplicable (it.second))
             {
-                if (i.first == "logical_asset")
-                    la = i.second;
+                std::string la;
+                for (auto &i : it.second.attributes)
+                {
+                    if (i.first == "logical_asset")
+                        la = i.second;
+                }
+
+                device_configured &= iTemplateRuleConfigurator.configure (
+                    it.first, it.second,
+                    Autoconfig::getEname (la), client ()
+                );
+            }
+            else {
+                log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
             }
 
-            device_configured &= (&iTemplateRuleConfigurator)->configure (it.first, it.second, Autoconfig::getEname (la), client ());
+            if (device_configured) {
+                log_debug ("Device '%s' configured successfully", it.first.c_str ());
+                it.second.configured = true;
+                save = true;
+            }
+            else {
+                log_debug ("Device '%s' NOT configured yet.", it.first.c_str ());
+            }
+            it.second.date = zclock_mono ();
         }
-        else {
-            log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
-        }
-
-        if (device_configured) {
-            log_debug ("Device '%s' configured successfully", it.first.c_str ());
-            it.second.configured = true;
-            save = true;
-        }
-        else {
-            log_debug ("Device '%s' NOT configured yet.", it.first.c_str ());
-        }
-        it.second.date = zclock_mono ();
     }
 
     if (save) {
@@ -446,6 +457,8 @@ void Autoconfig::onPoll( )
 void Autoconfig::setPollingInterval( )
 {
     _timeout = -1;
+
+    ConfigurableDevices_GUARD;
     for ( auto &it : _configurableDevices) {
         if ( ! it.second.configured ) {
             if ( it.second.date == 0 ) {
@@ -470,11 +483,13 @@ void Autoconfig::loadState()
         return;
 
     try {
+        ConfigurableDevices_GUARD;
         std::istringstream in(json);
         _configurableDevices.clear();
         cxxtools::JsonDeserializer deserializer(in);
         deserializer.deserialize(_configurableDevices);
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e) {
         log_error( "can't parse state: %s", e.what() );
     }
 }
@@ -490,6 +505,7 @@ void Autoconfig::cleanupState()
 
 void Autoconfig::saveState()
 {
+    ConfigurableDevices_GUARD;
     std::ostringstream stream;
     cxxtools::JsonSerializer serializer(stream);
     log_debug ("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size ());
@@ -505,6 +521,7 @@ Autoconfig::getElemenListMatchTemplate(std::string template_name)
     TemplateRuleConfigurator templateRuleConfigurator;
     std::list<std::string> elementList;
 
+    ConfigurableDevices_GUARD;
     for (auto& it : _configurableDevices) {
         AutoConfigurationInfo info = it.second;
         if (templateRuleConfigurator.isApplicable (info, template_name)) {
@@ -537,16 +554,27 @@ void Autoconfig::listTemplates(const char *correlation_id, const char *filter)
             log_trace ("templates '%s' does not match", templat.first.c_str());
             continue;
         }
-        zmsg_addstr (reply, templat.first.c_str());
-        zmsg_addstr (reply, templat.second.c_str());
+        zmsg_addstr (reply, templat.first.c_str()); //rule name
+        zmsg_addstr (reply, templat.second.c_str()); //json payload
+
         //get list of element which can apply this template
         std::list<std::string> elements=getElemenListMatchTemplate(templat.first.c_str());
         std::string element_list_output; //comma separator device list
+        auto templatAtPos = templat.first.find("@");
         for (const auto &element : elements) {
-            if(element_list_output.size()>0)
+            // PQSWMBT-4921 Xphase rule exceptions
+            if (templatAtPos != std::string::npos) {
+                std::string ruleName{templat.first.substr(0, templatAtPos + 1) + element};
+                if (!ruleXphaseIsApplicable(ruleName, configurableDevicesGet(element)))
+                    continue; // skip element
+            }
+            // end PQSWMBT-4921
+
+            if (element_list_output.size() > 0)
                 element_list_output.append(",");
             element_list_output.append(element);
         }
+
         zmsg_addstr (reply, element_list_output.c_str());
         log_debug ("template: '%s', devices:'%s' match",
                 templat.first.c_str(),element_list_output.c_str());
@@ -558,18 +586,70 @@ void Autoconfig::listTemplates(const char *correlation_id, const char *filter)
             mlm_client_tracker(_client), 1000, &reply);
 }
 
+// _configurableDevices processors
+
+AutoConfigurationInfo Autoconfig::configurableDevicesGet(const std::string& assetName)
+{
+    ConfigurableDevices_GUARD;
+    auto it = _configurableDevices.find(assetName);
+    if (it != _configurableDevices.end())
+        return it->second;
+    return AutoConfigurationInfo(); // empty
+}
+
+void Autoconfig::configurableDevicesAdd(const std::string& assetName, const AutoConfigurationInfo& info)
+{
+    ConfigurableDevices_GUARD;
+    _configurableDevices[assetName] = info;
+}
+
+bool Autoconfig::configurableDevicesRemove(const std::string& assetName)
+{
+    ConfigurableDevices_GUARD;
+    try {
+        _configurableDevices.erase(assetName);
+        return true; // success
+    }
+    catch (const std::exception &e) {
+        log_error( "can't erase device %s: %s", assetName.c_str(), e.what() );
+    }
+    return false;
+}
+
+// external Autoconfig agent object ref.
+static Autoconfig* gAgentPtr(nullptr);
+static std::mutex gAgentPtrMutex;
+
 void autoconfig (zsock_t *pipe, void *args )
 {
+    log_debug ("autoconfig agent started");
+
+    Autoconfig agent(AUTOCONFIG);
+    { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = &agent; }
+
     char *name = (char *)args;
-    log_info ("autoconfig agent started");
-    Autoconfig agent( AUTOCONFIG );
     agent.run(pipe, name);
+
+    { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = nullptr; }
+
     log_info ("autoconfig agent exited");
+}
+
+// external accessor to _configurableDevices member of agent
+AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName)
+{
+    //log_debug ("getAssetInfoFromAutoconfig");
+    std::lock_guard<std::mutex> lock(gAgentPtrMutex);
+    if (gAgentPtr)
+        return gAgentPtr->configurableDevicesGet(assetName);
+    return AutoConfigurationInfo(); //empty
 }
 
 void
 autoconfig_test (bool verbose)
 {
+    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
+
     printf (" * autoconfig: ");
 
     // Basic test: try to load JSON rules to see if these are well formed
