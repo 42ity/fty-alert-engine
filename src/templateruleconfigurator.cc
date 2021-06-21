@@ -19,19 +19,12 @@
     =========================================================================
 */
 
-/*
-@header
-    templateruleconfigurator - Template rule configurator
-@discuss
-@end
-*/
-
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 #include <algorithm>
 #include <cxxtools/directory.h>
 #include <fty/convert.h>
-#include <ftyproto.h>
+#include <fty_proto.h>
 #include <regex>
 
 bool TemplateRuleConfigurator::configure(

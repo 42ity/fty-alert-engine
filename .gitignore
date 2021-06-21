@@ -1,14 +1,2 @@
 build
-
-# CMake in general
-builds/cmake/
-*.cmake
-obj-x86_64-linux-gnu/
-
-# Generated Debian files
-packaging/debian/.debhelper/
-packaging/debian/debhelper-build-stamp
-packaging/debian/files
-packaging/debian/*.substvars
-packaging/debian/*.debhelper
-packaging/debian/fty-alert-engine/
+CMakeLists.txt.*

@@ -19,26 +19,12 @@
     =========================================================================
 */
 
-/*
-@header
-    fty_alert_engine_server - Actor evaluating rules
-@discuss
-@end
-*/
-#include "alertconfiguration.h"
 #include "fty_alert_engine_server.h"
+#include "alertconfiguration.h"
 #include "autoconfig.h"
-#include <algorithm>
-#include <cxxtools/directory.h>
 #include <fty_shm.h>
-#include <functional>
-#include <lua.h>
-#include <math.h>
 #include <mutex>
-#include <sstream>
-#include <string.h>
-#include <unordered_map>
-#include <vector>
+#include <functional>
 
 #define METRICS_STREAM "METRICS"
 
@@ -286,7 +272,10 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
     std::vector<PureAlert>       alertsToSend;
     AlertConfiguration::iterator new_rule_it;
     mtxAlertConfig.lock();
-    int rv = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    int rv = -7;
+    if (rule_name) {
+        rv = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    }
     mtxAlertConfig.unlock();
     zmsg_t* reply = zmsg_new();
     switch (rv) {
@@ -466,7 +455,7 @@ bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, c
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
 
-    log_debug(" ### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
+    log_debug(" ### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
 
     for (const auto& rulename : rules_of_metric) {
         if (ac.count(rulename) == 0) {
@@ -506,7 +495,8 @@ bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, c
                 } else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
                     // Style note: do not break long translated lines, that would break their parser
                     alertToSend._description = std::string(
-                                                   "{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
+                                                   "{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less "
+                                                   "than {{days}} days.)\", ") +
                                                "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                                                triggeringMetric.getElementName() + "\" }, \"days\" : \"" +
                                                std::to_string(remaining_days) + "\"} }";
@@ -650,7 +640,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
                 continue;
             }
 
-            if (!is_fty_proto(zmsg)) {
+            if (!fty_proto_is(zmsg)) {
                 zmessage = zmsg;
                 topic    = mlm_client_subject(client);
                 break;

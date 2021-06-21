@@ -16,20 +16,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*!
- *  \file thresholdrulecomplex.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Complex threshold rule representation
- */
+/// @file thresholdrulecomplex.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Complex threshold rule representation
 #pragma once
-// used for zsys
-
 #include "luarule.h"
 #include <cxxtools/serializationinfo.h>
 #include <czmq.h>
-extern "C" {
 #include <lua5.1/lua.h>
-}
 
 class ThresholdRuleComplex : public LuaRule
 {
@@ -40,14 +34,13 @@ public:
     }
 
     ThresholdRuleComplex(){};
-    /*
-     * \brief parse json and check lua and fill the object
-     *
-     * ATTENTION: throws, if bad JSON
-     *
-     * \return 1 if rule has other type
-     *         2 if lua function has errors
-     *         0 if everything is ok
-     */
+
+    /// parse json and check lua and fill the object
+    ///
+    /// ATTENTION: throws, if bad JSON
+    ///
+    /// @return 1 if rule has other type
+    ///         2 if lua function has errors
+    ///         0 if everything is ok
     virtual int fill(const cxxtools::SerializationInfo& si);
 };

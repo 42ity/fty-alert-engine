@@ -1,11 +1,11 @@
-#include "autoconfig.h"
-#include "fty_alert_engine_audit_log.h"
-#include "fty_alert_engine_server.h"
-#include "luarule.h"
+#include "src/autoconfig.h"
+#include "src/fty_alert_engine_audit_log.h"
+#include "src/fty_alert_engine_server.h"
+#include "src/luarule.h"
 #include <catch2/catch.hpp>
-#include <cxxtools/directory.h>
 #include <czmq.h>
 #include <fty_shm.h>
+#include <filesystem>
 
 static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
 {
@@ -51,12 +51,8 @@ TEST_CASE("Alert engine server")
     // src/selftest-ro; if your test creates filesystem objects, please
     // do so under src/selftest-rw. They are defined below along with a
     // usecase (asert) to make compilers happy.
-    const char* SELFTEST_DIR_RO = "test_rules";
-    // const char* SELFTEST_DIR_RO = "src/selftest-ro";
-    // const char* SELFTEST_DIR_RW = "src/selftest-rw";
-    const char* SELFTEST_DIR_RW = "test_rules";
-    REQUIRE(SELFTEST_DIR_RO);
-    REQUIRE(SELFTEST_DIR_RW);
+    const char* SELFTEST_DIR_RO = "test";
+    const char* SELFTEST_DIR_RW = ".";
     std::string str_SELFTEST_DIR_RO = std::string(SELFTEST_DIR_RO);
     std::string str_SELFTEST_DIR_RW = std::string(SELFTEST_DIR_RW);
 
@@ -223,7 +219,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
         REQUIRE(streq(fty_proto_name(brecv), "fff"));
@@ -242,7 +238,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
         REQUIRE(streq(fty_proto_name(brecv), "fff"));
@@ -260,7 +256,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -280,7 +276,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -300,7 +296,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -319,7 +315,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -338,7 +334,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -357,7 +353,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "simplethreshold"));
@@ -594,7 +590,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
@@ -616,7 +612,7 @@ TEST_CASE("Alert engine server")
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "too_high-ROZ.ePDU13"));
@@ -772,7 +768,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "warranty2"));
         REQUIRE(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
@@ -792,7 +788,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "warranty2"));
         REQUIRE(streq(fty_proto_name(brecv), "UPS_pattern_rule"));
@@ -1016,7 +1012,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
@@ -1048,7 +1044,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(which != NULL);
         recv = mlm_client_recv(consumer);
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         if (verbose) {
             brecv = fty_proto_decode(&recv);
             REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
@@ -1140,7 +1136,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_print(brecv);
         REQUIRE(brecv);
@@ -1164,7 +1160,7 @@ TEST_CASE("Alert engine server")
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_rule(brecv), "rule_to_metrictouch2"));
@@ -1191,7 +1187,7 @@ TEST_CASE("Alert engine server")
         // 25.6 Check that 2 alerts were resolved
         recv = mlm_client_recv(consumer);
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
@@ -1199,7 +1195,7 @@ TEST_CASE("Alert engine server")
 
         recv = mlm_client_recv(consumer);
         REQUIRE(recv);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         brecv = fty_proto_decode(&recv);
         REQUIRE(brecv);
         REQUIRE(streq(fty_proto_name(brecv), "element3"));
@@ -1359,32 +1355,30 @@ TEST_CASE("Alert engine server")
         REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
 
-        cxxtools::Directory d((str_SELFTEST_DIR_RO + "/templates").c_str());
+        std::filesystem::path d(str_SELFTEST_DIR_RO + "/templates");
         int                 file_counter = 0;
         char*               template_name;
-        for (const auto& fn : d) {
-            if (fn.compare(".") != 0 && fn.compare("..") != 0) {
-                // read the template rule from the file
-                std::ifstream f(d.path() + "/" + fn);
-                std::string   str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                template_name = zmsg_popstr(recv);
-                REQUIRE(fn.compare(template_name) == 0);
-                // template content
-                foo = zmsg_popstr(recv);
-                REQUIRE(str.compare(foo) == 0);
-                zstr_free(&foo);
-                // element list
-                foo = zmsg_popstr(recv);
+        for (const auto& fn : std::filesystem::directory_iterator(d)) {
+            // read the template rule from the file
+            std::ifstream f(fn.path());
+            std::string   str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            template_name = zmsg_popstr(recv);
+            REQUIRE(fn.path().filename().compare(template_name) == 0);
+            // template content
+            foo = zmsg_popstr(recv);
+            REQUIRE(str.compare(foo) == 0);
+            zstr_free(&foo);
+            // element list
+            foo = zmsg_popstr(recv);
 #if 0 // related to 'test' asset created w/ fty-asset (see above)
-                if (fn.find ("__row__")!= std::string::npos){
-                    log_debug ("template: '%s', devices :'%s'",template_name,foo);
-                    REQUIRE (streq (foo,"test"));
-                }
-#endif
-                file_counter++;
-                zstr_free(&foo);
-                zstr_free(&template_name);
+            if (fn.find ("__row__")!= std::string::npos){
+                log_debug ("template: '%s', devices :'%s'",template_name,foo);
+                REQUIRE (streq (foo,"test"));
             }
+#endif
+            file_counter++;
+            zstr_free(&foo);
+            zstr_free(&template_name);
         }
         REQUIRE(file_counter > 0);
         log_debug("Test #30 : List All templates parse successfully %d files", file_counter);
@@ -1413,7 +1407,7 @@ TEST_CASE("Alert engine server")
         // recieve an alert
         recv = mlm_client_recv(consumer);
         REQUIRE(recv != NULL);
-        REQUIRE(is_fty_proto(recv));
+        REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_destroy(&brecv);
     }
@@ -1447,7 +1441,4 @@ TEST_CASE("Alert engine server")
 
     // release audit context
     AlertsEngineAuditLogManager::deinit();
-
-    //  @end
-    printf("OK\n");
 }

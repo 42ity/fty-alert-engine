@@ -16,48 +16,62 @@ find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
 etn_target(static ${PROJECT_NAME}-static
     SOURCES
         src/alertconfiguration.cc
+        src/alertconfiguration.h
         src/autoconfig.cc
+        src/autoconfig.h
         src/fty_alert_actions.cc
+        src/fty_alert_actions.h
         src/fty_alert_engine_audit_log.cc
+        src/fty_alert_engine_audit_log.h
+        src/fty_alert_engine_server.cc
+        src/fty_alert_engine_server.h
         src/luarule.cc
+        src/luarule.h
+        src/metricinfo.h
         src/metriclist.cc
+        src/metriclist.h
+        src/normalrule.h
         src/purealert.cc
+        src/purealert.h
+        src/regexrule.h
         src/rule.cc
         src/ruleconfigurator.cc
+        src/ruleconfigurator.h
+        src/rule.h
         src/templateruleconfigurator.cc
+        src/templateruleconfigurator.h
         src/thresholdrulecomplex.cc
+        src/thresholdrulecomplex.h
+        src/thresholdruledevice.h
+        src/thresholdrulesimple.h
         src/utils.cc
-    INCLUDE_DIRS
-       include
+        src/utils.h
     USES
         czmq
-        cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
+        cxxtools
         fty_common
         fty_common_logging
         fty_proto
         mlm
         fty_shm
+        fty-utils
         lua5.1
+        stdc++fs
     PRIVATE
 )
+
 ##############################################################################################################
+
 etn_target(exe ${PROJECT_NAME}
     SOURCES
         src/fty_alert_engine.cc
-        src/fty_alert_engine_server.cc
-    PUBLIC_INCLUDE_DIR
-        include
+        src/fty_alert_engine.h
     USES
         ${PROJECT_NAME}-static
-        czmq
-        cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
-        fty_common
-        fty_common_logging
-        fty_proto
-        mlm
-        fty_shm
         lua5.1
 )
+
+##############################################################################################################
 
 set(AGENT_USER "bios")
 set(RULE_TEMPLATES_SHARE_DIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/bios/fty-autoconfig")
@@ -104,37 +118,17 @@ install(
 
 ##############################################################################################################
 
-# Create a target for the tests
-etn_test_target(${PROJECT_NAME}
+etn_test_target(${PROJECT_NAME}-static
+    CONFIGS
+        test/templates/*
+        test/testrules/*
     SOURCES
-        src/fty_alert_engine_server.cc
         test/main.cpp
+        test/alert_actions.cpp
+        test/alertconfiguration.cpp
         test/engine_server_test.cpp
-    PUBLIC_INCLUDE_DIR
-        src
-    USES
-        ${PROJECT_NAME}-static
-        czmq
-        cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
-        fty_common
-        fty_common_logging
-        fty_proto
-        mlm
-        fty_shm
-        lua5.1
+    SUBDIR
+        test
 )
-
-set(RULE_TEMPLATES_TEST "${CMAKE_BINARY_DIR}/test_rules/")
-
-FILE(GLOB rule_templates_test_f "${PROJECT_SOURCE_DIR}/test/templates/*.rule")
-foreach(file ${rule_templates_test_f})
-    file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/templates)
-endforeach()
-
-FILE(GLOB rule_templates_test_s "${PROJECT_SOURCE_DIR}/test/testrules/*.rule")
-foreach(file ${rule_templates_test_s})
-    file(COPY ${file} DESTINATION ${RULE_TEMPLATES_TEST}/testrules)
-endforeach()
-
 
 ##############################################################################################################

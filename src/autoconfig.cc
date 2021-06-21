@@ -19,23 +19,16 @@
     =========================================================================
 */
 
-/*
-@header
-    autoconfig - Autoconfig
-@discuss
-@end
-*/
-
 #include "autoconfig.h"
 #include "templateruleconfigurator.h"
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
-#include <cxxtools/regex.h>
 #include <fstream>
 #include <fty_common_filesystem.h>
+#include <fty_log.h>
 #include <iostream>
 #include <lua.h>
-#include <fty_log.h>
+#include <regex>
 
 #define AUTOCONFIG "AUTOCONFIG"
 
@@ -209,7 +202,7 @@ void Autoconfig::main(zsock_t* pipe, char* name)
                 zsys_interrupted ? "true" : "false", command(), subject(), sender());
             continue;
         }
-        if (is_fty_proto(message)) {
+        if (fty_proto_is(message)) {
             fty_proto_t* bmessage = fty_proto_decode(&message);
             if (!bmessage) {
                 log_error("can't decode message with subject %s, ignoring", subject());
@@ -494,14 +487,14 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, myfilter);
 
-    cxxtools::Regex reg(myfilter, REG_EXTENDED);
+    std::regex reg(myfilter, std::regex::extended);
 
     TemplateRuleConfigurator                         templateRuleConfigurator;
     std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
     log_debug("number of total templates rules = '%zu'", templates.size());
     int count = 0;
     for (const auto& templat : templates) {
-        if (!streq(myfilter, "all") && !reg.match(templat.second)) {
+        if (!streq(myfilter, "all") && !std::regex_match(templat.second, reg)) {
             log_trace("templates '%s' does not match", templat.first.c_str());
             continue;
         }

@@ -22,10 +22,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  */
 
 #pragma once
+
 #include "rule.h"
-extern "C" {
 #include <lua5.1/lua.h>
-}
 
 class LuaRule : public Rule
 {

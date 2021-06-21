@@ -21,13 +21,13 @@
 
 #pragma once
 
+#include "utils.h"
+#include <fty_log.h>
+#include <fty_proto.h>
 #include <list>
 #include <malamute.h>
 #include <map>
 #include <string>
-#include <ftyproto.h>
-#include "utils.h"
-#include <fty_log.h>
 
 #define RULES_SUBJECT "rfc-evaluator-rules"
 

@@ -21,6 +21,7 @@
 #pragma once
 
 #include <malamute.h>
+#include <fty_proto.h>
 
 typedef struct _fty_alert_actions_t
 {
@@ -36,17 +37,24 @@ typedef struct _fty_alert_actions_t
     uint64_t      requestreply_timeout;
 } fty_alert_actions_t;
 
-//  @interface
-//  Create a new fty_alert_actions
+typedef struct
+{
+    fty_proto_t* alert_msg;
+    uint64_t     last_notification;
+    uint64_t     last_received;
+    fty_proto_t* related_asset;
+} s_alert_cache;
+
+///  Create a new fty_alert_actions
 fty_alert_actions_t* fty_alert_actions_new(void);
 
-//  Destroy the fty_alert_actions
+///  Destroy the fty_alert_actions
 void fty_alert_actions_destroy(fty_alert_actions_t** self_p);
 
-//  Main actor function for actions module
+///  Main actor function for actions module
 void fty_alert_actions(zsock_t* pipe, void* args);
 
-//  Self test of this class
-void fty_alert_actions_test(bool verbose);
-
-//  @end
+uint64_t get_alert_interval(s_alert_cache* alert_cache, uint64_t override_time = 0);
+s_alert_cache* new_alert_cache_item(fty_alert_actions_t* self, fty_proto_t* msg);
+void delete_alert_cache_item(void* c);
+void s_handle_stream_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, const char* subject);

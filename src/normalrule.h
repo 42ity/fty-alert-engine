@@ -16,21 +16,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file normalrule.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Representation of normal rule
- */
+/// @file normalrule.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Representation of normal rule
 #pragma once
 
 #include "luarule.h"
 #include <cxxtools/serializationinfo.h>
-extern "C" {
-#include <lua5.1/lauxlib.h>
-#include <lua5.1/lua.h>
-}
-// because of zsys
 #include <czmq.h>
 #include <fty_log.h>
+#include <lua5.1/lauxlib.h>
+#include <lua5.1/lua.h>
+
+
 class NormalRule : public LuaRule
 {
 public:
@@ -41,15 +39,13 @@ public:
         return "single";
     }
 
-    /*
-     * \brief parse json and check lua and fill the object
-     *
-     * ATTENTION: throws, if bad JSON
-     *
-     * \return 1 if rule has other type
-     *         2 if lua function has errors
-     *         0 if everything is ok
-     */
+    /// parse json and check lua and fill the object
+    ///
+    /// ATTENTION: throws, if bad JSON
+    ///
+    /// @return 1 if rule has other type
+    ///         2 if lua function has errors
+    ///         0 if everything is ok
     int fill(const cxxtools::SerializationInfo& si)
     {
         _si = si;

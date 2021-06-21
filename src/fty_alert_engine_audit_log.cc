@@ -19,38 +19,29 @@
     =========================================================================
 */
 
-/*
-@header
-    fty_alert_engine_audit_log - Manage alerts audit log
-@discuss
-@end
-*/
-
 #include "fty_alert_engine_audit_log.h"
 
-Ftylog *AlertsEngineAuditLogManager::_alertsauditlog = nullptr;
+Ftylog* AlertsEngineAuditLogManager::_alertsauditlog = nullptr;
 
 //  init audit logger
-void AlertsEngineAuditLogManager::init (const char* configLogFile)
+void AlertsEngineAuditLogManager::init(const char* configLogFile)
 {
-    if (!_alertsauditlog)
-    {
-        _alertsauditlog = ftylog_new ("alerts-engine-audit", configLogFile);
+    if (!_alertsauditlog) {
+        _alertsauditlog = ftylog_new("alerts-engine-audit", configLogFile);
     }
 }
 
 //  deinit audit logger
-void AlertsEngineAuditLogManager::deinit ()
+void AlertsEngineAuditLogManager::deinit()
 {
-    if (_alertsauditlog)
-    {
+    if (_alertsauditlog) {
         ftylog_delete(_alertsauditlog);
         _alertsauditlog = nullptr;
     }
 }
 
 //  return alerts audit logger
-Ftylog* AlertsEngineAuditLogManager::getInstance ()
+Ftylog* AlertsEngineAuditLogManager::getInstance()
 {
     return _alertsauditlog;
 }

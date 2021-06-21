@@ -19,27 +19,8 @@
     =========================================================================
 */
 
-/*
-@header
-    ruleconfigurator - Rule Configurator
-@discuss
-@end
-*/
-
-
 #include "ruleconfigurator.h"
-#include "autoconfig.h"
-#include <cstring>
-#include <cxxtools/convert.h>
-#include <cxxtools/jsonformatter.h>
-#include <cxxtools/regex.h>
-#include <cxxtools/serializationinfo.h>
-#include <cxxtools/split.h>
-#include <fty_shm.h>
-#include <limits>
-#include <mutex>
-#include <ostream>
-#include <string>
+#include <regex>
 
 bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client)
 {
@@ -50,9 +31,9 @@ bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client
     zmsg_addstr(message, rule.c_str());
 
     // is it flexible?
-    cxxtools::Regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", REG_EXTENDED);
-    const char*     dest = Autoconfig::AlertEngineName.c_str();
-    if (reg.match(rule))
+    std::regex  reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", std::regex::extended);
+    const char* dest = Autoconfig::AlertEngineName.c_str();
+    if (std::regex_match(rule, reg))
         dest = "fty-alert-flexible";
 
     if (mlm_client_sendto(client, dest, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {

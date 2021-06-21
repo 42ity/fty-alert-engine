@@ -20,23 +20,12 @@
 */
 
 #pragma once
-#include <malamute.h>
 #include <czmq.h>
-#include <ftyproto.h>
+#include <fty_proto.h>
+#include <malamute.h>
 
 
-//  @interface
-void fty_alert_engine_stream(zsock_t* pipe, void* args);
-
-void fty_alert_engine_mailbox(zsock_t* pipe, void* args);
-
-// FTY_ALERT_ENGINE_EXPORT void
-//    fty_alert_engine_metric(zsock_t *pipe, void *args);
-
-void clearEvaluateMetrics();
-
-//  Self test of this class
-void fty_alert_engine_server_test(bool verbose);
-
+void  fty_alert_engine_stream(zsock_t* pipe, void* args);
+void  fty_alert_engine_mailbox(zsock_t* pipe, void* args);
+void  clearEvaluateMetrics();
 char* s_readall(const char* filename);
-
