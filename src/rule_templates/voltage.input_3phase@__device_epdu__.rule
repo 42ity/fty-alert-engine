@@ -11,8 +11,8 @@
         "values"        :   [
             {"low_critical"  : "210"},
             {"low_warning"   : "215"},
-            {"high_warning"  : "235"},
-            {"high_critical" : "240"} ],
+            {"high_warning"  : "265"},
+            {"high_critical" : "276"} ],
         "results"       :   [
             {"low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is critically low)" }},
             {"low_warning"  :  { "action" : [ ], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is low)" }},
