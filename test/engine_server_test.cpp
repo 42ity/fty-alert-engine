@@ -46,7 +46,9 @@ TEST_CASE("Alert engine server")
 {
     bool verbose = true;
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
-    ManageFtyLog::setInstanceFtylog("fty-alert-engine-server");
+
+    ManageFtyLog::setInstanceFtylog("engine-server-test", FTY_COMMON_LOGGING_DEFAULT_CFG);
+
     // Note: If your selftest reads SCMed fixture data, please keep it in
     // src/selftest-ro; if your test creates filesystem objects, please
     // do so under src/selftest-rw. They are defined below along with a
@@ -58,13 +60,17 @@ TEST_CASE("Alert engine server")
 
     log_info(" * fty_alert_engine_server: ");
     if (verbose)
-        ManageFtyLog::getInstanceFtylog()->setVeboseMode();
-
-    std::string logConfigFile = "src/fty-alert-engine-log.cfg";
-    ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
+        ManageFtyLog::getInstanceFtylog()->setVerboseMode();
 
     // initialize log for auditability
-    AlertsEngineAuditLogManager::init(logConfigFile.c_str());
+    AuditLogManager::init();
+    // logs audit, see /etc/fty/ftylog.cfg (requires privileges)
+    log_debug_alarms_engine_audit("engine-server-test audit test %s", "DEBUG");
+    log_info_alarms_engine_audit("engine-server-test audit test %s", "INFO");
+    log_warning_alarms_engine_audit("engine-server-test audit test %s", "WARNING");
+    log_error_alarms_engine_audit("engine-server-test audit test %s", "ERROR");
+    log_fatal_alarms_engine_audit("engine-server-test audit test %s", "FATAL");
+    //AuditLogManager::deinit(); return;
 
     int r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
     REQUIRE(r == 0); // to make gcc @ CentOS 7 happy
@@ -1440,5 +1446,5 @@ TEST_CASE("Alert engine server")
     zactor_destroy(&server);
 
     // release audit context
-    AlertsEngineAuditLogManager::deinit();
+    AuditLogManager::deinit();
 }

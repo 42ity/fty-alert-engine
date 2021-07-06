@@ -99,11 +99,6 @@ etn_configure_file(
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PROJECT_NAME}/
 )
 
-install(
-    FILES ${PROJECT_SOURCE_DIR}/src/conf/fty-alert-engine-log.cfg
-    DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fty/${PROJECT_NAME}
-)
-
 # rules -> usr/share/bios/fty-autoconfig
 FILE(GLOB rule_templates "${PROJECT_SOURCE_DIR}/src/rule_templates/*.rule")
 foreach(file ${rule_templates})
