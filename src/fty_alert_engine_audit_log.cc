@@ -24,14 +24,19 @@
 Ftylog* AuditLogManager::_auditLogger = nullptr;
 
 //  init audit logger
-void AuditLogManager::init()
+void AuditLogManager::init(const std::string& serviceName)
 {
     if (!_auditLogger) {
         const char* loggerName = "audit/alarms";
-        _auditLogger = ftylog_new(loggerName, FTY_COMMON_LOGGING_DEFAULT_CFG);
+        const char* confFileName = FTY_COMMON_LOGGING_DEFAULT_CFG;
+
+        _auditLogger = ftylog_new(loggerName, confFileName);
         if (!_auditLogger) {
-            log_error("Audit logger creation failed (%s, %s)",
-                loggerName, FTY_COMMON_LOGGING_DEFAULT_CFG);
+            log_error("Audit logger initialization failed (%s, %s)", loggerName, confFileName);
+        }
+        else {
+            log_info("Audit logger initialization (%s, %s)", loggerName, confFileName);
+            log_info_alarms_engine_audit("Audit logger initialization (%s)", serviceName.c_str());
         }
     }
 }

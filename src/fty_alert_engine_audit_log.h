@@ -49,6 +49,6 @@ private:
 public:
     // Return singleton Audit Ftylog instance
     static Ftylog* getInstance();
-    static void    init();
+    static void    init(const std::string& serviceName);
     static void    deinit();
 };

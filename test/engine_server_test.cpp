@@ -63,7 +63,7 @@ TEST_CASE("Alert engine server")
         ManageFtyLog::getInstanceFtylog()->setVerboseMode();
 
     // initialize log for auditability
-    AuditLogManager::init();
+    AuditLogManager::init("engine-server-test");
     // logs audit, see /etc/fty/ftylog.cfg (requires privileges)
     log_debug_alarms_engine_audit("engine-server-test audit test %s", "DEBUG");
     log_info_alarms_engine_audit("engine-server-test audit test %s", "INFO");

@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 {
     zconfig_t* config = NULL;
 
-    ManageFtyLog::setInstanceFtylog("fty-alert-engine", FTY_COMMON_LOGGING_DEFAULT_CFG);
+    ManageFtyLog::setInstanceFtylog(ENGINE_AGENT_NAME, FTY_COMMON_LOGGING_DEFAULT_CFG);
 
     int argn;
     for (argn = 1; argn < argc; argn++) {
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
     }
 
     // initialize log for auditability
-    AuditLogManager::init();
+    AuditLogManager::init(ENGINE_AGENT_NAME);
 
     zactor_t* ag_server_stream =
         zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME_STREAM)));
