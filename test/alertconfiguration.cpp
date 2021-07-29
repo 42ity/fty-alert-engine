@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <fty_log.h>
 #include "src/rule.h"
+#include "src/templateruleconfigurator.h"
 #include "src/alertconfiguration.h"
 
 static bool double_equals(double d1, double d2)
@@ -10,6 +11,8 @@ static bool double_equals(double d1, double d2)
 
 TEST_CASE("alertconfiguration test")
 {
+    gDisable_ruleXphaseIsApplicable = true; // require autoconfig runtime
+
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
 

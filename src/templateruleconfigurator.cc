@@ -28,7 +28,7 @@
 #include <fty_shm.h>
 #include <regex>
 
-bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest
+bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest (require autoconfig)
 
 // PQSWMBT-4921: Instanciate/expose Xphase rule *only* for Xphase device
 // If the rule is a Xphase rule (1ph/3ph):

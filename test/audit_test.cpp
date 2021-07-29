@@ -11,7 +11,7 @@
 TEST_CASE("audit-test")
 {
     const bool verbose = false;
-    std::cout << "-- udit-test --" << std::endl;
+    std::cout << "Running audit-test..." << std::endl;
 
     {
         using std::filesystem::current_path;
@@ -31,7 +31,7 @@ TEST_CASE("audit-test")
     ManageFtyLog::getInstanceFtylog()->setConfigFile(LOG_CONFIG_FILE);
 
     // initialize log for auditability
-    std::cout << "Audit init. " << LOG_CONFIG_FILE << std::endl;
+    std::cout << "Audit initialization from " << LOG_CONFIG_FILE << std::endl;
     AlertsEngineAuditLogManager::init(LOG_CONFIG_FILE.c_str());
 
     // fulfill logs
@@ -60,7 +60,7 @@ TEST_CASE("audit-test")
     for (char c= '1'; c <= '3'; c++) {
         // check if archive file is created
         std::string log_file = LOG_OUTPUT_FILE + "." + c;
-        std::cout << "Check logs file:" << log_file << std::endl;
+        std::cout << "Check logs file: " << log_file << std::endl;
 
         // check if archive file is created
         CHECK(access(log_file.c_str(), F_OK) != -1);

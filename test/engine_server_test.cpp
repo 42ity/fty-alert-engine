@@ -1,4 +1,5 @@
 #include "src/autoconfig.h"
+#include "src/templateruleconfigurator.h"
 #include "src/fty_alert_engine_audit_log.h"
 #include "src/fty_alert_engine_server.h"
 #include "src/luarule.h"
@@ -44,6 +45,8 @@ static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int t
 
 TEST_CASE("Alert engine server")
 {
+    gDisable_ruleXphaseIsApplicable = true; // require autoconfig runtime
+
     bool verbose = true;
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-engine-server");
