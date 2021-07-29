@@ -127,6 +127,7 @@ etn_test_target(${PROJECT_NAME}-static
         test/alert_actions.cpp
         test/alertconfiguration.cpp
         test/engine_server_test.cpp
+        test/audit_test.cpp
     SUBDIR
         test
 )
