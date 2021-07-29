@@ -47,6 +47,7 @@ Ftylog* AlertsEngineAuditLogManager::getInstance()
     return _alertsauditlog;
 }
 
+#ifdef __test_audit_log__
 // test of the class
 void fty_alert_engine_audit_log_test (bool verbose)
 {
@@ -103,3 +104,6 @@ void fty_alert_engine_audit_log_test (bool verbose)
     AlertsEngineAuditLogManager::deinit();
     printf(" * Check log config file test : OK\n");
 }
+#else
+#pragma message "__test_audit_log__ undefined"
+#endif

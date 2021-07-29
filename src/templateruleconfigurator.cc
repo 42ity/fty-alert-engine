@@ -25,6 +25,7 @@
 #include <cxxtools/directory.h>
 #include <fty/convert.h>
 #include <fty_proto.h>
+#include <fty_shm.h>
 #include <regex>
 
 bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest

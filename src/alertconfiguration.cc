@@ -16,6 +16,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include "alertconfiguration.h"
+#include "templateruleconfigurator.h"
+#include "autoconfig.h"
 #include "normalrule.h"
 #include "regexrule.h"
 #include "thresholdrulecomplex.h"
