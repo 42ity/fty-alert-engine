@@ -16,16 +16,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file purealert.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief General representation of alert
- */
-#ifndef SRC_PUREALERT_H
-#define SRC_PUREALERT_H
+/// @file purealert.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief General representation of alert
+#pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 #define ALERT_UNKNOWN  "UNKNOWN"
 #define ALERT_START    "ACTIVE"
@@ -35,58 +33,50 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define ALERT_ACK4     "ACK-SILENCE"
 #define ALERT_RESOLVED "RESOLVED"
 
-class PureAlert{
- public:
-    std::string _status;
-    uint64_t _timestamp;
-    std::string _description;
-    std::string _element;
-    std::string _severity;
-    std::vector <std::string> _actions;
-    std::string _rule_class;
-    uint64_t _ttl;
+class PureAlert
+{
+public:
+    std::string              _status;
+    uint64_t                 _timestamp;
+    std::string              _description;
+    std::string              _element;
+    std::string              _severity;
+    std::vector<std::string> _actions;
+    std::string              _rule_class;
+    uint64_t                 _ttl;
 
-    PureAlert() : _timestamp{0}
-    {};
+    PureAlert()
+        : _timestamp{0} {};
 
-    PureAlert(
-        const std::string &s,
-        uint64_t tm,
-        const std::string &descr,
-        const std::string &element_name,
-        const std::string &rule_class)
-    :
-        _status{s},
-        _timestamp{tm},
-        _description{descr},
-        _element{element_name},
-        _rule_class{rule_class},
-        _ttl {0}
-    {};
+    PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name,
+        const std::string& rule_class)
+        : _status{s}
+        , _timestamp{tm}
+        , _description{descr}
+        , _element{element_name}
+        , _rule_class{rule_class}
+        , _ttl{0} {};
 
-    PureAlert(
-        const std::string &s,
-        uint64_t tm,
-        const std::string &descr,
-        const std::string &element_name,
-        const std::string &severity,
-        const std::vector<std::string> &actions)
-    :
-        _status{s},
-        _timestamp{tm},
-        _description{descr},
-        _element{element_name},
-        _severity{severity},
-        _actions{actions},
-        _ttl {0}
-    {};
+    PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name,
+        const std::string& severity, const std::vector<std::string>& actions)
+        : _status{s}
+        , _timestamp{tm}
+        , _description{descr}
+        , _element{element_name}
+        , _severity{severity}
+        , _actions{actions}
+        , _ttl{0} {};
 
-    std::string rule_class() { return _rule_class; };
-    void rule_class (const std::string& rule_class) { _rule_class = rule_class; };
-    static bool isStatusKnown (const char *status);
-    void print(void) const;
+    std::string rule_class()
+    {
+        return _rule_class;
+    };
+    void rule_class(const std::string& rule_class)
+    {
+        _rule_class = rule_class;
+    };
+    static bool isStatusKnown(const char* status);
+    void        print(void) const;
 };
 
 typedef std::unique_ptr<PureAlert> PureAlertPtr;
-
-#endif // SRC_PURE_ALERT_H_

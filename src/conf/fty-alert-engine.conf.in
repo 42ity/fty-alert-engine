@@ -1,0 +1,10 @@
+d /var/lib/fty/fty-alert-engine 0755 @AGENT_USER@ root
+x /var/lib/fty/fty-alert-engine/*
+# audit log file, rotated in dedicated /var/log/app-audit
+# For legacy compat: allow those in the know (web-server...) to browse
+# filenames in this directory - not necessarily having access to their
+# contents which is controlled by those files' rights.
+d /var/log/app-audit/ 0771 @AGENT_USER@ www-data
+f /var/log/app-audit/alarms-audit.log 0660 @AGENT_USER@ www-data
+# ...do not remove it nor the log-rotated copies by systemd-tmpfiles
+X /var/log/app-audit/

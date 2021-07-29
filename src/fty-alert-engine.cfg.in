@@ -1,9 +1,0 @@
-#   fty-alert-engine configuration
-
-server
-    timeout = 10000     #   Client connection timeout, msec
-    background = 0      #   Run as background process
-    workdir = .         #   Working directory for daemon
-    verbose = 0         #   Do verbose logging of activity?
-log
-    config = "/etc/fty/fty-alert-engine/fty-alert-engine-log.cfg"     #   Path to the log configuration file (optional)

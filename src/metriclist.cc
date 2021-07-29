@@ -16,71 +16,59 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <czmq.h>
 #include "metriclist.h"
-
-// NAN is here
-#include <cmath>
-
 #include <cassert>
+#include <cmath>
+#include <czmq.h>
 
-void MetricList::
-    addMetric (const MetricInfo &metricInfo)
+void MetricList::addMetric(const MetricInfo& metricInfo)
 {
     // try to find topic
-    auto it = _knownMetrics.find (metricInfo.generateTopic());
-    if ( it != _knownMetrics.cend() ) {
+    auto it = _knownMetrics.find(metricInfo.generateTopic());
+    if (it != _knownMetrics.cend()) {
         // if it was found -> replace with new value
         it->second = metricInfo;
-    }
-    else {
+    } else {
         // if it wasn't found -> insert new metric
-        _knownMetrics.emplace (metricInfo.generateTopic(), metricInfo);
+        _knownMetrics.emplace(metricInfo.generateTopic(), metricInfo);
     }
     _lastInsertedMetric = metricInfo;
 }
 
 
-double MetricList::
-    findAndCheck (const std::string &topic) const
+double MetricList::findAndCheck(const std::string& topic) const
 {
     auto it = _knownMetrics.find(topic);
-    if ( it == _knownMetrics.cend() ) {
-        return NAN;
-    }
-    else {
-        uint64_t currentTimestamp = ::time(NULL);
-        if ( ( currentTimestamp - it->second._timestamp ) > it->second._ttl ) {
-            return NAN;
-        }
-        else {
+    if (it == _knownMetrics.cend()) {
+        return std::nan("");
+    } else {
+        uint64_t currentTimestamp = static_cast<uint64_t>(::time(NULL));
+        if ((currentTimestamp - it->second._timestamp) > it->second._ttl) {
+            return std::nan("");
+        } else {
             return it->second._value;
         }
     }
 }
 
 
-double MetricList::
-    find (const std::string &topic) const
+double MetricList::find(const std::string& topic) const
 {
     auto it = _knownMetrics.find(topic);
-    if ( it == _knownMetrics.cend() ) {
-        return NAN;
-    }
-    else {
+    if (it == _knownMetrics.cend()) {
+        return std::nan("");
+    } else {
         return it->second._value;
     }
 }
 
 
-MetricInfo MetricList::
-    getMetricInfo (const std::string &topic) const
+MetricInfo MetricList::getMetricInfo(const std::string& topic) const
 {
     auto it = _knownMetrics.find(topic);
-    if ( it == _knownMetrics.cend() ) {
+    if (it == _knownMetrics.cend()) {
         return MetricInfo();
-    }
-    else {
+    } else {
         return it->second;
     }
 }
@@ -88,14 +76,13 @@ MetricInfo MetricList::
 
 void MetricList::removeOldMetrics()
 {
-    uint64_t currentTimestamp = ::time(NULL);
+    uint64_t currentTimestamp = static_cast<uint64_t>(::time(NULL));
 
-    for ( std::map<std::string, MetricInfo>::iterator iter = _knownMetrics.begin(); iter != _knownMetrics.end() ; /* empty */)
-    {
-        if ( ( currentTimestamp - iter->second._timestamp ) > iter->second.getTtl() ) {
+    for (std::map<std::string, MetricInfo>::iterator iter = _knownMetrics.begin(); iter != _knownMetrics.end();
+        /* empty */) {
+        if ((currentTimestamp - iter->second._timestamp) > iter->second.getTtl()) {
             _knownMetrics.erase(iter++);
-        }
-        else {
+        } else {
             ++iter;
         }
     }

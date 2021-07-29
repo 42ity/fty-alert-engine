@@ -1,0 +1,27 @@
+[Unit]
+Description=@PROJECT_NAME@ service
+After=network.target
+Requires=network.target malamute.service fty-asset.service
+After=network.target malamute.service fty-asset.service
+BindsTo=fty-asset.service
+PartOf=bios.target
+
+[Service]
+Type=simple
+User=@AGENT_USER@
+Restart=always
+EnvironmentFile=-/usr/share/bios/etc/default/bios
+EnvironmentFile=-/usr/share/bios/etc/default/bios__%n.conf
+EnvironmentFile=-/usr/share/fty/etc/default/fty
+EnvironmentFile=-/usr/share/fty/etc/default/fty__%n.conf
+EnvironmentFile=-/etc/default/bios
+EnvironmentFile=-/etc/default/bios__%n.conf
+EnvironmentFile=-/etc/default/fty
+EnvironmentFile=-/etc/default/fty__%n.conf
+Environment="prefix=/usr"
+
+# exec (no arg)
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/@PROJECT_NAME@
+
+[Install]
+WantedBy=bios.target

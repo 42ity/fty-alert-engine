@@ -21,34 +21,35 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  *  \brief Class implementing Lua rule evaluation
  */
 
-#ifndef __include_luaRule__
-#define __include_luaRule__
+#pragma once
 
 #include "rule.h"
-extern "C" {
-#include <lua.h>
-}
+#include <lua5.1/lua.h>
 
-class LuaRule : public Rule {
- public:
+class LuaRule : public Rule
+{
+public:
     /**
      * \brief set the evaluation code
      */
-    LuaRule () {};
-    LuaRule (const LuaRule &r);
-    void code (const std::string &newCode);
-    std::string code () const { return _code; };
-    void globalVariables (const std::map<std::string,double> &vars);
-    int evaluate (const MetricList &metricList, PureAlert &pureAlert);
-    double luaEvaluate(const std::vector<double> &metrics);
-    ~LuaRule ();
- protected:
+    LuaRule(){};
+    LuaRule(const LuaRule& r);
+    void        code(const std::string& newCode);
+    std::string code() const
+    {
+        return _code;
+    };
+    void   globalVariables(const std::map<std::string, double>& vars);
+    int    evaluate(const MetricList& metricList, PureAlert& pureAlert);
+    double luaEvaluate(const std::vector<double>& metrics);
+    ~LuaRule();
+
+protected:
     void _setGlobalVariablesToLUA();
 
-    bool _valid = false;
-    lua_State *_lstate = NULL;
- private:
+    bool       _valid  = false;
+    lua_State* _lstate = NULL;
+
+private:
     std::string _code;
 };
-
-#endif // __include_luaRule__

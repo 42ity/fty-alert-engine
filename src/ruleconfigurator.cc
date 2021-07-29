@@ -19,49 +19,27 @@
     =========================================================================
 */
 
-/*
-@header
-    ruleconfigurator - Rule Configurator
-@discuss
-@end
-*/
-
-#include "fty_alert_engine_classes.h"
-
-#include <cstring>
-#include <ostream>
-#include <limits>
-#include <mutex>
-#include <cxxtools/jsonformatter.h>
-#include <cxxtools/convert.h>
-#include <cxxtools/regex.h>
-#include <cxxtools/serializationinfo.h>
-#include <cxxtools/split.h>
-
-#include <string>
-//#include <math.h>
-
-#include "autoconfig.h"
 #include "ruleconfigurator.h"
+#include <regex>
 
-bool RuleConfigurator::sendNewRule (const std::string& rule, mlm_client_t *client)
+bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client)
 {
     if (!client)
         return false;
-    zmsg_t *message = zmsg_new ();
-    zmsg_addstr (message, "ADD");
-    zmsg_addstr (message, rule.c_str());
+    zmsg_t* message = zmsg_new();
+    zmsg_addstr(message, "ADD");
+    zmsg_addstr(message, rule.c_str());
 
     // is it flexible?
-    cxxtools::Regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", REG_EXTENDED);
-    const char *dest = Autoconfig::AlertEngineName.c_str ();
-    if (reg.match (rule)) dest = "fty-alert-flexible";
+    std::regex  reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", std::regex::extended);
+    const char* dest = Autoconfig::AlertEngineName.c_str();
+    if (std::regex_match(rule, reg))
+        dest = "fty-alert-flexible";
 
-    if (mlm_client_sendto (client, dest, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
-        log_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.",
-                dest, "rfc-evaluator-rules");
+    if (mlm_client_sendto(client, dest, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
+        log_error("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.", dest,
+            "rfc-evaluator-rules");
         return false;
     }
     return true;
 }
-

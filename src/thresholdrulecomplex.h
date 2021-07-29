@@ -16,40 +16,31 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*!
- *  \file thresholdrulecomplex.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Complex threshold rule representation
- */
-#ifndef SRC_THRESHOLDRULECOMPLEX_H
-#define SRC_THRESHOLDRULECOMPLEX_H
-
-// used for zsys
-
-#include <czmq.h>
-#include <cxxtools/serializationinfo.h>
+/// @file thresholdrulecomplex.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Complex threshold rule representation
+#pragma once
 #include "luarule.h"
-extern "C" {
-#include <lua.h>
-}
+#include <cxxtools/serializationinfo.h>
+#include <czmq.h>
+#include <lua5.1/lua.h>
 
 class ThresholdRuleComplex : public LuaRule
 {
 public:
-    std::string whoami () const { return "threshold"; }
+    std::string whoami() const
+    {
+        return "threshold";
+    }
 
     ThresholdRuleComplex(){};
-    /*
-     * \brief parse json and check lua and fill the object
-     *
-     * ATTENTION: throws, if bad JSON
-     *
-     * \return 1 if rule has other type
-     *         2 if lua function has errors
-     *         0 if everything is ok
-     */
-    virtual int fill(const cxxtools::SerializationInfo &si);
+
+    /// parse json and check lua and fill the object
+    ///
+    /// ATTENTION: throws, if bad JSON
+    ///
+    /// @return 1 if rule has other type
+    ///         2 if lua function has errors
+    ///         0 if everything is ok
+    virtual int fill(const cxxtools::SerializationInfo& si);
 };
-
-
-#endif // SRC_THRESHOLDRULECOMPLEX_H
