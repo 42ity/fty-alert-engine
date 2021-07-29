@@ -122,6 +122,7 @@ etn_test_target(${PROJECT_NAME}-static
     CONFIGS
         test/templates/*
         test/testrules/*
+        test/audit/*
     SOURCES
         test/main.cpp
         test/alert_actions.cpp
