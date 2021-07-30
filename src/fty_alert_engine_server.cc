@@ -251,7 +251,17 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             return;
         }
-        default: {
+        case -101: // PQSWMBT-4921 Xphase rule can be *only* instantiated for Xphase device
+        {
+            log_debug ("Xphase rule can't be instantiated");
+            zmsg_addstr (reply, "ERROR");
+            zmsg_addstr (reply, "Xphase rule can't be instantiated.");
+
+            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
+            return;
+        }
+        default:
+        {
             // error during the rule creation
             log_warning("default bad json for rule %s", json_representation);
             zmsg_addstr(reply, "ERROR");

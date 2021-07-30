@@ -25,10 +25,142 @@
 #include <cxxtools/directory.h>
 #include <fty/convert.h>
 #include <fty_proto.h>
+#include <fty_shm.h>
 #include <regex>
 
-bool TemplateRuleConfigurator::configure(
-    const std::string& name, const AutoConfigurationInfo& info, const std::string& ename_la, mlm_client_t* client)
+bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest (require autoconfig)
+
+// PQSWMBT-4921: Instanciate/expose Xphase rule *only* for Xphase device
+// If the rule is a Xphase rule (1ph/3ph):
+//      if the asset match the rule, return true,
+//      else returns false.
+// else return true.
+// Note: based on asset ext. attributes if assetInfo is not empty
+//       else based on shared (un)available metrics.
+bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfigurationInfo& assetInfo)
+{
+    if (gDisable_ruleXphaseIsApplicable)
+        return true; // pass selftest
+
+    auto pos = ruleName.find("@");
+    if (pos == std::string::npos) {
+        log_error("malformed ruleName (ruleName: '%s')", ruleName.c_str());
+        return false;
+    }
+
+    auto asset = ruleName.substr(pos + 1);
+    std::string foo;
+
+    bool isAppl = true; // applicable (default)
+
+    if (   (ruleName.find("voltage.input_1phase@ups-")  == 0)
+        || (ruleName.find("voltage.input_1phase@epdu-") == 0))
+    {
+        // voltage.input_1phase@__device_ups__.rule
+        // voltage.input_1phase@__device_epdu__.rule
+        // is applicable only for 1phase device (phases.input | voltage.input.Lx-N)
+
+        if (assetInfo.empty()) {
+            isAppl =    (fty::shm::read_metric_value(asset, "voltage.input.L1-N", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L2-N", foo) != 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L3-N", foo) != 0);
+        }
+        else {
+            isAppl = (assetInfo.getAttr("phases.input") == "1");
+        }
+    }
+    else if (   (ruleName.find("voltage.input_3phase@ups-")  == 0)
+             || (ruleName.find("voltage.input_3phase@epdu-") == 0))
+    {
+        // voltage.input_3phase@__device_ups__.rule
+        // voltage.input_3phase@__device_epdu__.rule
+        // is applicable only for 3phase device (phases.input | voltage.input.Lx-N)
+
+        if (assetInfo.empty()) {
+            isAppl =    (fty::shm::read_metric_value(asset, "voltage.input.L1-N", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L2-N", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "voltage.input.L3-N", foo) == 0);
+        }
+        else {
+            isAppl = (assetInfo.getAttr("phases.input") == "3");
+        }
+    }
+    else if (ruleName.find("load.input_1phase@epdu-") == 0)
+    {
+        // load.input_1phase@__device_epdu__.rule
+        // is applicable only for 1phase device (phases.input | load.input.Lx)
+
+        if (assetInfo.empty()) {
+            isAppl =    (fty::shm::read_metric_value(asset, "load.input.L1", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "load.input.L2", foo) != 0)
+                     && (fty::shm::read_metric_value(asset, "load.input.L3", foo) != 0);
+        }
+        else {
+            isAppl = (assetInfo.getAttr("phases.input") == "1");
+        }
+    }
+    else if (ruleName.find("load.input_3phase@epdu-") == 0)
+    {
+        // load.input_3phase@__device_epdu__.rule
+        // is applicable only for 3phase device (phases.input | load.input.Lx)
+
+        if (assetInfo.empty()) {
+            isAppl =    (fty::shm::read_metric_value(asset, "load.input.L1", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "load.input.L2", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "load.input.L3", foo) == 0);
+        }
+        else {
+            isAppl = (assetInfo.getAttr("phases.input") == "3");
+        }
+    }
+    else if (   (ruleName.find("phase_imbalance@ups-")  == 0)
+             || (ruleName.find("phase_imbalance@epdu-") == 0))
+    {
+        // phase_imbalance@__device_ups__.rule     (3phase rules)
+        // phase_imbalance@__device_epdu__.rule
+        // is applicable only for 3phase device (phases.output | realpower.output.Lx)
+
+        if (assetInfo.empty()) {
+            isAppl =    (fty::shm::read_metric_value(asset, "realpower.output.L1", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "realpower.output.L2", foo) == 0)
+                     && (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) == 0);
+        }
+        else {
+            // exception for epdu: no phases.output available, assume: phases.input == phases.output
+            if (ruleName.find("@epdu-") != std::string::npos)
+                isAppl = (assetInfo.getAttr("phases.input") == "3");
+            else
+                isAppl = (assetInfo.getAttr("phases.output") == "3");
+        }
+    }
+    else if (   (ruleName.find("phase_imbalance@datacenter-") == 0)
+             || (ruleName.find("phase_imbalance@rack-")       == 0))
+    {
+        // phase_imbalance@__datacenter__.rule     (3phase rules)
+        // phase_imbalance@__rack__.rule
+        // is applicable only for 3phase asset (realpower.output.Lx)
+        // Note: no 'phases.output' ext. attributes for these assets
+
+        isAppl =    (fty::shm::read_metric_value(asset, "realpower.output.L1", foo) == 0)
+                 && (fty::shm::read_metric_value(asset, "realpower.output.L2", foo) == 0)
+                 && (fty::shm::read_metric_value(asset, "realpower.output.L3", foo) == 0);
+    }
+
+    if (!isAppl) {
+        log_debug("ruleXphaseIsApplicable: FALSE for rule '%s'", ruleName.c_str());
+        //log_debug("ruleXphaseIsApplicable, assetInfo(%s): %s ", asset.c_str(), assetInfo.dump({"name", "phase"}).c_str());
+    }
+
+    return isAppl;
+}
+
+bool
+TemplateRuleConfigurator::configure (
+    const std::string& name,
+    const AutoConfigurationInfo& info,
+    const std::string &ename_la,
+    mlm_client_t *client
+)
 {
     log_debug("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')", name.c_str(),
         info.type.c_str(), info.subtype.c_str());
@@ -99,10 +231,7 @@ bool TemplateRuleConfigurator::configure(
 
 bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::string& templat)
 {
-    if (templat.find(model) != std::string::npos)
-        return true;
-    else
-        return false;
+    return (templat.find (model) != std::string::npos);
 }
 
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info)
@@ -113,25 +242,24 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info)
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name)
 {
     cxxtools::Directory d(Autoconfig::RuleFilePath);
-    std::ifstream       f(d.path() + "/" + templat_name);
+    std::ifstream f(d.path() + "/" + templat_name);
     if (!f.good())
-        return false;
+        return false; // bad file
 
-    std::string type_name = convertTypeSubType2Name(info.type.c_str(), info.subtype.c_str());
+    std::string type_name = convertTypeSubType2Name(info.type.c_str(),info.subtype.c_str());
+    if (templat_name.find(type_name.c_str()) == std::string::npos)
+        return false; // no match
 
-    if (templat_name.find(type_name.c_str()) != std::string::npos) {
-        if (info.subtype == "sensorgpio" && info.attributes.find("model") != info.attributes.end()) {
-            std::string model = info.attributes.find("model")->second;
-            // for sensor gpio, we need to parse the template content to check model
-            std::string templat_content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            if (templat_content.find(model) != std::string::npos)
-                return true;
-            else
-                return false;
-        }
-        return true;
+    if (info.subtype == "sensorgpio" && info.attributes.find("model") != info.attributes.end())
+    {
+        std::string model = info.attributes.find("model")->second;
+        //for sensor gpio, we need to parse the template content to check model
+        std::string templat_content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        if (templat_content.find(model) == std::string::npos)
+            return false; // model not found
     }
-    return false;
+
+    return true;
 }
 
 std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const char* type, const char* subtype, bool fast_track)

@@ -807,16 +807,21 @@ void fty_alert_actions(zsock_t* pipe, void* args)
     log_trace("fty_alert_actions called");
     fty_alert_actions_t* self = fty_alert_actions_new();
     assert(self);
+
     self->name                 = static_cast<char*>(args);
     self->requestreply_name    = zsys_sprintf("%s#mb", self->name);
     self->requestreply_timeout = 1000; // hopefully 1ms will be long enough to get input
+
     zpoller_t* poller          = zpoller_new(pipe, mlm_client_msgpipe(self->client), NULL);
     assert(poller);
+
     uint64_t timeout = 1000 * 10 * 1; // timeout every 10 seconds
     zsock_signal(pipe, 0);
+
     zmsg_t*  msg         = NULL;
     uint64_t check_delay = 1000 * 60 * 1; // check every minute
     uint64_t last        = static_cast<uint64_t>(zclock_mono());
+
     while (!zsys_interrupted) {
         void*    which = zpoller_wait(poller, static_cast<int>(timeout));
         uint64_t now   = static_cast<uint64_t>(zclock_mono());
@@ -853,6 +858,7 @@ void fty_alert_actions(zsock_t* pipe, void* args)
             mlm_client_address(self->client), mlm_client_sender(self->client), mlm_client_subject(self->client));
         zmsg_destroy(&msg);
     }
+
     zpoller_destroy(&poller);
     fty_alert_actions_destroy(&self);
 }

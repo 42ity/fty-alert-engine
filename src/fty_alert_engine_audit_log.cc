@@ -20,6 +20,7 @@
 */
 
 #include "fty_alert_engine_audit_log.h"
+#include <stdio.h>
 
 Ftylog* AlertsEngineAuditLogManager::_alertsauditlog = nullptr;
 
