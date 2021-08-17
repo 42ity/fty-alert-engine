@@ -2,17 +2,17 @@
     "threshold" : {
         "rule_name"     :   "voltage.input_3phase@__name__",
         "rule_desc"     :   "TRANSLATE_LUA(Input voltage 3 phase for UPS)",
-        "target"        :   [ "voltage.input.L1@__name__", "voltage.input.L2@__name__", "voltage.input.L3@__name__" ],
         "rule_class"    :   "TRANSLATE_LUA(Input voltage (3 phase) in UPS)",
         "rule_hierarchy":   "internal.input.voltage.3phase.ups",
         "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
+        "target"        :   [ "voltage.input.L1-N@__name__", "voltage.input.L2-N@__name__", "voltage.input.L3-N@__name__" ],
         "element"       :   "__name__",
         "values_unit"   :   "V",
         "values"        :   [
             {"low_critical"  : "210"},
             {"low_warning"   : "215"},
-            {"high_warning"  : "235"},
-            {"high_critical" : "240"} ],
+            {"high_warning"  : "265"},
+            {"high_critical" : "276"} ],
         "results"       :   [
             {"low_critical"  : { "action" : [ ], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is critically low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is critically low)" }},
             {"low_warning"  :  { "action" : [ ], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(Input voltage (3 phase) is low in {{ename}}.)\", \"variables\" : {\"ename\" : { \"value\" : \"__ename__\", \"assetLink\" : \"__name__\" } } }", "threshold_name" : "TRANSLATE_LUA(Input voltage (3 phase) in device is low)" }},

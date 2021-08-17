@@ -28,6 +28,7 @@
 #include <malamute.h>
 #include <map>
 #include <string>
+#include <mutex>
 
 #define RULES_SUBJECT "rfc-evaluator-rules"
 
@@ -42,6 +43,43 @@ struct AutoConfigurationInfo
     bool                               configured = false;
     uint64_t                           date       = 0;
     std::map<std::string, std::string> attributes;
+
+    // not initialized?
+    bool empty() const {
+        return type.empty();
+    }
+
+    // ext. attribute accessor
+    std::string getAttr(const std::string& attrName, const std::string& defValue = "") const
+    {
+        auto it = attributes.find(attrName);
+        if (it != attributes.end())
+            return it->second;
+        return defValue;
+    }
+
+    //dbg, dump with filter on ext. attributes
+    std::string dump(const std::vector<std::string>& attrFilter) const {
+        if (empty()) return "<empty>"; // not initialized
+
+        std::string s;
+        s = type + "(" + subtype + ")/" + operation;
+        for (auto& it : attributes) {
+            if (!attrFilter.empty()) {
+                bool skip{true};
+                for (auto& occ : attrFilter)
+                    { if (it.first.find(occ) != std::string::npos) { skip = false; break; } }
+                if (skip) continue;
+            }
+
+            s += "," + it.first + "=" + it.second;
+        }
+        return s;
+    }
+
+    // dbg, complete dump
+    std::string dump() const { return dump({}); }
+
     bool                               operator==(fty_proto_t* message) const
     {
         bool bResult = true;
@@ -59,6 +97,8 @@ struct AutoConfigurationInfo
                std::equal(attributes.begin(), attributes.end(), msg_attributes.begin());
     };
 };
+
+AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName);
 
 void autoconfig(zsock_t* pipe, void* args);
 void autoconfig_test(bool verbose);
@@ -251,13 +291,20 @@ public:
         onEnd();
     }
 
+    AutoConfigurationInfo configurableDevicesGet(const std::string& assetName);
+
 private:
+    void configurableDevicesAdd(const std::string& assetName, const AutoConfigurationInfo& info);
+    bool configurableDevicesRemove(const std::string& assetName);
+    std::map<std::string, AutoConfigurationInfo> _configurableDevices;
+    std::recursive_mutex _configurableDevicesMutex; // multi-thread access protection
+
     void                                         handleReplies(zmsg_t* message);
     void                                         setPollingInterval();
     void                                         cleanupState();
     void                                         saveState();
     void                                         loadState();
-    std::map<std::string, AutoConfigurationInfo> _configurableDevices;
+
     // list of containers with their friendly names
     std::map<std::string, std::string> _containers; // iname | ename
     int64_t                            _timestamp;
