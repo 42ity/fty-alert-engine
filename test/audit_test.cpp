@@ -22,7 +22,7 @@ TEST_CASE("audit-test")
 
     ManageFtyLog::setInstanceFtylog ("fty-alert-engine-audit-test");
     if (verbose)
-        ManageFtyLog::getInstanceFtylog()->setVeboseMode();
+        ManageFtyLog::getInstanceFtylog()->setVerboseMode();
 
     std::string LOG_CONFIG_FILE = "./test/audit/fty-alert-engine-log-test.cfg";
 
@@ -32,7 +32,7 @@ TEST_CASE("audit-test")
 
     // initialize log for auditability
     std::cout << "Audit initialization from " << LOG_CONFIG_FILE << std::endl;
-    AlertsEngineAuditLogManager::init(LOG_CONFIG_FILE.c_str());
+    AuditLogManager::init(LOG_CONFIG_FILE.c_str());
 
     // fulfill logs
     std::cout << "Fulfill logs" << std::endl;
@@ -79,7 +79,7 @@ TEST_CASE("audit-test")
     remove(LOG_OUTPUT_FILE.c_str());
 
     // release audit context
-    AlertsEngineAuditLogManager::deinit();
+    AuditLogManager::deinit();
 
     printf(" * Check log config file test : OK\n");
 }
