@@ -25,6 +25,7 @@ TEST_CASE("audit-test")
         ManageFtyLog::getInstanceFtylog()->setVerboseMode();
 
     std::string LOG_CONFIG_FILE = "./test/audit/fty-alert-engine-log-test.cfg";
+    std::string LOG_OUTPUT_FILE = "/tmp/alarms-audit-test.log";
 
     // load log config file (MaxFileSize=1MB, MaxBackupIndex=3)
     std::cout << "Loading " << LOG_CONFIG_FILE << std::endl;
@@ -32,18 +33,19 @@ TEST_CASE("audit-test")
 
     // initialize log for auditability
     std::cout << "Audit initialization from " << LOG_CONFIG_FILE << std::endl;
-    AuditLogManager::init(LOG_CONFIG_FILE.c_str());
+    AuditLogManager::init("alert-engine-test-audit-log", LOG_CONFIG_FILE);
+
+    std::cout << "Check audit instance" << std::endl;
+    CHECK(AuditLogManager::getInstance() != nullptr);
 
     // fulfill logs
     std::cout << "Fulfill logs" << std::endl;
     const int NB_LOG = 100000;
     for (int i=0; i < NB_LOG; i++) {
-      log_info_alarms_engine_audit("AUDIT LOG TEST %0.5d", i);
+        log_info_alarms_engine_audit("AUDIT LOG TEST %0.5d", i);
     }
 
-    std::string LOG_OUTPUT_FILE = "/tmp/alarms-audit-test.log";
-
-    // check if file log  is created
+    // check if file log is created
     std::cout << "Check logs access" << std::endl;
     CHECK(access(LOG_OUTPUT_FILE.c_str(), F_OK) != -1);
 
@@ -56,7 +58,7 @@ TEST_CASE("audit-test")
         CHECK(fileSize > 0);
     }
 
-    // for each archive file (NB=3)
+    // for each archive rollfile (NB=3)
     for (char c= '1'; c <= '3'; c++) {
         // check if archive file is created
         std::string log_file = LOG_OUTPUT_FILE + "." + c;
@@ -81,6 +83,6 @@ TEST_CASE("audit-test")
     // release audit context
     AuditLogManager::deinit();
 
-    printf(" * Check log config file test : OK\n");
+    printf(" * audit-test : OK\n");
 }
 
