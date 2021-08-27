@@ -263,7 +263,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
         default:
         {
             // error during the rule creation
-            log_warning("default bad json for rule %s", json_representation);
+            log_warning("default, bad or unrecognized json for rule %s", json_representation);
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_JSON");
 
@@ -831,7 +831,6 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
         if (streq(mlm_client_subject(client), RULES_SUBJECT)) {
-            log_debug("%s", RULES_SUBJECT);
             // According RFC we expect here a messages
             // with the topic:
             //   * RULES_SUBJECT
@@ -840,11 +839,14 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             //  * get detailed info about the rule
             //  * new/update rule
             //  * touch rule
+            const char* sender = mlm_client_sender(client);
             char* command = zmsg_popstr(zmessage);
             char* param   = zmsg_popstr(zmessage);
+			log_debug("IN-MAILBOX from %s: subject: %s, cmd: %s, param1: %s", sender, RULES_SUBJECT, command, param);
             if (command && param) {
                 if (streq(command, "LIST")) {
                     char* rule_class = zmsg_popstr(zmessage);
+					//log_debug("rule_class: %s", rule_class);
                     list_rules(client, param, rule_class, alertConfiguration);
                     zstr_free(&rule_class);
                 } else if (streq(command, "GET")) {
