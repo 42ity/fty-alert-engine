@@ -20,25 +20,35 @@
 */
 
 #include "ruleconfigurator.h"
-#include <regex>
+//#include <regex>
+#include <cxxtools/regex.h>
 
 bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client)
 {
     if (!client)
         return false;
+
     zmsg_t* message = zmsg_new();
     zmsg_addstr(message, "ADD");
     zmsg_addstr(message, rule.c_str());
 
-    // is it flexible?
-    std::regex  reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", std::regex::extended);
     const char* dest = Autoconfig::AlertEngineName.c_str();
-    if (std::regex_match(rule, reg))
+
+    // CAUTION: regression issue "std::regex don't match 'flexible' rule"
+    //std::regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", std::regex::extended);
+    //if (std::regex_match(rule, reg))
+    //    dest = "fty-alert-flexible";
+
+    cxxtools::Regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", REG_EXTENDED);
+    if (reg.match(rule))
         dest = "fty-alert-flexible";
 
-    if (mlm_client_sendto(client, dest, "rfc-evaluator-rules", NULL, 5000, &message) != 0) {
+    const char* subject = "rfc-evaluator-rules";
+    log_debug("Sending '%s/ADD' to '%s'", subject, dest);
+
+    if (mlm_client_sendto(client, dest, subject, NULL, 5000, &message) != 0) {
         log_error("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.", dest,
-            "rfc-evaluator-rules");
+            subject);
         return false;
     }
     return true;
