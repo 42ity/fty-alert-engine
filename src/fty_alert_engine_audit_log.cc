@@ -22,27 +22,36 @@
 #include "fty_alert_engine_audit_log.h"
 #include <stdio.h>
 
-Ftylog* AlertsEngineAuditLogManager::_alertsauditlog = nullptr;
+Ftylog* AuditLogManager::_auditLogger = nullptr;
 
 //  init audit logger
-void AlertsEngineAuditLogManager::init(const char* configLogFile)
+void AuditLogManager::init(const std::string& serviceName, const std::string& confFileName)
 {
-    if (!_alertsauditlog) {
-        _alertsauditlog = ftylog_new("alerts-engine-audit", configLogFile);
+    if (!_auditLogger) {
+        const char* loggerName = "audit/alarms";
+
+        _auditLogger = ftylog_new(loggerName, confFileName.c_str());
+        if (!_auditLogger) {
+            log_error("Audit logger initialization failed (%s, %s)", loggerName, confFileName.c_str());
+        }
+        else {
+            log_info("Audit logger initialization (%s, %s)", loggerName, confFileName.c_str());
+            log_info_alarms_engine_audit("Audit logger initialization (%s)", serviceName.c_str());
+        }
     }
 }
 
 //  deinit audit logger
-void AlertsEngineAuditLogManager::deinit()
+void AuditLogManager::deinit()
 {
-    if (_alertsauditlog) {
-        ftylog_delete(_alertsauditlog);
-        _alertsauditlog = nullptr;
+    if (_auditLogger) {
+        ftylog_delete(_auditLogger);
+        _auditLogger = nullptr;
     }
 }
 
-//  return alerts audit logger
-Ftylog* AlertsEngineAuditLogManager::getInstance()
+//  return audit logger instance
+Ftylog* AuditLogManager::getInstance()
 {
-    return _alertsauditlog;
+    return _auditLogger;
 }

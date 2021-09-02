@@ -40,9 +40,9 @@ static const char* ENDPOINT = "ipc://@/malamute";
 
 int main(int argc, char** argv)
 {
-    std::string logConfigFile = "";
-    zconfig_t*  cfg           = NULL;
-    ManageFtyLog::setInstanceFtylog("fty-alert-engine");
+    zconfig_t* config = NULL;
+
+    ManageFtyLog::setInstanceFtylog(ENGINE_AGENT_NAME, FTY_COMMON_LOGGING_DEFAULT_CFG);
 
     int argn;
     for (argn = 1; argn < argc; argn++) {
@@ -51,38 +51,32 @@ int main(int argc, char** argv)
             par = argv[argn + 1];
 
         if (streq(argv[argn], "-v") || streq(argv[argn], "--verbose")) {
-            ManageFtyLog::getInstanceFtylog()->setVeboseMode();
-        } else if (streq(argv[argn], "-h") || streq(argv[argn], "--help")) {
+            ManageFtyLog::getInstanceFtylog()->setVerboseMode();
+        }
+        else if (streq(argv[argn], "-h") || streq(argv[argn], "--help")) {
             puts("fty-alert-engine [option] [value]");
             puts("   -v|--verbose          verbose output");
             puts("   -h|--help             print help");
             puts("   -c|--config [path]    use custom config file ");
             return 0;
-        } else if (streq(argv[argn], "-c") || streq(argv[argn], "--config")) {
+        }
+        else if (streq(argv[argn], "-c") || streq(argv[argn], "--config")) {
             if (par)
-                cfg = zconfig_load(par);
+                config = zconfig_load(par);
             ++argn;
-        } else {
+        }
+        else {
             printf("Unknown option: %s, run with -h|--help \n", argv[argn]);
             return 1;
         }
     }
 
-    if (!cfg) {
-        cfg = zconfig_load(CONFIG);
+    if (!config) {
+        config = zconfig_load(CONFIG);
     }
 
-    logConfigFile = std::string(zconfig_get(cfg, "log/config", FTY_COMMON_LOGGING_DEFAULT_CFG));
-
-    // If a log config file is configured, try to load it
-    if (!logConfigFile.empty()) {
-        ManageFtyLog::getInstanceFtylog()->setConfigFile(logConfigFile);
-
-        // initialize log for auditability
-        AlertsEngineAuditLogManager::init(logConfigFile.c_str());
-
-        log_debug("logConfigFile=%s", logConfigFile.c_str());
-    }
+    // initialize log for auditability
+    AuditLogManager::init(ENGINE_AGENT_NAME);
 
     zactor_t* ag_server_stream =
         zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME_STREAM)));
@@ -143,10 +137,11 @@ int main(int argc, char** argv)
     zactor_destroy(&ag_server_mailbox);
     zactor_destroy(&ag_actions);
     zactor_destroy(&ag_configurator);
+    zconfig_destroy(&config);
     clearEvaluateMetrics();
 
     // release audit context
-    AlertsEngineAuditLogManager::deinit();
+    AuditLogManager::deinit();
 
     return 0;
 }
