@@ -496,20 +496,20 @@ bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, c
                 int remaining_days = static_cast<int>(triggeringMetric.getValue());
                 if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}") {
                     remaining_days = abs(remaining_days);
+                    // clang-format off
                     alertToSend._description =
-                        std::string(
-                            "{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)\", ") +
+                        std::string("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)\", ") +
                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
-                        triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) +
-                        "\"} }";
+                        triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) + "\"} }";
+                    // clang-format on
                 } else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
                     // Style note: do not break long translated lines, that would break their parser
-                    alertToSend._description = std::string(
-                                                   "{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less "
-                                                   "than {{days}} days.)\", ") +
-                                               "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
-                                               triggeringMetric.getElementName() + "\" }, \"days\" : \"" +
-                                               std::to_string(remaining_days) + "\"} }";
+                    // clang-format off
+                    alertToSend._description =
+                            std::string("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
+                                        "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
+                                        triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) + "\"} }";
+                    // clang-format on
                 } else {
                     log_error("Unable to identify Warranty alert description");
                 }
