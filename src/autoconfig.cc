@@ -28,7 +28,6 @@
 #include <fty_log.h>
 #include <iostream>
 #include <lua.h>
-#include <regex>
 
 #define AUTOCONFIG "AUTOCONFIG"
 
@@ -411,7 +410,8 @@ void Autoconfig::onPoll()
             else {
                 log_debug ("Device '%s' NOT configured yet.", it.first.c_str ());
             }
-            it.second.date = zclock_mono ();
+
+            it.second.date = static_cast<uint64_t>(zclock_mono ());
         }
     }
 
@@ -511,14 +511,13 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, myfilter);
 
-    std::regex reg(myfilter, std::regex::extended);
-
     TemplateRuleConfigurator                         templateRuleConfigurator;
     std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
     log_debug("number of total templates rules = '%zu'", templates.size());
     int count = 0;
     for (const auto& templat : templates) {
-        if (!streq(myfilter, "all") && !std::regex_match(templat.second, reg)) {
+        //ZZZ assume myfilter (CAT_XXX) is only referenced in "rule_cat" array in rule
+        if (!streq(myfilter, "all") && (templat.second.find(myfilter) == std::string::npos)) {
             log_trace("templates '%s' does not match", templat.first.c_str());
             continue;
         }
@@ -595,7 +594,7 @@ void autoconfig (zsock_t *pipe, void *args )
     Autoconfig agent(AUTOCONFIG);
     { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = &agent; }
 
-    char *name = (char *)args;
+    char *name = static_cast<char*>(args);
     agent.run(pipe, name);
 
     { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = nullptr; }
@@ -614,7 +613,7 @@ AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName)
 }
 
 void
-autoconfig_test (bool verbose)
+autoconfig_test (bool /*verbose*/)
 {
     gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
 
