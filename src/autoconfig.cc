@@ -28,7 +28,6 @@
 #include <fty_log.h>
 #include <iostream>
 #include <lua.h>
-#include <regex>
 
 #define AUTOCONFIG "AUTOCONFIG"
 
@@ -511,14 +510,13 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, myfilter);
 
-    std::regex reg(myfilter, std::regex::extended);
-
     TemplateRuleConfigurator                         templateRuleConfigurator;
     std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
     log_debug("number of total templates rules = '%zu'", templates.size());
     int count = 0;
     for (const auto& templat : templates) {
-        if (!streq(myfilter, "all") && !std::regex_match(templat.second, reg)) {
+        //ZZZ assume myfilter (CAT_XXX) is only referenced in "rule_cat" array in rule
+        if (!streq(myfilter, "all") && (templat.second.find(myfilter) == std::string::npos)) {
             log_trace("templates '%s' does not match", templat.first.c_str());
             continue;
         }
