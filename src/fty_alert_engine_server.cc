@@ -46,74 +46,65 @@ void clearEvaluateMetrics()
     evaluateMetrics.clear();
 }
 
-// static
-void list_rules(mlm_client_t* client, const char* type, const char* ruleclass, AlertConfiguration& ac)
+static void list_rules(mlm_client_t* client, const char* type, const char* ruleclass, AlertConfiguration& ac)
 {
-    std::function<bool(const std::string& s)> filter_f;
-    if (streq(type, "all")) {
-        filter_f = [](const std::string& /* s */) {
-            return true;
-        };
-    } else if (streq(type, "threshold")) {
-        filter_f = [](const std::string& s) {
-            return s.compare("threshold") == 0;
-        };
-    } else if (streq(type, "single")) {
-        filter_f = [](const std::string& s) {
-            return s.compare("single") == 0;
-        };
-    } else if (streq(type, "pattern")) {
-        filter_f = [](const std::string& s) {
-            return s.compare("pattern") == 0;
-        };
-    } else {
+    bool typeIsOk = (streq(type, "all")
+        || streq(type, "threshold")
+        || streq(type, "single")
+        || streq(type, "pattern"));
+
+    if (!typeIsOk) {
         // invalid type
         log_warning("type '%s' is invalid", type);
         zmsg_t* reply = zmsg_new();
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "INVALID_TYPE");
         mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+        zmsg_destroy(&reply);
         return;
     }
 
-    std::string rclass;
-    if (ruleclass) {
-        rclass = ruleclass;
-    }
+    std::function<bool(const std::string& s)> filterOnType = [type](const std::string& s)
+        { return streq(type, "all") || (s == type); };
+
+    std::string rclass{ruleclass ? ruleclass : ""};
+
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, type);
-    zmsg_addstr(reply, rclass.c_str());
-    // std::vector <
-    //  std::pair <
-    //      RulePtr,
-    //      std::vector<PureAlert>
-    //      >
-    // >
-    log_debug("number of all rules = '%zu'", ac.size());
+    zmsg_addstr(reply, ruleclass);
+
+    log_debug("List rules (type: '%s', ruleclass: '%s')", type, ruleclass);
+    log_debug("number of all rules: %zu", ac.size());
+
+    // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
     mtxAlertConfig.lock();
     for (const auto& i : ac) {
         const auto& rule = i.second.first;
-        if (!(filter_f(rule->whoami()) && (rclass.empty() || rule->rule_class() == rclass))) {
-            log_debug("Skipping rule  = '%s' class '%s'", rule->name().c_str(), rule->rule_class().c_str());
-            continue;
+        if (filterOnType(rule->whoami()) && (rclass.empty() || rule->rule_class() == rclass)) {
+            log_debug("Adding rule '%s'", rule->name().c_str());
+            zmsg_addstr(reply, rule->getJsonRule().c_str());
         }
-        log_debug("Adding rule  = '%s'", rule->name().c_str());
-        zmsg_addstr(reply, rule->getJsonRule().c_str());
+        else {
+            log_debug("Skipping rule '%s' (type: '%s', rule_class: '%s')",
+                rule->name().c_str(), rule->whoami().c_str(), rule->rule_class().c_str());
+        }
     }
     mtxAlertConfig.unlock();
+
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
 }
 
-// static
-void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
+static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
 {
     assert(name != NULL);
     zmsg_t* reply = zmsg_new();
     bool    found = false;
 
-    mtxAlertConfig.lock();
     log_debug("number of all rules = '%zu'", ac.size());
+
+    mtxAlertConfig.lock();
     if (ac.count(name) != 0) {
         const auto& it_ac = ac.at(name);
         const auto& rule  = it_ac.first;
@@ -122,20 +113,20 @@ void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
         zmsg_addstr(reply, rule->getJsonRule().c_str());
         found = true;
     }
-
     mtxAlertConfig.unlock();
 
     if (!found) {
-        log_debug("not found");
+        log_debug("rule not found (%s)", name);
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "NOT_FOUND");
     }
+
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
 }
 
-
 // XXX: Store the actions as zlist_t internally to avoid useless copying
-zlist_t* makeActionList(const std::vector<std::string>& actions)
+static zlist_t* makeActionList(const std::vector<std::string>& actions)
 {
     zlist_t* res = zlist_new();
     for (const auto& oneAction : actions) {
@@ -144,8 +135,7 @@ zlist_t* makeActionList(const std::vector<std::string>& actions)
     return res;
 }
 
-// static
-void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const std::string& rule_name)
+static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const std::string& rule_name)
 {
     for (const auto& alert : alertsToSend) {
         // Asset id is missing in the rule name for warranty alarms
@@ -155,27 +145,27 @@ void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSen
         }
 
         zlist_t* actions = makeActionList(alert._actions);
-        zmsg_t*  msg     = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
+        zmsg_t*  msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
             static_cast<uint32_t>(alert._ttl), fullRuleName.c_str(), alert._element.c_str(), alert._status.c_str(),
             alert._severity.c_str(), alert._description.c_str(), actions);
         zlist_destroy(&actions);
+
         if (msg) {
             std::string atopic = rule_name + "/" + alert._severity + "@" + alert._element;
             mlm_client_send(client, atopic.c_str(), &msg);
             log_info("Send Alert for %s with state %s and severity %s", fullRuleName.c_str(), alert._status.c_str(),
                 alert._severity.c_str());
         }
+        zmsg_destroy(&msg);
     }
 }
 
-// static
-void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const RulePtr& rule)
+static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const RulePtr& rule)
 {
     send_alerts(client, alertsToSend, rule->name());
 }
 
-// static
-void add_rule(mlm_client_t* client, const char* json_representation, AlertConfiguration& ac)
+static void add_rule(mlm_client_t* client, const char* json_representation, AlertConfiguration& ac)
 {
     std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
@@ -274,8 +264,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
     }
 }
 
-// static
-void update_rule(mlm_client_t* client, const char* json_representation, const char* rule_name, AlertConfiguration& ac)
+static void update_rule(mlm_client_t* client, const char* json_representation, const char* rule_name, AlertConfiguration& ac)
 {
     std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
@@ -393,9 +382,7 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
     mtxAlertConfig.unlock();
 }
 
-
-// static
-void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration& ac, bool send_reply)
+static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration& ac, bool send_reply)
 {
     std::vector<PureAlert> alertsToSend;
 
@@ -440,7 +427,7 @@ void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration&
     }
 }
 
-void check_metrics(mlm_client_t* client, const char* metric_topic, AlertConfiguration& ac)
+static void check_metrics(mlm_client_t* client, const char* metric_topic, AlertConfiguration& ac)
 {
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(metric_topic);
     for (const auto& rulename : rules_of_metric) {
@@ -448,8 +435,7 @@ void check_metrics(mlm_client_t* client, const char* metric_topic, AlertConfigur
     }
 }
 
-// static
-bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, const MetricList& knownMetricValues,
+static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, const MetricList& knownMetricValues,
     AlertConfiguration& ac)
 {
     // Go through all known rules, and try to evaluate them
@@ -465,7 +451,7 @@ bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, c
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
 
-    log_debug(" ### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
+//    log_debug(" ### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
 
     for (const auto& rulename : rules_of_metric) {
         if (ac.count(rulename) == 0) {
@@ -529,7 +515,7 @@ bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, c
     return isEvaluate;
 }
 
-void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_client_t* client)
+static void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_client_t* client)
 {
     // process accumulated stream messages
     for (auto& element : result) {
@@ -561,7 +547,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
             continue;
         }
 
-        log_debug("%s: Got message '%s@%s' with value %s", name, type, name, value);
+//        log_debug("%s: Got message '%s@%s' with value %s", name, type, name, value);
 
         // Update cache with new value
         MetricInfo m(name, type, unit, dvalue, timestamp, "", ttl);
@@ -571,10 +557,10 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
         std::map<std::string, bool>::iterator found       = evaluateMetrics.find(m.generateTopic());
         bool                                  metricfound = found != evaluateMetrics.end();
 
-        log_debug("Check metric : %s", m.generateTopic().c_str());
+//        log_debug("Check metric : %s", m.generateTopic().c_str());
         if (metricfound && ManageFtyLog::getInstanceFtylog()->isLogDebug()) {
-            log_debug("Metric '%s' is known and %s be evaluated", m.generateTopic().c_str(),
-                found->second ? "must" : "will not");
+//            log_debug("Metric '%s' is known and %s be evaluated", m.generateTopic().c_str(),
+//                found->second ? "must" : "will not");
         }
 
         if (!metricfound || found->second) {
@@ -582,7 +568,7 @@ void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_clie
 
             // if the metric is evaluate for the first time, add to the list
             if (!metricfound) {
-                log_debug("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
+//                log_debug("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
                 evaluateMetrics[m.generateTopic()] = isEvaluate;
             }
         }
@@ -766,14 +752,13 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
 
     zsock_signal(pipe, 0);
     log_info("Actor %s started", name);
+
     while (!zsys_interrupted) {
         void* which = zpoller_wait(poller, static_cast<int>(timeout));
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
                 log_warning("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
                 break;
-            }
-            if (zpoller_expired(poller)) {
             }
             continue;
         }
@@ -782,12 +767,15 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             zmsg_t* msg = zmsg_recv(pipe);
             char*   cmd = zmsg_popstr(msg);
             log_debug("Command : %s", cmd);
+
             if (streq(cmd, "$TERM")) {
                 log_debug("%s: $TERM received", name);
                 zstr_free(&cmd);
                 zmsg_destroy(&msg);
-                goto exit;
-            } else if (streq(cmd, "CONNECT")) {
+                break;
+            }
+
+            if (streq(cmd, "CONNECT")) {
                 log_debug("CONNECT received");
                 char* endpoint = zmsg_popstr(msg);
                 int   rv       = mlm_client_connect(client, endpoint, 1000, name);
@@ -824,9 +812,10 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
         // TODO: probably alert also should be send every XXX seconds,
         // even if no measurements were recieved
         zmsg_t* zmessage = mlm_client_recv(client);
-        if (zmessage == NULL) {
+        if (!zmessage) {
             continue;
         }
+
         // from the mailbox -> rules
         //                  -> request for rule list
         // but even so we try to decide according what we got, not from where
@@ -841,53 +830,59 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             //  * touch rule
             const char* sender = mlm_client_sender(client);
             char* command = zmsg_popstr(zmessage);
-            char* param   = zmsg_popstr(zmessage);
-			log_debug("IN-MAILBOX from %s: subject: %s, cmd: %s, param1: %s", sender, RULES_SUBJECT, command, param);
-            if (command && param) {
+            char* param0  = zmsg_popstr(zmessage);
+            log_debug("IN-MAILBOX from %s: subject: %s, cmd: %s, param1: %s", sender, RULES_SUBJECT, command, param0);
+            if (command && param0) {
                 if (streq(command, "LIST")) {
-                    char* rule_class = zmsg_popstr(zmessage);
-					//log_debug("rule_class: %s", rule_class);
-                    list_rules(client, param, rule_class, alertConfiguration);
-                    zstr_free(&rule_class);
-                } else if (streq(command, "GET")) {
-                    get_rule(client, param, alertConfiguration);
-                } else if (streq(command, "ADD")) {
+                    // request: LIST/type/ruleclass
+                    // reply: LIST/type/ruleclass/rule1/.../ruleN
+                    // reply: ERROR/reason
+                    char* param1 = zmsg_popstr(zmessage);
+                    list_rules(client, param0, param1, alertConfiguration);
+                    zstr_free(&param1);
+                }
+                else if (streq(command, "GET")) {
+                    get_rule(client, param0, alertConfiguration);
+                }
+                else if (streq(command, "ADD")) {
                     if (zmsg_size(zmessage) == 0) {
                         // ADD/json
-                        add_rule(client, param, alertConfiguration);
-                    } else {
+                        add_rule(client, param0, alertConfiguration);
+                    }
+                    else {
                         // ADD/json/old_name
                         char* param1 = zmsg_popstr(zmessage);
-                        update_rule(client, param, param1, alertConfiguration);
-                        if (param1)
-                            free(param1);
+                        update_rule(client, param0, param1, alertConfiguration);
+                        zstr_free(&param1);
                     }
-                } else if (streq(command, "TOUCH")) {
-                    touch_rule(client, param, alertConfiguration, true);
-                } else if (streq(command, "DELETE")) {
-                    log_info("Requested deletion of rule '%s'", param);
-                    RuleNameMatcher matcher(param);
+                }
+                else if (streq(command, "TOUCH")) {
+                    touch_rule(client, param0, alertConfiguration, true);
+                }
+                else if (streq(command, "DELETE")) {
+                    log_info("Requested deletion of rule '%s'", param0);
+                    RuleNameMatcher matcher(param0);
                     delete_rules(client, &matcher, alertConfiguration);
-                } else if (streq(command, "DELETE_ELEMENT")) {
-                    log_info("Requested deletion of rules about element '%s'", param);
-                    RuleElementMatcher matcher(param);
+                }
+                else if (streq(command, "DELETE_ELEMENT")) {
+                    log_info("Requested deletion of rules about element '%s'", param0);
+                    RuleElementMatcher matcher(param0);
                     delete_rules(client, &matcher, alertConfiguration);
-                } else {
+                }
+                else {
                     log_error("Received unexpected message to MAILBOX with command '%s'", command);
                 }
             }
             zstr_free(&command);
-            zstr_free(&param);
+            zstr_free(&param0);
         } else {
             char* command = zmsg_popstr(zmessage);
             log_error("%s: Unexcepted mailbox message received with command : %s", name, command);
             zstr_free(&command);
         }
-        if (zmessage) {
-            zmsg_destroy(&zmessage);
-        }
+        zmsg_destroy(&zmessage);
     }
-exit:
+
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }
@@ -895,7 +890,7 @@ exit:
 //  --------------------------------------------------------------------------
 //  Self test of this class.
 
-// static
+//static (required for tests)
 char* s_readall(const char* filename)
 {
     FILE* fp = fopen(filename, "rt");
@@ -922,37 +917,3 @@ char* s_readall(const char* filename)
     free(ret);
     return NULL;
 }
-
-/* zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
-{
-    assert(consumer);
-    zpoller_t* poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
-    assert(poller);
-
-    zmsg_t* recv = NULL; // ret value
-
-    while (!zsys_interrupted) {
-        void* which = zpoller_wait(poller, timeout_ms);
-        if (!which)
-            break;
-        recv = mlm_client_recv(consumer);
-        if (!recv)
-            break;
-
-        fty_proto_t* proto = fty_proto_decode(&recv);
-        zmsg_destroy(&recv);
-
-        if (proto && (fty_proto_id(proto) == FTY_PROTO_ALERT)) {
-            if (!assetName || streq(assetName, fty_proto_name(proto))) {
-                recv = fty_proto_encode(&proto); // gotcha!
-                fty_proto_destroy(&proto);
-                break;
-            }
-        }
-
-        fty_proto_destroy(&proto);
-    }
-
-    zpoller_destroy(&poller);
-    return recv;
-}  */

@@ -58,6 +58,8 @@ static int load_agent_info(std::string& info)
 
 static int save_agent_info(const std::string& json)
 {
+    log_info("save in '%s'", Autoconfig::StateFile.c_str());
+
     if (!shared::is_dir(Autoconfig::StateFilePath.c_str())) {
         log_error("Can't serialize state, '%s' is not directory", Autoconfig::StateFilePath.c_str());
         return -1;
@@ -476,13 +478,14 @@ void Autoconfig::cleanupState()
 void Autoconfig::saveState()
 {
     ConfigurableDevices_GUARD;
-    std::ostringstream stream;
 
-    cxxtools::JsonSerializer serializer(stream);
     log_debug("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size());
+
+    std::ostringstream stream;
+    cxxtools::JsonSerializer serializer(stream);
     serializer.serialize(_configurableDevices);
     serializer.finish();
-    std::string json = stream.str();
+    std::string json{stream.str()};
     save_agent_info(json);
 }
 
