@@ -112,9 +112,11 @@ void Autoconfig::main (zsock_t* pipe, char* name)
 
     zpoller_t* poller = zpoller_new(pipe, msgpipe(), NULL);
     assert(poller);
-    _timestamp = zclock_mono();
+
+    log_info("%s started", name);
     zsock_signal(pipe, 0);
 
+    _timestamp = zclock_mono();
     while (!zsys_interrupted) {
         void* which = zpoller_wait(poller, _timeout);
         if (which == NULL) {
@@ -149,7 +151,9 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                 zstr_free(&cmd);
                 zmsg_destroy(&msg);
                 break;
-            } else if (streq(cmd, "TEMPLATES_DIR")) {
+            }
+
+            if (streq(cmd, "TEMPLATES_DIR")) {
                 log_debug("TEMPLATES_DIR received");
                 char* dirname = zmsg_popstr(msg);
                 if (dirname) {
@@ -205,28 +209,23 @@ void Autoconfig::main (zsock_t* pipe, char* name)
             log_warning(
                 "recv () returned NULL; zsys_interrupted == '%s'; command = '%s', subject = '%s', sender = '%s'",
                 zsys_interrupted ? "true" : "false", command(), subject(), sender());
-            continue;
         }
-        if (fty_proto_is(message)) {
+        else if (fty_proto_is(message)) {
             fty_proto_t* bmessage = fty_proto_decode(&message);
             if (!bmessage) {
                 log_error("can't decode message with subject %s, ignoring", subject());
-                continue;
             }
-
-            if (fty_proto_id(bmessage) == FTY_PROTO_ASSET) {
+            else if (fty_proto_id(bmessage) == FTY_PROTO_ASSET) {
                 if (!streq(fty_proto_operation(bmessage), FTY_PROTO_ASSET_OP_INVENTORY)) {
                     onSend(&bmessage);
                 }
-                fty_proto_destroy(&bmessage);
-                continue;
             } else {
                 log_warning("Weird fty_proto msg received, id = '%d', command = '%s', subject = '%s', sender = '%s'",
                     fty_proto_id(bmessage), command(), subject(), sender());
-                fty_proto_destroy(&bmessage);
-                continue;
             }
-        } else {
+            fty_proto_destroy(&bmessage);
+        }
+        else {
             // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
             if (streq(sender(), "fty-alert-engine") || streq(sender(), "fty-alert-flexible")) {
                 char* reply = zmsg_popstr(message);
@@ -256,14 +255,17 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                     listTemplates(correl_id, filter);
                     zstr_free(&correl_id);
                     zstr_free(&filter);
-                } else
+                } else {
                     log_warning("Unexpected message received, command = '%s', subject = '%s', sender = '%s'", command(),
                         subject(), sender());
+                }
                 zstr_free(&cmd);
             }
-            zmsg_destroy(&message);
         }
+        zmsg_destroy(&message);
     }
+
+    log_info("%s ended", name);
     zpoller_destroy(&poller);
 }
 
@@ -554,6 +556,7 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     }
     log_debug("%zu templates match '%s'", count, myfilter);
     mlm_client_sendto(_client, sender(), RULES_SUBJECT, mlm_client_tracker(_client), 1000, &reply);
+    zmsg_destroy(&reply);
 }
 
 // _configurableDevices processors
