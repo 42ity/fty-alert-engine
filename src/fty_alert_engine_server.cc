@@ -26,6 +26,10 @@
 #include <mutex>
 #include <functional>
 
+#include <cxxtools/jsondeserializer.h>
+#include <fty_common_json.h>
+#include <fty_common_asset_types.h>
+
 #define METRICS_STREAM "METRICS"
 
 // #include "fty_alert_engine_classes.h"
@@ -46,8 +50,12 @@ void clearEvaluateMetrics()
     evaluateMetrics.clear();
 }
 
-static void list_rules(mlm_client_t* client, const char* type, const char* ruleclass, AlertConfiguration& ac)
+// list rules, by type and rule_class
+static void list_rules(mlm_client_t* client, const char* type, const char* rule_class, AlertConfiguration& ac)
 {
+    if (!type) type = "all";
+    if (!rule_class) rule_class = "";
+
     bool typeIsOk = (streq(type, "all")
         || streq(type, "threshold")
         || streq(type, "single")
@@ -67,17 +75,16 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rulec
     std::function<bool(const std::string& s)> filterOnType = [type](const std::string& s)
         { return streq(type, "all") || (s == type); };
 
-    std::string rclass{ruleclass ? ruleclass : ""};
-
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, type);
-    zmsg_addstr(reply, ruleclass);
+    zmsg_addstr(reply, rule_class);
 
-    log_debug("List rules (type: '%s', ruleclass: '%s')", type, ruleclass);
+    log_debug("List rules (type: '%s', rule_class: '%s')", type, rule_class);
     log_debug("number of all rules: %zu", ac.size());
 
     // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
+    std::string rclass{rule_class};
     mtxAlertConfig.lock();
     for (const auto& i : ac) {
         const auto& rule = i.second.first;
@@ -94,6 +101,144 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rulec
 
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
+}
+
+// list rules (version 2), with more filters defined in a unique json payload
+// see fty-alert-flexible rules list mailbox with identical interface
+
+static const char* COMMAND_LIST2 = "LIST2";
+
+static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, AlertConfiguration& ac)
+{
+    #define REPLY_ERROR_AND_RETURN(reason) { \
+        zmsg_t* msg = zmsg_new(); \
+        zmsg_addstr(msg, "ERROR"); \
+        zmsg_addstr(msg, reason); \
+        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &msg); \
+        zmsg_destroy(&msg); \
+        return; \
+    }
+
+    struct Filter {
+        std::string type;
+        std::string rule_class;
+        std::string asset_type;
+        std::string asset_sub_type;
+        std::string category;
+    };
+    Filter filter;
+
+    // parse rule filter
+    try {
+        cxxtools::SerializationInfo si;
+        JSON::readFromString(jsonFilters, si);
+
+        cxxtools::SerializationInfo* p;
+        if ((p = si.findMember("type")) && !p->isNull())
+            { p->getValue(filter.type); }
+        if ((p = si.findMember("rule_class")) && !p->isNull())
+            { p->getValue(filter.rule_class); }
+        if ((p = si.findMember("asset_type")) && !p->isNull())
+            { p->getValue(filter.asset_type); }
+        if ((p = si.findMember("asset_sub_type")) && !p->isNull())
+            { p->getValue(filter.asset_sub_type); }
+        if ((p = si.findMember("category")) && !p->isNull())
+            { p->getValue(filter.category); }
+    }
+    catch (const std::exception& e) {
+        log_error("%s exception caught reading filter inputs (e: %s)", COMMAND_LIST2, e.what());
+        REPLY_ERROR_AND_RETURN("INVALID_INPUT");
+    }
+
+    // filter.type is regular?
+    if (!filter.type.empty()) {
+        if (!(filter.type == "all" || filter.type == "threshold" || filter.type == "single" || filter.type == "pattern")) {
+            REPLY_ERROR_AND_RETURN("INVALID_TYPE");
+        }
+    }
+    // filter.asset_type is regular?
+    if (!filter.asset_type.empty()) {
+        auto id = persist::type_to_typeid(filter.asset_type);
+        if (id == persist::asset_type::TUNKNOWN) {
+            REPLY_ERROR_AND_RETURN("INVALID_ASSET_TYPE");
+        }
+    }
+    // filter.asset_sub_type is regular?
+    if (!filter.asset_sub_type.empty()) {
+        auto id = persist::subtype_to_subtypeid(filter.asset_sub_type);
+        if (id == persist::asset_subtype::SUNKNOWN) {
+            REPLY_ERROR_AND_RETURN("INVALID_ASSET_SUB_TYPE");
+        }
+    }
+
+    // function to extract asset referenced by ruleName
+    std::function<std::string(const std::string&)> assetFromRuleName = [](const std::string& ruleName) {
+        std::string asset{ruleName};
+        if (auto pos = asset.rfind("@"); pos != std::string::npos)
+            { asset = asset.substr(pos + 1); }
+        if (auto pos = asset.rfind("-"); pos != std::string::npos)
+            { asset = asset.substr(0, pos); }
+        return asset;
+    };
+
+    // rule match filter? returns true if yes
+    std::function<bool(const RulePtr&)> match = [&filter,&assetFromRuleName](const RulePtr& rule) {
+        // type (rule->whoami() in ["threshold", "single", "pattern", ...])
+        if (!filter.type.empty() && (filter.type != "all") && (filter.type != rule->whoami()))
+            { return false; }
+        // rule_class
+        if (!filter.rule_class.empty() && (filter.rule_class != rule->rule_class()))
+            { return false; }
+        // asset_type
+        if (!filter.asset_type.empty()) {
+            std::string asset{assetFromRuleName(rule->name())};
+            if (filter.asset_type == "device") { // 'device' exception
+                auto id = persist::subtype_to_subtypeid(asset);
+                if (id == persist::asset_subtype::SUNKNOWN)
+                    { return false; }
+            }
+            else {
+                if (filter.asset_type != asset)
+                    { return false; }
+            }
+        }
+        // asset_sub_type
+        if (!filter.asset_sub_type.empty()) {
+            std::string asset{assetFromRuleName(rule->name())};
+            if (filter.asset_sub_type != asset)
+                { return false; }
+        }
+        //if (!filter.category.empty() && (filter.category != rule->category()))
+        //    { return false; }
+
+        return true; // match
+    };
+
+    zmsg_t* reply = zmsg_new();
+    zmsg_addstr(reply, COMMAND_LIST2);
+    zmsg_addstr(reply, jsonFilters.c_str());
+
+    log_debug("List rules (jsonFilters: '%s')", jsonFilters.c_str());
+    log_debug("number of all rules: %zu", ac.size());
+
+    // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
+    mtxAlertConfig.lock();
+    for (const auto& i : ac) {
+        const auto& rule = i.second.first;
+        if (match(rule)) {
+            log_debug("%s adding rule '%s'", COMMAND_LIST2, rule->name().c_str());
+            zmsg_addstr(reply, rule->getJsonRule().c_str());
+        }
+        else {
+            log_debug("%s skipping rule '%s' (type: '%s', rule_class: '%s')",
+                COMMAND_LIST2, rule->name().c_str(), rule->whoami().c_str(), rule->rule_class().c_str());
+        }
+    }
+    mtxAlertConfig.unlock();
+
+    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
+    #undef REPLY_ERROR_AND_RETURN
 }
 
 static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
@@ -586,10 +731,12 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
     zpoller_t* poller = zpoller_new(pipe, mlm_client_msgpipe(client), NULL);
     assert(poller);
 
-    int64_t timeout = fty_get_polling_interval() * 1000;
     zsock_signal(pipe, 0);
-    int64_t timeCash = zclock_mono();
     log_info("Actor %s started", name);
+
+    int64_t timeout = fty_get_polling_interval() * 1000; // ms
+    int64_t timeCash = zclock_mono();
+
     while (!zsys_interrupted) {
 
         // clear cache every "polling interval" sec
@@ -603,7 +750,8 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             log_debug("number of metrics read : %d", result.size());
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
-        } else {
+        }
+        else {
             timeout = timeout - timeCurrent;
         }
 
@@ -676,7 +824,9 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
                 zstr_free(&cmd);
                 zmsg_destroy(&msg);
                 goto exit;
-            } else if (streq(cmd, "CONNECT")) {
+            }
+
+            if (streq(cmd, "CONNECT")) {
                 log_debug("CONNECT received");
                 char* endpoint = zmsg_popstr(msg);
                 int   rv       = mlm_client_connect(client, endpoint, 1000, name);
@@ -733,7 +883,9 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
         }
         zmsg_destroy(&zmessage);
     }
+
 exit:
+    log_info("Actor %s ended", name);
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }
@@ -831,15 +983,22 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             const char* sender = mlm_client_sender(client);
             char* command = zmsg_popstr(zmessage);
             char* param0  = zmsg_popstr(zmessage);
-            log_debug("IN-MAILBOX from %s: subject: %s, cmd: %s, param1: %s", sender, RULES_SUBJECT, command, param0);
+            log_debug("IN-MAILBOX from %s: subject: %s, cmd: %s, param0: %s", sender, RULES_SUBJECT, command, param0);
+
             if (command && param0) {
                 if (streq(command, "LIST")) {
-                    // request: LIST/type/ruleclass
-                    // reply: LIST/type/ruleclass/rule1/.../ruleN
+                    // request: LIST/type/rule_class
+                    // reply: LIST/type/rule_class/rule1/.../ruleN
                     // reply: ERROR/reason
                     char* param1 = zmsg_popstr(zmessage);
                     list_rules(client, param0, param1, alertConfiguration);
                     zstr_free(&param1);
+                }
+                else if (streq(command, COMMAND_LIST2)) { // LIST (version 2)
+                    // request: <command>/jsonPayload
+                    // reply: <command>/jsonPayload/rule1/.../ruleN
+                    // reply: ERROR/reason
+                    list_rules2(client, param0, alertConfiguration);
                 }
                 else if (streq(command, "GET")) {
                     get_rule(client, param0, alertConfiguration);
@@ -883,6 +1042,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
         zmsg_destroy(&zmessage);
     }
 
+    log_info("Actor %s ended", name);
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }
