@@ -85,6 +85,7 @@ inline void operator<<=(cxxtools::SerializationInfo& si, const AutoConfiguration
     si.addMember("configured") <<= info.configured;
     si.addMember("date") <<= std::to_string(info.date);
     si.addMember("attributes") <<= info.attributes;
+    si.addMember("locations") <<= info.locations;
 }
 
 inline void operator>>=(const cxxtools::SerializationInfo& si, AutoConfigurationInfo& info)
@@ -97,6 +98,7 @@ inline void operator>>=(const cxxtools::SerializationInfo& si, AutoConfiguration
     si.getMember("date") >>= temp;
     info.date = static_cast<uint64_t>(std::stoi(temp));
     si.getMember("attributes") >>= info.attributes;
+    si.getMember("locations") >>= info.locations;
 }
 
 // multi-thread access guard for _configurableDevices map
@@ -292,7 +294,7 @@ void Autoconfig::onSend(fty_proto_t** message)
         && !currentInfo.empty()
         && (currentInfo == *message))
     {
-        log_debug("asset %s UPDATED but no change detected => ignore it",device_name.c_str());
+        log_debug("asset %s UPDATED but no change detected => ignore it", device_name.c_str());
         return;
     }
 
@@ -343,6 +345,16 @@ void Autoconfig::onSend(fty_proto_t** message)
         device_name.c_str(), info.type.c_str(), info.subtype.c_str(), info.operation.c_str());
     info.attributes = utils::zhash_to_map(fty_proto_ext(*message));
 
+    // asset locations, inspect aux attributes 'parent_name.X' (X in [1..4]])
+    info.locations.clear();
+    for (int i = 1; i <= 4; i++) {
+        const std::string auxName{"parent_name." + std::to_string(i)};
+        const char* parentiName = fty_proto_aux_string(*message, auxName.c_str(), NULL);
+        if (parentiName) {
+            info.locations.push_back(parentiName);
+        }
+    }
+
     if (info.operation != FTY_PROTO_ASSET_OP_DELETE
         && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active"))
     {
@@ -366,6 +378,7 @@ void Autoconfig::onSend(fty_proto_t** message)
                 log_error("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.", dest,
                     "rfc-evaluator-rules");
             }
+            zmsg_destroy(&msg);
         }
     }
     saveState();
