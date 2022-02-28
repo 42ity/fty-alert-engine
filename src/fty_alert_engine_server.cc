@@ -104,13 +104,13 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
 }
 
 // list rules (version 2), with more filters defined in a unique json payload
-// see fty-alert-flexible rules list mailbox with identical interface
+// NOTICE: see fty-alert-flexible rules list mailbox with identical interface
 
 static const char* COMMAND_LIST2 = "LIST2";
 
 static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, AlertConfiguration& ac)
 {
-    #define REPLY_ERROR_AND_RETURN(reason) { \
+    #define RETURN_REPLY_ERROR(reason) { \
         zmsg_t* msg = zmsg_new(); \
         zmsg_addstr(msg, "ERROR"); \
         zmsg_addstr(msg, reason); \
@@ -124,11 +124,12 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
         std::string rule_class;
         std::string asset_type;
         std::string asset_sub_type;
+        std::string in;
         std::string category;
     };
-    Filter filter;
 
     // parse rule filter
+    Filter filter;
     try {
         cxxtools::SerializationInfo si;
         JSON::readFromString(jsonFilters, si);
@@ -142,74 +143,97 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             { p->getValue(filter.asset_type); }
         if ((p = si.findMember("asset_sub_type")) && !p->isNull())
             { p->getValue(filter.asset_sub_type); }
+        if ((p = si.findMember("in")) && !p->isNull())
+            { p->getValue(filter.in); }
         if ((p = si.findMember("category")) && !p->isNull())
             { p->getValue(filter.category); }
     }
     catch (const std::exception& e) {
         log_error("%s exception caught reading filter inputs (e: %s)", COMMAND_LIST2, e.what());
-        REPLY_ERROR_AND_RETURN("INVALID_INPUT");
+        RETURN_REPLY_ERROR("INVALID_INPUT");
     }
 
     // filter.type is regular?
-    if (!filter.type.empty()) {
-        if (!(filter.type == "all" || filter.type == "threshold" || filter.type == "single" || filter.type == "pattern")) {
-            REPLY_ERROR_AND_RETURN("INVALID_TYPE");
-        }
+    if (!filter.type.empty()
+        && filter.type != "all"
+        && filter.type != "threshold"
+        && filter.type != "single"
+        && filter.type != "pattern") {
+        RETURN_REPLY_ERROR("INVALID_TYPE");
     }
     // filter.asset_type is regular?
     if (!filter.asset_type.empty()) {
         auto id = persist::type_to_typeid(filter.asset_type);
         if (id == persist::asset_type::TUNKNOWN) {
-            REPLY_ERROR_AND_RETURN("INVALID_ASSET_TYPE");
+            RETURN_REPLY_ERROR("INVALID_ASSET_TYPE");
         }
     }
     // filter.asset_sub_type is regular?
     if (!filter.asset_sub_type.empty()) {
         auto id = persist::subtype_to_subtypeid(filter.asset_sub_type);
         if (id == persist::asset_subtype::SUNKNOWN) {
-            REPLY_ERROR_AND_RETURN("INVALID_ASSET_SUB_TYPE");
+            RETURN_REPLY_ERROR("INVALID_ASSET_SUB_TYPE");
+        }
+    }
+    // filter.in is regular?
+    if (!filter.in.empty()) {
+        std::string type; // empty
+        if (auto pos = filter.in.rfind("-"); pos != std::string::npos)
+            { type = filter.in.substr(0, pos); }
+        if (type != "datacenter" && type != "room" && type != "row" && type != "rack") {
+            RETURN_REPLY_ERROR("INVALID_IN");
         }
     }
 
-    // function to extract asset referenced by ruleName
+    // function to extract asset iname referenced by ruleName
     std::function<std::string(const std::string&)> assetFromRuleName = [](const std::string& ruleName) {
-        std::string asset{ruleName};
-        if (auto pos = asset.rfind("@"); pos != std::string::npos)
-            { asset = asset.substr(pos + 1); }
+        if (auto pos = ruleName.rfind("@"); pos != std::string::npos)
+            { return ruleName.substr(pos + 1); }
+        return std::string{};
+    };
+
+    // function to extract asset type referenced by ruleName
+    std::function<std::string(const std::string&)> assetTypeFromRuleName = [&assetFromRuleName](const std::string& ruleName) {
+        std::string asset{assetFromRuleName(ruleName)};
         if (auto pos = asset.rfind("-"); pos != std::string::npos)
-            { asset = asset.substr(0, pos); }
-        return asset;
+            { return asset.substr(0, pos); }
+        return std::string{};
     };
 
     // rule match filter? returns true if yes
-    std::function<bool(const RulePtr&)> match = [&filter,&assetFromRuleName](const RulePtr& rule) {
+    std::function<bool(const RulePtr&)> match =
+    [&filter, &assetFromRuleName, &assetTypeFromRuleName](const RulePtr& rule) {
         // type (rule->whoami() in ["threshold", "single", "pattern", ...])
         if (!filter.type.empty() && (filter.type != "all") && (filter.type != rule->whoami()))
             { return false; }
-        // rule_class
+        // rule_class (deprecated?)
         if (!filter.rule_class.empty() && (filter.rule_class != rule->rule_class()))
             { return false; }
         // asset_type
         if (!filter.asset_type.empty()) {
-            std::string asset{assetFromRuleName(rule->name())};
+            std::string type{assetTypeFromRuleName(rule->name())};
             if (filter.asset_type == "device") { // 'device' exception
-                auto id = persist::subtype_to_subtypeid(asset);
+                auto id = persist::subtype_to_subtypeid(type);
                 if (id == persist::asset_subtype::SUNKNOWN)
                     { return false; }
             }
-            else {
-                if (filter.asset_type != asset)
-                    { return false; }
-            }
+            else if (filter.asset_type != type)
+                { return false; }
         }
         // asset_sub_type
         if (!filter.asset_sub_type.empty()) {
-            std::string asset{assetFromRuleName(rule->name())};
-            if (filter.asset_sub_type != asset)
+            std::string type{assetTypeFromRuleName(rule->name())};
+            if (filter.asset_sub_type != type)
                 { return false; }
         }
-        //if (!filter.category.empty() && (filter.category != rule->category()))
-        //    { return false; }
+        // in (location)
+        if (!filter.in.empty()) {
+            std::string asset{assetFromRuleName(rule->name())};
+            AutoConfigurationInfo info = getAssetInfoFromAutoconfig(asset);
+            auto it = std::find(info.locations.begin(), info.locations.end(), filter.in);
+            if (it == info.locations.end())
+                { return false; }
+        }
 
         return true; // match
     };
@@ -218,27 +242,26 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
     zmsg_addstr(reply, COMMAND_LIST2);
     zmsg_addstr(reply, jsonFilters.c_str());
 
-    log_debug("List rules (jsonFilters: '%s')", jsonFilters.c_str());
-    log_debug("number of all rules: %zu", ac.size());
+    log_debug("List rules (%s, jsonFilters: '%s')", COMMAND_LIST2, jsonFilters.c_str());
+    log_debug("number of rules: %zu", ac.size());
 
     // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
     mtxAlertConfig.lock();
     for (const auto& i : ac) {
         const auto& rule = i.second.first;
         if (match(rule)) {
-            log_debug("%s adding rule '%s'", COMMAND_LIST2, rule->name().c_str());
+            log_debug("%s add rule '%s'", COMMAND_LIST2, rule->name().c_str());
             zmsg_addstr(reply, rule->getJsonRule().c_str());
         }
         else {
-            log_debug("%s skipping rule '%s' (type: '%s', rule_class: '%s')",
-                COMMAND_LIST2, rule->name().c_str(), rule->whoami().c_str(), rule->rule_class().c_str());
+            log_debug("%s skip rule '%s'", COMMAND_LIST2, rule->name().c_str());
         }
     }
     mtxAlertConfig.unlock();
 
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
-    #undef REPLY_ERROR_AND_RETURN
+    #undef RETURN_REPLY_ERROR
 }
 
 static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
