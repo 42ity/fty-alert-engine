@@ -362,6 +362,7 @@ void Autoconfig::onSend(fty_proto_t** message)
                 log_error("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.", dest,
                     "rfc-evaluator-rules");
             }
+            zmsg_destroy(&msg);
         }
     }
     saveState();
@@ -551,6 +552,7 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     }
     log_debug("%zu templates match '%s'", count, myfilter);
     mlm_client_sendto(_client, sender(), RULES_SUBJECT, mlm_client_tracker(_client), 1000, &reply);
+    zmsg_destroy(&reply);
 }
 
 // _configurableDevices processors
