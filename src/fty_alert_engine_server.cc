@@ -345,90 +345,65 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
+
+    bool sendAlerts = false;
     switch (rv) {
-        case -2: {
-            // rule exists
-            log_debug("rule already exists");
-            zmsg_addstr(reply, "ERROR");
-            zmsg_addstr(reply, "ALREADY_EXISTS");
-
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
-        }
-        case 0: {
-            // rule was created succesfully
-            /* TODO: WIP, don't delete
-            log_debug ("newsubjects count = %d", newSubjectsToSubscribe.size () );
-            log_debug ("alertsToSend count = %d", alertsToSend.size () );
-            for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                log_debug ("Registering to receive '%s'", interestedSubject.c_str ());
-                mlm_client_set_consumer (client, METRICS_STREAM, interestedSubject.c_str ());
-                log_debug ("Registering finished");
-            }
-             */
-
-            // send a reply back
+        case 0: { // rule was created succesfully
             log_debug("rule added correctly");
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, json_representation);
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-
             // send updated alert
-            send_alerts(client, alertsToSend, new_rule_it->second.first);
-            return;
+            sendAlerts = true;
+            break;
         }
-        case -5: {
+        case -2: { // rule exists
+            log_debug("rule already exists");
+            zmsg_addstr(reply, "ERROR");
+            zmsg_addstr(reply, "ALREADY_EXISTS");
+            break;
+        }
+        case -5: { // error during the rule creation (lua)
             log_warning("rule has bad lua");
-            // error during the rule creation (lua)
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_LUA");
-
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
-        case -6: {
+        case -6: { // error during the rule creation (lua)
             log_error("internal error");
-            // error during the rule creation (lua)
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "Internal error - operating with storage/disk failed.");
-
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
-        case -100: // PQSWMBT-3723 rule can't be directly instantiated
-        {
+        case -100: { // PQSWMBT-3723 rule can't be directly instantiated
             log_debug("rule can't be directly instantiated");
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "Rule can't be directly instantiated.");
-
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
-        case -101: // PQSWMBT-4921 Xphase rule can be *only* instantiated for Xphase device
-        {
+        case -101: { // PQSWMBT-4921 Xphase rule can be *only* instantiated for Xphase device
             log_debug ("Xphase rule can't be instantiated");
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "Xphase rule can't be instantiated.");
-
-            mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-            return;
+            zmsg_addstr(reply, "ERROR");
+            zmsg_addstr(reply, "Xphase rule can't be instantiated.");
+            break;
         }
-        default:
-        {
-            // error during the rule creation
+        default: { // error during the rule creation
             log_warning("default, bad or unrecognized json for rule %s", json_representation);
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_JSON");
-
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
+    }
+
+    // send the reply
+    int r = mlm_client_sendto(
+        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
+
+    if (sendAlerts) {
+        send_alerts(client, alertsToSend, new_rule_it->second.first);
     }
 }
 
@@ -438,81 +413,68 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     std::set<std::string>        newSubjectsToSubscribe;
     std::vector<PureAlert>       alertsToSend;
     AlertConfiguration::iterator new_rule_it;
+
     mtxAlertConfig.lock();
     int rv = -7;
     if (rule_name) {
         rv = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     }
     mtxAlertConfig.unlock();
+
     zmsg_t* reply = zmsg_new();
+
+    bool sendAlerts = false;
     switch (rv) {
-        case -2: {
-            log_debug("rule not found");
-            // ERROR rule doesn't exist
-            zmsg_addstr(reply, "ERROR");
-            zmsg_addstr(reply, "NOT_FOUND");
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
-        }
-        case 0: {
-            // rule was updated succesfully
-            /* TODO: WIP, don't delete
-            log_debug ("newsubjects count = %d", newSubjectsToSubscribe.size () );
-            log_debug ("alertsToSend count = %d", alertsToSend.size () );
-            for ( const auto &interestedSubject : newSubjectsToSubscribe ) {
-                log_debug ("Registering to receive '%s'", interestedSubject.c_str ());
-                mlm_client_set_consumer (client, METRICS_STREAM, interestedSubject.c_str ());
-                log_debug ("Registering finished");
-            }
-             */
-            // send a reply back
+        case 0: { // rule was updated succesfully
             log_debug("rule updated");
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, json_representation);
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             // send updated alert
-            send_alerts(client, alertsToSend, new_rule_it->second.first);
-            return;
+            sendAlerts = true;
+            break;
         }
-        case -5: {
-            log_warning("rule has incorrect lua");
-            // error during the rule creation (lua)
+        case -2: { // rule doesn't exist
+            log_debug("rule not found");
             zmsg_addstr(reply, "ERROR");
-            zmsg_addstr(reply, "BAD_LUA");
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            zmsg_addstr(reply, "NOT_FOUND");
+            break;
         }
-        case -3: {
+        case -3: { // rule with new rule name already exists
             log_debug("new rule name already exists");
-            // rule with new rule name already exists
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "ALREADY_EXISTS");
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
-        case -6: {
-            // error during the rule creation
+        case -5: { // error during the rule creation (lua)
+            log_warning("rule has incorrect lua");
+            zmsg_addstr(reply, "ERROR");
+            zmsg_addstr(reply, "BAD_LUA");
+            break;
+        }
+        case -6: { // error during the rule update
             log_error("internal error");
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "Internal error - operating with storage/disk failed.");
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
-
-        default: {
-            // error during the rule creation
+        default: { // error during the rule update
             log_warning("bad json default for %s", json_representation);
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_JSON");
-            mlm_client_sendto(
-                client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
+    }
+
+    // send the reply
+    int r = mlm_client_sendto(
+        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
+
+    if (sendAlerts) {
+        send_alerts(client, alertsToSend, new_rule_it->second.first);
     }
 }
 
