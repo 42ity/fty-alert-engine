@@ -73,6 +73,7 @@ void list_rules(mlm_client_t* client, const char* type, const char* ruleclass, A
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "INVALID_TYPE");
         mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+        zmsg_destroy(&reply);
         return;
     }
 
@@ -102,7 +103,9 @@ void list_rules(mlm_client_t* client, const char* type, const char* ruleclass, A
         zmsg_addstr(reply, rule->getJsonRule().c_str());
     }
     mtxAlertConfig.unlock();
+
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
 }
 
 // static
@@ -131,6 +134,7 @@ void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
         zmsg_addstr(reply, "NOT_FOUND");
     }
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
 }
 
 
@@ -159,12 +163,15 @@ void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSen
             static_cast<uint32_t>(alert._ttl), fullRuleName.c_str(), alert._element.c_str(), alert._status.c_str(),
             alert._severity.c_str(), alert._description.c_str(), actions);
         zlist_destroy(&actions);
+
         if (msg) {
             std::string atopic = rule_name + "/" + alert._severity + "@" + alert._element;
             mlm_client_send(client, atopic.c_str(), &msg);
             log_info("Send Alert for %s with state %s and severity %s", fullRuleName.c_str(), alert._status.c_str(),
                 alert._severity.c_str());
         }
+        zmsg_destroy(&msg);
+
     }
 }
 
@@ -186,6 +193,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
     int rv = ac.addRule(f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
+    // ZZZ rework/factorize that switch
     zmsg_t* reply = zmsg_new();
     switch (rv) {
         case -2: {
@@ -196,7 +204,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
 
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case 0: {
             // rule was created succesfully
@@ -219,7 +227,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
 
             // send updated alert
             send_alerts(client, alertsToSend, new_rule_it->second.first);
-            return;
+            break;
         }
         case -5: {
             log_warning("rule has bad lua");
@@ -229,7 +237,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
 
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case -6: {
             log_error("internal error");
@@ -239,7 +247,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
 
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case -100: // PQSWMBT-3723 rule can't be directly instantiated
         {
@@ -249,7 +257,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
 
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case -101: // PQSWMBT-4921 Xphase rule can be *only* instantiated for Xphase device
         {
@@ -258,7 +266,7 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
             zmsg_addstr (reply, "Xphase rule can't be instantiated.");
 
             mlm_client_sendto (client, mlm_client_sender (client), RULES_SUBJECT, mlm_client_tracker (client), 1000, &reply);
-            return;
+            break;
         }
         default:
         {
@@ -269,9 +277,10 @@ void add_rule(mlm_client_t* client, const char* json_representation, AlertConfig
 
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
     }
+    zmsg_destroy(&reply);
 }
 
 // static
@@ -281,12 +290,15 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
     std::set<std::string>        newSubjectsToSubscribe;
     std::vector<PureAlert>       alertsToSend;
     AlertConfiguration::iterator new_rule_it;
+
     mtxAlertConfig.lock();
     int rv = -7;
     if (rule_name) {
         rv = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     }
     mtxAlertConfig.unlock();
+
+    // ZZZ rework/factorize that switch
     zmsg_t* reply = zmsg_new();
     switch (rv) {
         case -2: {
@@ -296,7 +308,7 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
             zmsg_addstr(reply, "NOT_FOUND");
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case 0: {
             // rule was updated succesfully
@@ -317,7 +329,7 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
             // send updated alert
             send_alerts(client, alertsToSend, new_rule_it->second.first);
-            return;
+            break;
         }
         case -5: {
             log_warning("rule has incorrect lua");
@@ -326,7 +338,7 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
             zmsg_addstr(reply, "BAD_LUA");
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case -3: {
             log_debug("new rule name already exists");
@@ -335,7 +347,7 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
             zmsg_addstr(reply, "ALREADY_EXISTS");
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
         case -6: {
             // error during the rule creation
@@ -344,7 +356,7 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
             zmsg_addstr(reply, "Internal error - operating with storage/disk failed.");
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
 
         default: {
@@ -354,9 +366,10 @@ void update_rule(mlm_client_t* client, const char* json_representation, const ch
             zmsg_addstr(reply, "BAD_JSON");
             mlm_client_sendto(
                 client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-            return;
+            break;
         }
     }
+    zmsg_destroy(&reply);
 }
 
 static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfiguration& ac)
@@ -390,6 +403,7 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
     }
 
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
     mtxAlertConfig.unlock();
 }
 
@@ -416,6 +430,7 @@ void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration&
                 zmsg_addstr(reply, "NOT_FOUND");
                 mlm_client_sendto(
                     client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                zmsg_destroy(&reply);
             }
             return;
         }
@@ -432,6 +447,7 @@ void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration&
                 zmsg_addstr(reply, "OK");
                 mlm_client_sendto(
                     client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                zmsg_destroy(&reply);
             }
             // send updated alert
             send_alerts(client, alertsToSend, rule_name); // TODO third parameter
@@ -651,12 +667,15 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             }
 
             if (!fty_proto_is(zmsg)) {
+                zmsg_destroy(&zmessage);
                 zmessage = zmsg;
                 topic    = mlm_client_subject(client);
                 break;
             }
 
             fty_proto_t* bmessage = fty_proto_decode(&zmsg);
+            zmsg_destroy(&zmsg);
+
             if (!bmessage) {
                 log_error("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 break;
@@ -678,10 +697,15 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             //                topic.c_str()); fty_proto_destroy(&it->second); it->second = bmessage;
             //            }
             // Check if further messages are pending
+
+            fty_proto_destroy(&bmessage);
+
             which = zpoller_wait(poller, 0);
         }
 
         if (which == pipe) {
+            zmsg_destroy(&zmessage); // ignored here until continue
+
             zmsg_t* msg = zmsg_recv(pipe);
             char*   cmd = zmsg_popstr(msg);
 
@@ -859,8 +883,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                         // ADD/json/old_name
                         char* param1 = zmsg_popstr(zmessage);
                         update_rule(client, param, param1, alertConfiguration);
-                        if (param1)
-                            free(param1);
+                        zstr_free(&param1);
                     }
                 } else if (streq(command, "TOUCH")) {
                     touch_rule(client, param, alertConfiguration, true);
@@ -883,9 +906,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             log_error("%s: Unexcepted mailbox message received with command : %s", name, command);
             zstr_free(&command);
         }
-        if (zmessage) {
-            zmsg_destroy(&zmessage);
-        }
+        zmsg_destroy(&zmessage);
     }
 exit:
     zpoller_destroy(&poller);
