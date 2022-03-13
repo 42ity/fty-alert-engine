@@ -155,12 +155,15 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
     }
 
     // filter.type is regular?
-    if (!filter.type.empty()
-        && filter.type != "all"
-        && filter.type != "threshold"
-        && filter.type != "single"
-        && filter.type != "pattern") {
-        RETURN_REPLY_ERROR("INVALID_TYPE");
+    if (!filter.type.empty()) {
+        const auto type{filter.type};
+        if (type != "all" && type != "threshold" && type != "single" && type != "pattern") {
+            RETURN_REPLY_ERROR("INVALID_TYPE");
+        }
+    }
+    // filter.rule_class is regular?
+    if (!filter.rule_class.empty()) {
+        // free input
     }
     // filter.asset_type is regular?
     if (!filter.asset_type.empty()) {
@@ -185,20 +188,21 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             RETURN_REPLY_ERROR("INVALID_IN");
         }
     }
-    // filter.category is free (list of tokens, with comma separator)
+    // filter.category is regular? (free list of tokens, with comma separator)
+    filter.categoryTokens.clear();
     if (!filter.category.empty()) {
-        std::function<std::vector<std::string>(const std::string&)> split = [](const std::string& input) {
-           std::istringstream stream(input);
-           std::vector<std::string> tokens;
-           std::string token;
-           constexpr auto delim{','};
-           while (std::getline(stream, token, delim)) {
-              tokens.push_back(token);
-           }
-           return tokens;
-        };
-
-        filter.categoryTokens = split(filter.category);
+        // extract tokens in categoryTokens
+        std::istringstream stream{filter.category};
+        constexpr auto delim{','};
+        std::string token;
+        while (std::getline(stream, token, delim)) {
+            if (!token.empty()) {
+                filter.categoryTokens.push_back(token);
+            }
+        }
+        if (filter.categoryTokens.empty()) {
+            RETURN_REPLY_ERROR("INVALID_CATEGORY");
+        }
     }
 
     // function to extract asset iname referenced by ruleName
@@ -217,9 +221,11 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
     };
 
     // function to get category tokens for a rule
-    // Note: here we handle *all* alerts, even flexible alerts that are not handled by the agent
-    // /!\ category map *must* be sync with fty-alert-engine/src/fty_alert_engine_server.cc getRuleCategoryTokens()
-    std::function<std::vector<std::string>(const std::string&)> getRuleCategoryTokens = [](const std::string& ruleName) {
+    // Note: here we handle *all* rule names, even if not handled by the agent (flexible VS threshold/single/pattern)
+    // /!\ category tokens and map **must** be synchronized between:
+    // /!\ - fty-alert-engine/src/fty_alert_engine_server.cc categoryTokensFromRuleName()
+    // /!\ - fty-alert-flexible/lib/src/flexible_alert.cc categoryTokensFromRuleName()
+    std::function<std::vector<std::string>(const std::string&)> categoryTokensFromRuleName = [](const std::string& ruleName) {
         // category tokens
         static constexpr auto T_HUMIDITY{ "humidity" };
         static constexpr auto T_TEMPERATURE{ "temperature" };
@@ -239,44 +245,49 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
         static constexpr auto T_DRY_CONTACT{ "dry-contact" };
         static constexpr auto T_AMBIENT{ "ambient" };
 
-        // category tokens map based on rules name prefix (src/rule_templates/)
+        // /!\ **must** sync between fty-alert-engine & fty-alert-flexible
+        // category tokens map based on rules name prefix (src/rule_templates/ and fty-nut inlined)
         // define tokens associated to a rule (LIST rules filter)
         // note: an empty vector means 'other'
         static const std::map<std::string, std::vector<std::string>> CAT_TOKENS = {
+        // fty-alert-engine (threshold/single/pattern rules)
             { "average.humidity", { T_HUMIDITY, T_SENSOR } },
             { "average.humidity-input", { T_HUMIDITY, T_AMBIENT } },
             { "average.temperature", { T_TEMPERATURE, T_SENSOR } },
             { "average.temperature-input", { T_TEMPERATURE, T_AMBIENT } },
             { "charge.battery", { T_BATTERY} },
-            { "door-contact.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "fire-detector-extinguisher.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "fire-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "humidity.default", { T_HUMIDITY, T_SENSOR } },
             { "internal-failure", { T_STATUS } },
-            { "licensing.expire", {} },
             { "load.default", { T_LOAD, T_OUTPUT } },
             { "load.input_1phase", { T_LOAD, T_INPUT } },
             { "load.input_3phase", { T_LOAD, T_INPUT } },
             { "lowbattery", { T_BATTERY, T_STATUS } },
             { "onacpoweroutage", { T_STATUS } },
-            { "onbattery", { T_BATTERY , T_STATUS} },
+            { "onbattery", { T_BATTERY, T_STATUS} },
             { "onbypass", { T_STATUS } },
             { "phase_imbalance", { T_PHASE } },
-            { "pir-motion-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "realpower.default_1phase", { T_POWER, T_INPUT } },
             { "realpower.default", { T_POWER, T_INPUT } },
             { "runtime.battery", { T_BATTERY } },
             { "section_load", { T_LOAD } },
-            { "smoke-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "sts-frequency", { T_FREQUENCY } },
-            { "sts-preferred-source", { T_STATUS } },
-            { "sts-voltage", { T_VOLTAGE } },
             { "temperature.default", { T_TEMPERATURE, T_SENSOR } },
             { "vibration-sensor.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "voltage.input_1phase", { T_VOLTAGE, T_INPUT } },
             { "voltage.input_3phase", { T_VOLTAGE, T_INPUT } },
+            { "warranty", {} },
+        // fty-alert-flexible (flexible rules)
+            { "door-contact.state-change", { T_DRY_CONTACT, T_SENSOR } },
+            { "fire-detector-extinguisher.state-change", { T_DRY_CONTACT, T_SENSOR } },
+            { "fire-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
+            { "licensing.expire", {} },
+            { "pir-motion-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
+            { "smoke-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
+            { "sts-frequency", { T_FREQUENCY } },
+            { "sts-preferred-source", { T_STATUS } },
+            { "sts-voltage", { T_VOLTAGE } },
+            { "vibration-sensor.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "water-leak-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
-         // fty-nut inlined rules (fty-nut /lib/src/alert_device.cc)
+         // fty-nut (inlined threshold rules, see fty-nut/lib/src/alert_device.cc)
             { "ambient.humidity", { T_HUMIDITY, T_AMBIENT } },
             { "ambient.temperature", { T_TEMPERATURE, T_AMBIENT } },
             { "input.L1.voltage", { T_VOLTAGE, T_INPUT } },
@@ -285,12 +296,14 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             { "input.L1.current", { T_AMPERAGE, T_INPUT } },
             { "input.L2.current", { T_AMPERAGE, T_INPUT } },
             { "input.L3.current", { T_AMPERAGE, T_INPUT } },
-            { "outlet.group.1.voltage", { T_VOLTAGE, T_OUTPUT } },
+            { "outlet.group.1.voltage", { T_VOLTAGE, T_OUTPUT } }, // assume 4 groups max.
             { "outlet.group.2.voltage", { T_VOLTAGE, T_OUTPUT } },
             { "outlet.group.3.voltage", { T_VOLTAGE, T_OUTPUT } },
+            { "outlet.group.4.voltage", { T_VOLTAGE, T_OUTPUT } },
             { "outlet.group.1.current", { T_AMPERAGE, T_OUTPUT } },
             { "outlet.group.2.current", { T_AMPERAGE, T_OUTPUT } },
             { "outlet.group.3.current", { T_AMPERAGE, T_OUTPUT } },
+            { "outlet.group.4.current", { T_AMPERAGE, T_OUTPUT } },
         }; // CAT_TOKENS
 
         std::string ruleNamePrefix{ruleName};
@@ -303,18 +316,15 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             return std::vector<std::string>({ T_OTHER }); // not found
         }
 
-        if (it->second.empty()) {
-            return std::vector<std::string>({ T_OTHER }); // empty means 'other'
+        if (it->second.empty()) { // empty means 'other'
+            return std::vector<std::string>({ T_OTHER });
         }
         return it->second;
     };
 
     // rule match filter? returns true if yes
     std::function<bool(const RulePtr&)> match =
-    [&filter, &assetFromRuleName, &assetTypeFromRuleName, &getRuleCategoryTokens](const RulePtr& rule) {
-        if (rule->name() == "warranty") // exception, deprecated?
-            { return false; } // hidden from any list
-
+    [&filter, &assetFromRuleName, &assetTypeFromRuleName, &categoryTokensFromRuleName](const RulePtr& rule) {
         // type (rule->whoami() in ["threshold", "single", "pattern", ...])
         if (!filter.type.empty()) {
             if ((filter.type != "all") && (filter.type != rule->whoami()))
@@ -331,7 +341,7 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             if (filter.asset_type == "device") { // 'device' exception
                 auto id = persist::subtype_to_subtypeid(type);
                 if (id == persist::asset_subtype::SUNKNOWN)
-                    { return false; }
+                    { return false; } // 'type' is not a device
             }
             else if (filter.asset_type != type)
                 { return false; }
@@ -352,7 +362,7 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
         }
         // category
         if (!filter.categoryTokens.empty()) {
-            std::vector<std::string> ruleTokens = getRuleCategoryTokens(rule->name());
+            std::vector<std::string> ruleTokens = categoryTokensFromRuleName(rule->name());
             for (auto& token : filter.categoryTokens) {
                 auto it = std::find(ruleTokens.begin(), ruleTokens.end(), token);
                 if (it == ruleTokens.end())
@@ -857,7 +867,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             timeCash = zclock_mono();
             // Timeout, need to get metrics and update refresh value
             fty::shm::read_metrics(".*", ".*", result);
-            log_debug("number of metrics read : %d", result.size());
+            log_debug("number of metrics read : %zu", result.size());
             timeout = fty_get_polling_interval() * 1000;
             metric_processing(result, cache, client);
         }

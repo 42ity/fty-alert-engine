@@ -618,7 +618,7 @@ void autoconfig (zsock_t *pipe, void *args )
 
     { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = nullptr; }
 
-    log_info ("autoconfig agent exited");
+    log_info ("autoconfig agent ended");
 }
 
 // external accessor to _configurableDevices member of agent
