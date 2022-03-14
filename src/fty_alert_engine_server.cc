@@ -226,17 +226,18 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
     // /!\ - fty-alert-engine/src/fty_alert_engine_server.cc categoryTokensFromRuleName()
     // /!\ - fty-alert-flexible/lib/src/flexible_alert.cc categoryTokensFromRuleName()
     std::function<std::vector<std::string>(const std::string&)> categoryTokensFromRuleName = [](const std::string& ruleName) {
-        // category tokens
+        // category tokens (main)
         static constexpr auto T_HUMIDITY{ "humidity" };
         static constexpr auto T_TEMPERATURE{ "temperature" };
         static constexpr auto T_BATTERY{ "battery" };
         static constexpr auto T_LOAD{ "load" };
-        static constexpr auto T_PHASE{ "phase" };
         static constexpr auto T_POWER{ "power" };
+        static constexpr auto T_PHASE{ "phase" };
         static constexpr auto T_FREQUENCY{ "frequency" };
         static constexpr auto T_VOLTAGE{ "voltage" };
         static constexpr auto T_AMPERAGE{ "amperage" };
         static constexpr auto T_STATUS{ "status" };
+        static constexpr auto T_EXPIRY{ "expiry" };
         static constexpr auto T_OTHER{ "other" };
         // sub tokens
         static constexpr auto T_INPUT{ "input" };
@@ -274,12 +275,12 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             { "vibration-sensor.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "voltage.input_1phase", { T_VOLTAGE, T_INPUT } },
             { "voltage.input_3phase", { T_VOLTAGE, T_INPUT } },
-            { "warranty", {} },
+            { "warranty", { T_EXPIRY } },
         // fty-alert-flexible (flexible rules)
             { "door-contact.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "fire-detector-extinguisher.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "fire-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "licensing.expire", {} },
+            { "licensing.expiration", { T_EXPIRY } },
             { "pir-motion-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "smoke-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
             { "sts-frequency", { T_FREQUENCY } },
