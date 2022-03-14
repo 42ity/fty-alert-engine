@@ -221,90 +221,73 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
     };
 
     // function to get category tokens for a rule
+    // https://confluence-prod.tcc.etn.com/display/PQRELEASE/260005+-+Migrate+Alarms+Settings
     // Note: here we handle *all* rule names, even if not handled by the agent (flexible VS threshold/single/pattern)
     // /!\ category tokens and map **must** be synchronized between:
     // /!\ - fty-alert-engine/src/fty_alert_engine_server.cc categoryTokensFromRuleName()
     // /!\ - fty-alert-flexible/lib/src/flexible_alert.cc categoryTokensFromRuleName()
     std::function<std::vector<std::string>(const std::string&)> categoryTokensFromRuleName = [](const std::string& ruleName) {
-        // category tokens (main)
-        static constexpr auto T_HUMIDITY{ "humidity" };
-        static constexpr auto T_TEMPERATURE{ "temperature" };
-        static constexpr auto T_BATTERY{ "battery" };
+        // category tokens
         static constexpr auto T_LOAD{ "load" };
-        static constexpr auto T_POWER{ "power" };
-        static constexpr auto T_PHASE{ "phase" };
-        static constexpr auto T_FREQUENCY{ "frequency" };
-        static constexpr auto T_VOLTAGE{ "voltage" };
-        static constexpr auto T_AMPERAGE{ "amperage" };
-        static constexpr auto T_STATUS{ "status" };
+        static constexpr auto T_PHASE_IMBALANCE{ "phase_imbalance" };
+        static constexpr auto T_TEMPERATURE{ "temperature" };
+        static constexpr auto T_HUMIDITY{ "humidity" };
         static constexpr auto T_EXPIRY{ "expiry" };
+        static constexpr auto T_INPUT_CURRENT{ "input_current" };
+        static constexpr auto T_OUTPUT_CURRENT{ "output_current" };
+        static constexpr auto T_BATTERY{ "battery" };
+        static constexpr auto T_INPUT_VOLTAGE{ "input_voltage" };
+        static constexpr auto T_OUTPUT_VOLTAGE{ "output_voltage" };
+        static constexpr auto T_STS{ "sts" };
         static constexpr auto T_OTHER{ "other" };
-        // sub tokens
-        static constexpr auto T_INPUT{ "input" };
-        static constexpr auto T_OUTPUT{ "output" };
-        static constexpr auto T_SENSOR{ "sensor" };
-        static constexpr auto T_DRY_CONTACT{ "dry-contact" };
-        static constexpr auto T_AMBIENT{ "ambient" };
 
         // /!\ **must** sync between fty-alert-engine & fty-alert-flexible
         // category tokens map based on rules name prefix (src/rule_templates/ and fty-nut inlined)
         // define tokens associated to a rule (LIST rules filter)
         // note: an empty vector means 'other'
         static const std::map<std::string, std::vector<std::string>> CAT_TOKENS = {
-        // fty-alert-engine (threshold/single/pattern rules)
-            { "average.humidity", { T_HUMIDITY, T_SENSOR } },
-            { "average.humidity-input", { T_HUMIDITY, T_AMBIENT } },
-            { "average.temperature", { T_TEMPERATURE, T_SENSOR } },
-            { "average.temperature-input", { T_TEMPERATURE, T_AMBIENT } },
-            { "charge.battery", { T_BATTERY} },
-            { "humidity.default", { T_HUMIDITY, T_SENSOR } },
-            { "internal-failure", { T_STATUS } },
-            { "load.default", { T_LOAD, T_OUTPUT } },
-            { "load.input_1phase", { T_LOAD, T_INPUT } },
-            { "load.input_3phase", { T_LOAD, T_INPUT } },
-            { "lowbattery", { T_BATTERY, T_STATUS } },
-            { "onacpoweroutage", { T_STATUS } },
-            { "onbattery", { T_BATTERY, T_STATUS} },
-            { "onbypass", { T_STATUS } },
-            { "phase_imbalance", { T_PHASE } },
-            { "realpower.default_1phase", { T_POWER, T_INPUT } },
-            { "realpower.default", { T_POWER, T_INPUT } },
-            { "runtime.battery", { T_BATTERY } },
-            { "section_load", { T_LOAD } },
-            { "temperature.default", { T_TEMPERATURE, T_SENSOR } },
-            { "vibration-sensor.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "voltage.input_1phase", { T_VOLTAGE, T_INPUT } },
-            { "voltage.input_3phase", { T_VOLTAGE, T_INPUT } },
-            { "warranty", { T_EXPIRY } },
-        // fty-alert-flexible (flexible rules)
-            { "door-contact.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "fire-detector-extinguisher.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "fire-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
+            { "realpower.default", { T_LOAD } },
+            { "phase_imbalance", { T_PHASE_IMBALANCE } },
+            { "average.temperature", { T_TEMPERATURE } },
+            { "average.humidity", { T_HUMIDITY } },
             { "licensing.expiration", { T_EXPIRY } },
-            { "pir-motion-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "smoke-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "sts-frequency", { T_FREQUENCY } },
-            { "sts-preferred-source", { T_STATUS } },
-            { "sts-voltage", { T_VOLTAGE } },
-            { "vibration-sensor.state-change", { T_DRY_CONTACT, T_SENSOR } },
-            { "water-leak-detector.state-change", { T_DRY_CONTACT, T_SENSOR } },
-         // fty-nut (inlined threshold rules, see fty-nut/lib/src/alert_device.cc)
-            { "ambient.humidity", { T_HUMIDITY, T_AMBIENT } },
-            { "ambient.temperature", { T_TEMPERATURE, T_AMBIENT } },
-            { "input.L1.voltage", { T_VOLTAGE, T_INPUT } },
-            { "input.L2.voltage", { T_VOLTAGE, T_INPUT } },
-            { "input.L3.voltage", { T_VOLTAGE, T_INPUT } },
-            { "input.L1.current", { T_AMPERAGE, T_INPUT } },
-            { "input.L2.current", { T_AMPERAGE, T_INPUT } },
-            { "input.L3.current", { T_AMPERAGE, T_INPUT } },
-            { "outlet.group.1.voltage", { T_VOLTAGE, T_OUTPUT } }, // assume 4 groups max.
-            { "outlet.group.2.voltage", { T_VOLTAGE, T_OUTPUT } },
-            { "outlet.group.3.voltage", { T_VOLTAGE, T_OUTPUT } },
-            { "outlet.group.4.voltage", { T_VOLTAGE, T_OUTPUT } },
-            { "outlet.group.1.current", { T_AMPERAGE, T_OUTPUT } },
-            { "outlet.group.2.current", { T_AMPERAGE, T_OUTPUT } },
-            { "outlet.group.3.current", { T_AMPERAGE, T_OUTPUT } },
-            { "outlet.group.4.current", { T_AMPERAGE, T_OUTPUT } },
+            { "warranty", { T_EXPIRY } },
+            { "load.default", { T_LOAD } },
+            { "input.L1.current", { T_INPUT_CURRENT } },
+            { "input.L2.current", { T_INPUT_CURRENT } },
+            { "input.L3.current", { T_INPUT_CURRENT } },
+            { "charge.battery", { T_BATTERY} },
+            { "runtime.battery", { T_BATTERY } },
+            { "voltage.input_1phase", { T_INPUT_VOLTAGE } },
+            { "voltage.input_3phase", { T_INPUT_VOLTAGE } },
+            { "input.L1.voltage", { T_INPUT_VOLTAGE } },
+            { "input.L2.voltage", { T_INPUT_VOLTAGE } },
+            { "input.L3.voltage", { T_INPUT_VOLTAGE } },
+            { "temperature.default", { T_TEMPERATURE } },
+            { "average.temperature", { T_TEMPERATURE } },
+            { "realpower.default_1phase", { T_LOAD } },
+            { "load.input_1phase", { T_LOAD } },
+            { "load.input_3phase", { T_LOAD } },
+            { "section_load", { T_LOAD } },
+            { "outlet.group.1.current", { T_OUTPUT_CURRENT } }, // assume 4 groups max.
+            { "outlet.group.2.current", { T_OUTPUT_CURRENT } },
+            { "outlet.group.3.current", { T_OUTPUT_CURRENT } },
+            { "outlet.group.4.current", { T_OUTPUT_CURRENT } },
+            { "outlet.group.1.voltage", { T_OUTPUT_VOLTAGE } }, // assume 4 groups max.
+            { "outlet.group.2.voltage", { T_OUTPUT_VOLTAGE } },
+            { "outlet.group.3.voltage", { T_OUTPUT_VOLTAGE } },
+            { "outlet.group.4.voltage", { T_OUTPUT_VOLTAGE } },
+            { "sts-frequency", { T_STS } },
+            { "sts-preferred-source", { T_STS } },
+            { "sts-voltage", { T_STS } },
+            { "ambient.humidity", { T_HUMIDITY } },
+            { "ambient.1.humidity.status", { T_HUMIDITY } }, // assume 3 max.
+            { "ambient.2.humidity.status", { T_HUMIDITY } },
+            { "ambient.3.humidity.status", { T_HUMIDITY } },
+            { "ambient.temperature", { T_TEMPERATURE } },
+            { "ambient.1.temperature.status", { T_TEMPERATURE } }, // assume 3 max.
+            { "ambient.2.temperature.status", { T_TEMPERATURE } },
+            { "ambient.3.temperature.status", { T_TEMPERATURE } },
         }; // CAT_TOKENS
 
         std::string ruleNamePrefix{ruleName};
