@@ -43,9 +43,6 @@ bool PureAlert::isStatusKnown(const char* status)
 
 void PureAlert::print() const
 {
-    log_debug("status = %s", _status.c_str());
-    log_debug("timestamp = %" PRIu64, _timestamp);
-    log_debug("description = %s", _description.c_str());
-    log_debug("element = %s", _element.c_str());
-    log_debug("severity = %s", _severity.c_str());
+    log_debug("status: %s, timestamp: %zu, descr.: %s, element: %s, severity: %s",
+        _status.c_str(), _timestamp, _description.c_str(), _element.c_str(), _severity.c_str());
 }

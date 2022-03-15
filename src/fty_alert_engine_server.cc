@@ -29,6 +29,7 @@
 #include <cxxtools/jsondeserializer.h>
 #include <fty_common_json.h>
 #include <fty_common_asset_types.h>
+#include <regex>
 
 #define METRICS_STREAM "METRICS"
 
@@ -269,32 +270,40 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
             { "load.input_1phase", { T_LOAD } },
             { "load.input_3phase", { T_LOAD } },
             { "section_load", { T_LOAD } },
-            { "outlet.group.1.current", { T_OUTPUT_CURRENT } }, // assume 4 groups max.
-            { "outlet.group.2.current", { T_OUTPUT_CURRENT } },
-            { "outlet.group.3.current", { T_OUTPUT_CURRENT } },
-            { "outlet.group.4.current", { T_OUTPUT_CURRENT } },
-            { "outlet.group.1.voltage", { T_OUTPUT_VOLTAGE } }, // assume 4 groups max.
-            { "outlet.group.2.voltage", { T_OUTPUT_VOLTAGE } },
-            { "outlet.group.3.voltage", { T_OUTPUT_VOLTAGE } },
-            { "outlet.group.4.voltage", { T_OUTPUT_VOLTAGE } },
             { "sts-frequency", { T_STS } },
             { "sts-preferred-source", { T_STS } },
             { "sts-voltage", { T_STS } },
             { "ambient.humidity", { T_HUMIDITY } },
-            { "ambient.1.humidity.status", { T_HUMIDITY } }, // assume 3 max.
-            { "ambient.2.humidity.status", { T_HUMIDITY } },
-            { "ambient.3.humidity.status", { T_HUMIDITY } },
             { "ambient.temperature", { T_TEMPERATURE } },
-            { "ambient.1.temperature.status", { T_TEMPERATURE } }, // assume 3 max.
-            { "ambient.2.temperature.status", { T_TEMPERATURE } },
-            { "ambient.3.temperature.status", { T_TEMPERATURE } },
+        // enumerated rules (see RULES_1_N)
+            { "outlet.group.1.current", { T_OUTPUT_CURRENT } },
+            { "outlet.group.1.voltage", { T_OUTPUT_VOLTAGE } },
+            { "ambient.1.humidity.status", { T_HUMIDITY } },
+            { "ambient.1.temperature.status", { T_TEMPERATURE } },
         }; // CAT_TOKENS
+
+        // enumerated rules redirections
+        static const std::vector<std::pair<std::regex, std::string>> RULES_1_N = {
+            { std::regex{R"(outlet\.group\.\d{1,4}\.current)"}, "outlet.group.1.current"},
+            { std::regex{R"(outlet\.group\.\d{1,4}\.voltage)"}, "outlet.group.1.voltage"},
+            { std::regex{R"(ambient\.\d{1,4}\.humidity\.status)"}, "ambient.1.humidity.status"},
+            { std::regex{R"(ambient\.\d{1,4}\.temperature\.status)"}, "ambient.1.temperature.status"},
+        };
 
         std::string ruleNamePrefix{ruleName};
         if (auto pos = ruleNamePrefix.rfind("@"); pos != std::string::npos)
             { ruleNamePrefix = ruleNamePrefix.substr(0, pos); }
 
-        auto it = CAT_TOKENS.find(ruleNamePrefix);
+        auto it = CAT_TOKENS.find(ruleNamePrefix); // search for a rule
+        if (it == CAT_TOKENS.end()) { // else, search for a enumerated rule
+            for (auto &rex : RULES_1_N) {
+                std::smatch m;
+                if (std::regex_match(ruleNamePrefix, m, rex.first)) {
+                    it = CAT_TOKENS.find(rex.second); // redirect search
+                    break;
+                }
+            }
+        }
         if (it == CAT_TOKENS.end()) {
             log_debug("key '%s' not found in CAT_TOKENS map", ruleNamePrefix.c_str());
             return std::vector<std::string>({ T_OTHER }); // not found
