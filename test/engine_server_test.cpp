@@ -530,7 +530,7 @@ TEST_CASE("engine_server agent")
             { "", false },
             { "{", false }, // invalid json
             { R"({ "hello": "world")", false }, // invalid json
-            { "{}", true },
+            { "{}", true }, // eg 'all'
             { R"({ "hello": "world" })", true },
             { R"({ "type": "all" })", true },
             { R"({ "type": "" })", true }, // eg 'all'
@@ -539,6 +539,19 @@ TEST_CASE("engine_server agent")
             { R"({ "type": "pattern" })", true },
             { R"({ "type": "flexible" })", false }, // type unknown
             { R"({ "type": "hello" })", false }, // type unknown
+            { R"({ "asset_type": "hello" })", false }, // asset_type unknown
+            { R"({ "asset_type": "ups" })", false }, // asset_type unknown
+            { R"({ "asset_type": "rack" })", true },
+            { R"({ "asset_sub_type": "hello" })", false }, // asset_sub_type unknown
+            { R"({ "asset_sub_type": "ups" })", true },
+            { R"({ "asset_sub_type": "rack" })", false }, // asset_sub_type unknown
+            { R"({ "in": "ups-123" })", false }, // in (location) invalid
+            { R"({ "in": "datacenter-123" })", true },
+            { R"({ "in": "room-123" })", true },
+            { R"({ "in": "row-123" })", true },
+            { R"({ "in": "rack-123" })", true },
+            { R"({ "category": "hello" })", true }, // free
+            { R"({ "category": "other" })", true },
         };
 
         for (auto& test : testVector) {
@@ -578,6 +591,9 @@ TEST_CASE("engine_server agent")
             { R"({ "type": "single" })", 0 },
             { R"({ "type": "pattern", "rule_class": "example class" })", 0 },
             { R"({ "type": "pattern" })", 0 },
+            { R"({ "category": "hello" })", 0 },
+            { R"({ "category": "load" })", 1 }, //realpower.default
+            { R"({ "category": "other" })", 2 },
         };
 
         for (auto& test : testVector) {
