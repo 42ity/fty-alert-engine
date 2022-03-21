@@ -280,6 +280,19 @@ where
 * 'reason' is string detailing reason for error. Possible values are: INVALID\_FILTER
 * subject of the message MUST be 'rfc-evaluator-rules'
 
+### Mailbox bmsg example
+
+```bash
+bmsg request fty-alert-engine rfc-evaluator-rules <command> <arg1> .. <argN>
+```
+where command is one of:
+* LIST
+* LIST2 (LIST version 2)
+* GET
+* ADD
+* DELETE
+*
+
 ### Stream METRICS\_UNAVAILABLE
 
 This stream is used to signal that certain metric is no longer available (for example because corresponding asset was removed).
