@@ -472,6 +472,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     int rv = ac.addRule(f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
+    // ZZZ rework/factorize that switch
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts = false;
@@ -637,6 +638,7 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
     }
 
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
     mtxAlertConfig.unlock();
 }
 
@@ -661,6 +663,7 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
                 zmsg_addstr(reply, "NOT_FOUND");
                 mlm_client_sendto(
                     client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                zmsg_destroy(&reply);
             }
             return;
         }
@@ -677,6 +680,7 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
                 zmsg_addstr(reply, "OK");
                 mlm_client_sendto(
                     client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                zmsg_destroy(&reply);
             }
             // send updated alert
             send_alerts(client, alertsToSend, rule_name); // TODO third parameter
@@ -898,12 +902,15 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             }
 
             if (!fty_proto_is(zmsg)) {
+                zmsg_destroy(&zmessage);
                 zmessage = zmsg;
                 topic    = mlm_client_subject(client);
                 break;
             }
 
             fty_proto_t* bmessage = fty_proto_decode(&zmsg);
+            zmsg_destroy(&zmsg);
+
             if (!bmessage) {
                 log_error("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
                 break;
@@ -925,10 +932,15 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             //                topic.c_str()); fty_proto_destroy(&it->second); it->second = bmessage;
             //            }
             // Check if further messages are pending
+
+            fty_proto_destroy(&bmessage);
+
             which = zpoller_wait(poller, 0);
         }
 
         if (which == pipe) {
+            zmsg_destroy(&zmessage); // ignored here until continue
+
             zmsg_t* msg = zmsg_recv(pipe);
             char*   cmd = zmsg_popstr(msg);
 
