@@ -297,10 +297,15 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
         auto it = CAT_TOKENS.find(ruleNamePrefix); // search for a rule
         if (it == CAT_TOKENS.end()) { // else, search for a enumerated rule
             for (auto &rex : RULES_1_N) {
-                std::smatch m;
-                if (std::regex_match(ruleNamePrefix, m, rex.first)) {
-                    it = CAT_TOKENS.find(rex.second); // redirect search
-                    break;
+                try {
+                    std::smatch m;
+                    if (std::regex_match(ruleNamePrefix, m, rex.first)) {
+                        it = CAT_TOKENS.find(rex.second); // redirect search
+                        break;
+                    }
+                }
+                catch (const std::exception& e) {
+                    log_error("exception rex (e: %s)", e.what());
                 }
             }
         }
@@ -851,7 +856,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
     zsock_signal(pipe, 0);
     log_info("Actor %s started", name);
 
-    int64_t timeout = fty_get_polling_interval() * 1000; // ms
+    int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
     int64_t timeCash = zclock_mono();
 
     while (!zsys_interrupted) {
@@ -865,7 +870,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             // Timeout, need to get metrics and update refresh value
             fty::shm::read_metrics(".*", ".*", result);
             log_debug("number of metrics read : %zu", result.size());
-            timeout = fty_get_polling_interval() * 1000;
+            timeout = int64_t(fty_get_polling_interval()) * 1000;
             metric_processing(result, cache, client);
         }
         else {
@@ -1183,9 +1188,16 @@ char* s_readall(const char* filename)
         return NULL;
 
     size_t fsize = 0;
-    fseek(fp, 0, SEEK_END);
-    fsize = static_cast<size_t>(ftell(fp));
-    fseek(fp, 0, SEEK_SET);
+    {
+        fseek(fp, 0, SEEK_END);
+        long fsize_ = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        if (fsize_ < 0) {
+            fclose(fp);
+            return NULL;
+        }
+        fsize = size_t(fsize_);
+    }
 
     char* ret = static_cast<char*>(malloc(fsize * sizeof(char) + 1));
     if (!ret) {
