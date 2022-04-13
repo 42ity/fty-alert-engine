@@ -43,8 +43,12 @@ static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int t
     return recv;
 }
 
-static const char* SELFTEST_DIR_RO = "test";
-static const char* SELFTEST_DIR_RW = ".";
+#define SELFTEST_DIR_RO "test"
+#define SELFTEST_DIR_RW "."
+
+// templates from src/
+#define SELFTEST_TEMPLATES_DIR_RO SELFTEST_DIR_RO "/../../src/rule_templates/"
+
 static const char* MLM_ENDPOINT = "inproc://fty-ag-server-test";
 static const char* SUBJECT_RULES_RFC = "rfc-evaluator-rules";
 
@@ -1342,7 +1346,7 @@ TEST_CASE("engine_server agent")
     REQUIRE(ag_configurator);
     zstr_sendx(ag_configurator, "CONFIG", SELFTEST_DIR_RW, NULL);
     zstr_sendx(ag_configurator, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
+    zstr_sendx(ag_configurator, "TEMPLATES_DIR", SELFTEST_TEMPLATES_DIR_RO, NULL);
     zstr_sendx(ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(ag_configurator, "ALERT_ENGINE_NAME", "fty-alert-engine", NULL);
     zclock_sleep(500); // THIS IS A HACK TO SETTLE DOWN THINGS
@@ -1481,7 +1485,7 @@ TEST_CASE("engine_server agent")
         REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
 
-        std::filesystem::path d(str_SELFTEST_DIR_RO + "/templates");
+        std::filesystem::path d(std::string(SELFTEST_TEMPLATES_DIR_RO));
         int                 file_counter = 0;
         char*               template_name;
         for (const auto& fn : std::filesystem::directory_iterator(d)) {
