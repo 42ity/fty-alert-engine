@@ -145,7 +145,6 @@ public:
     /// TODO make it private
     std::map<std::string, Outcome> _outcomes;
 
-
     /// TODO rework this part, as it it legacy already
     /// Every rule produces alerts for element
     /// TODO check this assumption
@@ -185,17 +184,23 @@ public:
 
     /// Gets a json representation of the rule
     /// @return json representation of the rule as string
-    std::string getJsonRule(void) const
+    std::string getJsonRule() const noexcept
     {
-        std::stringstream        s;
-        cxxtools::JsonSerializer js(s);
-        js.beautify(true);
-        js.serialize(_si).finish();
-        return s.str();
+        try {
+            std::stringstream        s;
+            cxxtools::JsonSerializer js(s);
+            js.beautify(true);
+            js.serialize(_si).finish();
+            return s.str();
+        }
+        catch (const std::exception& e) {
+            log_error("%s, getJsonRule() exception '%s'", _name.c_str(), e.what());
+        }
+        return "{}";
     };
 
     /// Save rule to the persistance
-    void save(const std::string& path, const std::string& name) const
+    void save(const std::string& path, const std::string& name) const noexcept
     {
         // ASSUMPTION: file name is the same as rule name
         // rule name and file name are CASE INSENSITIVE.
@@ -211,7 +216,7 @@ public:
     /// Delete rule from the persistance
     /// @param[in] path - a path to files
     /// @return 0 on success, non-zero on error
-    int remove(const std::string& path)
+    int remove(const std::string& path) const noexcept
     {
 
         std::string full_name = path + _name + ".rule";
@@ -254,7 +259,6 @@ protected:
     std::string _name;
 
     cxxtools::SerializationInfo _si;
-
 
     std::string _rule_source;
 
