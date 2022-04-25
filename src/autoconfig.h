@@ -43,6 +43,7 @@ struct AutoConfigurationInfo
     bool                               configured = false;
     uint64_t                           date       = 0;
     std::map<std::string, std::string> attributes;
+    std::vector<std::string>           locations; // inames
 
     // not initialized?
     bool empty() const {

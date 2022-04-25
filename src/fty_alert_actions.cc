@@ -519,7 +519,7 @@ void check_timed_out_alerts(fty_alert_actions_t* self)
     s_alert_cache* it  = static_cast<s_alert_cache*>(zhash_first(self->alerts_cache));
     uint64_t       now = static_cast<uint64_t>(zclock_mono());
     while (NULL != it) {
-        if (it->last_received + (fty_proto_ttl(it->alert_msg) * 1000) < now) {
+        if (it->last_received + (uint64_t(fty_proto_ttl(it->alert_msg)) * 1000) < now) {
             log_debug("found timed out alert from %s - resolving it", fty_proto_name(it->alert_msg));
             action_resolve(self, it);
             zhash_delete(self->alerts_cache, zhash_cursor(self->alerts_cache));
@@ -697,7 +697,6 @@ static void s_handle_stream_deliver_asset(
             zhash_t* tmp_aux = fty_proto_get_aux(asset);
             fty_proto_set_ext(known, &tmp_ext);
             fty_proto_set_aux(known, &tmp_aux);
-            assetname = fty_proto_name(known);
             fty_proto_destroy(asset_p);
             if (1 == changed) {
                 log_debug("known asset was updated, sending notifications");
@@ -783,9 +782,12 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
             log_error("can't send REPUBLISH message");
         }
     } else if (streq(cmd, "TESTTIMEOUT")) {
-        log_debug("setting test timeout to received value");
         char* rcvd = zmsg_popstr(msg);
-        sscanf(rcvd, "%" SCNu64, &timeout);
+        log_debug("setting test timeout to received value (timeout: %s)", rcvd);
+        uint64_t aux;
+        if (rcvd && (sscanf(rcvd, "%" SCNu64, &aux) == 1)) {
+            timeout = aux;
+        }
         zstr_free(&rcvd);
     } else if (streq(cmd, "TESTCHECKINTERVAL")) {
         log_debug("setting test interval for checks");

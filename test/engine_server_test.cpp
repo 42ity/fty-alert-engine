@@ -3,9 +3,10 @@
 #include "src/fty_alert_engine_audit_log.h"
 #include "src/fty_alert_engine_server.h"
 #include "src/luarule.h"
+#include <fty_shm.h>
+
 #include <catch2/catch.hpp>
 #include <czmq.h>
-#include <fty_shm.h>
 #include <filesystem>
 
 static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
@@ -42,8 +43,23 @@ static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int t
     return recv;
 }
 
+#define SELFTEST_DIR_RO "test"
+#define SELFTEST_DIR_RW "."
 
-TEST_CASE("Alert engine server")
+// templates from src/
+#define SELFTEST_TEMPLATES_DIR_RO SELFTEST_DIR_RO "/../../src/rule_templates/"
+
+static const char* MLM_ENDPOINT = "inproc://fty-ag-server-test";
+static const char* SUBJECT_RULES_RFC = "rfc-evaluator-rules";
+
+// Note: If your selftest reads SCMed fixture data, please keep it in
+// src/selftest-ro; if your test creates filesystem objects, please
+// do so under src/selftest-rw. They are defined below along with a
+// usecase (asert) to make compilers happy.
+static std::string str_SELFTEST_DIR_RO = std::string(SELFTEST_DIR_RO);
+static std::string str_SELFTEST_DIR_RW = std::string(SELFTEST_DIR_RW);
+
+TEST_CASE("engine_server agent")
 {
     gDisable_ruleXphaseIsApplicable = true; // require autoconfig runtime
 
@@ -51,21 +67,11 @@ TEST_CASE("Alert engine server")
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
 
     ManageFtyLog::setInstanceFtylog("engine-server-test", FTY_COMMON_LOGGING_DEFAULT_CFG);
-
-    // Note: If your selftest reads SCMed fixture data, please keep it in
-    // src/selftest-ro; if your test creates filesystem objects, please
-    // do so under src/selftest-rw. They are defined below along with a
-    // usecase (asert) to make compilers happy.
-    const char* SELFTEST_DIR_RO = "test";
-    const char* SELFTEST_DIR_RW = ".";
-    std::string str_SELFTEST_DIR_RO = std::string(SELFTEST_DIR_RO);
-    std::string str_SELFTEST_DIR_RW = std::string(SELFTEST_DIR_RW);
-
-    log_info(" * fty_alert_engine_server: ");
-    if (verbose)
+    if (verbose) {
         ManageFtyLog::getInstanceFtylog()->setVerboseMode();
+    }
 
-    // initialize log for auditability
+    // initialize logger for auditability
     AuditLogManager::init("engine-server-test");
     // logs audit, see /etc/fty/ftylog.cfg (requires privileges)
     log_debug_alarms_engine_audit("engine-server-test audit test %s", "DEBUG");
@@ -78,22 +84,22 @@ TEST_CASE("Alert engine server")
     int r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
     REQUIRE(r == 0); // to make gcc @ CentOS 7 happy
 
-    //  @selftest
-    static const char* endpoint = "inproc://fty-ag-server-test";
-
     zactor_t* server = zactor_new(mlm_server, static_cast<void*>(const_cast<char*>("Malamute")));
-    zstr_sendx(server, "BIND", endpoint, NULL);
+    REQUIRE(server);
+    zstr_sendx(server, "BIND", MLM_ENDPOINT, NULL);
 
     //    mlm_client_t *producer = mlm_client_new ();
-    //    mlm_client_connect (producer, endpoint, 1000, "producer");
+    //    mlm_client_connect (producer, MLM_ENDPOINT, 1000, "producer");
     //    mlm_client_set_producer (producer, FTY_PROTO_STREAM_METRICS);
 
     mlm_client_t* consumer = mlm_client_new();
-    mlm_client_connect(consumer, endpoint, 1000, "consumer");
+    REQUIRE(consumer);
+    mlm_client_connect(consumer, MLM_ENDPOINT, 1000, "consumer");
     mlm_client_set_consumer(consumer, FTY_PROTO_STREAM_ALERTS_SYS, ".*");
 
     mlm_client_t* ui = mlm_client_new();
-    mlm_client_connect(ui, endpoint, 1000, "UI");
+    REQUIRE(ui);
+    mlm_client_connect(ui, MLM_ENDPOINT, 1000, "UI");
 
     int polling_value = 2;
     int wanted_ttl    = polling_value + 2;
@@ -106,13 +112,14 @@ TEST_CASE("Alert engine server")
         zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>("fty-alert-engine")));
 
     zstr_sendx(ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
-    zstr_sendx(ag_server_mail, "CONNECT", endpoint, NULL);
+    zstr_sendx(ag_server_mail, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
-    zstr_sendx(ag_server_stream, "CONNECT", endpoint, NULL);
+    zstr_sendx(ag_server_stream, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(ag_server_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+
     zclock_sleep(500); // THIS IS A HACK TO SETTLE DOWN THINGS
 
     // Test case #1: list w/o rules
@@ -121,7 +128,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(command, "%s", "LIST");
         zmsg_addstrf(command, "%s", "all");
         zmsg_addstrf(command, "%s", "");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -146,7 +153,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -166,7 +173,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -185,7 +192,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -203,7 +210,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         zmsg_addstrf(rule, "%s", "simplethreshold2");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -379,7 +386,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -402,7 +409,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -416,7 +423,7 @@ TEST_CASE("Alert engine server")
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "DELETE");
         zmsg_addstrf(rule, "%s", "ups");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -435,7 +442,7 @@ TEST_CASE("Alert engine server")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "DELETE");
         zmsg_addstrf(rule, "%s", "lkiuryt@fff");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -448,13 +455,14 @@ TEST_CASE("Alert engine server")
         zstr_free(&foo);
         zmsg_destroy(&recv);
     }
+
     // Test case #3: list rules
     {
         zmsg_t* command = zmsg_new();
         zmsg_addstrf(command, "%s", "LIST");
         zmsg_addstrf(command, "%s", "all");
         zmsg_addstrf(command, "%s", "");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -477,7 +485,7 @@ TEST_CASE("Alert engine server")
         zmsg_t* command = zmsg_new();
         zmsg_addstrf(command, "%s", "LIST");
         zmsg_addstrf(command, "%s", "single");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -500,7 +508,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(command, "%s", "LIST");
         zmsg_addstrf(command, "%s", "all");
         zmsg_addstrf(command, "%s", "example class");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -517,6 +525,119 @@ TEST_CASE("Alert engine server")
         zmsg_destroy(&recv);
     }
 
+    // Test case #5.1: list rules (version 2)
+    {
+        struct {
+            std::string payload; // json
+            bool success; // expected
+        } testVector[] = {
+            { "", false },
+            { "{", false }, // invalid json
+            { R"({ "hello": "world")", false }, // invalid json
+            { "{}", true }, // eg 'all'
+            { R"({ "hello": "world" })", true },
+            { R"({ "type": "all" })", true },
+            { R"({ "type": "" })", true }, // eg 'all'
+            { R"({ "type": "threshold" })", true },
+            { R"({ "type": "single" })", true },
+            { R"({ "type": "pattern" })", true },
+            { R"({ "type": "flexible" })", false }, // type unknown
+            { R"({ "type": "hello" })", false }, // type unknown
+            { R"({ "asset_type": "hello" })", false }, // asset_type unknown
+            { R"({ "asset_type": "ups" })", false }, // asset_type unknown
+            { R"({ "asset_type": "rack" })", true },
+            { R"({ "asset_sub_type": "hello" })", false }, // asset_sub_type unknown
+            { R"({ "asset_sub_type": "ups" })", true },
+            { R"({ "asset_sub_type": "rack" })", false }, // asset_sub_type unknown
+            { R"({ "in": "ups-123" })", false }, // in (location) invalid
+            { R"({ "in": "datacenter-123" })", true },
+            { R"({ "in": "room-123" })", true },
+            { R"({ "in": "row-123" })", true },
+            { R"({ "in": "rack-123" })", true },
+            { R"({ "category": "hello" })", true }, // free
+            { R"({ "category": "other" })", true },
+        };
+
+        for (auto& test : testVector) {
+            zmsg_t* command = zmsg_new();
+            zmsg_addstrf(command, "%s", "LIST2"); // version 2
+            zmsg_addstrf(command, "%s", test.payload.c_str());
+            mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
+            zmsg_destroy(&command);
+
+            zmsg_t* recv = mlm_client_recv(ui);
+            REQUIRE(recv);
+            //zmsg_print(recv);
+
+            char* foo = zmsg_popstr(recv);
+            REQUIRE(foo);
+            REQUIRE( test.success == streq(foo, "LIST2")); // LIST2 as OK
+            REQUIRE(!test.success == streq(foo, "ERROR")); // ERROR as KO
+            zstr_free(&foo);
+
+            zmsg_destroy(&recv);
+        }
+    }
+
+    // Test case #5.2: list rules (version 2)
+    {
+        struct {
+            std::string payload; // json
+            size_t ruleCnt; // rules count (success expected)
+        } testVector[] = {
+            { R"({ "rule_class": "example class" })", 1 },
+            { R"({ "type": "", "rule_class": "example class" })", 1 },
+            { R"({ "type": "all", "rule_class": "example class" })", 1 },
+            { R"({ "type": "all" })", 3 },
+            { R"({ "type": "threshold", "rule_class": "example class" })", 1 },
+            { R"({ "type": "threshold" })", 3 },
+            { R"({ "type": "single", "rule_class": "example class" })", 0 },
+            { R"({ "type": "single" })", 0 },
+            { R"({ "type": "pattern", "rule_class": "example class" })", 0 },
+            { R"({ "type": "pattern" })", 0 },
+            { R"({ "category": "hello" })", 0 },
+            { R"({ "category": "load" })", 1 }, //realpower.default
+            { R"({ "category": "other" })", 2 },
+        };
+
+        for (auto& test : testVector) {
+            zmsg_t* command = zmsg_new();
+            zmsg_addstrf(command, "%s", "LIST2"); // version 2
+            zmsg_addstrf(command, "%s", test.payload.c_str());
+            mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
+            zmsg_destroy(&command);
+
+            zmsg_t* recv = mlm_client_recv(ui);
+            REQUIRE(recv);
+            //zmsg_print(recv);
+
+            REQUIRE(zmsg_size(recv) == (2 + test.ruleCnt));
+
+            char* foo = zmsg_popstr(recv);
+            REQUIRE(foo);
+            REQUIRE(streq(foo, "LIST2")); // success
+            zstr_free(&foo);
+
+            foo = zmsg_popstr(recv);
+            REQUIRE(foo);
+            REQUIRE(streq(foo, test.payload.c_str()));
+            zstr_free(&foo);
+
+            size_t cnt = 0;
+            do {
+                foo = zmsg_popstr(recv);
+                if (!foo) break;
+                std::cout << "-- rule-" << cnt << std::endl << foo << std::endl;
+                zstr_free(&foo);
+                cnt++;
+            } while(1);
+            REQUIRE(test.ruleCnt == cnt);
+
+            zstr_free(&foo);
+            zmsg_destroy(&recv);
+        }
+    }
+
     // Test case #13: segfault on onbattery
     // #13.1 ADD new rule
     {
@@ -526,7 +647,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(onbattery_rule);
         zmsg_addstrf(rule, "%s", onbattery_rule);
         zstr_free(&onbattery_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
         REQUIRE(zmsg_size(recv) == 2);
@@ -553,7 +674,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(complexthreshold_rule_lua_error);
         zmsg_addstrf(rule, "%s", complexthreshold_rule_lua_error);
         zstr_free(&complexthreshold_rule_lua_error);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
         REQUIRE(zmsg_size(recv) == 2);
@@ -575,7 +696,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(toohigh_rule);
         zmsg_addstrf(rule, "%s", toohigh_rule);
         zstr_free(&toohigh_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -640,7 +761,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(rule_with_trash);
         zmsg_addstrf(rule, "%s", rule_with_trash);
         zstr_free(&rule_with_trash);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -655,7 +776,7 @@ TEST_CASE("Alert engine server")
         zmsg_t* command = zmsg_new();
         zmsg_addstrf(command, "%s", "GET");
         zmsg_addstrf(command, "%s", "rule_with_trash");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &command);
 
         recv = mlm_client_recv(ui);
 
@@ -692,7 +813,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -712,7 +833,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(rule, "%s", simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
         zmsg_addstrf(rule, "%s", "check_update_threshold_simple");
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         // check the result of the operation
         recv = mlm_client_recv(ui);
@@ -735,7 +856,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(pattern_rule);
         zmsg_addstrf(rule, "%s", pattern_rule);
         zstr_free(&pattern_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -819,7 +940,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(devicethreshold_rule);
         zmsg_addstrf(rule, "%s", devicethreshold_rule);
         zstr_free(&devicethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -838,7 +959,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(devicethreshold_rule);
         zmsg_addstrf(rule, "%s", devicethreshold_rule);
         zstr_free(&devicethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -860,7 +981,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(rule, "%s", devicethreshold_rule);
         zstr_free(&devicethreshold_rule);
         zmsg_addstrf(rule, "%s", "device_threshold_test"); // name of the rule
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -899,7 +1020,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstr(rule, simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -925,7 +1046,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(simplethreshold_rule);
         zmsg_addstr(rule, simplethreshold_rule);
         zstr_free(&simplethreshold_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -947,7 +1068,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch_doesnt_exists");
-        int rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        int rv = mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &touch_request);
         REQUIRE(rv == 0);
 
         zmsg_t* recv = mlm_client_recv(ui);
@@ -970,7 +1091,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(rule_to_touch);
         zmsg_addstrf(rule, "%s", rule_to_touch);
         zstr_free(&rule_to_touch);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -986,7 +1107,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch");
-        int rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        int rv = mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &touch_request);
         REQUIRE(rv == 0);
 
         recv = mlm_client_recv(ui);
@@ -1035,7 +1156,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch");
-        rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        rv = mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &touch_request);
         REQUIRE(rv == 0);
 
         recv = mlm_client_recv(ui);
@@ -1071,7 +1192,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(touch_request);
         zmsg_addstr(touch_request, "TOUCH");
         zmsg_addstr(touch_request, "rule_to_touch");
-        rv = mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &touch_request);
+        rv = mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &touch_request);
         REQUIRE(rv == 0);
 
         recv = mlm_client_recv(ui);
@@ -1102,7 +1223,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(rule_to_touch);
         zmsg_addstrf(rule, "%s", rule_to_touch);
         zstr_free(&rule_to_touch);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -1120,7 +1241,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(rule_to_touch);
         zmsg_addstrf(rule, "%s", rule_to_touch);
         zstr_free(&rule_to_touch);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
 
@@ -1181,7 +1302,7 @@ TEST_CASE("Alert engine server")
         // 25.5 Send "metric unavailable"
         // 25.5.1. We need a special client for this
         mlm_client_t* metric_unavailable = mlm_client_new();
-        mlm_client_connect(metric_unavailable, endpoint, 1000, "metricunavailable");
+        mlm_client_connect(metric_unavailable, MLM_ENDPOINT, 1000, "metricunavailable");
         mlm_client_set_producer(metric_unavailable, "_METRICS_UNAVAILABLE");
 
         // 25.5.2. send UNAVAILABLE metric
@@ -1218,14 +1339,14 @@ TEST_CASE("Alert engine server")
     // # 26 - # 30 : test autoconfig
     mlm_client_t* asset_producer = mlm_client_new();
     REQUIRE(asset_producer);
-    mlm_client_connect(asset_producer, endpoint, 1000, "asset_producer");
+    mlm_client_connect(asset_producer, MLM_ENDPOINT, 1000, "asset_producer");
     mlm_client_set_producer(asset_producer, FTY_PROTO_STREAM_ASSETS);
 
     zactor_t* ag_configurator = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>("test-autoconfig")));
     REQUIRE(ag_configurator);
     zstr_sendx(ag_configurator, "CONFIG", SELFTEST_DIR_RW, NULL);
-    zstr_sendx(ag_configurator, "CONNECT", endpoint, NULL);
-    zstr_sendx(ag_configurator, "TEMPLATES_DIR", (str_SELFTEST_DIR_RO + "/templates").c_str(), NULL);
+    zstr_sendx(ag_configurator, "CONNECT", MLM_ENDPOINT, NULL);
+    zstr_sendx(ag_configurator, "TEMPLATES_DIR", SELFTEST_TEMPLATES_DIR_RO, NULL);
     zstr_sendx(ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(ag_configurator, "ALERT_ENGINE_NAME", "fty-alert-engine", NULL);
     zclock_sleep(500); // THIS IS A HACK TO SETTLE DOWN THINGS
@@ -1350,7 +1471,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(command, "%s", "LIST");
         zmsg_addstrf(command, "%s", "123456");
         zmsg_addstrf(command, "%s", "all");
-        mlm_client_sendto(ui, "test-autoconfig", "rfc-evaluator-rules", NULL, 1000, &command);
+        mlm_client_sendto(ui, "test-autoconfig", SUBJECT_RULES_RFC, NULL, 1000, &command);
 
         zmsg_t* recv = mlm_client_recv(ui);
 
@@ -1364,7 +1485,7 @@ TEST_CASE("Alert engine server")
         REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
 
-        std::filesystem::path d(str_SELFTEST_DIR_RO + "/templates");
+        std::filesystem::path d(std::string(SELFTEST_TEMPLATES_DIR_RO));
         int                 file_counter = 0;
         char*               template_name;
         for (const auto& fn : std::filesystem::directory_iterator(d)) {
@@ -1403,7 +1524,7 @@ TEST_CASE("Alert engine server")
         zmsg_addstrf(rule, "%s", pattern_rule);
         zmsg_addstrf(rule, "%s", "warranty2");
         zstr_free(&pattern_rule);
-        mlm_client_sendto(ui, "fty-alert-engine", "rfc-evaluator-rules", NULL, 1000, &rule);
+        mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
         REQUIRE(zmsg_size(recv) == 2);
@@ -1421,23 +1542,10 @@ TEST_CASE("Alert engine server")
         fty_proto_destroy(&brecv);
     }
 
-    // utf8eq
-    {
-        static const std::vector<std::string> strings{"ŽlUťOUčKý kůň",
-            "\u017dlu\u0165ou\u010dk\xc3\xbd K\u016f\xc5\x88", "Žluťou\u0165ký kůň", "ŽLUťou\u0165Ký kůň",
-            "Ka\xcc\x81rol", "K\xc3\xa1rol", "супер test", "\u0441\u0443\u043f\u0435\u0440 Test"};
-
-        REQUIRE(utf8eq(strings[0], strings[1]) == 1);
-        REQUIRE(utf8eq(strings[0], strings[2]) == 0);
-        REQUIRE(utf8eq(strings[1], strings[2]) == 0);
-        REQUIRE(utf8eq(strings[2], strings[3]) == 1);
-        REQUIRE(utf8eq(strings[4], strings[5]) == 0);
-        REQUIRE(utf8eq(strings[6], strings[7]) == 1);
-    }
-
     log_debug("Cleanup");
 
     zclock_sleep(3000);
+
     zactor_destroy(&ag_configurator);
     zactor_destroy(&ag_server_stream);
     zactor_destroy(&ag_server_mail);
@@ -1450,4 +1558,24 @@ TEST_CASE("Alert engine server")
 
     // release audit context
     AuditLogManager::deinit();
+}
+
+TEST_CASE("engine_server utf8eq")
+{
+    static const std::vector<std::string> strings{
+        "ŽlUťOUčKý kůň",
+        "\u017dlu\u0165ou\u010dk\xc3\xbd K\u016f\xc5\x88",
+        "Žluťou\u0165ký kůň", "ŽLUťou\u0165Ký kůň",
+        "Ka\xcc\x81rol",
+        "K\xc3\xa1rol",
+        "супер test",
+        "\u0441\u0443\u043f\u0435\u0440 Test"
+    };
+
+    REQUIRE(utf8eq(strings[0], strings[1]) == 1);
+    REQUIRE(utf8eq(strings[0], strings[2]) == 0);
+    REQUIRE(utf8eq(strings[1], strings[2]) == 0);
+    REQUIRE(utf8eq(strings[2], strings[3]) == 1);
+    REQUIRE(utf8eq(strings[4], strings[5]) == 0);
+    REQUIRE(utf8eq(strings[6], strings[7]) == 1);
 }

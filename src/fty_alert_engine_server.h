@@ -27,5 +27,6 @@
 
 void  fty_alert_engine_stream(zsock_t* pipe, void* args);
 void  fty_alert_engine_mailbox(zsock_t* pipe, void* args);
+
 void  clearEvaluateMetrics();
 char* s_readall(const char* filename);
