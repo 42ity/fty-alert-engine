@@ -58,6 +58,8 @@ static int load_agent_info(std::string& info)
 
 static int save_agent_info(const std::string& json)
 {
+    log_info("save in '%s'", Autoconfig::StateFile.c_str());
+
     if (!shared::is_dir(Autoconfig::StateFilePath.c_str())) {
         log_error("Can't serialize state, '%s' is not directory", Autoconfig::StateFilePath.c_str());
         return -1;
@@ -83,6 +85,7 @@ inline void operator<<=(cxxtools::SerializationInfo& si, const AutoConfiguration
     si.addMember("configured") <<= info.configured;
     si.addMember("date") <<= std::to_string(info.date);
     si.addMember("attributes") <<= info.attributes;
+    si.addMember("locations") <<= info.locations;
 }
 
 inline void operator>>=(const cxxtools::SerializationInfo& si, AutoConfigurationInfo& info)
@@ -95,6 +98,7 @@ inline void operator>>=(const cxxtools::SerializationInfo& si, AutoConfiguration
     si.getMember("date") >>= temp;
     info.date = static_cast<uint64_t>(std::stoi(temp));
     si.getMember("attributes") >>= info.attributes;
+    si.getMember("locations") >>= info.locations;
 }
 
 // multi-thread access guard for _configurableDevices map
@@ -110,9 +114,11 @@ void Autoconfig::main (zsock_t* pipe, char* name)
 
     zpoller_t* poller = zpoller_new(pipe, msgpipe(), NULL);
     assert(poller);
-    _timestamp = zclock_mono();
+
+    log_info("%s started", name);
     zsock_signal(pipe, 0);
 
+    _timestamp = zclock_mono();
     while (!zsys_interrupted) {
         void* which = zpoller_wait(poller, _timeout);
         if (which == NULL) {
@@ -147,7 +153,9 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                 zstr_free(&cmd);
                 zmsg_destroy(&msg);
                 break;
-            } else if (streq(cmd, "TEMPLATES_DIR")) {
+            }
+
+            if (streq(cmd, "TEMPLATES_DIR")) {
                 log_debug("TEMPLATES_DIR received");
                 char* dirname = zmsg_popstr(msg);
                 if (dirname) {
@@ -203,28 +211,23 @@ void Autoconfig::main (zsock_t* pipe, char* name)
             log_warning(
                 "recv () returned NULL; zsys_interrupted == '%s'; command = '%s', subject = '%s', sender = '%s'",
                 zsys_interrupted ? "true" : "false", command(), subject(), sender());
-            continue;
         }
-        if (fty_proto_is(message)) {
+        else if (fty_proto_is(message)) {
             fty_proto_t* bmessage = fty_proto_decode(&message);
             if (!bmessage) {
                 log_error("can't decode message with subject %s, ignoring", subject());
-                continue;
             }
-
-            if (fty_proto_id(bmessage) == FTY_PROTO_ASSET) {
+            else if (fty_proto_id(bmessage) == FTY_PROTO_ASSET) {
                 if (!streq(fty_proto_operation(bmessage), FTY_PROTO_ASSET_OP_INVENTORY)) {
                     onSend(&bmessage);
                 }
-                fty_proto_destroy(&bmessage);
-                continue;
             } else {
                 log_warning("Weird fty_proto msg received, id = '%d', command = '%s', subject = '%s', sender = '%s'",
                     fty_proto_id(bmessage), command(), subject(), sender());
-                fty_proto_destroy(&bmessage);
-                continue;
             }
-        } else {
+            fty_proto_destroy(&bmessage);
+        }
+        else {
             // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
             if (streq(sender(), "fty-alert-engine") || streq(sender(), "fty-alert-flexible")) {
                 char* reply = zmsg_popstr(message);
@@ -254,14 +257,17 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                     listTemplates(correl_id, filter);
                     zstr_free(&correl_id);
                     zstr_free(&filter);
-                } else
+                } else {
                     log_warning("Unexpected message received, command = '%s', subject = '%s', sender = '%s'", command(),
                         subject(), sender());
+                }
                 zstr_free(&cmd);
             }
-            zmsg_destroy(&message);
         }
+        zmsg_destroy(&message);
     }
+
+    log_info("%s ended", name);
     zpoller_destroy(&poller);
 }
 
@@ -288,7 +294,7 @@ void Autoconfig::onSend(fty_proto_t** message)
         && !currentInfo.empty()
         && (currentInfo == *message))
     {
-        log_debug("asset %s UPDATED but no change detected => ignore it",device_name.c_str());
+        log_debug("asset %s UPDATED but no change detected => ignore it", device_name.c_str());
         return;
     }
 
@@ -338,6 +344,16 @@ void Autoconfig::onSend(fty_proto_t** message)
     log_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
         device_name.c_str(), info.type.c_str(), info.subtype.c_str(), info.operation.c_str());
     info.attributes = utils::zhash_to_map(fty_proto_ext(*message));
+
+    // asset locations, inspect aux attributes 'parent_name.X' (X in [1..4]])
+    info.locations.clear();
+    for (int i = 1; i <= 4; i++) {
+        const std::string auxName{"parent_name." + std::to_string(i)};
+        const char* parentiName = fty_proto_aux_string(*message, auxName.c_str(), NULL);
+        if (parentiName) {
+            info.locations.push_back(parentiName);
+        }
+    }
 
     if (info.operation != FTY_PROTO_ASSET_OP_DELETE
         && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active"))
@@ -477,13 +493,14 @@ void Autoconfig::cleanupState()
 void Autoconfig::saveState()
 {
     ConfigurableDevices_GUARD;
-    std::ostringstream stream;
 
-    cxxtools::JsonSerializer serializer(stream);
     log_debug("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size());
+
+    std::ostringstream stream;
+    cxxtools::JsonSerializer serializer(stream);
     serializer.serialize(_configurableDevices);
     serializer.finish();
-    std::string json = stream.str();
+    std::string json{stream.str()};
     save_agent_info(json);
 }
 
@@ -601,7 +618,7 @@ void autoconfig (zsock_t *pipe, void *args )
 
     { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = nullptr; }
 
-    log_info ("autoconfig agent exited");
+    log_info ("autoconfig agent ended");
 }
 
 // external accessor to _configurableDevices member of agent
@@ -614,44 +631,3 @@ AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName)
     return AutoConfigurationInfo(); //empty
 }
 
-void
-autoconfig_test (bool /*verbose*/)
-{
-    gDisable_ruleXphaseIsApplicable = true; // PQSWMBT-4921
-
-    printf (" * autoconfig: ");
-
-    // Basic test: try to load JSON rules to see if these are well formed
-    // This will avoid regression in the future, since fty-alert-engine only
-    // stores this to provide to fty-alert-flexible, which is in charge of the
-    // actual parsing
-    // Ref: https://github.com/42ity/fty-alert-engine/pull/175
-    // Note: we simply try to deserialize using cxxtools, unlike fty-alert-flexible
-    // which uses vsjson!
-
-    const char* RULE_TEMPLATE_DIR = "src/rule_templates/";
-    Autoconfig::RuleFilePath      = std::string(RULE_TEMPLATE_DIR);
-    TemplateRuleConfigurator                         templateRuleConfigurator;
-    std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
-    log_debug("number of total templates rules = '%zu'", templates.size());
-
-    for (const auto& templat : templates) {
-        cxxtools::SerializationInfo si;
-        {
-            // read json and deserialize it
-            std::string json_rule_filename = Autoconfig::RuleFilePath + templat.first;
-            log_debug("Loading rule %s", json_rule_filename.c_str());
-            std::ifstream json_rule(json_rule_filename);
-            try {
-                cxxtools::JsonDeserializer deserializer(json_rule);
-                deserializer.deserialize(si);
-                assert(si.memberCount() != 0);
-            } catch (const std::exception& e) {
-                log_error("Invalid JSON: %s, aborting (%s)", json_rule_filename.c_str(), e.what());
-                assert(0 == 1);
-            }
-        }
-    }
-
-    printf("OK\n");
-}
