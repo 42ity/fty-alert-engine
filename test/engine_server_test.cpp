@@ -9,6 +9,40 @@
 #include <czmq.h>
 #include <filesystem>
 
+static char* s_readall(const char* filename)
+{
+    FILE* fp = fopen(filename, "rt");
+    if (!fp)
+        return NULL;
+
+    size_t fsize = 0;
+    {
+        fseek(fp, 0, SEEK_END);
+        long fsize_ = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        if (fsize_ < 0) {
+            fclose(fp);
+            return NULL;
+        }
+        fsize = size_t(fsize_);
+    }
+
+    char* ret = static_cast<char*>(malloc(fsize * sizeof(char) + 1));
+    if (!ret) {
+        fclose(fp);
+        return NULL;
+    }
+    memset(static_cast<void*>(ret), '\0', fsize * sizeof(char) + 1);
+
+    size_t r = fread(static_cast<void*>(ret), 1, fsize, fp);
+    fclose(fp);
+    if (r == fsize)
+        return ret;
+
+    free(ret);
+    return NULL;
+}
+
 static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
 {
     REQUIRE(consumer);

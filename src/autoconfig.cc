@@ -36,19 +36,22 @@ std::string Autoconfig::RuleFilePath;
 std::string Autoconfig::StateFile;
 std::string Autoconfig::AlertEngineName;
 
-static int load_agent_info(std::string& info)
+static int load_agent_info(std::string& json)
 {
+    json.clear();
+    log_debug("load_agent_info '%s'", Autoconfig::StateFile.c_str());
+
     if (!shared::is_file(Autoconfig::StateFile.c_str())) {
-        log_error("not a file");
-        info = "";
+        log_error("'%s' is not a file", Autoconfig::StateFile.c_str());
         return -1;
     }
+
     std::ifstream f(Autoconfig::StateFile, std::ios::in | std::ios::binary);
     if (f) {
         f.seekg(0, std::ios::end);
-        info.resize(static_cast<size_t>(f.tellg()));
+        json.resize(static_cast<size_t>(f.tellg()));
         f.seekg(0, std::ios::beg);
-        f.read(&info[0], static_cast<std::streamsize>(info.size()));
+        f.read(&json[0], static_cast<std::streamsize>(json.size()));
         f.close();
         return 0;
     }
@@ -119,11 +122,14 @@ void Autoconfig::main (zsock_t* pipe, char* name)
     zsock_signal(pipe, 0);
 
     _timestamp = zclock_mono();
+
     while (!zsys_interrupted) {
+
         void* which = zpoller_wait(poller, _timeout);
+
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
-                log_warning("zpoller_terminated () or zsys_interrupted ()");
+                log_debug("%s: terminated", name);
                 break;
             }
             if (zpoller_expired(poller)) {
@@ -139,7 +145,7 @@ void Autoconfig::main (zsock_t* pipe, char* name)
         }
 
         int64_t now = zclock_mono();
-        if (now - _timestamp >= _timeout) {
+        if ((now - _timestamp) >= _timeout) {
             onPoll();
             _timestamp = zclock_mono();
         }
@@ -156,43 +162,50 @@ void Autoconfig::main (zsock_t* pipe, char* name)
             }
 
             if (streq(cmd, "TEMPLATES_DIR")) {
-                log_debug("TEMPLATES_DIR received");
                 char* dirname = zmsg_popstr(msg);
+                log_debug("TEMPLATES_DIR received (%s)", dirname);
                 if (dirname) {
                     Autoconfig::RuleFilePath = std::string(dirname);
                 } else {
                     log_error("%s: in TEMPLATES_DIR command next frame is missing", name);
                 }
                 zstr_free(&dirname);
-            } else if (streq(cmd, "CONFIG")) {
-                log_debug("CONFIG received");
+            }
+            else if (streq(cmd, "CONFIG")) {
                 char* dirname = zmsg_popstr(msg);
+                log_debug("CONFIG received (%s)", dirname);
                 if (dirname) {
                     Autoconfig::StateFilePath = std::string(dirname);
-                    Autoconfig::StateFile     = Autoconfig::StateFilePath + "/state";
+                    Autoconfig::StateFile = Autoconfig::StateFilePath + "/state";
+                    loadState();
                 } else {
                     log_error("%s: in CONFIG command next frame is missing", name);
                 }
                 zstr_free(&dirname);
-            } else if (streq(cmd, "CONNECT")) {
-                log_debug("CONNECT received");
+            }
+            else if (streq(cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr(msg);
-                int   rv       = mlm_client_connect(_client, endpoint, 1000, name);
-                if (rv == -1)
+                log_debug("CONNECT received (%s)", endpoint);
+                int rv = mlm_client_connect(_client, endpoint, 1000, name);
+                if (rv == -1) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                }
                 zstr_free(&endpoint);
-            } else if (streq(cmd, "CONSUMER")) {
-                log_debug("CONSUMER received");
+            }
+            else if (streq(cmd, "CONSUMER")) {
                 char* stream  = zmsg_popstr(msg);
                 char* pattern = zmsg_popstr(msg);
-                int   rv      = mlm_client_set_consumer(_client, stream, pattern);
-                if (rv == -1)
+                log_debug("CONSUMER received (%s, %s)", stream, pattern);
+                int rv = mlm_client_set_consumer(_client, stream, pattern);
+                if (rv == -1) {
                     log_error("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                }
                 zstr_free(&pattern);
                 zstr_free(&stream);
-            } else if (streq(cmd, "ALERT_ENGINE_NAME")) {
-                log_debug("ALERT_ENGINE_NAME received");
+            }
+            else if (streq(cmd, "ALERT_ENGINE_NAME")) {
                 char* alert_engine_name = zmsg_popstr(msg);
+                log_debug("ALERT_ENGINE_NAME received (%s)", alert_engine_name);
                 if (alert_engine_name) {
                     Autoconfig::AlertEngineName = std::string(alert_engine_name);
                 } else {
@@ -205,6 +218,8 @@ void Autoconfig::main (zsock_t* pipe, char* name)
             zmsg_destroy(&msg);
             continue;
         }
+
+        //TODO rewrite that crappy message processing
 
         zmsg_t* message = recv();
         if (!message) {
@@ -464,8 +479,8 @@ void Autoconfig::setPollingInterval()
 
 void Autoconfig::loadState()
 {
-    std::string json = "";
-    int         rv   = load_agent_info(json);
+    std::string json;
+    int rv = load_agent_info(json);
     if (rv != 0 || json.empty())
         return;
 
@@ -475,6 +490,8 @@ void Autoconfig::loadState()
         _configurableDevices.clear();
         cxxtools::JsonDeserializer deserializer(in);
         deserializer.deserialize(_configurableDevices);
+
+        log_debug("loadState: State file size: %zu", _configurableDevices.size());
     }
     catch (const std::exception &e) {
         log_error( "can't parse state: %s", e.what() );
@@ -483,7 +500,7 @@ void Autoconfig::loadState()
 
 void Autoconfig::cleanupState()
 {
-    log_debug("State file size before cleanup '%zu'", _configurableDevices.size());
+    log_debug("cleanupState: State file size: %zu", _configurableDevices.size());
 
     // Just set the state file to empty
     save_agent_info("");
@@ -494,7 +511,7 @@ void Autoconfig::saveState()
 {
     ConfigurableDevices_GUARD;
 
-    log_debug("%s: State file size = '%zu'", __FUNCTION__, _configurableDevices.size());
+    log_debug("saveState: State file size: %zu", _configurableDevices.size());
 
     std::ostringstream stream;
     cxxtools::JsonSerializer serializer(stream);

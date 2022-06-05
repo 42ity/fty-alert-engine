@@ -22,13 +22,16 @@
 #include "fty_alert_engine_server.h"
 #include "alertconfiguration.h"
 #include "autoconfig.h"
-#include <fty_shm.h>
-#include <mutex>
-#include <functional>
 
-#include <cxxtools/jsondeserializer.h>
+#include <malamute.h>
+#include <fty_proto.h>
+#include <fty_shm.h>
 #include <fty_common_json.h>
 #include <fty_common_asset_types.h>
+
+#include <cxxtools/jsondeserializer.h>
+#include <mutex>
+#include <functional>
 #include <regex>
 
 #define METRICS_STREAM "METRICS"
@@ -106,7 +109,7 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
 
 static const char* COMMAND_LIST2 = "LIST2";
 
-static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, AlertConfiguration& ac)
+static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConfiguration& ac)
 {
     #define RETURN_REPLY_ERROR(reason) { \
         zmsg_t* msg = zmsg_new(); \
@@ -126,6 +129,9 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
         std::string category; // list of, comma sep.
         std::vector<std::string> categoryTokens; // splitted
     };
+
+    if (!jsonFilters)
+        jsonFilters = "";
 
     // parse rule filter
     Filter filter;
@@ -370,9 +376,9 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
 
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, COMMAND_LIST2);
-    zmsg_addstr(reply, jsonFilters.c_str());
+    zmsg_addstr(reply, jsonFilters);
 
-    log_debug("List rules (%s, jsonFilters: '%s')", COMMAND_LIST2, jsonFilters.c_str());
+    log_debug("List rules (%s, jsonFilters: '%s')", COMMAND_LIST2, jsonFilters);
     log_debug("number of rules: %zu", ac.size());
 
     // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
@@ -396,14 +402,13 @@ static void list_rules2(mlm_client_t* client, const std::string& jsonFilters, Al
 
 static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
 {
-    assert(name != NULL);
     zmsg_t* reply = zmsg_new();
-    bool    found = false;
+    bool found = false;
 
     log_debug("number of all rules = '%zu'", ac.size());
 
     mtxAlertConfig.lock();
-    if (ac.count(name) != 0) {
+    if (name && (ac.count(name) != 0)) {
         const auto& it_ac = ac.at(name);
         const auto& rule  = it_ac.first;
         log_debug("found rule %s", name);
@@ -414,7 +419,7 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
     mtxAlertConfig.unlock();
 
     if (!found) {
-        log_debug("rule not found (%s)", name);
+        log_debug("rule not found (name: %s)", name);
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "NOT_FOUND");
     }
@@ -427,8 +432,8 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
 static zlist_t* makeActionList(const std::vector<std::string>& actions)
 {
     zlist_t* res = zlist_new();
-    for (const auto& oneAction : actions) {
-        zlist_append(res, const_cast<char*>(oneAction.c_str()));
+    for (const auto& action : actions) {
+        zlist_append(res, const_cast<char*>(action.c_str()));
     }
     return res;
 }
@@ -463,8 +468,21 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
     send_alerts(client, alertsToSend, rule->name());
 }
 
+static void enable_rule_evaluation(const RulePtr& rule)
+{
+    auto topics = rule->getNeededTopics();
+    for (auto& topic : topics) {
+        auto it = evaluateMetrics.find(topic);
+        if (it != evaluateMetrics.end())
+            { it->second = true; } // enabled
+    }
+}
+
 static void add_rule(mlm_client_t* client, const char* json_representation, AlertConfiguration& ac)
 {
+    if (!json_representation)
+        json_representation = "";
+
     std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
     std::vector<PureAlert>       alertsToSend;
@@ -474,7 +492,6 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     int rv = ac.addRule(f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
-    // ZZZ rework/factorize that switch
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts = false;
@@ -484,7 +501,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
             log_debug("rule added correctly");
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, json_representation);
-            // send updated alert
+
             sendAlerts = true;
             updateEvaluateMetrics = true;
             break;
@@ -540,18 +557,15 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     }
 
     if (updateEvaluateMetrics) {
-        const RulePtr& rule = new_rule_it->second.first;
-        auto topics = rule->getNeededTopics();
-        for (auto& topic : topics) {
-            auto it = evaluateMetrics.find(topic);
-            if (it != evaluateMetrics.end())
-                { it->second = true; } // enable rule evaluation
-        }
+        enable_rule_evaluation(new_rule_it->second.first);
     }
 }
 
 static void update_rule(mlm_client_t* client, const char* json_representation, const char* rule_name, AlertConfiguration& ac)
 {
+    if (!json_representation)
+        json_representation = "";
+
     std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
     std::vector<PureAlert>       alertsToSend;
@@ -567,13 +581,15 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts = false;
+    bool updateEvaluateMetrics = false;
     switch (rv) {
         case 0: { // rule was updated succesfully
             log_debug("rule updated");
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, json_representation);
-            // send updated alert
+
             sendAlerts = true;
+            updateEvaluateMetrics = true;
             break;
         }
         case -2: { // rule doesn't exist
@@ -618,6 +634,10 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
 
     if (sendAlerts) {
         send_alerts(client, alertsToSend, new_rule_it->second.first);
+    }
+
+    if (updateEvaluateMetrics) {
+        enable_rule_evaluation(new_rule_it->second.first);
     }
 }
 
@@ -674,39 +694,40 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
                 zmsg_t* reply = zmsg_new();
                 if (!reply) {
                     log_error("touch_rule:%s: Cannot create reply message.", rule_name);
-                    return;
                 }
-                zmsg_addstr(reply, "ERROR");
-                zmsg_addstr(reply, "NOT_FOUND");
-                mlm_client_sendto(
-                    client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                else {
+                    zmsg_addstr(reply, "ERROR");
+                    zmsg_addstr(reply, "NOT_FOUND");
+                    mlm_client_sendto(
+                        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                }
                 zmsg_destroy(&reply);
             }
             break;
         case 0:
-            // rule was touched
-            // send a reply back
+            // rule was touched, send a reply back
             log_debug("touch_rule:%s: ok", rule_name);
             if (send_reply) {
                 zmsg_t* reply = zmsg_new();
                 if (!reply) {
                     log_error("touch_rule:%s: Cannot create reply message.", rule_name);
-                    return;
                 }
-                zmsg_addstr(reply, "OK");
-                mlm_client_sendto(
-                    client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                else {
+                    zmsg_addstr(reply, "OK");
+                    mlm_client_sendto(
+                        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+                }
                 zmsg_destroy(&reply);
             }
             // send updated alert
             send_alerts(client, alertsToSend, rule_name);
             break;
         default:
-            log_warning("touch_rule: result not handled (rv: %d)", rv);
+            log_warning("touch_rule:%s: result not handled (rv: %d)", rule_name, rv);
     }
 }
 
-static void check_metrics(mlm_client_t* client, const char* metric_topic, AlertConfiguration& ac)
+static void touch_rules_for_metric(mlm_client_t* client, const char* metric_topic, AlertConfiguration& ac)
 {
     mtxAlertConfig.lock();
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(metric_topic);
@@ -754,7 +775,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
             PureAlert pureAlert;
             int       rv = rule->evaluate(knownMetricValues, pureAlert);
             if (rv != 0) {
-                log_error(" ### Cannot evaluate the rule '%s'", rule->name().c_str());
+                log_error("### Cannot evaluate the rule '%s'", rule->name().c_str());
                 continue;
             }
 
@@ -788,13 +809,12 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
             }
 
             if (rv == -1) {
-                log_debug(" ### alert updated, nothing to send");
-                // nothing to send
+                log_debug("### alert updated, nothing to send");
                 continue;
             }
             send_alerts(client, {alertToSend}, rule);
         } catch (const std::exception& e) {
-            log_error("CANNOT evaluate rule, because '%s'", e.what());
+            log_error("Evaluation failed (%s, e: '%s')", rule->name().c_str(), e.what());
         }
     }
 
@@ -806,6 +826,9 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
 {
     // process accumulated metrics
     for (auto& element : result) {
+        if (zsys_interrupted)
+            break;
+
         // metric
         const char* type      = fty_proto_type(element);
         const char* name      = fty_proto_name(element);
@@ -818,18 +841,18 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
         // in the metric would be considered as
         // normal behaviour, but for now it is not supposed to be so
         // -> generated error messages into the log
-        char*  end;
+        char* end = nullptr;
         double dvalue = strtod(value, &end);
         if (errno == ERANGE) {
             errno = 0;
-            log_error("%s: can't convert value to double #1, ignore message", name);
+            log_error("%s: can't convert value (%s) to double #1, ignore message", name, value);
             continue;
-        } else if (end == value || *end != '\0') {
-            log_error("%s: can't convert value to double #2, ignore message", name);
+        } else if (end == value || (end && (*end != 0))) {
+            log_error("%s: can't convert value (%s) to double #2, ignore message", name, value);
             continue;
         }
 
-        log_debug("Process '%s@%s' with value %s", type, name, value);
+        log_debug("Get '%s@%s' (value: %s)", type, name, value);
 
         // Update metricList with new value
         MetricInfo metric(name, type, unit, dvalue, timestamp, "", ttl);
@@ -849,6 +872,9 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
                 log_debug("Add '%s' (evaluate: %s)", metricTopic.c_str(), (isEvaluate ? "true" : "false"));
                 evaluateMetrics[metricTopic] = isEvaluate;
             }
+            else if (!isEvaluate) { // update evaluate state
+                evaluateMetrics[metricTopic] = isEvaluate;
+           }
         }
     }
 }
@@ -856,6 +882,7 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
 void fty_alert_engine_stream(zsock_t* pipe, void* args)
 {
     char* name = static_cast<char*>(args);
+    assert(name);
 
     mlm_client_t* client = mlm_client_new();
     assert(client);
@@ -871,9 +898,9 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
 
     MetricList metricList; // need to track incoming measurements
 
-    while (!zsys_interrupted) {
-
-        // polling
+    while (!zsys_interrupted)
+    {
+        // polling (rules evaluation)
         int64_t timeCurrent = zclock_mono() - timeLastPoll;
         if (timeCurrent >= timeout) {
             timeLastPoll = zclock_mono();
@@ -892,105 +919,57 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
         }
 
         void* which = zpoller_wait(poller, static_cast<int>(timeout));
+
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
-                log_warning("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
+                log_warning("%s: terminated", name);
                 break;
             }
             continue;
         }
 
-        // Drain the queue of pending METRICS stream messages before
-        // doing actual work
-
-        // METRICS messages received in this round
-        //        std::unordered_map<std::string, fty_proto_t*> stream_messages;
-        // Mailbox message received (if any)
-        zmsg_t*     zmessage = NULL;
-        std::string subject;
-
-        while (which == mlm_client_msgpipe(client)) {
-            zmsg_t*     zmsg  = mlm_client_recv(client);
-            std::string topic = mlm_client_subject(client);
-
-            if (streq(mlm_client_sender(client), "fty_info_linuxmetrics")) {
-                zmsg_destroy(&zmsg);
-                continue;
-            }
-
-            if (!fty_proto_is(zmsg)) {
-                zmsg_destroy(&zmessage);
-                zmessage = zmsg;
-                topic    = mlm_client_subject(client);
-                break;
-            }
-
-            fty_proto_t* bmessage = fty_proto_decode(&zmsg);
-            zmsg_destroy(&zmsg);
-
-            if (!bmessage) {
-                log_error("%s: can't decode message with topic %s, ignoring", name, topic.c_str());
-                break;
-            }
-
-            if (fty_proto_id(bmessage) != FTY_PROTO_METRIC) {
-                log_error(
-                    "%s: unsupported proto id %d for topic %s, ignoring", name, fty_proto_id(bmessage), topic.c_str());
-                fty_proto_destroy(&bmessage);
-                break;
-            }
-            //            auto it = stream_messages.find(topic);
-            //            if (it == stream_messages.end()) {
-            //                stream_messages.emplace(topic, bmessage);
-            //            } else {
-            //                // Discard the old METRICS update, we did not manage to process
-            //                // it in time.
-            //                log_warning("%s: Metrics update '%s' processed too late, discarding", name,
-            //                topic.c_str()); fty_proto_destroy(&it->second); it->second = bmessage;
-            //            }
-            // Check if further messages are pending
-
-            fty_proto_destroy(&bmessage);
-
-            which = zpoller_wait(poller, 0);
-        }
-
         if (which == pipe) {
-            zmsg_destroy(&zmessage); // ignored here until continue
-
             zmsg_t* msg = zmsg_recv(pipe);
-            char*   cmd = zmsg_popstr(msg);
+            char* cmd = zmsg_popstr(msg);
 
             if (streq(cmd, "$TERM")) {
                 log_info("%s: $TERM received", name);
                 zstr_free(&cmd);
                 zmsg_destroy(&msg);
-                goto exit;
+                break;
             }
 
             if (streq(cmd, "CONNECT")) {
-                log_debug("CONNECT received");
                 char* endpoint = zmsg_popstr(msg);
-                int   rv       = mlm_client_connect(client, endpoint, 1000, name);
-                if (rv == -1)
+                log_debug("CONNECT received (endpoint: %s)", endpoint);
+                int rv = mlm_client_connect(client, endpoint, 1000, name);
+                if (rv == -1) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                }
                 zstr_free(&endpoint);
-            } else if (streq(cmd, "PRODUCER")) {
-                log_debug("PRODUCER received");
+            }
+            else if (streq(cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr(msg);
-                int   rv     = mlm_client_set_producer(client, stream);
-                if (rv == -1)
+                log_debug("PRODUCER received (stream: %s)", stream);
+                int rv = mlm_client_set_producer(client, stream);
+                if (rv == -1) {
                     log_error("%s: can't set producer on stream '%s'", name, stream);
+                }
                 zstr_free(&stream);
-            } else if (streq(cmd, "CONSUMER")) {
-                log_debug("CONSUMER received");
-                char* stream  = zmsg_popstr(msg);
+            }
+            else if (streq(cmd, "CONSUMER")) {
+                char* stream = zmsg_popstr(msg);
                 char* pattern = zmsg_popstr(msg);
-                int   rv      = mlm_client_set_consumer(client, stream, pattern);
-                if (rv == -1)
+                log_debug("CONSUMER received (stream: %s, pattern: %s)", stream, pattern);
+                int rv = mlm_client_set_consumer(client, stream, pattern);
+                if (rv == -1) {
                     log_error("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                }
                 zstr_free(&pattern);
                 zstr_free(&stream);
+            }
+            else {
+                log_debug("%s: command not handled (%s)", name, cmd);
             }
 
             zstr_free(&cmd);
@@ -998,35 +977,48 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             continue;
         }
 
-        // This agent is a reactive agent, it reacts only on messages
-        // and doesn't do anything if there is no messages
-        // TODO: probably alert also should be send every XXX seconds,
-        // even if no measurements were recieved
-        // from the stream  -> metrics
-        // but even so we try to decide according what we got, not from where
+        if (which == mlm_client_msgpipe(client)) {
+            zmsg_t* zmsg  = mlm_client_recv(client);
+            const char* sender = mlm_client_sender(client);
+            const char* subject = mlm_client_subject(client);
 
-        if (zmessage) {
-            // Here we can have a message with arbitrary topic, but according protocol
-            // first frame must be one of the following:
-            //  * METRIC_UNAVAILABLE
-            char* command = zmsg_popstr(zmessage);
-            if (streq(command, "METRICUNAVAILABLE")) {
-                char* metrictopic = zmsg_popstr(zmessage);
-                if (metrictopic) {
-                    check_metrics(client, metrictopic, alertConfiguration);
-                } else {
-                    log_error("%s: Received stream command '%s', but message has bad format", name, command);
-                }
-                zstr_free(&metrictopic);
-            } else {
-                log_error("%s: Unexcepted stream message received with command : %s", name, command);
+            if (streq(sender, "fty_info_linuxmetrics")) {
+                log_trace("%s: Drop message (sender: '%s', subject: %s)", name, sender, subject);
             }
-            zstr_free(&command);
+            else if (!fty_proto_is(zmsg)) {
+                // Here we can have a message with arbitrary topic, but according protocol
+                // first frame must be one of the following:
+                //  * METRIC_UNAVAILABLE
+
+                char* cmd = zmsg_popstr(zmsg);
+
+                log_trace("%s: Recv non proto message (sender: '%s', subject: %s, command: %s)",
+                    name, sender, subject, cmd);
+
+                if (cmd && streq(cmd, "METRICUNAVAILABLE")) {
+                    char* metrictopic = zmsg_popstr(zmsg);
+                    if (metrictopic) {
+                        log_debug("%s: touch_rules_for_metric %s", name, metrictopic);
+                        touch_rules_for_metric(client, metrictopic, alertConfiguration);
+                    } else {
+                        log_debug("%s: Received stream command '%s', but message has bad format", name, cmd);
+                    }
+                    zstr_free(&metrictopic);
+                } else {
+                    log_debug("%s: Unexcepted stream message received with command : %s", name, cmd);
+                }
+
+                zstr_free(&cmd);
+            }
+            else { // msg is proto
+                // do nothing
+            }
+
+            zmsg_destroy(&zmsg);
+            continue;
         }
-        zmsg_destroy(&zmessage);
     }
 
-exit:
     log_info("Actor %s ended", name);
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
@@ -1035,6 +1027,7 @@ exit:
 void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
 {
     char* name = static_cast<char*>(args);
+    assert(name);
 
     mlm_client_t* client = mlm_client_new();
     assert(client);
@@ -1042,188 +1035,169 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
     zpoller_t* poller = zpoller_new(pipe, mlm_client_msgpipe(client), NULL);
     assert(poller);
 
-    uint64_t timeout = 30000;
-
     zsock_signal(pipe, 0);
     log_info("Actor %s started", name);
 
+    int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
+
     while (!zsys_interrupted) {
+
         void* which = zpoller_wait(poller, static_cast<int>(timeout));
+
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
-                log_warning("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
+                log_warning("%s: terminated", name);
                 break;
             }
             continue;
         }
 
         if (which == pipe) {
-            zmsg_t* msg = zmsg_recv(pipe);
-            char*   cmd = zmsg_popstr(msg);
-            log_debug("Command : %s", cmd);
+            zmsg_t* zmsg = zmsg_recv(pipe);
+            char* cmd = zmsg_popstr(zmsg);
+            log_debug("%s: Command '%s'", name, cmd);
 
             if (streq(cmd, "$TERM")) {
                 log_debug("%s: $TERM received", name);
                 zstr_free(&cmd);
-                zmsg_destroy(&msg);
+                zmsg_destroy(&zmsg);
                 break;
             }
 
             if (streq(cmd, "CONNECT")) {
-                log_debug("CONNECT received");
-                char* endpoint = zmsg_popstr(msg);
-                int   rv       = mlm_client_connect(client, endpoint, 1000, name);
-                if (rv == -1)
+                char* endpoint = zmsg_popstr(zmsg);
+                log_debug("%s: CONNECT received %s", name, endpoint);
+                int rv = mlm_client_connect(client, endpoint, 1000, name);
+                if (rv == -1) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                }
                 zstr_free(&endpoint);
-            } else if (streq(cmd, "PRODUCER")) {
-                log_debug("PRODUCER received");
-                char* stream = zmsg_popstr(msg);
-                int   rv     = mlm_client_set_producer(client, stream);
-                if (rv == -1)
+            }
+            else if (streq(cmd, "PRODUCER")) {
+                char* stream = zmsg_popstr(zmsg);
+                log_debug("%s: PRODUCER received %s", name, stream);
+                int rv = mlm_client_set_producer(client, stream);
+                if (rv == -1) {
                     log_error("%s: can't set producer on stream '%s'", name, stream);
+                }
                 zstr_free(&stream);
-            } else if (streq(cmd, "CONFIG")) {
-                log_debug("CONFIG received");
-                char* filename = zmsg_popstr(msg);
+            }
+            else if (streq(cmd, "CONFIG")) {
+                char* filename = zmsg_popstr(zmsg);
+                log_debug("%s: CONFIG received %s", filename);
                 if (filename) {
                     // Read initial configuration
                     alertConfiguration.setPath(filename);
                     // XXX: somes to subscribe are returned, but not used for now
                     alertConfiguration.readConfiguration();
                 } else {
-                    log_error("%s: in CONFIG command next frame is missing", name);
+                    log_error("%s: CONFIG filename is missing", name);
                 }
                 zstr_free(&filename);
             }
+            else {
+                log_debug("%s: command not handled (%s)", name, cmd);
+            }
+
             zstr_free(&cmd);
-            zmsg_destroy(&msg);
+            zmsg_destroy(&zmsg);
             continue;
         }
 
-        // This agent is a reactive agent, it reacts only on messages
-        // and doesn't do anything if there is no messages
-        // TODO: probably alert also should be send every XXX seconds,
-        // even if no measurements were recieved
-        zmsg_t* zmessage = mlm_client_recv(client);
-        if (!zmessage) {
-            continue;
-        }
-
-        // from the mailbox -> rules
-        //                  -> request for rule list
-        // but even so we try to decide according what we got, not from where
-        if (streq(mlm_client_subject(client), RULES_SUBJECT)) {
-            // According RFC we expect here a messages
-            // with the topic:
-            //   * RULES_SUBJECT
-            // Here we can have:
-            //  * request for list of rules
-            //  * get detailed info about the rule
-            //  * new/update rule
-            //  * touch rule
+        if (which == mlm_client_msgpipe(client)) {
+            zmsg_t* zmsg = mlm_client_recv(client);
             const char* sender = mlm_client_sender(client);
-            char* command = zmsg_popstr(zmessage);
-            char* param0  = zmsg_popstr(zmessage);
-            log_debug("IN-MAILBOX from %s: subject: %s, cmd: %s, param0: %s", sender, RULES_SUBJECT, command, param0);
+            const char* subject = mlm_client_subject(client);
 
-            if (command && param0) {
-                if (streq(command, "LIST")) {
+            // According RFC we handle messages with the subject RULES_SUBJECT
+
+            if (streq(subject, RULES_SUBJECT)) {
+                char* command = zmsg_popstr(zmsg);
+                log_debug("%s: MAILBOX (sender: %s, subject: %s, cmd: %s)", name, sender, subject, command);
+
+                if (!command) {
+                    log_error("%s: Received unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, command);
+                }
+                else if (streq(command, "LIST")) {
                     // request: LIST/type/rule_class
                     // reply: LIST/type/rule_class/rule1/.../ruleN
                     // reply: ERROR/reason
-                    char* param1 = zmsg_popstr(zmessage);
+                    char* param0 = zmsg_popstr(zmsg);
+                    char* param1 = zmsg_popstr(zmsg);
+                    log_debug("%s: Requested %s '%s' '%s'", name, command, param0, param1);
                     list_rules(client, param0, param1, alertConfiguration);
+                    zstr_free(&param0);
                     zstr_free(&param1);
                 }
                 else if (streq(command, COMMAND_LIST2)) { // LIST (version 2)
                     // request: <command>/jsonPayload
                     // reply: <command>/jsonPayload/rule1/.../ruleN
                     // reply: ERROR/reason
+                    char* param0 = zmsg_popstr(zmsg);
+                    log_debug("%s: Requested %s", name, command);
                     list_rules2(client, param0, alertConfiguration);
+                    zstr_free(&param0);
                 }
                 else if (streq(command, "GET")) {
+                    char* param0 = zmsg_popstr(zmsg);
+                    log_debug("%s: Requested %s '%s'", name, command, param0);
                     get_rule(client, param0, alertConfiguration);
+                    zstr_free(&param0);
                 }
                 else if (streq(command, "ADD")) {
-                    if (zmsg_size(zmessage) == 0) {
+                    char* param0 = zmsg_popstr(zmsg);
+                    if (zmsg_size(zmsg) == 0) {
                         // ADD/json
+                        log_debug("%s: Requested %s", name, command);
                         add_rule(client, param0, alertConfiguration);
                     }
                     else {
                         // ADD/json/old_name
-                        char* param1 = zmsg_popstr(zmessage);
+                        char* param1 = zmsg_popstr(zmsg);
+                        log_debug("%s: Requested %s w/ oldName '%s'", name, command, param1);
                         update_rule(client, param0, param1, alertConfiguration);
                         zstr_free(&param1);
                     }
+                    zstr_free(&param0);
                 }
                 else if (streq(command, "TOUCH")) {
+                    char* param0 = zmsg_popstr(zmsg);
+                    log_debug("%s: Requested %s '%s'", name, command, param0);
                     const bool send_reply = true;
                     touch_rule(client, param0, alertConfiguration, send_reply);
+                    zstr_free(&param0);
                 }
                 else if (streq(command, "DELETE")) {
-                    log_info("Requested deletion of rule '%s'", param0);
-                    RuleNameMatcher matcher(param0);
+                    char* param0 = zmsg_popstr(zmsg);
+                    log_debug("%s: Requested %s '%s'", name, command, param0);
+                    RuleNameMatcher matcher(param0 ? param0 : "");
                     delete_rules(client, &matcher, alertConfiguration);
+                    zstr_free(&param0);
                 }
                 else if (streq(command, "DELETE_ELEMENT")) {
-                    log_info("Requested deletion of rules about element '%s'", param0);
-                    RuleElementMatcher matcher(param0);
+                    char* param0 = zmsg_popstr(zmsg);
+                    log_debug("%s: Requested %s '%s'", name, command, param0);
+                    RuleElementMatcher matcher(param0 ? param0 : "");
                     delete_rules(client, &matcher, alertConfiguration);
+                    zstr_free(&param0);
                 }
                 else {
-                    log_error("Received unexpected message to MAILBOX with command '%s'", command);
+                    log_error("%s: Received unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, command);
                 }
+
+                zstr_free(&command);
             }
-            zstr_free(&command);
-            zstr_free(&param0);
-        } else {
-            char* command = zmsg_popstr(zmessage);
-            log_error("%s: Unexcepted mailbox message received with command : %s", name, command);
-            zstr_free(&command);
+            else {
+                log_error("%s: Unexcepted mailbox message received (sender: '%s', subject: '%s')",
+                    name, sender, subject);
+            }
+
+            zmsg_destroy(&zmsg);
+            continue;
         }
-        zmsg_destroy(&zmessage);
     }
 
     log_info("Actor %s ended", name);
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
-}
-
-//  --------------------------------------------------------------------------
-//  Self test of this class.
-
-//static (required for tests)
-char* s_readall(const char* filename)
-{
-    FILE* fp = fopen(filename, "rt");
-    if (!fp)
-        return NULL;
-
-    size_t fsize = 0;
-    {
-        fseek(fp, 0, SEEK_END);
-        long fsize_ = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
-        if (fsize_ < 0) {
-            fclose(fp);
-            return NULL;
-        }
-        fsize = size_t(fsize_);
-    }
-
-    char* ret = static_cast<char*>(malloc(fsize * sizeof(char) + 1));
-    if (!ret) {
-        fclose(fp);
-        return NULL;
-    }
-    memset(static_cast<void*>(ret), '\0', fsize * sizeof(char) + 1);
-
-    size_t r = fread(static_cast<void*>(ret), 1, fsize, fp);
-    fclose(fp);
-    if (r == fsize)
-        return ret;
-
-    free(ret);
-    return NULL;
 }

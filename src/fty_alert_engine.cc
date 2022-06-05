@@ -21,7 +21,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "fty_alert_engine_audit_log.h"
 #include "fty_alert_engine_server.h"
 #include <czmq.h>
-#include <lua.h>
 
 static const char* CONFIG = "/etc/fty-alert-engine/fty-alert-engine.cfg";
 // path to the directory, where rules are stored. Attention: without last slash!
@@ -110,28 +109,20 @@ int main(int argc, char** argv)
     zstr_sendx(ag_actions, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
     zstr_sendx(ag_actions, "ASKFORASSETS", NULL);
 
-    //  Accept and print any message back from server
-    //  copy from src/malamute.c under MPL license
-    while (true) {
-        char* messageS = zstr_recv(ag_server_stream);
-        if (messageS) {
-            puts(messageS);
-            free(messageS);
-        } else {
-            log_info("interrupted");
-            break;
-        }
+    log_info("%s started", ENGINE_AGENT_NAME);
 
-        char* messageM = zstr_recv(ag_server_mailbox);
-        if (messageM) {
-            puts(messageM);
-            free(messageM);
-        } else {
-            log_info("interrupted");
+    // main loop, accept any message back from server
+    // copy from src/malamute.c under MPL license
+    while (!zsys_interrupted) {
+        char* msg = zstr_recv(ag_server_mailbox);
+        if (!msg)
             break;
-        }
+
+        log_debug("%s: recv msg '%s'", ENGINE_AGENT_NAME, msg);
+        zstr_free(&msg);
     }
 
+    log_info("%s ended", ENGINE_AGENT_NAME);
 
     zactor_destroy(&ag_server_stream);
     zactor_destroy(&ag_server_mailbox);
