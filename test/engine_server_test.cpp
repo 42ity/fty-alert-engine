@@ -1549,7 +1549,6 @@ TEST_CASE("engine_server agent")
     zactor_destroy(&ag_configurator);
     zactor_destroy(&ag_server_stream);
     zactor_destroy(&ag_server_mail);
-    clearEvaluateMetrics();
     mlm_client_destroy(&asset_producer);
     mlm_client_destroy(&ui);
     mlm_client_destroy(&consumer);

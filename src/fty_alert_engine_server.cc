@@ -43,13 +43,8 @@ static AlertConfiguration alertConfiguration;
 // Mutex to manage the alertConfiguration object access
 static std::mutex mtxAlertConfig;
 
-// map to know if a metric is evaluted or not
+// map to know if a metric is evaluated or not
 static std::map<std::string, bool> evaluateMetrics;
-
-void clearEvaluateMetrics()
-{
-    evaluateMetrics.clear();
-}
 
 // list rules, by type and rule_class
 static void list_rules(mlm_client_t* client, const char* type, const char* rule_class, AlertConfiguration& ac)
@@ -73,8 +68,11 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
         return;
     }
 
-    std::function<bool(const std::string& s)> filterOnType = [type](const std::string& s)
+    std::function<bool(const std::string&)> filterOnType = [type](const std::string& s)
         { return streq(type, "all") || (s == type); };
+
+    std::function<bool(const std::string&)> filterOnClass = [rule_class](const std::string& s)
+        { return streq(rule_class, "") || (s == rule_class); };
 
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, "LIST");
@@ -85,11 +83,10 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
     log_debug("number of all rules: %zu", ac.size());
 
     // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
-    std::string rclass{rule_class};
     mtxAlertConfig.lock();
     for (const auto& i : ac) {
         const auto& rule = i.second.first;
-        if (filterOnType(rule->whoami()) && (rclass.empty() || rule->rule_class() == rclass)) {
+        if (filterOnType(rule->whoami()) && filterOnClass(rule->rule_class())) {
             log_debug("Adding rule '%s'", rule->name().c_str());
             zmsg_addstr(reply, rule->getJsonRule().c_str());
         }
@@ -481,6 +478,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts = false;
+    bool updateEvaluateMetrics = false;
     switch (rv) {
         case 0: { // rule was created succesfully
             log_debug("rule added correctly");
@@ -488,6 +486,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
             zmsg_addstr(reply, json_representation);
             // send updated alert
             sendAlerts = true;
+            updateEvaluateMetrics = true;
             break;
         }
         case -2: { // rule exists
@@ -538,6 +537,16 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
 
     if (sendAlerts) {
         send_alerts(client, alertsToSend, new_rule_it->second.first);
+    }
+
+    if (updateEvaluateMetrics) {
+        const RulePtr& rule = new_rule_it->second.first;
+        auto topics = rule->getNeededTopics();
+        for (auto& topic : topics) {
+            auto it = evaluateMetrics.find(topic);
+            if (it != evaluateMetrics.end())
+                { it->second = true; } // enable rule evaluation
+        }
     }
 }
 
@@ -616,10 +625,13 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
 {
     std::map<std::string, std::vector<PureAlert>> alertsToSend;
     std::vector<std::string>                      rulesDeleted;
+
     mtxAlertConfig.lock();
+    int rv = ac.deleteRules(matcher, alertsToSend, rulesDeleted);
+    mtxAlertConfig.unlock();
+
     zmsg_t* reply = zmsg_new();
-    int     rv    = ac.deleteRules(matcher, alertsToSend, rulesDeleted);
-    if (!rv) {
+    if (rv == 0) {
         if (rulesDeleted.empty()) {
             log_debug("can't delete rule (no match)");
             zmsg_addstr(reply, "ERROR");
@@ -644,7 +656,6 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
 
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
-    mtxAlertConfig.unlock();
 }
 
 static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration& ac, bool send_reply)
@@ -654,8 +665,9 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
     mtxAlertConfig.lock();
     int rv = ac.touchRule(rule_name, alertsToSend);
     mtxAlertConfig.unlock();
+
     switch (rv) {
-        case -1: {
+        case -1:
             log_error("touch_rule:%s: Rule was not found", rule_name);
             // ERROR rule doesn't exist
             if (send_reply) {
@@ -670,9 +682,8 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
                     client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
                 zmsg_destroy(&reply);
             }
-            return;
-        }
-        case 0: {
+            break;
+        case 0:
             // rule was touched
             // send a reply back
             log_debug("touch_rule:%s: ok", rule_name);
@@ -688,26 +699,33 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
                 zmsg_destroy(&reply);
             }
             // send updated alert
-            send_alerts(client, alertsToSend, rule_name); // TODO third parameter
-            return;
-        }
+            send_alerts(client, alertsToSend, rule_name);
+            break;
+        default:
+            log_warning("touch_rule: result not handled (rv: %d)", rv);
     }
 }
 
 static void check_metrics(mlm_client_t* client, const char* metric_topic, AlertConfiguration& ac)
 {
+    mtxAlertConfig.lock();
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(metric_topic);
+    mtxAlertConfig.unlock();
+
+    const bool send_reply = false;
     for (const auto& rulename : rules_of_metric) {
-        touch_rule(client, rulename.c_str(), ac, false);
+        touch_rule(client, rulename.c_str(), ac, send_reply);
     }
 }
 
 static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, const MetricList& knownMetricValues,
     AlertConfiguration& ac)
 {
-    // Go through all known rules, and try to evaluate them
-    mtxAlertConfig.lock();
     bool isEvaluate = false;
+    mtxAlertConfig.lock();
+
+    // Go through all known rules concerned by the metric
+    // try to evaluate them
 
     std::string sTopic;
     // end_warranty_date is the only "regex rule", for optimisation purpose, use some trick for those.
@@ -718,7 +736,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
 
-//    log_debug(" ### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
+    log_debug("### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
 
     for (const auto& rulename : rules_of_metric) {
         if (ac.count(rulename) == 0) {
@@ -726,12 +744,13 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
             continue;
         }
 
+        isEvaluate = true;
+
         auto&       it_ac = ac.at(rulename);
         const auto& rule  = it_ac.first;
-        log_debug(" ### Evaluate rule '%s'", rule->name().c_str());
+        log_debug("### Evaluate rule '%s'", rule->name().c_str());
 
         try {
-            isEvaluate = true;
             PureAlert pureAlert;
             int       rv = rule->evaluate(knownMetricValues, pureAlert);
             if (rv != 0) {
@@ -778,18 +797,16 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
             log_error("CANNOT evaluate rule, because '%s'", e.what());
         }
     }
+
     mtxAlertConfig.unlock();
     return isEvaluate;
 }
 
-static void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, mlm_client_t* client)
+static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricList, mlm_client_t* client)
 {
-    // process accumulated stream messages
+    // process accumulated metrics
     for (auto& element : result) {
-        // std::string topic = element.first;
-        // fty_proto_t *bmessage = element.second;
-
-        // process as metric message
+        // metric
         const char* type      = fty_proto_type(element);
         const char* name      = fty_proto_name(element);
         const char* value     = fty_proto_value(element);
@@ -805,38 +822,32 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, m
         double dvalue = strtod(value, &end);
         if (errno == ERANGE) {
             errno = 0;
-            // fty_proto_print (element);
             log_error("%s: can't convert value to double #1, ignore message", name);
             continue;
         } else if (end == value || *end != '\0') {
-            // fty_proto_print (element);
             log_error("%s: can't convert value to double #2, ignore message", name);
             continue;
         }
 
-//        log_debug("%s: Got message '%s@%s' with value %s", name, type, name, value);
+        log_debug("Process '%s@%s' with value %s", type, name, value);
 
-        // Update cache with new value
-        MetricInfo m(name, type, unit, dvalue, timestamp, "", ttl);
-        cache.addMetric(m);
+        // Update metricList with new value
+        MetricInfo metric(name, type, unit, dvalue, timestamp, "", ttl);
+        const std::string metricTopic = metric.generateTopic();
+
+        metricList.addMetric(metric);
 
         // search if this metric is already evaluated and if this metric is evaluate
-        std::map<std::string, bool>::iterator found       = evaluateMetrics.find(m.generateTopic());
-        bool                                  metricfound = found != evaluateMetrics.end();
+        auto it = evaluateMetrics.find(metricTopic);
+        bool exist = it != evaluateMetrics.end();
+        bool evaluate = exist ? it->second : false;
 
-//        log_debug("Check metric : %s", m.generateTopic().c_str());
-        if (metricfound && ManageFtyLog::getInstanceFtylog()->isLogDebug()) {
-//            log_debug("Metric '%s' is known and %s be evaluated", m.generateTopic().c_str(),
-//                found->second ? "must" : "will not");
-        }
+        if (!exist || evaluate) {
+            bool isEvaluate = evaluate_metric(client, metric, metricList, alertConfiguration);
 
-        if (!metricfound || found->second) {
-            bool isEvaluate = evaluate_metric(client, m, cache, alertConfiguration);
-
-            // if the metric is evaluate for the first time, add to the list
-            if (!metricfound) {
-//                log_debug("Add %s evaluated metric '%s'", isEvaluate ? " " : "not", m.generateTopic().c_str());
-                evaluateMetrics[m.generateTopic()] = isEvaluate;
+            if (!exist) { // first time, add to the list
+                log_debug("Add '%s' (evaluate: %s)", metricTopic.c_str(), (isEvaluate ? "true" : "false"));
+                evaluateMetrics[metricTopic] = isEvaluate;
             }
         }
     }
@@ -844,8 +855,7 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& cache, m
 
 void fty_alert_engine_stream(zsock_t* pipe, void* args)
 {
-    MetricList cache; // need to track incoming measurements
-    char*      name = static_cast<char*>(args);
+    char* name = static_cast<char*>(args);
 
     mlm_client_t* client = mlm_client_new();
     assert(client);
@@ -857,24 +867,28 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
     log_info("Actor %s started", name);
 
     int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
-    int64_t timeCash = zclock_mono();
+    int64_t timeLastPoll = zclock_mono();
+
+    MetricList metricList; // need to track incoming measurements
 
     while (!zsys_interrupted) {
 
-        // clear cache every "polling interval" sec
-        int64_t timeCurrent = zclock_mono() - timeCash;
+        // polling
+        int64_t timeCurrent = zclock_mono() - timeLastPoll;
         if (timeCurrent >= timeout) {
+            timeLastPoll = zclock_mono();
+            metricList.removeOldMetrics();
+
+            // get metrics and evaluate related alerts
             fty::shm::shmMetrics result;
-            cache.removeOldMetrics();
-            timeCash = zclock_mono();
-            // Timeout, need to get metrics and update refresh value
             fty::shm::read_metrics(".*", ".*", result);
             log_debug("number of metrics read : %zu", result.size());
+            metric_processing(result, metricList, client);
+
             timeout = int64_t(fty_get_polling_interval()) * 1000;
-            metric_processing(result, cache, client);
         }
         else {
-            timeout = timeout - timeCurrent;
+            timeout -= timeCurrent;
         }
 
         void* which = zpoller_wait(poller, static_cast<int>(timeout));
@@ -882,8 +896,6 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             if (zpoller_terminated(poller) || zsys_interrupted) {
                 log_warning("%s: zpoller_terminated () or zsys_interrupted. Shutting down.", name);
                 break;
-            }
-            if (zpoller_expired(poller)) {
             }
             continue;
         }
@@ -1146,7 +1158,8 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                     }
                 }
                 else if (streq(command, "TOUCH")) {
-                    touch_rule(client, param0, alertConfiguration, true);
+                    const bool send_reply = true;
+                    touch_rule(client, param0, alertConfiguration, send_reply);
                 }
                 else if (streq(command, "DELETE")) {
                     log_info("Requested deletion of rule '%s'", param0);

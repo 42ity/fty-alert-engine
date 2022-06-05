@@ -187,7 +187,12 @@ std::set<std::string> AlertConfiguration::readConfiguration(void)
 int AlertConfiguration::addRule(std::istream& newRuleString, std::set<std::string>& newSubjectsToSubscribe,
     std::vector<PureAlert>& /* alertsToSend */, AlertConfiguration::iterator&       it)
 {
-    // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
+    // ASSUMPTIONS: newSubjectsToSubscribe is empty
+    if (!newSubjectsToSubscribe.empty()) {
+        log_debug("ERROR ASSUMPTION: newSubjectsToSubscribe is empty");
+        newSubjectsToSubscribe.clear();
+    }
+
     RulePtr temp_rule;
     int     rv = readRule(newRuleString, temp_rule);
     if (rv == 1) {
@@ -215,6 +220,8 @@ int AlertConfiguration::addRule(std::istream& newRuleString, std::set<std::strin
     }
     // end PQSWMBT-4921
 
+    log_debug("addRule %s", temp_rule->name().c_str());
+
     if ( haveRule (temp_rule) ) {
         log_error ("rule already exists");
         return -2;
@@ -223,19 +230,23 @@ int AlertConfiguration::addRule(std::istream& newRuleString, std::set<std::strin
     try {
         temp_rule->save(getPersistencePath(), temp_rule->name() + ".rule");
     } catch (const std::exception& e) {
-        log_error(
-            "Error while saving file '%s': %s", (getPersistencePath() + temp_rule->name() + ".rule").c_str(), e.what());
+        log_error("Error saving file '%s': %s",
+            (getPersistencePath() + temp_rule->name() + ".rule").c_str(),
+            e.what());
         return -6;
     }
 
     std::string rulename = temp_rule->name();
     // in any case we need to check new subjects
     for (const auto& interestedTopic : temp_rule->getNeededTopics()) {
+        //log_debug("interestedTopic:", interestedTopic.c_str());
         newSubjectsToSubscribe.insert(interestedTopic);
         auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
         if (_it_metrics != _metrics_alerts_map.end()) {
+            log_debug("_it_metrics %s: add rule %s ", _it_metrics->first.c_str(), rulename.c_str());
             _it_metrics->second.push_back(rulename);
         } else {
+            log_debug("_metrics_alerts_map insert: topic: %s, rule %s ", interestedTopic.c_str(), rulename.c_str());
             _metrics_alerts_map.insert(std::make_pair(interestedTopic, std::vector<std::string>{rulename}));
         }
     }
@@ -243,11 +254,7 @@ int AlertConfiguration::addRule(std::istream& newRuleString, std::set<std::strin
     std::vector<PureAlert> emptyAlerts{};
     _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(temp_rule), emptyAlerts)));
     it = _alerts_map.find(rulename);
-    // CURRENT: wait until new measurements arrive
-    // TODO: reevaluate immidiately ( new Method )
-    // reevaluate rule for every known metric
-    //  ( requires more sophisticated approach: need to refactor evaluate back
-    //  for 2 params + some logic here )
+
     return 0;
 }
 
@@ -278,7 +285,16 @@ int AlertConfiguration::updateRule(std::istream& newRuleString, const std::strin
     std::set<std::string>& newSubjectsToSubscribe, std::vector<PureAlert>& alertsToSend,
     AlertConfiguration::iterator& it)
 {
-    // ASSUMPTIONS: newSubjectsToSubscribe and  alertsToSend are empty
+    // ASSUMPTIONS: newSubjectsToSubscribe and alertsToSend are empty
+    if (!newSubjectsToSubscribe.empty()) {
+        log_debug("ERROR ASSUMPTION: newSubjectsToSubscribe is empty");
+        newSubjectsToSubscribe.clear();
+    }
+    if (!alertsToSend.empty()) {
+        log_debug("ERROR ASSUMPTION: alertsToSend is empty");
+        alertsToSend.clear();
+    }
+
     // need to find out if rule exists already or not
     if (!haveRule(old_name)) {
         log_error("rule doesn't exist");
