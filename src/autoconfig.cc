@@ -213,6 +213,9 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                 }
                 zstr_free(&alert_engine_name);
             }
+            else {
+                log_debug("%s: command not handled (%s)", name, cmd);
+            }
 
             zstr_free(&cmd);
             zmsg_destroy(&msg);
@@ -538,21 +541,26 @@ std::list<std::string> Autoconfig::getElemenListMatchTemplate(std::string templa
 
 void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
 {
-    const char* myfilter = (filter == NULL ? "all" : filter);
-    log_debug("DO REQUEST LIST template '%s' correl_id '%s'", myfilter, correlation_id);
+    if (!correlation_id)
+        correlation_id = "";
+    if (!filter)
+        filter = "all";
+
+    log_debug("DO REQUEST LIST template '%s' correl_id '%s'", filter, correlation_id);
 
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, correlation_id);
     zmsg_addstr(reply, "LIST");
-    zmsg_addstr(reply, myfilter);
+    zmsg_addstr(reply, filter);
 
-    TemplateRuleConfigurator                         templateRuleConfigurator;
+    TemplateRuleConfigurator templateRuleConfigurator;
     std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
-    log_debug("number of total templates rules = '%zu'", templates.size());
+    log_debug("templates rules count: '%zu'", templates.size());
+
     int count = 0;
     for (const auto& templat : templates) {
-        //ZZZ assume myfilter (CAT_XXX) is only referenced in "rule_cat" array in rule
-        if (!streq(myfilter, "all") && (templat.second.find(myfilter) == std::string::npos)) {
+        //ZZZ assume filter (CAT_XXX) is only referenced in "rule_cat" array in rule
+        if (!streq(filter, "all") && (templat.second.find(filter) == std::string::npos)) {
             log_trace("templates '%s' does not match", templat.first.c_str());
             continue;
         }
@@ -561,30 +569,33 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
         zmsg_addstr (reply, templat.second.c_str()); //json payload
 
         //get list of element which can apply this template
-        std::list<std::string> elements=getElemenListMatchTemplate(templat.first.c_str());
-        std::string element_list_output; //comma separator device list
-        auto templatAtPos = templat.first.find("@");
-        for (const auto &element : elements) {
-            // PQSWMBT-4921 Xphase rule exceptions
-            if (templatAtPos != std::string::npos) {
-                std::string ruleName{templat.first.substr(0, templatAtPos + 1) + element};
-                if (!ruleXphaseIsApplicable(ruleName, configurableDevicesGet(element)))
-                    continue; // skip element
-            }
-            // end PQSWMBT-4921
+        std::string asset_list; //comma separator list
+        {
+            std::list<std::string> elements = getElemenListMatchTemplate(templat.first.c_str());
+            auto templatAtPos = templat.first.find("@");
+            for (const auto &element : elements) {
+                // PQSWMBT-4921 Xphase rule exceptions
+                if (templatAtPos != std::string::npos) {
+                    std::string ruleName{templat.first.substr(0, templatAtPos + 1) + element};
+                    if (!ruleXphaseIsApplicable(ruleName, configurableDevicesGet(element)))
+                        continue; // skip element
+                }
+                // end PQSWMBT-4921
 
-            if (element_list_output.size() > 0)
-                element_list_output.append(",");
-            element_list_output.append(element);
+                asset_list += (asset_list.empty() ? "" : ",") + element;
+            }
         }
 
-        zmsg_addstr (reply, element_list_output.c_str());
-        log_debug ("template: '%s', devices:'%s' match",
-                templat.first.c_str(),element_list_output.c_str());
+        zmsg_addstr (reply, asset_list.c_str());
+
+        log_debug ("template: '%s', assets: '%s' match",
+            templat.first.c_str(), asset_list.c_str());
 
         count++;
     }
-    log_debug("%zu templates match '%s'", count, myfilter);
+
+    log_debug("%zu templates match '%s'", count, filter);
+
     mlm_client_sendto(_client, sender(), RULES_SUBJECT, mlm_client_tracker(_client), 1000, &reply);
     zmsg_destroy(&reply);
 }

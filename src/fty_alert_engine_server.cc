@@ -1055,7 +1055,6 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
         if (which == pipe) {
             zmsg_t* zmsg = zmsg_recv(pipe);
             char* cmd = zmsg_popstr(zmsg);
-            log_debug("%s: Command '%s'", name, cmd);
 
             if (streq(cmd, "$TERM")) {
                 log_debug("%s: $TERM received", name);

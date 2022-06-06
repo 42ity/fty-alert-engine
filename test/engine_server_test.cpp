@@ -77,11 +77,11 @@ static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int t
     return recv;
 }
 
-#define SELFTEST_DIR_RO "test"
-#define SELFTEST_DIR_RW "."
+#define SELFTEST_DIR_RO "./test"
+#define SELFTEST_DIR_RW "./selftest_rw"
 
 // templates from src/
-#define SELFTEST_TEMPLATES_DIR_RO SELFTEST_DIR_RO "/../../src/rule_templates/"
+#define SELFTEST_TEMPLATES_DIR_RO "../src/rule_templates/"
 
 static const char* MLM_ENDPOINT = "inproc://fty-ag-server-test";
 static const char* SUBJECT_RULES_RFC = "rfc-evaluator-rules";
@@ -105,6 +105,12 @@ TEST_CASE("engine_server agent")
         ManageFtyLog::getInstanceFtylog()->setVerboseMode();
     }
 
+    // create/cleanup SELFTEST_DIR_RW
+    int r = system(("mkdir -p " + str_SELFTEST_DIR_RW).c_str());
+    REQUIRE(r == 0);
+    r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
+    REQUIRE(r == 0);
+
     // initialize logger for auditability
     AuditLogManager::init("engine-server-test");
     // logs audit, see /etc/fty/ftylog.cfg (requires privileges)
@@ -114,9 +120,6 @@ TEST_CASE("engine_server agent")
     log_error_alarms_engine_audit("engine-server-test audit test %s", "ERROR");
     log_fatal_alarms_engine_audit("engine-server-test audit test %s", "FATAL");
     //AuditLogManager::deinit(); return;
-
-    int r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
-    REQUIRE(r == 0); // to make gcc @ CentOS 7 happy
 
     zactor_t* server = zactor_new(mlm_server, static_cast<void*>(const_cast<char*>("Malamute")));
     REQUIRE(server);
@@ -140,19 +143,16 @@ TEST_CASE("engine_server agent")
     fty_shm_set_default_polling_interval(polling_value);
     REQUIRE(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
 
-    zactor_t* ag_server_stream =
-        zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>("alert-stream")));
-    zactor_t* ag_server_mail =
-        zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>("fty-alert-engine")));
-
-    zstr_sendx(ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
-    zstr_sendx(ag_server_mail, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
-
+    zactor_t* ag_server_stream = zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>("alert-stream")));
     zstr_sendx(ag_server_stream, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(ag_server_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+
+    zactor_t* ag_server_mail = zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>("fty-alert-engine")));
+    zstr_sendx(ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
+    zstr_sendx(ag_server_mail, "CONNECT", MLM_ENDPOINT, NULL);
+    zstr_sendx(ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
     zclock_sleep(500); // THIS IS A HACK TO SETTLE DOWN THINGS
 
