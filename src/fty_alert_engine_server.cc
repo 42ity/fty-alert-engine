@@ -1084,7 +1084,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             }
             else if (streq(cmd, "CONFIG")) {
                 char* filename = zmsg_popstr(zmsg);
-                log_debug("%s: CONFIG received %s", filename);
+                log_debug("%s: CONFIG received %s", name, filename);
                 if (filename) {
                     // Read initial configuration
                     alertConfiguration.setPath(filename);
