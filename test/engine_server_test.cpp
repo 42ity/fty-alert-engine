@@ -9,6 +9,40 @@
 #include <czmq.h>
 #include <filesystem>
 
+static char* s_readall(const char* filename)
+{
+    FILE* fp = fopen(filename, "rt");
+    if (!fp)
+        return NULL;
+
+    size_t fsize = 0;
+    {
+        fseek(fp, 0, SEEK_END);
+        long fsize_ = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        if (fsize_ < 0) {
+            fclose(fp);
+            return NULL;
+        }
+        fsize = size_t(fsize_);
+    }
+
+    char* ret = static_cast<char*>(malloc(fsize * sizeof(char) + 1));
+    if (!ret) {
+        fclose(fp);
+        return NULL;
+    }
+    memset(static_cast<void*>(ret), '\0', fsize * sizeof(char) + 1);
+
+    size_t r = fread(static_cast<void*>(ret), 1, fsize, fp);
+    fclose(fp);
+    if (r == fsize)
+        return ret;
+
+    free(ret);
+    return NULL;
+}
+
 static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int timeout_ms = 5000)
 {
     REQUIRE(consumer);
@@ -43,11 +77,11 @@ static zmsg_t* s_poll_alert(mlm_client_t* consumer, const char* assetName, int t
     return recv;
 }
 
-#define SELFTEST_DIR_RO "test"
-#define SELFTEST_DIR_RW "."
+#define SELFTEST_DIR_RO "./test"
+#define SELFTEST_DIR_RW "./selftest_rw"
 
 // templates from src/
-#define SELFTEST_TEMPLATES_DIR_RO SELFTEST_DIR_RO "/../../src/rule_templates/"
+#define SELFTEST_TEMPLATES_DIR_RO "../src/rule_templates/"
 
 static const char* MLM_ENDPOINT = "inproc://fty-ag-server-test";
 static const char* SUBJECT_RULES_RFC = "rfc-evaluator-rules";
@@ -71,6 +105,12 @@ TEST_CASE("engine_server agent")
         ManageFtyLog::getInstanceFtylog()->setVerboseMode();
     }
 
+    // create/cleanup SELFTEST_DIR_RW
+    int r = system(("mkdir -p " + str_SELFTEST_DIR_RW).c_str());
+    REQUIRE(r == 0);
+    r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
+    REQUIRE(r == 0);
+
     // initialize logger for auditability
     AuditLogManager::init("engine-server-test");
     // logs audit, see /etc/fty/ftylog.cfg (requires privileges)
@@ -80,9 +120,6 @@ TEST_CASE("engine_server agent")
     log_error_alarms_engine_audit("engine-server-test audit test %s", "ERROR");
     log_fatal_alarms_engine_audit("engine-server-test audit test %s", "FATAL");
     //AuditLogManager::deinit(); return;
-
-    int r = system(("rm -f " + str_SELFTEST_DIR_RW + "/*.rule").c_str());
-    REQUIRE(r == 0); // to make gcc @ CentOS 7 happy
 
     zactor_t* server = zactor_new(mlm_server, static_cast<void*>(const_cast<char*>("Malamute")));
     REQUIRE(server);
@@ -106,19 +143,16 @@ TEST_CASE("engine_server agent")
     fty_shm_set_default_polling_interval(polling_value);
     REQUIRE(fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str()) == 0);
 
-    zactor_t* ag_server_stream =
-        zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>("alert-stream")));
-    zactor_t* ag_server_mail =
-        zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>("fty-alert-engine")));
-
-    zstr_sendx(ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
-    zstr_sendx(ag_server_mail, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
-
+    zactor_t* ag_server_stream = zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>("alert-stream")));
     zstr_sendx(ag_server_stream, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(ag_server_stream, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS, ".*", NULL);
     zstr_sendx(ag_server_stream, "CONSUMER", FTY_PROTO_STREAM_METRICS_UNAVAILABLE, ".*", NULL);
+
+    zactor_t* ag_server_mail = zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>("fty-alert-engine")));
+    zstr_sendx(ag_server_mail, "CONFIG", (str_SELFTEST_DIR_RW).c_str(), NULL);
+    zstr_sendx(ag_server_mail, "CONNECT", MLM_ENDPOINT, NULL);
+    zstr_sendx(ag_server_mail, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
     zclock_sleep(500); // THIS IS A HACK TO SETTLE DOWN THINGS
 
@@ -1549,7 +1583,6 @@ TEST_CASE("engine_server agent")
     zactor_destroy(&ag_configurator);
     zactor_destroy(&ag_server_stream);
     zactor_destroy(&ag_server_mail);
-    clearEvaluateMetrics();
     mlm_client_destroy(&asset_producer);
     mlm_client_destroy(&ui);
     mlm_client_destroy(&consumer);

@@ -102,7 +102,6 @@ struct AutoConfigurationInfo
 AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName);
 
 void autoconfig(zsock_t* pipe, void* args);
-void autoconfig_test(bool verbose);
 
 class Autoconfig
 {

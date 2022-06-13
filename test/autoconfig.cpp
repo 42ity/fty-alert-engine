@@ -7,7 +7,7 @@
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 
-#define SELFTEST_DIR_RO "test/"
+#define SELFTEST_DIR_RO "."
 
 TEST_CASE("autoconfig_test")
 {
@@ -23,8 +23,8 @@ TEST_CASE("autoconfig_test")
 
     // template paths (src/ and tests/)
     std::vector<std::string> testVector = {
-        SELFTEST_DIR_RO "../../src/rule_templates/",
-        SELFTEST_DIR_RO "templates/"
+        SELFTEST_DIR_RO "/../src/rule_templates/",
+        SELFTEST_DIR_RO "/test/templates/"
     };
 
     for (auto& templatePath : testVector) {
@@ -48,7 +48,11 @@ TEST_CASE("autoconfig_test")
 
                 cxxtools::SerializationInfo si;
                 deserializer.deserialize(si);
-                REQUIRE(si.memberCount() != 0);
+                REQUIRE(si.memberCount() == 1);
+
+                auto ruleType = si.getMember(0).name();
+                printf("ruleType: %s\n", ruleType.c_str());
+                REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
             }
             catch (const std::exception& e) {
                 printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
