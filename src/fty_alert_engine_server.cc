@@ -254,6 +254,8 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
             { "phase_imbalance", { T_PHASE_IMBALANCE } },
             { "average.temperature", { T_TEMPERATURE } },
             { "average.humidity", { T_HUMIDITY } },
+            { "average.temperature-input", { T_TEMPERATURE } }, // rack specific
+            { "average.humidity-input", { T_HUMIDITY } }, // rack specific
             { "licensing.expiration", { T_EXPIRY } },
             { "warranty", { T_EXPIRY } },
             { "load.default", { T_LOAD } },
@@ -268,7 +270,6 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
             { "input.L2.voltage", { T_INPUT_VOLTAGE } },
             { "input.L3.voltage", { T_INPUT_VOLTAGE } },
             { "temperature.default", { T_TEMPERATURE } },
-            { "average.temperature", { T_TEMPERATURE } },
             { "realpower.default_1phase", { T_LOAD } },
             { "load.input_1phase", { T_LOAD } },
             { "load.input_3phase", { T_LOAD } },
