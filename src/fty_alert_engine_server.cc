@@ -853,7 +853,7 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
             continue;
         }
 
-        log_debug("Get '%s@%s' (value: %s)", type, name, value);
+        //log_debug("Get '%s@%s' (value: %s)", type, name, value);
 
         // Update metricList with new value
         MetricInfo metric(name, type, unit, dvalue, timestamp, "", ttl);
