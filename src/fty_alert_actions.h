@@ -46,7 +46,7 @@ typedef struct
 } s_alert_cache;
 
 ///  Create a new fty_alert_actions
-fty_alert_actions_t* fty_alert_actions_new(void);
+fty_alert_actions_t* fty_alert_actions_new();
 
 ///  Destroy the fty_alert_actions
 void fty_alert_actions_destroy(fty_alert_actions_t** self_p);
