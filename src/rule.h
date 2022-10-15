@@ -53,6 +53,22 @@ struct Outcome
     std::vector<std::string> _actions;
     std::string              _severity;
     std::string              _description;
+
+    std::string str() //dump DBG
+    {
+        std::ostringstream oss;
+
+        int i = 0;
+        for (auto& a : _actions) {
+            oss << "actions[" << i << "](" << a << "),";
+            i++;
+        }
+        oss << "severity(" << _severity << "),"
+            << "description(" << _description << ")";
+
+        return oss.str();
+    }
+
 };
 
 static const char* text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown"};

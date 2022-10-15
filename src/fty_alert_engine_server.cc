@@ -841,16 +841,17 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
         // TODO: 2016-04-27 ACE: fix it later, when "string" values
         // in the metric would be considered as
         // normal behaviour, but for now it is not supposed to be so
-        // -> generated error messages into the log
-        char* end = nullptr;
-        double dvalue = strtod(value, &end);
-        if (errno == ERANGE) {
+        // -> generated messages into the log
+        double dvalue = 0;
+        {
+            char* end = nullptr;
             errno = 0;
-            log_error("%s: can't convert value (%s) to double #1, ignore message", name, value);
-            continue;
-        } else if (end == value || (end && (*end != 0))) {
-            log_error("%s: can't convert value (%s) to double #2, ignore message", name, value);
-            continue;
+            dvalue = strtod(value, &end);
+            bool convertFailed = (errno == ERANGE) || (end == value) || (end && (*end != 0));
+            if (convertFailed) {
+                log_debug("%s@%s: '%s' ignored (strtod failed)", type, name, value);
+                continue;
+            }
         }
 
         //log_debug("Get '%s@%s' (value: %s)", type, name, value);
@@ -923,7 +924,6 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
 
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
-                log_warning("%s: terminated", name);
                 break;
             }
             continue;
@@ -932,15 +932,13 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
         if (which == pipe) {
             zmsg_t* msg = zmsg_recv(pipe);
             char* cmd = zmsg_popstr(msg);
+            bool term = false;
 
             if (streq(cmd, "$TERM")) {
-                log_info("%s: $TERM received", name);
-                zstr_free(&cmd);
-                zmsg_destroy(&msg);
-                break;
+                log_debug("%s: $TERM received", name);
+                term = true;
             }
-
-            if (streq(cmd, "CONNECT")) {
+            else if (streq(cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr(msg);
                 log_debug("CONNECT received (endpoint: %s)", endpoint);
                 int rv = mlm_client_connect(client, endpoint, 1000, name);
@@ -975,6 +973,10 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
 
             zstr_free(&cmd);
             zmsg_destroy(&msg);
+
+            if (term) {
+                break;
+            }
             continue;
         }
 
@@ -1010,9 +1012,6 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
                 }
 
                 zstr_free(&cmd);
-            }
-            else { // msg is proto
-                // do nothing
             }
 
             zmsg_destroy(&zmsg);
