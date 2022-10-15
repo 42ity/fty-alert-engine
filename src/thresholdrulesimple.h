@@ -109,62 +109,97 @@ public:
         //  high_warning
         //  low_warning
         //  low_critical
-        const auto GV           = getGlobalVariables();
-        auto       valueToCheck = GV.find("high_critical");
+
+#if 0 //DBG, trace _outcomes
+        log_debug("%s: outcomes (size: %zu)", _name.c_str(), _outcomes.size());
+        for (auto& outcome : _outcomes) {
+            log_debug("%s: %s", outcome.first.c_str(), outcome.second.str().c_str());
+        }
+#endif
+
+        const auto GV = getGlobalVariables();
+
+        auto valueToCheck = GV.find("high_critical");
         if (valueToCheck != GV.cend()) {
             if (valueToCheck->second < metricList.getLastMetric().getValue()) {
-                auto outcome        = _outcomes.find("high_critical");
-                pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-                return 0;
+                auto outcome = _outcomes.find("high_critical");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome high_critical is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+                    return 0;
+                }
             }
         }
+
         valueToCheck = GV.find("high_warning");
         if (valueToCheck != GV.cend()) {
             if (valueToCheck->second < metricList.getLastMetric().getValue()) {
-                auto outcome        = _outcomes.find("high_warning");
-                pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-                return 0;
+                auto outcome = _outcomes.find("high_warning");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome high_warning is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+                    return 0;
+                }
             }
         }
+
         valueToCheck = GV.find("low_critical");
         if (valueToCheck != GV.cend()) {
             if (valueToCheck->second > metricList.getLastMetric().getValue()) {
-                auto outcome        = _outcomes.find("low_critical");
-                pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-                return 0;
+                auto outcome = _outcomes.find("low_critical");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome low_critical is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+                    return 0;
+                }
             }
         }
+
         valueToCheck = GV.find("low_warning");
         if (valueToCheck != GV.cend()) {
             if (valueToCheck->second > metricList.getLastMetric().getValue()) {
-                auto outcome        = _outcomes.find("low_warning");
-                pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-                return 0;
+                auto outcome = _outcomes.find("low_warning");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome low_warning is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, metricList.getLastMetric().getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+                    return 0;
+                }
             }
         }
+
         // if we are here -> no alert was detected
         // TODO actions
         pureAlert = PureAlert(
             ALERT_RESOLVED, metricList.getLastMetric().getTimestamp(), "ok", this->_element, this->_rule_class);
+
         pureAlert.print();
+
         return 0;
     };
 
     bool isTopicInteresting(const std::string& topic) const
     {
-        return (_metric == topic ? true : false);
+        return (_metric == topic);
     };
 
     std::vector<std::string> getNeededTopics(void) const
