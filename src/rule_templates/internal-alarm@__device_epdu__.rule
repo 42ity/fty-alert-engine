@@ -11,6 +11,6 @@
                 {"high_critical" : { "action" : [], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(ePDU {{ename}} triggered an internal alarm.)\", \"variables\" : {\"ename\" : \"__ename__\"} }" }}
         ],
         "notes" : "forced to critical for any alarm (isBit() not used)",
-        "evaluation" : "function main(alarm) function isBit(bit) local mask = 2 ^ (bit - 1); return (alarm % (2 * mask)) >= mask end; if (alarm == 0) then return OK elseif (alarm != 0) or isBit(8) then return HIGH_CRITICAL else return HIGH_WARNING end end;"
+        "evaluation" : "function main(alarm) function isBit(bit) local mask = 2 ^ (bit - 1); return (alarm % (2 * mask)) >= mask end; if (alarm == 0) then return OK elseif (alarm ~= 0) or isBit(8) then return HIGH_CRITICAL else return HIGH_WARNING end end;"
     }
 }
