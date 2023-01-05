@@ -1,0 +1,16 @@
+{
+    "single" : {
+        "rule_name"     :   "internal-alarm@__name__",
+        "rule_class"    :   "TRANSLATE_LUA(ATS triggered an internal alarm)",
+        "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
+        "target"        :   ["ups.alarm@__name__"],
+        "element"       :   "__name__",
+        "values"        :   [ ],
+        "results"       :   [
+                {"high_warning"  : { "action" : [], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(ATS {{ename}} has one or more native alarm. Please connect to it for more info.)\", \"variables\" : {\"ename\" : \"__ename__\"} }" }},
+                {"high_critical" : { "action" : [], "severity" : "CRITICAL", "description" : "{\"key\" : \"TRANSLATE_LUA(ATS {{ename}} has one or more native alarm. Please connect to it for more info.)\", \"variables\" : {\"ename\" : \"__ename__\"} }" }}
+        ],
+        "notes" : "forced to critical for any alarm (isBit() not used)",
+        "evaluation" : "function main(alarm) function isBit(bit) local mask = 2 ^ (bit - 1); return (alarm % (2 * mask)) >= mask end; if (alarm == 0) then return OK elseif (alarm ~= 0) or isBit(8) then return HIGH_CRITICAL else return HIGH_WARNING end end;"
+    }
+}
