@@ -365,10 +365,16 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
         // category
         if (!filter.categoryTokens.empty()) {
             std::vector<std::string> ruleTokens = categoryTokensFromRuleName(rule->name());
+            bool isFound = false;
             for (auto& token : filter.categoryTokens) {
                 auto it = std::find(ruleTokens.begin(), ruleTokens.end(), token);
-                if (it == ruleTokens.end())
-                    { return false; }
+                if (it != ruleTokens.end()) {
+                    isFound = true;
+                    break;
+                }
+            }
+            if (!isFound) {
+                return false;
             }
         }
 
