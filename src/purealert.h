@@ -37,13 +37,13 @@ class PureAlert
 {
 public:
     std::string              _status;
-    uint64_t                 _timestamp;
+    uint64_t                 _timestamp{0};
     std::string              _description;
     std::string              _element;
     std::string              _severity;
     std::vector<std::string> _actions;
     std::string              _rule_class;
-    uint64_t                 _ttl;
+    uint64_t                 _ttl{0};
 
     PureAlert()
         : _timestamp{0} {};

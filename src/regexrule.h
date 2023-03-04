@@ -140,6 +140,6 @@ public:
     };
 
 private:
-    zrex_t*     _rex;
+    zrex_t*     _rex{nullptr};
     std::string _rex_str;
 };
