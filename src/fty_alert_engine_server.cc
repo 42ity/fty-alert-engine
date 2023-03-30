@@ -932,10 +932,8 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             if (zpoller_terminated(poller) || zsys_interrupted) {
                 break;
             }
-            continue;
         }
-
-        if (which == pipe) {
+        else if (which == pipe) {
             zmsg_t* msg = zmsg_recv(pipe);
             char* cmd = zmsg_popstr(msg);
             bool term = false;
@@ -983,10 +981,8 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             if (term) {
                 break;
             }
-            continue;
         }
-
-        if (which == mlm_client_msgpipe(client)) {
+        else if (which == mlm_client_msgpipe(client)) {
             zmsg_t* zmsg  = mlm_client_recv(client);
             const char* sender = mlm_client_sender(client);
             const char* subject = mlm_client_subject(client);
@@ -1021,7 +1017,6 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             }
 
             zmsg_destroy(&zmsg);
-            continue;
         }
     }
 
@@ -1055,10 +1050,8 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 log_warning("%s: terminated", name);
                 break;
             }
-            continue;
         }
-
-        if (which == pipe) {
+        else if (which == pipe) {
             zmsg_t* zmsg = zmsg_recv(pipe);
             char* cmd = zmsg_popstr(zmsg);
 
@@ -1106,10 +1099,8 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
 
             zstr_free(&cmd);
             zmsg_destroy(&zmsg);
-            continue;
         }
-
-        if (which == mlm_client_msgpipe(client)) {
+        else if (which == mlm_client_msgpipe(client)) {
             zmsg_t* zmsg = mlm_client_recv(client);
             const char* sender = mlm_client_sender(client);
             const char* subject = mlm_client_subject(client);
@@ -1198,7 +1189,6 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             }
 
             zmsg_destroy(&zmsg);
-            continue;
         }
     }
 

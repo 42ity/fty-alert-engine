@@ -157,7 +157,7 @@ void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, do
             }
             values.emplace(variableName, valueDouble);
         } catch (const std::exception& e) {
-            log_error("Value '%s' is not double", valueString.c_str());
+            log_error("Value '%s' is not double (%s)", valueString.c_str(), e.what());
             throw std::runtime_error("Value should be double");
         }
     }
