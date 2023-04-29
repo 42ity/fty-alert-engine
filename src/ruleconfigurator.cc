@@ -22,13 +22,20 @@
 #include "ruleconfigurator.h"
 //#include <regex>
 #include <cxxtools/regex.h>
+#include <fty_log.h>
 
 bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client)
 {
-    if (!client)
+    if (!client) {
+        log_error("client is NULL");
         return false;
+    }
 
     zmsg_t* message = zmsg_new();
+    if (!message) {
+        log_error("zmsg_new failed");
+        return false;
+    }
     zmsg_addstr(message, "ADD");
     zmsg_addstr(message, rule.c_str());
 
@@ -46,9 +53,13 @@ bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client
     const char* subject = "rfc-evaluator-rules";
     log_debug("Sending '%s/ADD' to '%s'", subject, dest);
 
-    if (mlm_client_sendto(client, dest, subject, NULL, 5000, &message) != 0) {
-        log_error("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.", dest,
-            subject);
+    const int timeout_ms = 5000;
+    int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &message);
+    zmsg_destroy(&message);
+
+    if (r != 0) {
+        log_error("mlm_client_sendto (dest = '%s', subject = '%s', timeout = %d) failed.",
+            dest, subject, timeout_ms);
         return false;
     }
     return true;
