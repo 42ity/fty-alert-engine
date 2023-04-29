@@ -23,9 +23,7 @@
 #include <fty_log.h>
 #include <fty_proto.h>
 
-#define TEST_ASSETS "ASSETS-TEST"
-#define TEST_ALERTS "ALERTS-TEST"
-
+// for unit tests
 #define FTY_EMAIL_AGENT_ADDRESS_TEST       "fty-email-test"
 #define FTY_SENSOR_GPIO_AGENT_ADDRESS_TEST "fty-sensor-gpio-test"
 
@@ -130,19 +128,22 @@ fty_alert_actions_t* fty_alert_actions_new()
     fty_alert_actions_t* self = static_cast<fty_alert_actions_t*>(zmalloc(sizeof(fty_alert_actions_t)));
     assert(self);
     memset(self, 0, sizeof(*self));
+    self->integration_test = false;
 
     //  Initialize class properties here
     self->client = mlm_client_new();
     assert(self->client);
     self->requestreply_client = mlm_client_new();
     assert(self->requestreply_client);
+
     self->requestreply_poller = zpoller_new(mlm_client_msgpipe(self->requestreply_client), NULL);
     assert(self->requestreply_poller);
+
     self->alerts_cache = zhash_new();
     assert(self->alerts_cache);
     self->assets_cache = zhash_new();
     assert(self->assets_cache);
-    self->integration_test      = false;
+
     self->notification_override = 0;
     self->name                  = NULL;
     self->requestreply_name     = NULL;
@@ -162,8 +163,10 @@ void fty_alert_actions_destroy(fty_alert_actions_t** self_p)
         mlm_client_destroy(&self->client);
         zpoller_destroy(&self->requestreply_poller);
         mlm_client_destroy(&self->requestreply_client);
+
         zhash_destroy(&self->alerts_cache);
         zhash_destroy(&self->assets_cache);
+
         zstr_free(&self->requestreply_name);
         zstr_free(&self->name);
 
@@ -219,8 +222,6 @@ s_alert_cache* new_alert_cache_item(fty_alert_actions_t* self, fty_proto_t* msg)
         return NULL;
     }
 
-    log_debug("search asset %s", fty_proto_name(msg));
-
     s_alert_cache* c = static_cast<s_alert_cache*>(zmalloc(sizeof(*c)));
     if (!c) {
         log_error("s_alert_cache alloc. failed");
@@ -231,7 +232,12 @@ s_alert_cache* new_alert_cache_item(fty_alert_actions_t* self, fty_proto_t* msg)
     c->last_notification = static_cast<uint64_t>(zclock_mono());
     c->last_received     = c->last_notification;
 
+    // search asset
     c->related_asset = static_cast<fty_proto_t*>(zhash_lookup(self->assets_cache, fty_proto_name(msg)));
+
+    log_debug("search asset %s: %s", fty_proto_name(msg), (c->related_asset ? "found" : "not found"));
+
+    // caution: if not found, no ASSET_DETAIL request for integration_test
     if (!c->related_asset && !self->integration_test)
     {
         // we don't know an asset we received alert about, ask fty-asset about it
@@ -256,6 +262,7 @@ s_alert_cache* new_alert_cache_item(fty_alert_actions_t* self, fty_proto_t* msg)
                 fty_proto_t* reply_proto_msg = fty_proto_decode(&reply_msg);
                 fty_proto_set_operation(reply_proto_msg, "%s", FTY_PROTO_ASSET_OP_UPDATE);
                 s_handle_stream_deliver_asset(self, &reply_proto_msg, mlm_client_subject(self->client));
+
                 c->related_asset = static_cast<fty_proto_t*>(zhash_lookup(self->assets_cache, fty_proto_name(msg)));
                 if (!c->related_asset) {
                     log_warning("related_asset not found after assets_cache update (%s)", fty_proto_name(msg));
@@ -308,7 +315,7 @@ void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, char actio
     }
 
     if (!contact || (strlen(contact) == 0)) {
-        log_debug("%s contact is empty (no mail sent)", fty_proto_name(alert_item->alert_msg));
+        log_debug("%s: %s contact is empty (no mail sent)", subject, fty_proto_name(alert_item->alert_msg));
         return;
     }
 
@@ -352,7 +359,7 @@ void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, char actio
         msg = mlm_client_recv(self->requestreply_client);
         char* rcv_uuid = zmsg_popstr(msg);
 
-        if (streq(rcv_uuid, sent_uuid)) {
+        if (rcv_uuid && streq(rcv_uuid, sent_uuid)) {
             char* status = zmsg_popstr(msg);
             char* reason = zmsg_popstr(msg);
 
@@ -404,7 +411,8 @@ void send_gpo_action(fty_alert_actions_t* self, char* gpo_iname, char* gpo_state
         else {
             zmsg_t* reply_msg = mlm_client_recv(self->requestreply_client);
             char*   zuuid_str = zmsg_popstr(reply_msg);
-            if (streq(zuuid_str, zuuid_str_canonical(zuuid))) {
+
+            if (zuuid_str && streq(zuuid_str, zuuid_str_canonical(zuuid))) {
                 char* status = zmsg_popstr(reply_msg);
                 if (streq(status, "OK")) {
                     log_debug("GPO_INTERACTION successful");
@@ -441,13 +449,19 @@ void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
         log_debug("no action defined");
     }
     while (action) {
-        char* action_dup  = strdup(action);
-        char* action_what = strtok(action_dup, ":");
         log_debug("action: %s", action);
 
-        if (NULL == action_what) {
+        char* action_dup = strdup(action);
+        if (!action_dup) {
+            log_error("strdup failed");
+            action = fty_proto_action_next(alert_item->alert_msg);
+            continue;
+        }
+
+        const char* action_what = strtok(action_dup, ":");
+        if (!action_what) {
             log_warning("alert action misses command");
-            action = static_cast<const char*>(zlist_next(fty_proto_action(alert_item->alert_msg)));
+            action = fty_proto_action_next(alert_item->alert_msg);
             free(action_dup);
             continue;
         }
@@ -469,18 +483,19 @@ void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
             char* gpo_iname = tmp; // asset iname
             if (NULL == gpo_iname) {
                 log_warning("GPO_ACTION misses asset iname");
-                action = static_cast<const char*>(zlist_next(fty_proto_action(alert_item->alert_msg)));
+                action = fty_proto_action_next(alert_item->alert_msg);
                 free(action_dup);
                 continue;
             }
             char* gpo_state = strtok(NULL, ":"); // required state
             if (NULL == gpo_state) {
                 log_warning("GPO_ACTION miss required state");
-                action = static_cast<const char*>(zlist_next(fty_proto_action(alert_item->alert_msg)));
+                action = fty_proto_action_next(alert_item->alert_msg);
                 free(action_dup);
                 continue;
             }
             tmp = strtok(NULL, ":"); // required state
+            log_debug("send_gpo_action: gpo_iname: %s, gpo_state: %s, tmp: %s", gpo_iname, gpo_state, tmp);
             if (NULL == tmp) {       // sanity check
                 send_gpo_action(self, gpo_iname, gpo_state);
             } else {
@@ -562,16 +577,20 @@ void action_alert_repeat(fty_alert_actions_t* self, s_alert_cache* alert_item)
 void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
 {
     log_debug("action_resolve called for %s", fty_proto_name(alert_item->alert_msg));
+
     const char* action = fty_proto_action_first(alert_item->alert_msg);
     while (NULL != action) {
         char* action_dup  = strdup(action);
         char* action_what = strtok(action_dup, ":");
+        log_debug("action_dup: %s, action_what: %s", action_dup, action_what);
+
         if (NULL == action_what) {
             log_warning("alert action miss command");
-            action = static_cast<const char*>(zlist_next(fty_proto_action(alert_item->alert_msg)));
+            action = fty_proto_action_next(alert_item->alert_msg);
             free(action_dup);
             continue;
         }
+
         char* tmp = strtok(NULL, ":");
         if (streq(action_what, EMAIL_ACTION)) {
             // happily ignored
@@ -581,14 +600,14 @@ void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
             char* gpo_iname = tmp; // asset iname
             if (NULL == gpo_iname) {
                 log_warning("GPO_ACTION miss asset iname");
-                action = static_cast<const char*>(zlist_next(fty_proto_action(alert_item->alert_msg)));
+                action = fty_proto_action_next(alert_item->alert_msg);
                 free(action_dup);
                 continue;
             }
             char* gpo_state = strtok(NULL, ":"); // required state
             if (NULL == gpo_state) {
                 log_warning("GPO_ACTION miss required state");
-                action = static_cast<const char*>(zlist_next(fty_proto_action(alert_item->alert_msg)));
+                action = fty_proto_action_next(alert_item->alert_msg);
                 free(action_dup);
                 continue;
             }
@@ -599,10 +618,11 @@ void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
                 strcpy(gpo_state, GPO_STATE_OPEN);
             }
             tmp = strtok(NULL, ":"); // required state
+            log_debug("send_gpo_action: gpo_iname: %s, gpo_state: %s, tmp: %s", gpo_iname, gpo_state, tmp);
             if (NULL == tmp) {       // sanity check
                 send_gpo_action(self, gpo_iname, gpo_state);
             } else {
-                log_warning("unexpected parameter received for gpo_interaction action");
+                log_warning("unexpected parameter received for send_gpo_action");
             }
         } else {
             log_warning("unsupported alert action : %s", action_what);
@@ -610,6 +630,8 @@ void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
         free(action_dup);
         action = fty_proto_action_next(alert_item->alert_msg);
     }
+
+    log_debug("action_resolve done for %s", fty_proto_name(alert_item->alert_msg));
 }
 
 
@@ -941,10 +963,9 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
             log_error("can't connect requestreply to malamute endpoint '%s'", endpoint);
         zstr_free(&endpoint);
     } else if (streq(cmd, "CONSUMER")) {
-        char* stream           = zmsg_popstr(msg);
-        char* pattern          = zmsg_popstr(msg);
-        self->integration_test = streq(stream, TEST_ALERTS) || streq(stream, TEST_ASSETS);
-        int   rv               = mlm_client_set_consumer(self->client, stream, pattern);
+        char* stream  = zmsg_popstr(msg);
+        char* pattern = zmsg_popstr(msg);
+        int   rv      = mlm_client_set_consumer(self->client, stream, pattern);
         if (rv == -1) {
             log_error("can't set consumer on stream '%s', '%s'", stream, pattern);
         }
@@ -974,6 +995,12 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
             self->notification_override = aux;
         }
         zstr_free(&rcvd);
+    }
+    else if (streq(cmd, "INTEGRATION_TEST")) {
+        char* s = zmsg_popstr(msg);
+        self->integration_test = (s && (streq(s, "1") || streq(s, "true")));
+        log_debug("setting integration_test to %s", (self->integration_test ? "true" : "false"));
+        zstr_free(&s);
     }
 
     zstr_free(&cmd);
@@ -1029,9 +1056,13 @@ void fty_alert_actions(zsock_t* pipe, void* args)
         // pipe messages
         if (which == pipe) {
             msg = zmsg_recv(pipe);
+            bool term = false;
             if (s_handle_pipe_deliver(self, &msg, timeout) != 0) {
-                break; //$TERM
+                term = true; //$TERM
             }
+            zmsg_destroy(&msg);
+            if (term)
+                break;
             continue;
         }
 
