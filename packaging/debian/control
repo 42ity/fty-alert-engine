@@ -20,7 +20,7 @@
 Source:         fty-alert-engine
 Section:        net
 Priority:       optional
-Maintainer:     fty-alert-engine Developers <eatonipcopensource@eaton.com>
+Maintainer:     fty-alert-engine Developers <opensource@eaton.com>
 Standards-Version: 4.0.1.0
 Build-Depends: debhelper (>= 9),
     cmake (>=3.0),

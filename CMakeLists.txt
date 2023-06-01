@@ -120,11 +120,13 @@ etn_test_target(${PROJECT_NAME}-static
         test/audit/*
     SOURCES
         test/main.cpp
+        test/utils.cpp
+        test/audit_test.cpp
         test/autoconfig.cpp
-        test/alert_actions.cpp
+        test/ruleconfigurator.cpp
         test/alertconfiguration.cpp
         test/engine_server_test.cpp
-        test/audit_test.cpp
+        test/alert_actions.cpp
     SUBDIR
         test
 )
