@@ -520,12 +520,12 @@ void Autoconfig::saveState()
     try {
         si <<= _configurableDevices;
         json = JSON::writeToString(si, false);
+        save_agent_info(json);
     }
     catch (const std::exception &e) {
         log_error( "can't create json: %s", e.what() );
     }
 
-    save_agent_info(json);
 }
 
 std::list<std::string> Autoconfig::getElemenListMatchTemplate(std::string template_name)
