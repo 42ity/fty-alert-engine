@@ -21,7 +21,7 @@
 
 #include "autoconfig.h"
 #include "templateruleconfigurator.h"
-#include "cxxtools/serializationinfo.h"
+#include <cxxtools/serializationinfo.h>
 #include <fstream>
 #include <fty_common_filesystem.h>
 #include <fty_common_json.h>

@@ -23,7 +23,7 @@
 
 #include "metriclist.h"
 #include "purealert.h"
-#include "cxxtools/serializationinfo.h"
+#include <cxxtools/serializationinfo.h>
 #include "cxxtools/utf8codec.h"
 #include <czmq.h>
 #include <fstream>

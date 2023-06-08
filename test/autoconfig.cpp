@@ -2,7 +2,7 @@
 
 #include "src/autoconfig.h"
 #include "src/templateruleconfigurator.h"
-#include "cxxtools/serializationinfo.h"
+#include <cxxtools/serializationinfo.h>
 #include <fty_log.h>
 #include <fty_common_json.h>
 
