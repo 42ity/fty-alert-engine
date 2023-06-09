@@ -5,6 +5,7 @@
 #include "src/luarule.h"
 #include <fty_shm.h>
 #include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 
 #include <catch2/catch.hpp>
 #include <czmq.h>

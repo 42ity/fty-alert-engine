@@ -27,6 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <czmq.h>
 #include <filesystem>
 #include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 
 int readRule(std::istream& f, RulePtr& rule)
 {
