@@ -523,7 +523,7 @@ void Autoconfig::saveState()
         save_agent_info(json);
     }
     catch (const std::exception &e) {
-        log_error( "can't create json: %s", e.what() );
+        log_error("saveState() failed: %s", e.what());
     }
 
 }
