@@ -21,10 +21,10 @@
 
 #include "autoconfig.h"
 #include "templateruleconfigurator.h"
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
+#include <cxxtools/serializationinfo.h>
 #include <fstream>
 #include <fty_common_filesystem.h>
+#include <fty_common_json.h>
 #include <fty_log.h>
 #include <iostream>
 #include <lua.h>
@@ -489,11 +489,9 @@ void Autoconfig::loadState()
 
     try {
         ConfigurableDevices_GUARD;
-        std::istringstream in(json);
-        _configurableDevices.clear();
-        cxxtools::JsonDeserializer deserializer(in);
-        deserializer.deserialize(_configurableDevices);
-
+        cxxtools::SerializationInfo si;
+        JSON::readFromString(json, si);
+        si >>= _configurableDevices;
         log_debug("loadState: State file size: %zu", _configurableDevices.size());
     }
     catch (const std::exception &e) {
@@ -516,12 +514,18 @@ void Autoconfig::saveState()
 
     log_debug("saveState: State file size: %zu", _configurableDevices.size());
 
-    std::ostringstream stream;
-    cxxtools::JsonSerializer serializer(stream);
-    serializer.serialize(_configurableDevices);
-    serializer.finish();
-    std::string json{stream.str()};
-    save_agent_info(json);
+    cxxtools::SerializationInfo si;
+    std::string json;
+
+    try {
+        si <<= _configurableDevices;
+        json = JSON::writeToString(si, false);
+        save_agent_info(json);
+    }
+    catch (const std::exception &e) {
+        log_error("saveState() failed: %s", e.what());
+    }
+
 }
 
 std::list<std::string> Autoconfig::getElemenListMatchTemplate(std::string template_name)

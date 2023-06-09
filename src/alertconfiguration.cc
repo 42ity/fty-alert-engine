@@ -24,10 +24,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "thresholdruledevice.h"
 #include "thresholdrulesimple.h"
 #include <algorithm>
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
 #include <czmq.h>
 #include <filesystem>
+#include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 
 int readRule(std::istream& f, RulePtr& rule)
 {
@@ -37,10 +37,8 @@ int readRule(std::istream& f, RulePtr& rule)
     try {
         cxxtools::SerializationInfo si2;
         {
-            std::string                json_string(std::istreambuf_iterator<char>(f), {});
-            std::stringstream          s(json_string);
-            cxxtools::JsonDeserializer json(s);
-            json.deserialize(si2);
+            std::string json_string(std::istreambuf_iterator<char>(f), {});
+            JSON::readFromString(json_string, si2);
             if (si2.memberCount() == 0)
                 throw std::runtime_error("empty input json document");
         }

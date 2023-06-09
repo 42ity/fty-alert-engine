@@ -4,6 +4,8 @@
 #include "src/fty_alert_engine_server.h"
 #include "src/luarule.h"
 #include <fty_shm.h>
+#include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 
 #include <catch2/catch.hpp>
 #include <czmq.h>
@@ -819,10 +821,8 @@ TEST_CASE("engine_server agent")
         REQUIRE(streq(foo, "OK"));
         zstr_free(&foo);
         foo = zmsg_popstr(recv);
-        std::stringstream           s{foo};
-        cxxtools::JsonDeserializer  d{s};
         cxxtools::SerializationInfo si;
-        d.deserialize(si);
+        JSON::readFromString(std::string(foo), si);
         REQUIRE(si.memberCount() == 1);
         zstr_free(&foo);
         zmsg_destroy(&recv);

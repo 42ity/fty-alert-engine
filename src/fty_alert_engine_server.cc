@@ -29,7 +29,7 @@
 #include <fty_common_json.h>
 #include <fty_common_asset_types.h>
 
-#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/serializationinfo.h>
 #include <mutex>
 #include <functional>
 #include <regex>

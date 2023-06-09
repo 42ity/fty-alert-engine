@@ -2,10 +2,9 @@
 
 #include "src/autoconfig.h"
 #include "src/templateruleconfigurator.h"
+#include <cxxtools/serializationinfo.h>
 #include <fty_log.h>
-
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
+#include <fty_common_json.h>
 
 #define SELFTEST_DIR_RO "."
 
@@ -43,11 +42,9 @@ TEST_CASE("autoconfig_test")
             printf("JSON parse %s\n", ruleFilename.c_str());
 
             try {
-                std::ifstream fs(ruleFilename);
-                cxxtools::JsonDeserializer deserializer(fs);
-
                 cxxtools::SerializationInfo si;
-                deserializer.deserialize(si);
+                JSON::readFromFile(ruleFilename, si);
+
                 REQUIRE(si.memberCount() == 1);
 
                 auto ruleType = si.getMember(0).name();

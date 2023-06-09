@@ -23,8 +23,8 @@
 
 #include "metriclist.h"
 #include "purealert.h"
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
+#include <cxxtools/serializationinfo.h>
+#include "cxxtools/utf8codec.h"
 #include <czmq.h>
 #include <fstream>
 #include <fty_log.h>
@@ -34,6 +34,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <fty_common_json.h>
 
 //  1  - equals
 //  0  - different
@@ -203,11 +204,8 @@ public:
     std::string getJsonRule() const noexcept
     {
         try {
-            std::stringstream        s;
-            cxxtools::JsonSerializer js(s);
-            js.beautify(true);
-            js.serialize(_si).finish();
-            return s.str();
+            cxxtools::SerializationInfo tmpSi(_si);
+            return JSON::writeToString(tmpSi, true);
         }
         catch (const std::exception& e) {
             log_error("%s, getJsonRule() exception '%s'", _name.c_str(), e.what());
