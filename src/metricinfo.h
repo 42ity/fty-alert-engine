@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// @brief Very simple class to store information about one metric
 #pragma once
 #include <string>
+#include <ctime>
 
 class MetricInfo
 {
