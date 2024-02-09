@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "luarule.h"
 #include <cxxtools/serializationinfo.h>
 #include <czmq.h>
-#include <lua5.1/lua.h>
+#include <lua5.4/lua.h>
 
 class ThresholdRuleComplex : public LuaRule
 {

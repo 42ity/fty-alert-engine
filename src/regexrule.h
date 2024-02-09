@@ -24,8 +24,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "luarule.h"
 #include <czmq.h>
 #include <fty_log.h>
-#include <lua5.1/lauxlib.h>
-#include <lua5.1/lua.h>
+#include <lua5.4/lauxlib.h>
+#include <lua5.4/lua.h>
 
 class RegexRule : public LuaRule
 {

@@ -55,7 +55,7 @@ etn_target(static ${PROJECT_NAME}-static
         mlm
         fty_shm
         fty-utils
-        lua5.1
+        lua5.4
         stdc++fs
     PRIVATE
 )
@@ -68,7 +68,7 @@ etn_target(exe ${PROJECT_NAME}
         src/fty_alert_engine.h
     USES
         ${PROJECT_NAME}-static
-        lua5.1
+        lua5.4
 )
 
 ##############################################################################################################
