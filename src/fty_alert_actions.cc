@@ -817,11 +817,10 @@ static void s_handle_stream_deliver_alert(fty_alert_actions_t* self, fty_proto_t
 //  Handle incoming assets through stream
 
 static void s_handle_stream_deliver_asset(
-    fty_alert_actions_t* self, fty_proto_t** asset_p, const char* subject)
+    fty_alert_actions_t* self, fty_proto_t** asset_p, const char* /*subject*/)
 {
     assert(self);
     assert(asset_p);
-    assert(subject);
 
     fty_proto_t* asset = *asset_p;
     if (!asset || (fty_proto_id(asset) != FTY_PROTO_ASSET)) {

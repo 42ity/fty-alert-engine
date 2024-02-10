@@ -27,7 +27,6 @@
 #include <fty_common_json.h>
 #include <fty_log.h>
 #include <iostream>
-#include <lua.h>
 
 #define AUTOCONFIG "AUTOCONFIG"
 

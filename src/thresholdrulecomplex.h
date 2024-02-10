@@ -19,11 +19,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// @file thresholdrulecomplex.h
 /// @author Alena Chernikava <AlenaChernikava@Eaton.com>
 /// @brief Complex threshold rule representation
+
 #pragma once
+
 #include "luarule.h"
 #include <cxxtools/serializationinfo.h>
 #include <czmq.h>
-#include <lua5.4/lua.h>
+
 
 class ThresholdRuleComplex : public LuaRule
 {

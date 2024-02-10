@@ -21,8 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <algorithm>
 #include <czmq.h>
 #include <fty_log.h>
-#include <lauxlib.h>
-#include <lualib.h>
+
 
 LuaRule::~LuaRule()
 {

@@ -24,7 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "rule.h"
-#include <lua5.4/lua.h>
+#include <lua.hpp>
 
 class LuaRule : public Rule
 {
