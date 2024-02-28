@@ -46,7 +46,7 @@ int readRule(std::istream& f, RulePtr& rule)
         // MVY: SerializationInfo can contain more items, which is not what we
         //     want, pick the first one
         cxxtools::SerializationInfo si;
-        si.addMember("") <<= si2.getMember(0);
+        si.addMember(si2.getMember(0).name()) <<= si2.getMember(0);
 
         std::unique_ptr<Rule> temp_rule;
 
