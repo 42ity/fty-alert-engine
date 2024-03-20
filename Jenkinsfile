@@ -2,10 +2,8 @@
 
 @Library('etn-ipm2-jenkins@featureimage/get-FI-release-from-obs') _
 
+import params.CmakePipelineParams
+CmakePipelineParams parameters = new CmakePipelineParams()
 
-effectiveFeautureImageRelease()
-
-
-
-//etn_ipm2_build_and_tests_pipeline_cmake()
+etn_ipm2_build_repo_pipeline_cmake(parameters)
 
