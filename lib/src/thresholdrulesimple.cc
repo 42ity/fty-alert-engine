@@ -122,33 +122,79 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     const auto GV = getGlobalVariables();
     const MetricInfo lastMetric = metricList.getLastMetric();
 
-    auto checkValue =[&](const std::string& key) -> fty::Expected<void> {
-        auto valueToCheck = GV.find(key);
-        if (valueToCheck != GV.cend()) {
-            if (valueToCheck->second < lastMetric.getValue()) {
-                auto outcome = _outcomes.find(key);
-                if (outcome == _outcomes.cend()) {
-                    log_error("%s: outcome %s is missing", _name.c_str(), key.c_str());
-                }
-                else {
-                    pureAlert = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                        outcome->second._description, this->_element, this->_rule_class);
-                    pureAlert._severity = outcome->second._severity;
-                    pureAlert._actions  = outcome->second._actions;
+    auto valueToCheck = GV.find("high_critical");
+    if (valueToCheck != GV.cend()) {
+        if (valueToCheck->second < lastMetric.getValue()) {
+            auto outcome = _outcomes.find("high_critical");
+            if (outcome == _outcomes.cend()) {
+                log_error("%s: outcome high_critical is missing", _name.c_str());
+            }
+            else {
+                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions  = outcome->second._actions;
 
-                    log_audit_alarm(lastMetric, pureAlert);
-                    return {};
-                }
+                log_audit_alarm(lastMetric, pureAlert);
+                return 0;
             }
         }
-        return fty::unexpected("Value not found");
-    };
+    }
 
-    std::vector<std::string> keys = {"high_critical", "high_warning", "low_critical", "low_warning"};
-    for (const auto& key : keys) {
-        auto res = checkValue(key);
-        if (res) {
-            return 0;
+    valueToCheck = GV.find("high_warning");
+    if (valueToCheck != GV.cend()) {
+        if (valueToCheck->second < lastMetric.getValue()) {
+            auto outcome = _outcomes.find("high_warning");
+            if (outcome == _outcomes.cend()) {
+                log_error("%s: outcome high_warning is missing", _name.c_str());
+            }
+            else {
+                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions  = outcome->second._actions;
+
+                log_audit_alarm(lastMetric, pureAlert);
+                return 0;
+            }
+        }
+    }
+
+    valueToCheck = GV.find("low_critical");
+    if (valueToCheck != GV.cend()) {
+        if (valueToCheck->second > lastMetric.getValue()) {
+            auto outcome = _outcomes.find("low_critical");
+            if (outcome == _outcomes.cend()) {
+                log_error("%s: outcome low_critical is missing", _name.c_str());
+            }
+            else {
+                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions  = outcome->second._actions;
+
+                log_audit_alarm(lastMetric, pureAlert);
+                return 0;
+            }
+        }
+    }
+
+    valueToCheck = GV.find("low_warning");
+    if (valueToCheck != GV.cend()) {
+        if (valueToCheck->second > lastMetric.getValue()) {
+            auto outcome = _outcomes.find("low_warning");
+            if (outcome == _outcomes.cend()) {
+                log_error("%s: outcome low_warning is missing", _name.c_str());
+            }
+            else {
+                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert._severity = outcome->second._severity;
+                pureAlert._actions  = outcome->second._actions;
+
+                log_audit_alarm(lastMetric, pureAlert);
+                return 0;
+            }
         }
     }
 
