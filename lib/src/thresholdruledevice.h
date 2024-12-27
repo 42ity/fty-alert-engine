@@ -22,12 +22,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "rule.h"
+#include "audit_log.h"
+#include <fty/expected.h>
 #include <cxxtools/serializationinfo.h>
 
 class ThresholdRuleDevice : public Rule
 {
 public:
-    ThresholdRuleDevice(){};
+    ThresholdRuleDevice() {}
 
     std::string whoami() const
     {
@@ -54,6 +56,10 @@ public:
         if (target.category() != cxxtools::SerializationInfo::Value) {
             return 1;
         }
+        std::string value;
+        target >>= value;
+        _metrics.push_back(value);
+
         // rule_source
         if (threshold.findMember("rule_source") == NULL) {
             // if key is not there, take default
@@ -80,9 +86,9 @@ public:
             threshold.getMember("rule_class") >>= _rule_class;
         }
         // values
-        // TODO check low_critical < low_warnong < high_warning < hign crtical
+        // TODO check low_critical < low_warning < high_warning < hign crtical
         std::map<std::string, double> tmp_values;
-        auto                          values = threshold.getMember("values");
+        auto values = threshold.getMember("values");
         if (values.category() != cxxtools::SerializationInfo::Array) {
             log_error("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
@@ -100,22 +106,120 @@ public:
         return 0;
     }
 
-    int evaluate(const MetricList& /* metricList */, PureAlert& /* pureAlert */)
+    int evaluate(const MetricList& metricList, PureAlert& pureAlert)
     {
-        // INTENTIONALLY We do not evaluate this rule at all
-        // It is evaluated in NUT-agent somewhere
-        // rules are here, just to provide webUI access to the rule representation
+        // ASSUMPTION: constants are in values
+        //  high_critical
+        //  high_warning
+        //  low_warning
+        //  low_critical
+
+        log_debug("ThresholdRuleSimple::evaluate %s", _name.c_str());
+
+    #if 0 //DBG, trace _outcomes
+        log_debug("%s: outcomes (size: %zu)", _name.c_str(), _outcomes.size());
+        for (auto& outcome : _outcomes) {
+            log_debug("%s: %s", outcome.first.c_str(), outcome.second.str().c_str());
+        }
+    #endif
+
+        const auto GV = getGlobalVariables();
+        const MetricInfo lastMetric = metricList.getLastMetric();
+
+        auto valueToCheck = GV.find("high_critical");
+        if (valueToCheck != GV.cend()) {
+            if (valueToCheck->second < lastMetric.getValue()) {
+                auto outcome = _outcomes.find("high_critical");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome high_critical is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+
+                    log_audit_alarm(lastMetric, pureAlert);
+                    return 0;
+                }
+            }
+        }
+
+        valueToCheck = GV.find("high_warning");
+        if (valueToCheck != GV.cend()) {
+            if (valueToCheck->second < lastMetric.getValue()) {
+                auto outcome = _outcomes.find("high_warning");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome high_warning is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+
+                    log_audit_alarm(lastMetric, pureAlert);
+                    return 0;
+                }
+            }
+        }
+
+        valueToCheck = GV.find("low_critical");
+        if (valueToCheck != GV.cend()) {
+            if (valueToCheck->second > lastMetric.getValue()) {
+                auto outcome = _outcomes.find("low_critical");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome low_critical is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+
+                    log_audit_alarm(lastMetric, pureAlert);
+                    return 0;
+                }
+            }
+        }
+
+        valueToCheck = GV.find("low_warning");
+        if (valueToCheck != GV.cend()) {
+            if (valueToCheck->second > lastMetric.getValue()) {
+                auto outcome = _outcomes.find("low_warning");
+                if (outcome == _outcomes.cend()) {
+                    log_error("%s: outcome low_warning is missing", _name.c_str());
+                }
+                else {
+                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
+                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+
+                    log_audit_alarm(lastMetric, pureAlert);
+                    return 0;
+                }
+            }
+        }
+
+        // if we are here -> no alert was detected
+        // TODO actions
+        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), "ok", this->_element, this->_rule_class);
+
+        log_audit_alarm(lastMetric, pureAlert);
         return 0;
-    };
+    }
 
-    bool isTopicInteresting(const std::string& /* topic */) const
+private:
+    // log alarm audit
+    void log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const
     {
-        // we are not interested in any topics
-        return false;
-    };
+        std::string auditValues = metric.getSource() + "=" + std::to_string(metric.getValue());
 
-    std::vector<std::string> getNeededTopics(void) const
-    {
-        return {};
-    };
+        std::string auditDesc =
+            (pureAlert._status == ALERT_RESOLVED) ? ALERT_RESOLVED : // RESOLVED
+            std::string{pureAlert._status + "/" + pureAlert._severity.substr(0, 1)}; // ACTIVE/C ACTIVE/W
+
+        audit_log_info("%8s %s (%s)", auditDesc.c_str(), _name.c_str(), auditValues.c_str());
+    }
 };

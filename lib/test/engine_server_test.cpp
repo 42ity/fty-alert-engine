@@ -1021,20 +1021,28 @@ TEST_CASE("engine_server agent")
         // does not make a sense to call streq on two json documents
         zmsg_destroy(&recv);
 
-        //      21.3  check that alert is not generated
+        //      21.3  check that an alert has been generated
 
         //        zmsg_t *m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 600, "device_metric", "ggg", "100", "");
         //        mlm_client_send (producer, "device_metric@ggg", &m);
         fty::shm::write_metric("ggg", "device_metric", "100", "", wanted_ttl);
 
-        zpoller_t* poller = zpoller_new(mlm_client_msgpipe(consumer), NULL);
-        void*      which  = zpoller_wait(poller, polling_value * 3);
-        REQUIRE(which == NULL);
-        if (verbose) {
-            log_debug("No alert was sent: SUCCESS");
-        }
-        zpoller_destroy(&poller);
+        recv = mlm_client_recv(consumer);
+
+        fty_shm_delete_test_dir();
+        fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
+
+        REQUIRE(fty_proto_is(recv));
+        fty_proto_t* brecv = fty_proto_decode(&recv);
+        REQUIRE(streq(fty_proto_rule(brecv), "device_threshold_test"));
+        REQUIRE(streq(fty_proto_name(brecv), "ggg"));
+        log_debug("STATE: %s", fty_proto_state(brecv));
+
+        REQUIRE(streq(fty_proto_state(brecv), "ACTIVE"));
+        log_debug("SEVERITY: %s", fty_proto_severity(brecv));
+        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
+        fty_proto_destroy(&brecv);
     }
 
     // Test 22: a simple threshold with not double value

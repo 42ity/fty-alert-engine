@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "thresholdrulesimple.h"
 #include <fty_log.h>
 #include "audit_log.h"
+#include <fty/expected.h>
 
 // throws -> it is simple threshold but with errors
 // 0 - ok
@@ -119,7 +120,6 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
 #endif
 
     const auto GV = getGlobalVariables();
-
     const MetricInfo lastMetric = metricList.getLastMetric();
 
     auto valueToCheck = GV.find("high_critical");
@@ -200,8 +200,7 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
 
     // if we are here -> no alert was detected
     // TODO actions
-    pureAlert = PureAlert(
-        ALERT_RESOLVED, lastMetric.getTimestamp(), "ok", this->_element, this->_rule_class);
+    pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), "ok", this->_element, this->_rule_class);
 
     //pureAlert.print();
 
