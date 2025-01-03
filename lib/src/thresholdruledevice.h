@@ -86,7 +86,7 @@ public:
             threshold.getMember("rule_class") >>= _rule_class;
         }
         // values
-        // TODO check low_critical < low_warning < high_warning < hign crtical
+        // TODO check low_critical < low_warning < high_warning < high critical
         std::map<std::string, double> tmp_values;
         auto values = threshold.getMember("values");
         if (values.category() != cxxtools::SerializationInfo::Array) {
@@ -134,8 +134,11 @@ public:
                     log_error("%s: outcome high_critical is missing", _name.c_str());
                 }
                 else {
-                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert = PureAlert(ALERT_START,
+                        lastMetric.getTimestamp(),
+                        outcome->second._description,
+                        this->_element,
+                        this->_rule_class);
                     pureAlert._severity = outcome->second._severity;
                     pureAlert._actions  = outcome->second._actions;
 
@@ -153,8 +156,11 @@ public:
                     log_error("%s: outcome high_warning is missing", _name.c_str());
                 }
                 else {
-                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert = PureAlert(ALERT_START,
+                        lastMetric.getTimestamp(),
+                        outcome->second._description,
+                        this->_element,
+                        this->_rule_class);
                     pureAlert._severity = outcome->second._severity;
                     pureAlert._actions  = outcome->second._actions;
 
@@ -172,8 +178,11 @@ public:
                     log_error("%s: outcome low_critical is missing", _name.c_str());
                 }
                 else {
-                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert = PureAlert(ALERT_START,
+                        lastMetric.getTimestamp(),
+                        outcome->second._description,
+                        this->_element,
+                        this->_rule_class);
                     pureAlert._severity = outcome->second._severity;
                     pureAlert._actions  = outcome->second._actions;
 
@@ -191,8 +200,11 @@ public:
                     log_error("%s: outcome low_warning is missing", _name.c_str());
                 }
                 else {
-                    pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                        outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert = PureAlert(ALERT_START,
+                        lastMetric.getTimestamp(),
+                        outcome->second._description,
+                        this->_element,
+                        this->_rule_class);
                     pureAlert._severity = outcome->second._severity;
                     pureAlert._actions  = outcome->second._actions;
 

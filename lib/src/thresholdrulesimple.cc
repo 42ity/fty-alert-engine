@@ -19,7 +19,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "thresholdrulesimple.h"
 #include <fty_log.h>
 #include "audit_log.h"
-#include <fty/expected.h>
 
 // throws -> it is simple threshold but with errors
 // 0 - ok

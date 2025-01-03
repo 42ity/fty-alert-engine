@@ -972,7 +972,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "OK"));
@@ -991,7 +991,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "ERROR"));
@@ -1013,7 +1013,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "OK"));
@@ -1027,12 +1027,11 @@ TEST_CASE("engine_server agent")
         //                NULL, ::time (NULL), 600, "device_metric", "ggg", "100", "");
         //        mlm_client_send (producer, "device_metric@ggg", &m);
         fty::shm::write_metric("ggg", "device_metric", "100", "", wanted_ttl);
-
-        recv = mlm_client_recv(consumer);
-
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
+        recv = mlm_client_recv(consumer);
+        REQUIRE(recv);
         REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         REQUIRE(streq(fty_proto_rule(brecv), "device_threshold_test"));
@@ -1060,7 +1059,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "ERROR"));
@@ -1086,7 +1085,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "ERROR"));
@@ -1109,6 +1108,7 @@ TEST_CASE("engine_server agent")
         REQUIRE(rv == 0);
 
         zmsg_t* recv = mlm_client_recv(ui);
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "ERROR"));
@@ -1131,7 +1131,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "OK"));
@@ -1168,7 +1168,7 @@ TEST_CASE("engine_server agent")
         // 24.2.1.1 there exists ACTIVE alert (as there were no alerts, lets create one :)); send metric
         //        zmsg_t *m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 0, "metrictouch", "assettouch", "10", "X");
-        //        REQUIRE (m);
+        //        REQUIRE(m);
         //        rv = mlm_client_send (producer, "metrictouch@assettouch", &m);
         fty::shm::write_metric("assettouch", "metrictouch", "10", "X", wanted_ttl);
         REQUIRE(rv == 0);
@@ -1263,7 +1263,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "OK"));
@@ -1281,7 +1281,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         recv = mlm_client_recv(ui);
-
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "OK"));
@@ -1292,7 +1292,7 @@ TEST_CASE("engine_server agent")
         // 25.3.1 Generate alert on the First rule; send metric
         //        zmsg_t *m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 0, "metrictouch1", "element1", "100", "X");
-        //        REQUIRE (m);
+        //        REQUIRE(m);
         //        int rv = mlm_client_send (producer, "metrictouch1@element1", &m);
         int rv = fty::shm::write_metric("element1", "metrictouch1", "100", "X", wanted_ttl);
         REQUIRE(rv == 0);
@@ -1316,7 +1316,7 @@ TEST_CASE("engine_server agent")
         // 25.4.1 Generate alert on the Second rule; send metric
         //        m = fty_proto_encode_metric (
         //                NULL, ::time (NULL), 0, "metrictouch2", "element2", "80", "X");
-        //        REQUIRE (m);
+        //        REQUIRE(m);
         //        rv = mlm_client_send (producer, "metrictouch2@element2", &m);
         rv = fty::shm::write_metric("element2", "metrictouch2", "80", "X", wanted_ttl);
         REQUIRE(rv == 0);
@@ -1363,21 +1363,21 @@ TEST_CASE("engine_server agent")
                 "test",
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
-        REQUIRE (m);
+        REQUIRE(m);
         zhash_destroy (&aux);
         int rv = mlm_client_send (asset_producer, "datacenter.@test", &m);
-        REQUIRE ( rv == 0 );
+        REQUIRE(rv == 0);
 
         zclock_sleep (20000);
 
         char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
-        REQUIRE (average_humidity);
+        REQUIRE(average_humidity);
         char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
-        REQUIRE (average_temperature);
+        REQUIRE(average_temperature);
         char *realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
-        REQUIRE (realpower_default);
+        REQUIRE(realpower_default);
         char *phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str ());
-        REQUIRE (phase_imbalance);
+        REQUIRE(phase_imbalance);
 
         zstr_free (&realpower_default);
         zstr_free (&phase_imbalance);
@@ -1387,25 +1387,25 @@ TEST_CASE("engine_server agent")
         int ttl = wanted_ttl;
 //        m = fty_proto_encode_metric (
 //            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-//        REQUIRE (m);
+//        REQUIRE(m);
 //        rv = mlm_client_send (producer, "average.temperature@test", &m);
         rv = fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
-        REQUIRE ( rv == 0 );
+        REQUIRE( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
 
     fty_shm_delete_test_dir();
     fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        REQUIRE (recv);
-        REQUIRE (is_fty_proto (recv));
+        REQUIRE(recv);
+        REQUIRE(is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
-        REQUIRE (brecv);
+        REQUIRE(brecv);
         ttl = fty_proto_ttl (brecv);
-        REQUIRE (ttl != -1);
-        REQUIRE (streq (fty_proto_rule (brecv), "average.temperature@test"));
-        REQUIRE (streq (fty_proto_name (brecv), "test"));
-        REQUIRE (streq (fty_proto_state (brecv), "ACTIVE"));
-        REQUIRE (streq (fty_proto_severity (brecv), "CRITICAL"));
+        REQUIRE(ttl != -1);
+        REQUIRE(streq (fty_proto_rule (brecv), "average.temperature@test"));
+        REQUIRE(streq (fty_proto_name (brecv), "test"));
+        REQUIRE(streq (fty_proto_state (brecv), "ACTIVE"));
+        REQUIRE(streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
     }
 
@@ -1420,45 +1420,45 @@ TEST_CASE("engine_server agent")
                         "test",
                         FTY_PROTO_ASSET_OP_UPDATE,
                         NULL);
-        REQUIRE (m);
+        REQUIRE(m);
         zhash_destroy (&aux2);
         int rv = mlm_client_send (asset_producer, "row.@test", &m);
-        REQUIRE ( rv == 0 );
+        REQUIRE(rv == 0);
 
         zclock_sleep (20000);
 
         char *average_humidity = s_readall ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
-        REQUIRE (average_humidity);
+        REQUIRE(average_humidity);
         char *average_temperature = s_readall ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
-        REQUIRE (average_temperature);
+        REQUIRE(average_temperature);
 
         zstr_free (&average_humidity);
         zstr_free (&average_temperature);
         // TODO: now inapplicable rules should be deleted in the future
         /* realpower_default =  s_readall ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
         phase_imbalance = s_readall ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str ());
-        REQUIRE (realpower_default == NULL && phase_imbalance == NULL); */
+        REQUIRE(realpower_default == NULL && phase_imbalance == NULL); */
 
         int ttl = wanted_ttl;
         zclock_sleep (3 * ttl);
 //        m = fty_proto_encode_metric (
 //            NULL, ::time (NULL), ttl, "average.temperature", "test", "1000", "C");
-//        REQUIRE (m);
+//        REQUIRE(m);
 //        rv = mlm_client_send (producer, "average.temperature@test", &m);
         fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
-        REQUIRE ( rv == 0 );
+        REQUIRE( rv == 0 );
 
         zmsg_t *recv = mlm_client_recv (consumer);
 
     fty_shm_delete_test_dir();
     fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
-        REQUIRE ( recv != NULL );
-        REQUIRE ( is_fty_proto (recv));
+        REQUIRE(recv != NULL);
+        REQUIRE(is_fty_proto (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
-        REQUIRE (streq (fty_proto_rule (brecv), "average.temperature@test"));
-        REQUIRE (streq (fty_proto_name (brecv), "test"));
-        REQUIRE (streq (fty_proto_state (brecv), "ACTIVE"));
-        REQUIRE (streq (fty_proto_severity (brecv), "CRITICAL"));
+        REQUIRE(streq (fty_proto_rule (brecv), "average.temperature@test"));
+        REQUIRE(streq (fty_proto_name (brecv), "test"));
+        REQUIRE(streq (fty_proto_state (brecv), "ACTIVE"));
+        REQUIRE(streq (fty_proto_severity (brecv), "CRITICAL"));
         if (verbose) {
             log_debug ("Alert was sent: SUCCESS");
         }
@@ -1504,7 +1504,7 @@ TEST_CASE("engine_server agent")
 #if 0 // related to 'test' asset created w/ fty-asset (see above)
             if (fn.find ("__row__")!= std::string::npos){
                 log_debug ("template: '%s', devices :'%s'",template_name,foo);
-                REQUIRE (streq (foo,"test"));
+                REQUIRE(streq (foo,"test"));
             }
 #endif
             file_counter++;
@@ -1528,6 +1528,7 @@ TEST_CASE("engine_server agent")
         mlm_client_sendto(ui, "fty-alert-engine", SUBJECT_RULES_RFC, NULL, 1000, &rule);
 
         zmsg_t* recv = mlm_client_recv(ui);
+        REQUIRE(recv);
         REQUIRE(zmsg_size(recv) == 2);
         char* foo = zmsg_popstr(recv);
         REQUIRE(streq(foo, "OK"));
@@ -1537,7 +1538,7 @@ TEST_CASE("engine_server agent")
 
         // recieve an alert
         recv = mlm_client_recv(consumer);
-        REQUIRE(recv != NULL);
+        REQUIRE(recv);
         REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
         fty_proto_destroy(&brecv);
