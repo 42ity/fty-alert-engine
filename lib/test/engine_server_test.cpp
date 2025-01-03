@@ -1027,10 +1027,12 @@ TEST_CASE("engine_server agent")
         //                NULL, ::time (NULL), 600, "device_metric", "ggg", "100", "");
         //        mlm_client_send (producer, "device_metric@ggg", &m);
         fty::shm::write_metric("ggg", "device_metric", "100", "", wanted_ttl);
+
+        recv = mlm_client_recv(consumer);
+
         fty_shm_delete_test_dir();
         fty_shm_set_test_dir(str_SELFTEST_DIR_RW.c_str());
 
-        recv = mlm_client_recv(consumer);
         REQUIRE(recv);
         REQUIRE(fty_proto_is(recv));
         fty_proto_t* brecv = fty_proto_decode(&recv);
