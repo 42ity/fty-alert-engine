@@ -84,7 +84,7 @@ TEST_CASE("alertconfiguration test")
         CHECK(rule->name() == "device_threshold_test");
         CHECK(rule->rule_class() == "");
         CHECK(rule->_element == "ggg");
-        CHECK(rule->getNeededTopics().size() == 0);
+        CHECK(rule->getNeededTopics() == std::vector<std::string>{"device_metric@ggg"});
         std::map<std::string, double> vars = rule->getGlobalVariables();
         CHECK(double_equals(vars["low_warning"], 40.0));
         CHECK(double_equals(vars["low_critical"], 30.0));
