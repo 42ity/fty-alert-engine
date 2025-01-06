@@ -207,14 +207,6 @@ int AlertConfiguration::addRule(std::istream& newRuleString, std::set<std::strin
         return -5;
     }
 
-    // PQSWMBT-3723, don't instanciate sensor temp./humidity rules directly
-    if ((temp_rule->name().find("humidity.default@sensor-") == 0) // starts with...
-        || (temp_rule->name().find("temperature.default@sensor-") == 0)) {
-        log_debug("rule instanciation rejected (%s)", temp_rule->name().c_str());
-        return -100;
-    }
-    // end PQSWMBT-3723
-
     // PQSWMBT-4921 Xphase rule exceptions (see templateruleconfigurator.cc)
     auto asset = temp_rule->name().substr(temp_rule->name().find("@") + 1);
     if (!ruleXphaseIsApplicable(temp_rule->name(), getAssetInfoFromAutoconfig(asset))) {

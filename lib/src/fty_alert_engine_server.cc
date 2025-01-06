@@ -276,19 +276,17 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
             { "sts-voltage", { T_STS } },
             { "ambient.humidity", { T_HUMIDITY } },
             { "ambient.temperature", { T_TEMPERATURE } },
+            { "humidity.default", { T_HUMIDITY } },
+            { "temperature.default", { T_TEMPERATURE } },
         // enumerated rules (see RULES_1_N)
             { "outlet.group.1.current", { T_OUTPUT_CURRENT } },
             { "outlet.group.1.voltage", { T_OUTPUT_VOLTAGE } },
-            { "ambient.1.humidity", { T_HUMIDITY } },
-            { "ambient.1.temperature", { T_TEMPERATURE } },
         }; // CAT_TOKENS
 
         // enumerated rules redirections
         static const std::vector<std::pair<std::regex, std::string>> RULES_1_N = {
             { std::regex{R"(outlet\.group\.\d{1,4}\.current)"}, "outlet.group.1.current"},
             { std::regex{R"(outlet\.group\.\d{1,4}\.voltage)"}, "outlet.group.1.voltage"},
-            { std::regex{R"(ambient\.\d{1,4}\.humidity)"}, "ambient.1.humidity"},
-            { std::regex{R"(ambient\.\d{1,4}\.temperature)"}, "ambient.1.temperature"},
         };
 
         std::string ruleNamePrefix{ruleName};
