@@ -256,16 +256,16 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
             { "licensing.expiration", { T_EXPIRY } },
             { "warranty", { T_EXPIRY } },
             { "load.default", { T_LOAD } },
-            { "input.L1.current", { T_INPUT_CURRENT } },
-            { "input.L2.current", { T_INPUT_CURRENT } },
-            { "input.L3.current", { T_INPUT_CURRENT } },
+            { "current.input.L1", { T_INPUT_CURRENT } },
+            { "current.input.L2", { T_INPUT_CURRENT } },
+            { "current.input.L3", { T_INPUT_CURRENT } },
             { "charge.battery", { T_BATTERY} },
             { "runtime.battery", { T_BATTERY } },
             { "voltage.input_1phase", { T_INPUT_VOLTAGE } },
             { "voltage.input_3phase", { T_INPUT_VOLTAGE } },
-            { "input.L1.voltage", { T_INPUT_VOLTAGE } },
-            { "input.L2.voltage", { T_INPUT_VOLTAGE } },
-            { "input.L3.voltage", { T_INPUT_VOLTAGE } },
+            { "voltage.input.L1", { T_INPUT_VOLTAGE } },
+            { "voltage.input.L2", { T_INPUT_VOLTAGE } },
+            { "voltage.input.L3", { T_INPUT_VOLTAGE } },
             { "temperature.default", { T_TEMPERATURE } },
             { "realpower.default_1phase", { T_LOAD } },
             { "load.input_1phase", { T_LOAD } },
@@ -277,16 +277,16 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
             { "ambient.humidity", { T_HUMIDITY } },
             { "ambient.temperature", { T_TEMPERATURE } },
         // enumerated rules (see RULES_1_N)
-            { "outlet.group.1.current", { T_OUTPUT_CURRENT } },
-            { "outlet.group.1.voltage", { T_OUTPUT_VOLTAGE } },
+            { "curent.outlet.group.1", { T_OUTPUT_CURRENT } },
+            { "voltage.outlet.group.1", { T_OUTPUT_VOLTAGE } },
             { "ambient.1.humidity", { T_HUMIDITY } },
             { "ambient.1.temperature", { T_TEMPERATURE } },
         }; // CAT_TOKENS
 
         // enumerated rules redirections
         static const std::vector<std::pair<std::regex, std::string>> RULES_1_N = {
-            { std::regex{R"(outlet\.group\.\d{1,4}\.current)"}, "outlet.group.1.current"},
-            { std::regex{R"(outlet\.group\.\d{1,4}\.voltage)"}, "outlet.group.1.voltage"},
+            { std::regex{R"(current.outlet\.group\.\d{1,4})"}, "current.outlet.group.1"},
+            { std::regex{R"(voltage.outlet\.group\.\d{1,4})"}, "voltage.outlet.group.1"},
             { std::regex{R"(ambient\.\d{1,4}\.humidity)"}, "ambient.1.humidity"},
             { std::regex{R"(ambient\.\d{1,4}\.temperature)"}, "ambient.1.temperature"},
         };
