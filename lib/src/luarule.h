@@ -32,24 +32,21 @@ public:
     /**
      * \brief set the evaluation code
      */
-    LuaRule(){};
+    LuaRule() {}
     LuaRule(const LuaRule& r);
-    void        code(const std::string& newCode);
-    std::string code() const
-    {
-        return _code;
-    };
-    void   globalVariables(const std::map<std::string, double>& vars);
-    int    evaluate(const MetricList& metricList, PureAlert& pureAlert);
-    double luaEvaluate(const std::vector<double>& metrics);
     ~LuaRule();
 
-protected:
-    void _setGlobalVariablesToLUA();
+    std::string code() const { return _code; }
 
-    bool       _valid  = false;
-    lua_State* _lstate = NULL;
+    void globalVariables(const std::map<std::string, double>& vars);
+    void code(const std::string& newCode);
+    int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
 private:
+    void luaSetGlobalVariables();
+    double luaEvaluate(const std::vector<double>& arguments);
+
+    bool _valid = false;
+    lua_State* _lstate = NULL;
     std::string _code;
 };

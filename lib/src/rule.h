@@ -72,16 +72,14 @@ struct Outcome
 
 };
 
-static const char* text_results[] = {"high_critical", "high_warning", "ok", "low_warning", "low_critical", "unknown"};
-
-/// Deserialzation of outcome
-void operator>>=(const cxxtools::SerializationInfo& si, Outcome& outcome);
-
-
-void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, double>& values);
-
-
-void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes);
+static const char* text_results[] = {
+    "high_critical",
+    "high_warning",
+    "ok",
+    "low_warning",
+    "low_critical",
+    "unknown",
+};
 
 enum RULE_RESULT
 {
@@ -92,6 +90,13 @@ enum RULE_RESULT
     RULE_RESULT_TO_HIGH_CRITICAL = 2,
     RULE_RESULT_UNKNOWN          = 3,
 };
+
+/// Deserialzation of outcome
+void operator>>=(const cxxtools::SerializationInfo& si, Outcome& outcome);
+
+void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, double>& values);
+
+void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes);
 
 class Rule;
 using RulePtr = std::unique_ptr<Rule>;
