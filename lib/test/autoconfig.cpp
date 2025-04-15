@@ -2,9 +2,10 @@
 
 #include "src/autoconfig.h"
 #include "src/templateruleconfigurator.h"
+
 #include <cxxtools/serializationinfo.h>
-#include <fty_log.h>
 #include <fty_common_json.h>
+#include <fty_log.h>
 
 #define SELFTEST_DIR_RO "."
 
@@ -14,9 +15,6 @@ TEST_CASE("autoconfig_test")
     // This will avoid regression in the future, since fty-alert-engine only
     // stores this to provide to fty-alert-flexible, which is in charge of the
     // actual parsing
-    // Ref: https://github.com/42ity/fty-alert-engine/pull/175
-    // Note: we simply try to deserialize using cxxtools, unlike fty-alert-flexible
-    // which uses vsjson!
 
     ManageFtyLog::setInstanceFtylog("autoconfig_test", FTY_COMMON_LOGGING_DEFAULT_CFG);
 
@@ -48,6 +46,7 @@ TEST_CASE("autoconfig_test")
             std::string ruleFilename = templatePath + templat.first;
             printf("JSON parse %s\n", ruleFilename.c_str());
 
+            // read the file directly, check json memberCnt and rule type
             try {
                 cxxtools::SerializationInfo si;
                 JSON::readFromFile(ruleFilename, si);
@@ -55,12 +54,29 @@ TEST_CASE("autoconfig_test")
                 REQUIRE(si.memberCount() == 1);
 
                 auto ruleType = si.getMember(0).name();
-                printf("ruleType: %s\n", ruleType.c_str());
+                printf("1/ ruleType: %s\n", ruleType.c_str());
                 REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
             }
             catch (const std::exception& e) {
                 printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
-                CHECK(0 == 1);
+                REQUIRE(false);
+            }
+
+            // parse json from string, check memberCnt and rule type
+            try {
+                const std::string json{templat.second};
+                cxxtools::SerializationInfo si;
+                JSON::readFromString(json, si);
+
+                REQUIRE(si.memberCount() == 1);
+
+                auto ruleType = si.getMember(0).name();
+                printf("2/ ruleType: %s\n", ruleType.c_str());
+                REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
+            }
+            catch (const std::exception& e) {
+                printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
+                REQUIRE(false);
             }
         }
     }

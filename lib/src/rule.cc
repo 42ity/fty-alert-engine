@@ -166,32 +166,33 @@ void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, do
 void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes)
 {
     /*
-        "results":[ {"low_critical"  : { "action" : [{ "action": "EMAIL"},{ "action": "SMS"}], "description" : "WOW low
-       critical description" }},
-                    {"low_warning"   : { "action" : [{ "action": "EMAIL"}], "description" : "wow LOW warning
-       description"}},
-                    {"high_warning"  : { "action" : [{ "action": "EMAIL"}], "description" : "wow high WARNING
-       description" }},
-                    {"high_critical" : { "action" : [{ "action": "EMAIL"}], "description" : "wow high critical
-       DESCTIPRION" } } ]
+        "results": [
+            {"low_critical"  : { "action" : [{ "action": "EMAIL"},{ "action": "SMS"}], "description" : "low critical description" }},
+            {"low_warning"   : { "action" : [{ "action": "EMAIL"}], "description" : "low warning description" }},
+            {"high_warning"  : { "action" : [{ "action": "EMAIL"}], "description" : "high warning description" }},
+            {"high_critical" : { "action" : [{ "action": "EMAIL"}], "description" : "high critical description" }}
+       ]
     */
     for (const auto& oneElement : si) { // iterate through the array
         // we should ensure that only one member is present
         if (oneElement.memberCount() != 1) {
             throw std::runtime_error("unexpected member count element in results");
         }
-        auto    outcomeName = oneElement.getMember(0).name();
+        auto outcomeName = oneElement.getMember(0).name();
+
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
         if (outcomeName == "low_critical" || outcomeName == "high_critical") {
             outcome._severity = "CRITICAL";
         }
-        if (outcomeName == "low_warning" || outcomeName == "high_warning") {
+        else if (outcomeName == "low_warning" || outcomeName == "high_warning") {
             outcome._severity = "WARNING";
         }
+
         if (outcome._severity.empty()) {
             throw std::runtime_error("unsupported result");
         }
+
         outcomes.emplace(outcomeName, outcome);
     }
 }

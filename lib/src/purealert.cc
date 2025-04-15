@@ -18,7 +18,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "purealert.h"
 #include <fty_log.h>
-#include <inttypes.h>
 
 bool PureAlert::isStatusKnown(const char* status)
 {
@@ -43,6 +42,6 @@ bool PureAlert::isStatusKnown(const char* status)
 
 void PureAlert::print() const
 {
-    log_debug("status: %s, timestamp: %zu, descr.: %s, element: %s, severity: %s",
+    log_debug("status(%s), timestamp(%zu), descr(%s), element(%s), severity(%s)",
         _status.c_str(), _timestamp, _description.c_str(), _element.c_str(), _severity.c_str());
 }
