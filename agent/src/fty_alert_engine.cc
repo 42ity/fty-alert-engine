@@ -31,14 +31,12 @@ static const char* RULES_PATH = "/var/lib/fty/fty-alert-engine";
 static const char* ENGINE_AGENT_NAME        = "fty-alert-engine";
 static const char* ENGINE_AGENT_NAME_STREAM = "fty-alert-engine-stream";
 static const char* ACTIONS_AGENT_NAME       = "fty-alert-actions";
-
-// autoconfig name
-static const char* AUTOCONFIG_NAME = "fty-autoconfig";
+static const char* AUTOCONFIG_AGENT_NAME    = "fty-autoconfig";
 
 int main(int argc, char** argv)
 {
-    // default cfg file path
-    const char* CFG_PATH = "/etc/fty-alert-engine/fty-alert-engine.cfg";
+    // defaults
+    const char* config_file = nullptr;
     bool verbose = false;
 
     for (int i = 1; i < argc; i++) {
@@ -60,7 +58,7 @@ int main(int argc, char** argv)
                 printf("ERROR: Missing parameter (option: %s)\n", arg.c_str());
                 return EXIT_FAILURE;
             }
-            CFG_PATH = param;
+            config_file = param;
             i++;
         }
         else {
@@ -70,14 +68,23 @@ int main(int argc, char** argv)
     }
 
     ManageFtyLog::setInstanceFtylog(ENGINE_AGENT_NAME, FTY_COMMON_LOGGING_DEFAULT_CFG);
-    if (verbose) {
-        ManageFtyLog::getInstanceFtylog()->setVerboseMode();
+
+    if (config_file) {
+        zconfig_t* config = zconfig_load(config_file);
+        if (!config) {
+            log_error("Failed to load %s", config_file);
+        }
+        else {
+            log_info("Loading %s", config_file);
+
+            // Note: server/[timeout,background,workdir] ignored
+            verbose = streq(zconfig_get(config, "server/verbose", "false"), "true");
+        }
+        zconfig_destroy(&config);
     }
 
-    if (CFG_PATH) {
-        // no cfg option allowed
-        zconfig_t* config = zconfig_load(CFG_PATH);
-        zconfig_destroy(&config);
+    if (verbose) {
+        ManageFtyLog::getInstanceFtylog()->setVerboseMode();
     }
 
     // initialize log for auditability
@@ -97,8 +104,8 @@ int main(int argc, char** argv)
     zstr_sendx(stream_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
     // autoconfig
-    zactor_t* autoconf_actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_NAME)));
-    zstr_sendx(autoconf_actor, "CONFIG", RULES_PATH, NULL); // presist. state file
+    zactor_t* autoconf_actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_AGENT_NAME)));
+    zstr_sendx(autoconf_actor, "CONFIG", RULES_PATH, NULL); // persist. state file
     zstr_sendx(autoconf_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(autoconf_actor, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); // rule template
     zstr_sendx(autoconf_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);

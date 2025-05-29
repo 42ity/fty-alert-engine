@@ -20,5 +20,3 @@
 */
 
 #pragma once
-
-#define RULES_SUBJECT "rfc-evaluator-rules"

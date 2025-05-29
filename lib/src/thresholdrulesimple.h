@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// @file thresholdrulesimple.h
 /// @author Alena Chernikava <AlenaChernikava@Eaton.com>
 /// @brief Simple threshold rule representation
+
 #pragma once
 
 #include "rule.h"
@@ -27,7 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class ThresholdRuleSimple : public Rule
 {
 public:
-    ThresholdRuleSimple(){};
+    ThresholdRuleSimple() {};
 
     std::string whoami() const
     {

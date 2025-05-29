@@ -35,8 +35,6 @@
 #include <functional>
 #include <regex>
 
-#define METRICS_STREAM "METRICS"
-
 // object use by stream and mailbox messages
 static AlertConfiguration alertConfiguration;
 
@@ -127,8 +125,7 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
         std::vector<std::string> categoryTokens; // splitted
     };
 
-    if (!jsonFilters)
-        jsonFilters = "";
+    if (!jsonFilters) { jsonFilters = ""; }
 
     // parse rule filter
     Filter filter;
@@ -407,61 +404,59 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
 static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration& ac)
 {
     zmsg_t* reply = zmsg_new();
-    bool found = false;
-
-    log_debug("number of all rules = '%zu'", ac.size());
 
     mtxAlertConfig.lock();
+    log_debug("number of all rules = '%zu'", ac.size());
     if (name && (ac.count(name) != 0)) {
         const auto& it_ac = ac.at(name);
         const auto& rule  = it_ac.first;
         log_debug("found rule %s", name);
         zmsg_addstr(reply, "OK");
         zmsg_addstr(reply, rule->getJsonRule().c_str());
-        found = true;
     }
-    mtxAlertConfig.unlock();
-
-    if (!found) {
+    else {
         log_debug("rule not found (name: %s)", name);
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "NOT_FOUND");
     }
+    mtxAlertConfig.unlock();
 
     mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
 }
 
-// XXX: Store the actions as zlist_t internally to avoid useless copying
-static zlist_t* makeActionList(const std::vector<std::string>& actions)
-{
-    zlist_t* res = zlist_new();
-    for (const auto& action : actions) {
-        zlist_append(res, const_cast<char*>(action.c_str()));
-    }
-    return res;
-}
-
 static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const std::string& rule_name)
 {
+    auto buildActionList = [](const PureAlert& alert) {
+        zlist_t* al = zlist_new();
+        //zlist_autofree(al);
+        for (const auto& action : alert._actions) {
+            zlist_append(al, const_cast<char*>(action.c_str()));
+        }
+        return al;
+    };
+
     for (const auto& alert : alertsToSend) {
         // Asset id is missing in the rule name for warranty alarms
         std::string fullRuleName = rule_name;
-        if (streq("warranty", fullRuleName.c_str())) {
+        if (fullRuleName == "warranty") {
             fullRuleName += "@" + alert._element;
         }
 
-        zlist_t* actions = makeActionList(alert._actions);
-        zmsg_t*  msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
+        zlist_t* actions = buildActionList(alert);
+        zmsg_t* msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
             static_cast<uint32_t>(alert._ttl), fullRuleName.c_str(), alert._element.c_str(), alert._status.c_str(),
             alert._severity.c_str(), alert._description.c_str(), actions);
         zlist_destroy(&actions);
 
-        if (msg) {
-            std::string atopic = rule_name + "/" + alert._severity + "@" + alert._element;
-            mlm_client_send(client, atopic.c_str(), &msg);
-            log_info("Send Alert for %s with state %s and severity %s", fullRuleName.c_str(), alert._status.c_str(),
-                alert._severity.c_str());
+        if (!msg) {
+            log_error("encode alert failed (%s)", fullRuleName.c_str());
+        }
+        else {
+            std::string topic = rule_name + "/" + alert._severity + "@" + alert._element;
+            mlm_client_send(client, topic.c_str(), &msg);
+            log_info("Send Alert for %s with state %s and severity %s",
+                fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str());
         }
         zmsg_destroy(&msg);
     }
@@ -484,8 +479,7 @@ static void enable_rule_evaluation(const RulePtr& rule)
 
 static void add_rule(mlm_client_t* client, const char* json_representation, AlertConfiguration& ac)
 {
-    if (!json_representation)
-        json_representation = "";
+    if (!json_representation) { json_representation = ""; }
 
     std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
@@ -493,14 +487,14 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int rv = ac.addRule(f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    int r = ac.addRule(f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts = false;
     bool updateEvaluateMetrics = false;
-    switch (rv) {
+    switch (r) {
         case 0: { // rule was created succesfully
             log_debug("rule added correctly");
             zmsg_addstr(reply, "OK");
@@ -549,8 +543,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     }
 
     // send the reply
-    int r = mlm_client_sendto(
-        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
@@ -567,8 +560,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
 
 static void update_rule(mlm_client_t* client, const char* json_representation, const char* rule_name, AlertConfiguration& ac)
 {
-    if (!json_representation)
-        json_representation = "";
+    if (!json_representation) { json_representation = ""; }
 
     std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
@@ -576,9 +568,9 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int rv = -7;
+    int r = -7;
     if (rule_name) {
-        rv = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+        r = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     }
     mtxAlertConfig.unlock();
 
@@ -586,7 +578,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
 
     bool sendAlerts = false;
     bool updateEvaluateMetrics = false;
-    switch (rv) {
+    switch (r) {
         case 0: { // rule was updated succesfully
             log_debug("rule updated");
             zmsg_addstr(reply, "OK");
@@ -629,8 +621,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     }
 
     // send the reply
-    int r = mlm_client_sendto(
-        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
@@ -648,91 +639,89 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
 static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfiguration& ac)
 {
     std::map<std::string, std::vector<PureAlert>> alertsToSend;
-    std::vector<std::string>                      rulesDeleted;
+    std::vector<std::string> rulesDeleted;
 
     mtxAlertConfig.lock();
-    int rv = ac.deleteRules(matcher, alertsToSend, rulesDeleted);
+    int r = ac.deleteRules(matcher, alertsToSend, rulesDeleted);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
-    if (rv == 0) {
-        if (rulesDeleted.empty()) {
-            log_debug("can't delete rule (no match)");
-            zmsg_addstr(reply, "ERROR");
-            zmsg_addstr(reply, "NO_MATCH");
-        } else {
-            log_debug("deleted rule");
-            zmsg_addstr(reply, "OK");
-            for (const auto& i : rulesDeleted) {
-                zmsg_addstr(reply, i.c_str());
-            }
-            std::for_each(alertsToSend.begin(), alertsToSend.end(),
-                // reference skipped because for_each doesn't like it
-                [client](std::pair<std::string, std::vector<PureAlert>> alerts) {
-                    send_alerts(client, alerts.second, alerts.first);
-                });
-        }
-    } else {
-        log_debug("can't delete rule (failure during removal)");
+
+    bool sendAlerts{false};
+    if (r != 0) {
+        log_debug("can't delete rule (failure during deletion)");
         zmsg_addstr(reply, "ERROR");
-        zmsg_addstr(reply, "FAILURE_RULE_REMOVAL");
+        zmsg_addstr(reply, "FAILURE_RULE_DELETE");
+    }
+    else if (rulesDeleted.empty()) {
+        log_debug("can't delete rule (no match)");
+        zmsg_addstr(reply, "ERROR");
+        zmsg_addstr(reply, "NO_MATCH");
+    }
+    else {
+        log_debug("deleted rule");
+        zmsg_addstr(reply, "OK");
+        for (const auto& it : rulesDeleted) {
+            zmsg_addstr(reply, it.c_str());
+        }
+        sendAlerts = true;
     }
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
     zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
+
+    if (sendAlerts) {
+        // notify deletion (resolved alerts)
+        for (const auto& alerts : alertsToSend) {
+            send_alerts(client, alerts.second, alerts.first);
+        }
+    }
 }
 
-static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration& ac, bool send_reply)
+static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfiguration& ac)
 {
     std::vector<PureAlert> alertsToSend;
 
     mtxAlertConfig.lock();
-    int rv = ac.touchRule(rule_name, alertsToSend);
+    int r = ac.touchRule(rule_name, alertsToSend);
     mtxAlertConfig.unlock();
 
-    switch (rv) {
+    zmsg_t* reply = zmsg_new();
+
+    bool sendAlerts{false};
+    switch (r) {
         case -1:
             log_error("touch_rule:%s: Rule was not found", rule_name);
             // ERROR rule doesn't exist
-            if (send_reply) {
-                zmsg_t* reply = zmsg_new();
-                if (!reply) {
-                    log_error("touch_rule:%s: Cannot create reply message.", rule_name);
-                }
-                else {
-                    zmsg_addstr(reply, "ERROR");
-                    zmsg_addstr(reply, "NOT_FOUND");
-                    mlm_client_sendto(
-                        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-                }
-                zmsg_destroy(&reply);
-            }
+            zmsg_addstr(reply, "ERROR");
+            zmsg_addstr(reply, "NOT_FOUND");
             break;
         case 0:
             // rule was touched, send a reply back
             log_debug("touch_rule:%s: ok", rule_name);
-            if (send_reply) {
-                zmsg_t* reply = zmsg_new();
-                if (!reply) {
-                    log_error("touch_rule:%s: Cannot create reply message.", rule_name);
-                }
-                else {
-                    zmsg_addstr(reply, "OK");
-                    mlm_client_sendto(
-                        client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
-                }
-                zmsg_destroy(&reply);
-            }
-            // send updated alert
-            send_alerts(client, alertsToSend, rule_name);
+            zmsg_addstr(reply, "OK");
+            sendAlerts = true;
             break;
         default:
-            log_warning("touch_rule:%s: result not handled (rv: %d)", rule_name, rv);
+            log_warning("touch_rule:%s: result not handled (r: %d)", rule_name, r);
+    }
+
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
+
+    if (sendAlerts) {
+        // notify touch (resolved alerts)
+        send_alerts(client, alertsToSend, rule_name);
     }
 }
 
-static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, const MetricList& knownMetricValues,
-    AlertConfiguration& ac)
+static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, const MetricList& knownMetricValues, AlertConfiguration& ac)
 {
     bool isEvaluate = false;
     mtxAlertConfig.lock();
@@ -765,14 +754,14 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
         try {
             PureAlert pureAlert;
-            int       rv = rule->evaluate(knownMetricValues, pureAlert);
-            if (rv != 0) {
+            int r = rule->evaluate(knownMetricValues, pureAlert);
+            if (r != 0) {
                 log_error("### Cannot evaluate the rule '%s'", rule->name().c_str());
                 continue;
             }
 
             PureAlert alertToSend;
-            rv               = ac.updateAlert(it_ac, pureAlert, alertToSend);
+            r = ac.updateAlert(it_ac, pureAlert, alertToSend);
             alertToSend._ttl = triggeringMetric.getTtl() * 3;
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the
@@ -787,7 +776,8 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                         triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) + "\"} }";
                     // clang-format on
-                } else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
+                }
+                else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
                     // Style note: do not break long translated lines, that would break their parser
                     // clang-format off
                     alertToSend._description =
@@ -795,17 +785,19 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                                         "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
                                         triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) + "\"} }";
                     // clang-format on
-                } else {
+                }
+                else {
                     log_error("Unable to identify Warranty alert description");
                 }
             }
 
-            if (rv == -1) {
+            if (r == -1) {
                 log_debug("### alert updated, nothing to send");
                 continue;
             }
             send_alerts(client, {alertToSend}, rule);
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             log_error("Evaluation failed (%s, e: '%s')", rule->name().c_str(), e.what());
         }
     }
@@ -892,7 +884,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
     }
 
     zsock_signal(pipe, 0);
-    log_info("Actor %s started", name);
+    log_info("%s started", name);
 
     int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
     int64_t timeLastPoll = zclock_mono();
@@ -910,7 +902,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             // get metrics and evaluate related alerts
             fty::shm::shmMetrics result;
             fty::shm::read_metrics(".*", ".*", result);
-            log_debug("number of metrics read : %zu", result.size());
+            log_debug("number of metrics read: %zu", result.size());
             metric_processing(result, metricList, client);
 
             timeout = int64_t(fty_get_polling_interval()) * 1000;
@@ -971,7 +963,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
         }
     }
 
-    log_info("Actor %s ended", name);
+    log_info("%s ended", name);
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }
@@ -998,7 +990,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
     }
 
     zsock_signal(pipe, 0);
-    log_info("Actor %s started", name);
+    log_info("%s started", name);
 
     int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
 
@@ -1123,8 +1115,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 else if (streq(command, "TOUCH")) {
                     char* param0 = zmsg_popstr(zmsg);
                     log_debug("%s: Requested %s '%s'", name, command, param0);
-                    const bool send_reply = true;
-                    touch_rule(client, param0, alertConfiguration, send_reply);
+                    touch_rule(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else if (streq(command, "DELETE")) {
@@ -1148,15 +1139,14 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 zstr_free(&command);
             }
             else {
-                log_error("%s: Unexcepted mailbox message received (sender: '%s', subject: '%s')",
-                    name, sender, subject);
+                log_error("%s: Unexcepted mailbox message received (sender: '%s', subject: '%s')", name, sender, subject);
             }
 
             zmsg_destroy(&zmsg);
         }
     }
 
-    log_info("Actor %s ended", name);
+    log_info("%s ended", name);
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }

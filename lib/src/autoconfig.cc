@@ -21,68 +21,20 @@
 
 #include "autoconfig.h"
 #include "templateruleconfigurator.h"
-#include <cxxtools/serializationinfo.h>
-#include <fstream>
-#include <fty_common_filesystem.h>
-#include <fty_common_json.h>
+
 #include <fty_log.h>
-#include <iostream>
-
-#define AUTOCONFIG "AUTOCONFIG"
-
-#define TIMEOUT 1000
+#include <fty_common_asset_types.h>
+#include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
+#include <filesystem>
 
 std::string Autoconfig::StateFilePath;
 std::string Autoconfig::RuleFilePath;
 std::string Autoconfig::StateFile;
 std::string Autoconfig::AlertEngineName;
 
-static int load_agent_info(std::string& json)
+inline void operator <<= (cxxtools::SerializationInfo& si, const AutoConfigurationInfo& info)
 {
-    json.clear();
-    log_debug("load_agent_info '%s'", Autoconfig::StateFile.c_str());
-
-    if (!shared::is_file(Autoconfig::StateFile.c_str())) {
-        log_error("'%s' is not a file", Autoconfig::StateFile.c_str());
-        return -1;
-    }
-
-    std::ifstream f(Autoconfig::StateFile, std::ios::in | std::ios::binary);
-    if (f) {
-        f.seekg(0, std::ios::end);
-        json.resize(static_cast<size_t>(f.tellg()));
-        f.seekg(0, std::ios::beg);
-        f.read(&json[0], static_cast<std::streamsize>(json.size()));
-        f.close();
-        return 0;
-    }
-    log_error("Fail to read '%s'", Autoconfig::StateFile.c_str());
-    return -1;
-}
-
-static int save_agent_info(const std::string& json)
-{
-    log_info("save in '%s'", Autoconfig::StateFile.c_str());
-
-    if (!shared::is_dir(Autoconfig::StateFilePath.c_str())) {
-        log_error("Can't serialize state, '%s' is not directory", Autoconfig::StateFilePath.c_str());
-        return -1;
-    }
-    try {
-        std::ofstream f(Autoconfig::StateFile);
-        f.exceptions(~std::ofstream::goodbit);
-        f << json;
-        f.close();
-    } catch (const std::exception& e) {
-        log_error("Can't serialize state, %s", e.what());
-        return -1;
-    }
-    return 0;
-}
-
-inline void operator<<=(cxxtools::SerializationInfo& si, const AutoConfigurationInfo& info)
-{
-    si.setTypeName("AutoConfigurationInfo");
     si.addMember("type") <<= info.type;
     si.addMember("subtype") <<= info.subtype;
     si.addMember("operation") <<= info.operation;
@@ -92,38 +44,58 @@ inline void operator<<=(cxxtools::SerializationInfo& si, const AutoConfiguration
     si.addMember("locations") <<= info.locations;
 }
 
-inline void operator>>=(const cxxtools::SerializationInfo& si, AutoConfigurationInfo& info)
+inline void operator >>= (const cxxtools::SerializationInfo& si, AutoConfigurationInfo& info)
 {
-    std::string temp;
-    si.getMember("configured") >>= info.configured;
-    si.getMember("type") >>= temp;
-    si.getMember("subtype") >>= temp;
-    si.getMember("operation") >>= temp;
-    si.getMember("date") >>= temp;
-    info.date = static_cast<uint64_t>(std::stoi(temp));
-    si.getMember("attributes") >>= info.attributes;
-    si.getMember("locations") >>= info.locations;
+    try {
+        std::string temp, dateStr;
+
+        si.getMember("configured") >>= info.configured;
+        si.getMember("type") >>= temp; // ignored!?
+        si.getMember("subtype") >>= temp; // ignored!?
+        si.getMember("operation") >>= temp; // ignored!?
+        si.getMember("date") >>= dateStr;
+        si.getMember("attributes") >>= info.attributes;
+        si.getMember("locations") >>= info.locations;
+
+        info.date = static_cast<uint64_t>(std::stoi(dateStr));
+    }
+    catch (const std::exception& e) {
+        log_error("AutoConfigurationInfo::parse failed (e: %s)", e.what());
+    }
 }
 
 // multi-thread access guard for _configurableDevices map
 #define ConfigurableDevices_GUARD \
     std::lock_guard<std::recursive_mutex> guard(_configurableDevicesMutex)
 
-void Autoconfig::main (zsock_t* pipe, char* name)
+void Autoconfig::main(zsock_t* pipe, const std::string& name_)
 {
-    if (_client) {
-        mlm_client_destroy(&_client);
-    }
+    const char* name = name_.c_str();
+
+    if (_client) { mlm_client_destroy(&_client); }
+    if (_clientSender) { mlm_client_destroy(&_clientSender); }
+
     _client = mlm_client_new();
-    assert(_client);
+    _clientSender = mlm_client_new(); // used by onSend()
+    if (!(_client && _clientSender)) {
+        log_error("mlm_client_new() failed");
+        mlm_client_destroy(&_clientSender);
+        mlm_client_destroy(&_client);
+        return;
+    }
 
     zpoller_t* poller = zpoller_new(pipe, mlm_client_msgpipe(_client), NULL);
-    assert(poller);
+    if (!poller) {
+        log_error("zpoller_new() failed");
+        mlm_client_destroy(&_clientSender);
+        mlm_client_destroy(&_client);
+        return;
+    }
 
     log_info("%s started", name);
     zsock_signal(pipe, 0);
 
-    int64_t _timestamp = zclock_mono();
+    int64_t timestamp = 0;
 
     while (!zsys_interrupted) {
 
@@ -131,33 +103,25 @@ void Autoconfig::main (zsock_t* pipe, char* name)
 
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
-                log_debug("%s: terminated", name);
                 break;
             }
-            if (zpoller_expired(poller)) {
-                onPoll();
-                _timestamp = zclock_mono();
-                continue;
-            }
-            _timestamp = zclock_mono();
-            log_warning(
-                "zpoller_wait () returned NULL while at the same time zpoller_terminated == 0, zsys_interrupted == 0, "
-                "zpoller_expired == 0");
-            continue;
         }
 
-        int64_t now = zclock_mono();
-        if ((now - _timestamp) >= _timeout) {
+        if ((zclock_mono() - timestamp) >= _timeout) {
             onPoll();
-            _timestamp = zclock_mono();
+            timestamp = zclock_mono();
         }
 
+        // Rx on main socket
         if (which == pipe) {
             zmsg_t* msg = zmsg_recv(pipe);
-            char*   cmd = zmsg_popstr(msg);
+            char* cmd = zmsg_popstr(msg);
             bool term{false};
 
-            if (streq(cmd, "$TERM")) {
+            if (!cmd) {
+                log_error("%s: cmd is missing", name);
+            }
+            else if (streq(cmd, "$TERM")) {
                 log_debug("%s: $TERM received", name);
                 term = true;
             }
@@ -166,8 +130,9 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                 log_debug("TEMPLATES_DIR received (%s)", dirname);
                 if (dirname) {
                     Autoconfig::RuleFilePath = std::string(dirname);
-                } else {
-                    log_error("%s: in TEMPLATES_DIR command next frame is missing", name);
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
                 }
                 zstr_free(&dirname);
             }
@@ -178,17 +143,23 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                     Autoconfig::StateFilePath = std::string(dirname);
                     Autoconfig::StateFile = Autoconfig::StateFilePath + "/state";
                     loadState();
-                } else {
-                    log_error("%s: in CONFIG command next frame is missing", name);
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
                 }
                 zstr_free(&dirname);
             }
             else if (streq(cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr(msg);
                 log_debug("CONNECT received (%s)", endpoint);
-                int rv = mlm_client_connect(_client, endpoint, 1000, name);
-                if (rv == -1) {
+                int r = mlm_client_connect(_client, endpoint, 1000, name);
+                if (r != 0) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                }
+                std::string nameSender{name_ + "-sender"};
+                r = mlm_client_connect(_clientSender, endpoint, 1000, nameSender.c_str());
+                if (r != 0) {
+                    log_error("%s: can't connect %s to malamute endpoint '%s'", name, nameSender.c_str(), endpoint);
                 }
                 zstr_free(&endpoint);
             }
@@ -196,8 +167,8 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                 char* stream  = zmsg_popstr(msg);
                 char* pattern = zmsg_popstr(msg);
                 log_debug("CONSUMER received (%s, %s)", stream, pattern);
-                int rv = mlm_client_set_consumer(_client, stream, pattern);
-                if (rv == -1) {
+                int r = mlm_client_set_consumer(_client, stream, pattern);
+                if (r != 0) {
                     log_error("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
                 }
                 zstr_free(&pattern);
@@ -208,8 +179,9 @@ void Autoconfig::main (zsock_t* pipe, char* name)
                 log_debug("ALERT_ENGINE_NAME received (%s)", alert_engine_name);
                 if (alert_engine_name) {
                     Autoconfig::AlertEngineName = std::string(alert_engine_name);
-                } else {
-                    log_error("%s: in ALERT_ENGINE_NAME command next frame is missing", name);
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
                 }
                 zstr_free(&alert_engine_name);
             }
@@ -223,193 +195,178 @@ void Autoconfig::main (zsock_t* pipe, char* name)
             if (term) {
                 break;
             }
-            continue;
         }
+        // Rx on client socket
+        else if (which == mlm_client_msgpipe(_client)) {
+            zmsg_t* msg = mlm_client_recv(_client);
+            const char* command = mlm_client_command(_client);
+            const char* sender = mlm_client_sender(_client);
+            const char* subject = mlm_client_subject(_client);
 
-        //TODO rewrite that crappy message processing
-
-        zmsg_t* message = mlm_client_recv(_client);
-        const char* command = mlm_client_command(_client);
-        const char* subject = mlm_client_subject(_client);
-        const char* sender = mlm_client_sender(_client);
-
-        if (!message) {
-            log_warning(
-                "recv () returned NULL; zsys_interrupted == '%s'; command = '%s', subject = '%s', sender = '%s'",
-                zsys_interrupted ? "true" : "false", command, subject, sender);
-        }
-        else if (fty_proto_is(message)) {
-            fty_proto_t* bmessage = fty_proto_decode(&message);
-            if (!bmessage) {
-                log_error("can't decode message with subject %s, ignoring", subject);
-            }
-            else if (fty_proto_id(bmessage) == FTY_PROTO_ASSET) {
-                if (!streq(fty_proto_operation(bmessage), FTY_PROTO_ASSET_OP_INVENTORY)) {
-                    onSend(&bmessage);
+            if (streq(command, "STREAM DELIVER")) {
+                fty_proto_t* proto = fty_proto_is(msg) ? fty_proto_decode(&msg) : NULL;
+                if (!proto) {
+                    log_error("Can't decode message (subject='%s', sender='%s')", subject, sender);
                 }
-            } else {
-                log_warning("Weird fty_proto msg received, id = '%d', command = '%s', subject = '%s', sender = '%s'",
-                    fty_proto_id(bmessage), command, subject, sender);
-            }
-            fty_proto_destroy(&bmessage);
-        }
-        else {
-            // this should be a message from ALERT_ENGINE_NAME (fty-alert-engine or fty-alert-flexible)
-            if (streq(sender, "fty-alert-engine") || streq(sender, "fty-alert-flexible")) {
-                char* reply = zmsg_popstr(message);
-                if (streq(reply, "OK")) {
-                    if (zmsg_size(message) == 1) {
-                        char* details = zmsg_popstr(message);
-                        log_debug("Received OK for rule '%s'", details);
-                        zstr_free(&details);
-                    } else {
-                        log_debug("Received OK for %zu rules", zmsg_size(message));
-                    }
-                } else {
-                    if (streq(reply, "ERROR")) {
-                        char* details = zmsg_popstr(message);
-                        log_error("Received ERROR : '%s'", details);
-                        zstr_free(&details);
-                    } else
-                        log_warning("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
-                            command, subject, sender);
+                else if (fty_proto_id(proto) == FTY_PROTO_ASSET) {
+                    onSend(proto);
                 }
-                zstr_free(&reply);
-            } else {
-                char* cmd = zmsg_popstr(message);
+                else {
+                    log_warning("Recv unexpected stream msg (id=%d, subject='%s', sender='%s')", fty_proto_id(proto), subject, sender);
+                }
+                fty_proto_destroy(&proto);
+            }
+            else if (streq(command, "MAILBOX DELIVER")) {
+                char* cmd = zmsg_popstr(msg);
                 if (streq(cmd, "LIST")) {
-                    char* correl_id = zmsg_popstr(message);
-                    char* filter    = zmsg_popstr(message);
+                    char* correl_id = zmsg_popstr(msg);
+                    char* filter = zmsg_popstr(msg);
                     listTemplates(correl_id, filter);
-                    zstr_free(&correl_id);
                     zstr_free(&filter);
-                } else {
-                    log_warning("Unexpected message received, command = '%s', subject = '%s', sender = '%s'",
-                        command, subject, sender);
+                    zstr_free(&correl_id);
+                }
+                else {
+                    log_warning("Recv unexpected mailbox msg (cmd='%s', subject='%s', sender='%s')", cmd, subject, sender);
+                    if (zmsg_size(msg) != 0) { zmsg_print(msg); }
                 }
                 zstr_free(&cmd);
             }
+            else {
+                log_debug("%s: Command not handled (%s)", name, command);
+            }
+
+            zmsg_destroy(&msg);
         }
-        zmsg_destroy(&message);
     }
 
     log_info("%s ended", name);
+
     zpoller_destroy(&poller);
+    mlm_client_destroy(&_clientSender);
+    mlm_client_destroy(&_client);
 }
 
-const std::string Autoconfig::getEname(const std::string& iname)
+std::string Autoconfig::getEname(const std::string& assetName) const
 {
-    std::string ename;
-    auto        search = _containers.find(iname); // iname | ename
-    if (search != _containers.end())
-        ename = search->second;
-    return ename;
+    const auto it = _containers.find(assetName); // iname | ename
+    return (it != _containers.end()) ? it->second : "";
 }
 
-void Autoconfig::onSend(fty_proto_t** message)
+void Autoconfig::onSend(fty_proto_t* message)
 {
-    if (!message || !*message)
-        return;
+    if (!(message && (fty_proto_id(message) == FTY_PROTO_ASSET))) {
+        return; // proto ASSET only
+    }
 
-    // logDebug("== OnSend"); fty_proto_print(*message);
+    if (streq(fty_proto_operation(message), FTY_PROTO_ASSET_OP_INVENTORY)) {
+        return; // ignore INVENTORY messages
+    }
 
-    std::string device_name (fty_proto_name (*message));
-    auto currentInfo = configurableDevicesGet(device_name);
+    // log_debug("== OnSend"); fty_proto_print(message);
 
-    //filter UPDATE message to ignore it when no change is detected.
-    //This code is mainly to prevent overload activity on hourly REPUBLISH $all
-    if ((strcmp(fty_proto_operation (*message), FTY_PROTO_ASSET_OP_UPDATE) == 0)
+    const std::string asset_name{fty_proto_name(message)};
+
+    auto currentInfo = configurableDevicesGet(asset_name);
+
+    // filter UPDATE message to ignore it when no change is detected.
+    // This code is mainly to prevent overload activity on hourly REPUBLISH $all
+    if (streq(fty_proto_operation(message), FTY_PROTO_ASSET_OP_UPDATE)
         && !currentInfo.empty()
-        && (currentInfo == *message))
-    {
-        log_debug("asset %s UPDATED but no change detected => ignore it", device_name.c_str());
+        && (currentInfo == message)
+    ) {
+        log_debug("Asset %s UPDATED but no change detected", asset_name.c_str());
         return;
     }
 
     AutoConfigurationInfo info;
-    info.type.assign (fty_proto_aux_string (*message, "type", ""));
-    info.subtype.assign (fty_proto_aux_string (*message, "subtype", ""));
-    info.operation.assign (fty_proto_operation (*message));
-    info.update_ts.assign (fty_proto_ext_string(*message, "update_ts", ""));
+    info.type = fty_proto_aux_string(message, FTY_PROTO_ASSET_TYPE, "");
+    info.subtype = fty_proto_aux_string(message, FTY_PROTO_ASSET_SUBTYPE, "");
+    info.update_ts = fty_proto_ext_string(message, "update_ts", "");
+    info.operation = fty_proto_operation(message);
 
-    if (!currentInfo.empty()
-        && (0 != strcmp(fty_proto_ext_string(*message, "update_ts", ""), currentInfo.update_ts.c_str()))
-    ){
-        log_debug("Changed asset, updating");
-        info.configured = false;
-    }
-
-    if (streq(fty_proto_aux_string(*message, "type", ""), "datacenter") ||
-        streq(fty_proto_aux_string(*message, "type", ""), "room") ||
-        streq(fty_proto_aux_string(*message, "type", ""), "row") ||
-        streq(fty_proto_aux_string(*message, "type", ""), "rack")) {
-        if (info.operation != FTY_PROTO_ASSET_OP_DELETE &&
-            streq(fty_proto_aux_string(*message, FTY_PROTO_ASSET_STATUS, "active"), "active")) {
-            _containers[device_name] = fty_proto_ext_string(*message, "name", "");
-        } else {
-            try {
-                _containers.erase(device_name);
-            }
-            catch (const std::exception &e) {
-                log_error( "can't erase container %s: %s", device_name.c_str(), e.what() );
-            }
-        }
-    }
-
-    if (info.type.empty ()) {
-        log_debug("extracting attributes from asset message failed.");
+    if (info.type.empty()) {
+        log_debug("Extracting empty type from asset message (%s)", asset_name.c_str());
         return;
     }
 
-    if (streq(info.type.c_str(), "datacenter") ||
-            streq(info.type.c_str(), "room") ||
-            streq(info.type.c_str(), "row") ||
-            streq(info.type.c_str(), "rack"))
-    {
-        _containers.emplace(device_name, fty_proto_ext_string(*message, "name", ""));
-    }
+    log_debug("Decoded asset='%s', type='%s', subtype='%s', operation='%s'",
+        asset_name.c_str(), info.type.c_str(), info.subtype.c_str(), info.operation.c_str());
 
-    log_debug("Decoded asset message - device name = '%s', type = '%s', subtype = '%s', operation = '%s'",
-        device_name.c_str(), info.type.c_str(), info.subtype.c_str(), info.operation.c_str());
-    info.attributes = utils::zhash_to_map(fty_proto_ext(*message));
+    bool updateAsset = // vs. removeAsset
+        (info.operation != FTY_PROTO_ASSET_OP_DELETE)
+        && streq(fty_proto_aux_string(message, FTY_PROTO_ASSET_STATUS, "active"), "active");
 
-    // asset locations, inspect aux attributes 'parent_name.X' (X in [1..4]])
-    info.locations.clear();
-    for (int i = 1; i <= 4; i++) {
-        const std::string auxName{"parent_name." + std::to_string(i)};
-        const char* parentiName = fty_proto_aux_string(*message, auxName.c_str(), NULL);
-        if (parentiName) {
-            info.locations.push_back(parentiName);
+    // update containers map
+    if (persist::is_container(info.type)) {
+        if (updateAsset) {
+            _containers[asset_name] = fty_proto_ext_string(message, "name", "");
+        }
+        else { // remove
+            if (_containers.count(asset_name) != 0) {
+                _containers.erase(asset_name);
+            }
         }
     }
 
-    if (info.operation != FTY_PROTO_ASSET_OP_DELETE
-        && streq (fty_proto_aux_string (*message, FTY_PROTO_ASSET_STATUS, "active"), "active"))
+    // update configurableDevices map
+    if (updateAsset)
     {
-        configurableDevicesAdd(device_name, info);
+        if (!currentInfo.empty() && (info.update_ts != currentInfo.update_ts)) {
+            log_debug("Changed asset %s", asset_name.c_str());
+            info.configured = false;
+        }
+
+        // get ext. attributes
+        info.attributes = utils::zhash_to_map(fty_proto_ext(message));
+
+        // asset locations: inspect aux attributes 'parent_name.X' (X in [1..4]])
+        info.locations.clear();
+        for (int i = 1; i <= 4; i++) {
+            const std::string auxName{"parent_name." + std::to_string(i)};
+            const char* parentiName = fty_proto_aux_string(message, auxName.c_str(), NULL);
+            if (parentiName) {
+                info.locations.push_back(parentiName);
+            }
+        }
+
+        configurableDevicesAdd(asset_name, info);
     }
-    else
+    else // remove
     {
-        configurableDevicesRemove(device_name);
+        configurableDevicesRemove(asset_name);
 
         if (info.subtype == "sensorgpio" || info.subtype == "gpo") {
             // don't do anything
-        } else {
+        }
+        else {
             const char* dest = Autoconfig::AlertEngineName.c_str();
-            log_info("Sending DELETE_ELEMENT for %s to %s", device_name.c_str(), dest);
+            const char* subject = RULES_SUBJECT;
+            const char* cmd = "DELETE_ELEMENT";
+
+            log_debug("Send %s/%s %s to %s", subject, cmd, asset_name.c_str(), dest);
+
+            zpoller_t* poller = zpoller_new(mlm_client_msgpipe(_clientSender), NULL);
+            if (!poller) { log_error("zpoller_new() failed"); }
 
             // delete all rules for this asset
             zmsg_t* msg = zmsg_new();
-            zmsg_addstr(msg, "DELETE_ELEMENT");
-            zmsg_addstr(msg, device_name.c_str());
-            int r = mlm_client_sendto(_client, dest, "rfc-evaluator-rules", NULL, TIMEOUT, &msg);
-            if (r != 0) {
-                log_error("mlm_client_sendto (address = '%s', subject = '%s', timeout = '5000') failed.", dest,
-                    "rfc-evaluator-rules");
-            }
+            zmsg_addstr(msg, cmd);
+            zmsg_addstr(msg, asset_name.c_str());
+            int r = mlm_client_sendto(_clientSender, dest, subject, NULL, 5000, &msg);
             zmsg_destroy(&msg);
+            if (r != 0) {
+                log_error("mlm_client_sendto() failed (dest='%s', subject='%s', cmd='%s')", dest, subject, cmd);
+            }
+
+            // consume response (ignored)
+            void* which = poller ? zpoller_wait(poller, 5000) : NULL;
+            if (which) { msg = mlm_client_recv(_clientSender); zmsg_destroy(&msg); }
+            zpoller_destroy(&poller);
         }
     }
+
+    log_debug("cache size: Assets(%zu), Containers(%zu)", _configurableDevices.size(), _containers.size());
+
     saveState();
     setPollingInterval();
 }
@@ -424,24 +381,23 @@ void Autoconfig::onPoll()
         ConfigurableDevices_GUARD;
         //std::map<std::string, AutoConfigurationInfo>
         for (auto& it : _configurableDevices) {
-            if (zsys_interrupted)
+            if (zsys_interrupted) {
                 return;
-            if (it.second.configured)
+            }
+            if (it.second.configured) {
                 continue;
+            }
 
             bool device_configured = true;
-            if (iTemplateRuleConfigurator.isApplicable (it.second))
+            if (iTemplateRuleConfigurator.isApplicable(it.second))
             {
                 std::string la;
-                for (auto &i : it.second.attributes)
-                {
-                    if (i.first == "logical_asset")
-                        la = i.second;
+                if (it.second.attributes.count("logical_asset") != 0) {
+                    la = it.second.attributes["logical_asset"];
                 }
 
-                device_configured &= iTemplateRuleConfigurator.configure (
-                    it.first, it.second,
-                    Autoconfig::getEname (la), _client
+                device_configured &= iTemplateRuleConfigurator.configure(
+                    it.first, it.second, Autoconfig::getEname(la), _clientSender
                 );
             }
             else {
@@ -462,106 +418,103 @@ void Autoconfig::onPoll()
     }
 
     if (save) {
-        cleanupState();
         saveState();
     }
+
     setPollingInterval();
 }
 
-// autoconfig agent private methods
-
 void Autoconfig::setPollingInterval()
 {
-    _timeout = -1;
-
     ConfigurableDevices_GUARD;
-    for ( auto &it : _configurableDevices) {
-        if ( ! it.second.configured ) {
-            if ( it.second.date == 0 ) {
-                // there is device that we didn't try to configure
-                // let's try to do it soon
-                _timeout = 5000;
-                return;
-            } else {
-                // we failed to configure some device
-                // let's try after one minute again
-                _timeout = 60000;
-            }
+
+    bool soon{false}, lazy{false};
+
+    for (const auto& it : _configurableDevices) {
+        if (zsys_interrupted) { break; }
+
+        if (it.second.configured) {
+            continue; // ignore configured devices
+        }
+
+        if (it.second.date == 0) {
+            // a device that we didn't try to configure?
+            soon = true; // do it soon
+            break;
+        }
+        else {
+            // a device failed to configure?
+            lazy = true; // do it with laziness
         }
     }
+
+    // timeout in ms (-1 as infinite)
+    _timeout = soon ? 5000 : (lazy ? 60000 : -1);
 }
 
 void Autoconfig::loadState()
 {
-    std::string json;
-    int rv = load_agent_info(json);
-    if (rv != 0 || json.empty())
-        return;
+    ConfigurableDevices_GUARD;
+
+    if (!std::filesystem::exists(Autoconfig::StateFile)) { return; }
 
     try {
-        ConfigurableDevices_GUARD;
+        log_debug("loadState %s", Autoconfig::StateFile.c_str());
+
         cxxtools::SerializationInfo si;
-        JSON::readFromString(json, si);
+        JSON::readFromFile(Autoconfig::StateFile, si);
         si >>= _configurableDevices;
-        log_debug("loadState: State file size: %zu", _configurableDevices.size());
+
+        log_debug("loadState: %zu devices", _configurableDevices.size());
     }
     catch (const std::exception &e) {
-        log_error( "can't parse state: %s", e.what() );
+        log_error("loadState() failed (%s, e: %s)", Autoconfig::StateFile.c_str(), e.what());
+        if (errno != 0) { log_error("error: %s", strerror(errno)); }
     }
-}
-
-void Autoconfig::cleanupState()
-{
-    log_debug("cleanupState: State file size: %zu", _configurableDevices.size());
-
-    // Just set the state file to empty
-    save_agent_info("");
-    return;
 }
 
 void Autoconfig::saveState()
 {
     ConfigurableDevices_GUARD;
 
-    log_debug("saveState: State file size: %zu", _configurableDevices.size());
-
-    cxxtools::SerializationInfo si;
-    std::string json;
+    if (Autoconfig::StateFile.empty()) { return; }
 
     try {
+        log_debug("saveState %s (devices: %zu)", Autoconfig::StateFile.c_str(), _configurableDevices.size());
+
+        cxxtools::SerializationInfo si;
         si <<= _configurableDevices;
-        json = JSON::writeToString(si, false);
-        save_agent_info(json);
+        JSON::writeToFile(Autoconfig::StateFile, si, false);
     }
     catch (const std::exception &e) {
-        log_error("saveState() failed: %s", e.what());
+        log_error("saveState() failed (%s, e: %s)", Autoconfig::StateFile.c_str(), e.what());
+        if (errno != 0) { log_error("error: %s", strerror(errno)); }
     }
-
 }
 
-std::list<std::string> Autoconfig::getElemenListMatchTemplate(std::string template_name)
+std::list<std::string> Autoconfig::getAssetsThatMatchTemplate(const std::string& template_name)
 {
-    TemplateRuleConfigurator templateRuleConfigurator;
-    std::list<std::string>   elementList;
-
     ConfigurableDevices_GUARD;
-    for (auto& it : _configurableDevices) {
-        AutoConfigurationInfo info = it.second;
+
+    TemplateRuleConfigurator templateRuleConfigurator;
+    std::list<std::string> assets;
+
+    for (const auto& it : _configurableDevices) {
+        const AutoConfigurationInfo& info = it.second;
         if (templateRuleConfigurator.isApplicable(info, template_name)) {
-            elementList.push_back(it.first);
+            assets.push_back(it.first); // iname
         }
     }
-    return elementList;
+
+    return assets;
 }
 
 void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
 {
-    if (!correlation_id)
-        correlation_id = "";
-    if (!filter)
-        filter = "all";
+    if (!correlation_id) { correlation_id = ""; }
+    if (!filter) { filter = "all"; }
 
-    log_debug("DO REQUEST LIST template '%s' correl_id '%s'", filter, correlation_id);
+    log_debug("LIST templates (filter='%s', correlation_id='%s')", filter, correlation_id);
 
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, correlation_id);
@@ -570,49 +523,56 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
 
     TemplateRuleConfigurator templateRuleConfigurator;
     std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
+
     log_debug("templates rules count: '%zu'", templates.size());
 
-    int count = 0;
+    size_t count = 0;
     for (const auto& templat : templates) {
-        //ZZZ assume filter (CAT_XXX) is only referenced in "rule_cat" array in rule
+        // ZZZ assume filter (CAT_XXX) is *only* referenced in "rule_cat" array in rule
         if (!streq(filter, "all") && (templat.second.find(filter) == std::string::npos)) {
-            log_trace("templates '%s' does not match", templat.first.c_str());
+            log_trace("template '%s' does not match", templat.first.c_str());
             continue;
         }
 
-        zmsg_addstr (reply, templat.first.c_str()); //rule name
-        zmsg_addstr (reply, templat.second.c_str()); //json payload
-
-        //get list of element which can apply this template
-        std::string asset_list; //comma separator list
+        // get list of elements which can apply this template
+        std::string asset_list; // comma separator list
         {
-            std::list<std::string> elements = getElemenListMatchTemplate(templat.first.c_str());
+            std::list<std::string> assets = getAssetsThatMatchTemplate(templat.first);
+            asset_list.reserve(assets.size() * 24);
+
             auto templatAtPos = templat.first.find("@");
-            for (const auto &element : elements) {
+            for (const auto& asset : assets) {
                 // PQSWMBT-4921 Xphase rule exceptions
                 if (templatAtPos != std::string::npos) {
-                    std::string ruleName{templat.first.substr(0, templatAtPos + 1) + element};
-                    if (!ruleXphaseIsApplicable(ruleName, configurableDevicesGet(element)))
-                        continue; // skip element
+                    std::string ruleName{templat.first.substr(0, templatAtPos + 1) + asset};
+                    if (!ruleXphaseIsApplicable(ruleName, configurableDevicesGet(asset))) {
+                        continue; // skip asset
+                    }
                 }
                 // end PQSWMBT-4921
 
-                asset_list += (asset_list.empty() ? "" : ",") + element;
+                asset_list += (asset_list.empty() ? "" : ",") + asset;
             }
         }
 
-        zmsg_addstr (reply, asset_list.c_str());
+        zmsg_addstr(reply, templat.first.c_str()); // rule name
+        zmsg_addstr(reply, templat.second.c_str()); // json payload
+        zmsg_addstr(reply, asset_list.c_str()); // assets that match the rule
 
-        log_debug ("template: '%s', assets: '%s' match",
-            templat.first.c_str(), asset_list.c_str());
-
+        log_debug("template '%s' match for assets: '%s'", templat.first.c_str(), asset_list.c_str());
         count++;
     }
 
     log_debug("%zu templates match '%s'", count, filter);
 
-    mlm_client_sendto(_client, mlm_client_sender(_client), RULES_SUBJECT, mlm_client_tracker(_client), 1000, &reply);
+    // send reply
+    const char* sender = mlm_client_sender(_client);
+    const char* subject = RULES_SUBJECT;
+    int r = mlm_client_sendto(_client, sender, subject, mlm_client_tracker(_client), 1000, &reply);
     zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() failed (sender: %s, subject: %s, LIST)", sender, subject);
+    }
 }
 
 // _configurableDevices processors
@@ -620,57 +580,63 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
 AutoConfigurationInfo Autoconfig::configurableDevicesGet(const std::string& assetName)
 {
     ConfigurableDevices_GUARD;
-    auto it = _configurableDevices.find(assetName);
-    if (it != _configurableDevices.end())
-        return it->second;
-    return AutoConfigurationInfo(); // empty
+    const auto& it = _configurableDevices.find(assetName);
+    return (it != _configurableDevices.end()) ? it->second : AutoConfigurationInfo() /*empty*/;
 }
 
 void Autoconfig::configurableDevicesAdd(const std::string& assetName, const AutoConfigurationInfo& info)
 {
     ConfigurableDevices_GUARD;
+    log_debug("configurableDevicesAdd %s", assetName.c_str());
     _configurableDevices[assetName] = info;
 }
 
-bool Autoconfig::configurableDevicesRemove(const std::string& assetName)
+void Autoconfig::configurableDevicesRemove(const std::string& assetName)
 {
     ConfigurableDevices_GUARD;
-    try {
+    log_debug("configurableDevicesRemove %s", assetName.c_str());
+    if (_configurableDevices.count(assetName) != 0) {
         _configurableDevices.erase(assetName);
-        return true; // success
     }
-    catch (const std::exception &e) {
-        log_error( "can't erase device %s: %s", assetName.c_str(), e.what() );
-    }
-    return false;
+}
+
+void Autoconfig::run(zsock_t* pipe, const std::string& name)
+{
+    // starting
+    loadState();
+    setPollingInterval();
+
+    // main loop
+    main(pipe, name);
+
+    // ending
+    saveState();
 }
 
 // external Autoconfig agent object ref.
 static Autoconfig* gAgentPtr(nullptr);
 static std::mutex gAgentPtrMutex;
 
-void autoconfig (zsock_t *pipe, void *args )
+void autoconfig(zsock_t *pipe, void *args)
 {
-    log_debug ("autoconfig agent started");
+    if (!args)
+        { log_error("args is NULL"); return; }
 
-    Autoconfig agent(AUTOCONFIG);
+    const std::string name{static_cast<char*>(args)};
+    log_info("%s starting", name.c_str());
+
+    Autoconfig agent;
     { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = &agent; }
 
-    char *name = static_cast<char*>(args);
     agent.run(pipe, name);
 
     { std::lock_guard<std::mutex> lock(gAgentPtrMutex); gAgentPtr = nullptr; }
-
-    log_info ("autoconfig agent ended");
 }
 
 // external accessor to _configurableDevices member of agent
 AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName)
 {
-    //log_debug ("getAssetInfoFromAutoconfig");
     std::lock_guard<std::mutex> lock(gAgentPtrMutex);
-    if (gAgentPtr)
-        return gAgentPtr->configurableDevicesGet(assetName);
-    return AutoConfigurationInfo(); //empty
+    return gAgentPtr ? gAgentPtr->configurableDevicesGet(assetName) : AutoConfigurationInfo() /*empty*/;
 }
 

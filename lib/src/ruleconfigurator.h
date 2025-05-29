@@ -22,15 +22,17 @@
 #pragma once
 
 #include "autoconfig.h"
+
 #include <malamute.h>
-#include <map>
 #include <string>
 #include <vector>
-
+#include <map>
 
 class RuleConfigurator
 {
 public:
+    virtual ~RuleConfigurator() {}
+
     virtual bool configure(const std::string& name, const AutoConfigurationInfo& info, const std::string& logical_asset)
     {
         return configure(name, info, logical_asset, NULL);
@@ -41,12 +43,11 @@ public:
     {
         return false;
     }
+
     virtual bool isApplicable(const AutoConfigurationInfo& /*info*/)
     {
         return false;
     }
 
     bool sendNewRule(const std::string& rule, mlm_client_t* client);
-
-    virtual ~RuleConfigurator(){};
 };

@@ -20,47 +20,43 @@
 */
 
 #include "ruleconfigurator.h"
-//#include <regex>
 #include <cxxtools/regex.h>
 #include <fty_log.h>
 
 bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client)
 {
-    if (!client) {
-        log_error("client is NULL");
-        return false;
-    }
+    if (!client) { log_error("client is NULL"); return false; }
 
-    zmsg_t* message = zmsg_new();
-    if (!message) {
-        log_error("zmsg_new failed");
-        return false;
-    }
-    zmsg_addstr(message, "ADD");
-    zmsg_addstr(message, rule.c_str());
+    zmsg_t* msg = zmsg_new();
+    if (!msg) { log_error("zmsg_new() failed"); return false; }
+
+    zmsg_addstr(msg, "ADD");
+    zmsg_addstr(msg, rule.c_str()); //json
 
     const char* dest = Autoconfig::AlertEngineName.c_str();
-
-    // CAUTION: regression issue "std::regex don't match 'flexible' rule"
-    //std::regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", std::regex::extended);
-    //if (std::regex_match(rule, reg))
-    //    dest = "fty-alert-flexible";
+    const char* subject = RULES_SUBJECT;
 
     cxxtools::Regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", REG_EXTENDED);
-    if (reg.match(rule))
+    if (reg.match(rule)) {
         dest = "fty-alert-flexible";
+    }
 
-    const char* subject = "rfc-evaluator-rules";
     log_debug("Sending '%s/ADD' to '%s'", subject, dest);
 
+    zpoller_t* poller = zpoller_new(mlm_client_msgpipe(client), NULL);
+    if (!poller) { log_error("zpoller_new() failed"); }
+
     const int timeout_ms = 5000;
-    int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &message);
-    zmsg_destroy(&message);
+    int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &msg);
+    zmsg_destroy(&msg);
+
+    // consume response (ignored)
+    void* which = poller ? zpoller_wait(poller, 5000) : NULL;
+    if (which) { msg = mlm_client_recv(client); zmsg_destroy(&msg); }
+    zpoller_destroy(&poller);
 
     if (r != 0) {
-        log_error("mlm_client_sendto (dest = '%s', subject = '%s', timeout = %d) failed.",
-            dest, subject, timeout_ms);
-        return false;
+        log_error("mlm_client_sendto() failed (dest = '%s', subject = '%s/ADD', timeout = %d)", dest, subject, timeout_ms);
     }
-    return true;
+    return (r == 0);
 }

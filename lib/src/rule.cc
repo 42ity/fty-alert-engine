@@ -18,9 +18,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "utils.h"
 #include "rule.h"
+
 #include <cassert>
 #include <fty/convert.h>
-#include <lua.h>
 
 // 1, ..., 4 - # of utf8 octets
 // -1 - error
@@ -100,7 +100,7 @@ void si_getValueUtf8(const cxxtools::SerializationInfo& si, const std::string& m
 /*
  * \brief Deserialization of outcome
  */
-void operator>>=(const cxxtools::SerializationInfo& si, Outcome& outcome)
+void operator >>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 {
     const cxxtools::SerializationInfo& actions = si.getMember("action");
     outcome._actions.clear();
@@ -124,7 +124,7 @@ void operator>>=(const cxxtools::SerializationInfo& si, Outcome& outcome)
                     a.getMember("mode") >>= mode;
                     res = type + ":" + asset + ":" + mode;
                 } else {
-                    log_warning("Unknown action type: \"%s\"", type.c_str());
+                    log_warning("Unknown action type: '%s'", type.c_str());
                     res = type;
                 }
                 outcome._actions.push_back(res);
@@ -137,7 +137,7 @@ void operator>>=(const cxxtools::SerializationInfo& si, Outcome& outcome)
 }
 
 // TODO error handling mistakes can be hidden here
-void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, double>& values)
+void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, double>& values)
 {
     /*
        "values":[ {"low_critical"  : "30"},
@@ -162,8 +162,9 @@ void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, do
         }
     }
 }
+
 // TODO error handling mistakes can be hidden here
-void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes)
+void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes)
 {
     /*
         "results": [
@@ -199,35 +200,28 @@ void operator>>=(const cxxtools::SerializationInfo& si, std::map<std::string, Ou
 
 bool Rule::isTopicInteresting(const std::string& topic) const
 {
-    // ok this is o(n) but we will have up to 3 topics in vector
-    // TODO: find other model
-    for (const auto& item : _metrics) {
-        if (utf8eq(item, topic))
+    for (const auto& it : _metrics) {
+        if (utf8eq(it, topic)) {
             return true;
+        }
     }
     return false;
 }
 
-std::vector<std::string> Rule::getNeededTopics(void) const
+std::vector<std::string> Rule::getNeededTopics() const
 {
     return _metrics;
 }
 
 
-RuleNameMatcher::RuleNameMatcher(const std::string& name)
-    : _name(name)
-{
-}
+RuleNameMatcher::RuleNameMatcher(const std::string& name) : _name(name) {}
 
 bool RuleNameMatcher::operator()(const Rule& rule)
 {
     return rule.name() == _name;
 }
 
-RuleElementMatcher::RuleElementMatcher(const std::string& element)
-    : _element(element)
-{
-}
+RuleElementMatcher::RuleElementMatcher(const std::string& element) : _element(element) {}
 
 bool RuleElementMatcher::operator()(const Rule& rule)
 {
