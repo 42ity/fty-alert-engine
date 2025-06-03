@@ -19,29 +19,20 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// @file regexrule.h
 /// @author Alena Chernikava <AlenaChernikava@Eaton.com>
 /// @brief Representation of PATTERN rule
+
 #pragma once
 
 #include "luarule.h"
-#include <czmq.h>
+#include <czmq.h> //zrex
 #include <fty_log.h>
 
 class RegexRule : public LuaRule
 {
 public:
-    RegexRule()
-    {
-        _rex = NULL;
-    };
+    RegexRule() {}
+    ~RegexRule() { zrex_destroy(&_rex); }
 
-    ~RegexRule()
-    {
-        zrex_destroy(&_rex);
-    };
-
-    std::string whoami() const
-    {
-        return "pattern";
-    }
+    std::string whoami() const { return "pattern"; }
 
     /// parse json and check lua and fill the object
     ///
@@ -56,7 +47,9 @@ public:
         if (si.findMember("pattern") == NULL) {
             return 1;
         }
+
         log_debug("it is PATTERN rule");
+
         auto pattern = si.getMember("pattern");
         if (pattern.category() != cxxtools::SerializationInfo::Object) {
             log_error("Root of json must be an object with property 'pattern'.");
@@ -65,16 +58,26 @@ public:
 
         pattern.getMember("rule_name") >>= _name;
         pattern.getMember("target") >>= _rex_str;
+
+        // TODO what if regexp is not correct?
+        _rex = zrex_new(_rex_str.c_str());
+        if (!_rex) {
+            log_error("zrex_new() failed (rex: %s)", _rex_str);
+            return 1;
+        }
+
         // rule_class
         if (pattern.findMember("rule_class") != NULL) {
             pattern.getMember("rule_class") >>= _rule_class;
         }
+
         // rule_source
         if (pattern.findMember("rule_source") == NULL) {
             // if key is not there, take default
             _rule_source = "Manual user input";
             pattern.addMember("rule_source") <<= _rule_source;
-        } else {
+        }
+        else {
             auto rule_source = pattern.getMember("rule_source");
             if (rule_source.category() != cxxtools::SerializationInfo::Value) {
                 throw std::runtime_error("'rule_source' in json must be value.");
@@ -85,7 +88,7 @@ public:
 
         // values
         std::map<std::string, double> tmp_values;
-        auto                          values = pattern.getMember("values");
+        auto values = pattern.getMember("values");
         if (values.category() != cxxtools::SerializationInfo::Array) {
             log_error("parameter 'values' in json must be an array.");
             throw std::runtime_error("parameter 'values' in json must be an array");
@@ -105,39 +108,40 @@ public:
         pattern.getMember("evaluation") >>= tmp;
         try {
             code(tmp);
-        } catch (const std::exception& e) {
-            log_error("something with lua function: %s", e.what());
+        }
+        catch (const std::exception& e) {
+            log_error("something with Lua function: %s", e.what());
             return 2;
         }
-        // TODO what if regexp is not correct?
-        _rex = zrex_new(_rex_str.c_str());
+
         return 0;
-    };
+    }
 
     int evaluate(const MetricList& metricList, PureAlert& pureAlert)
     {
         _metrics = {metricList.getLastMetric().generateTopic()};
-        int rv   = LuaRule::evaluate(metricList, pureAlert);
-        if (rv != 0) {
-            return rv;
+        int r = LuaRule::evaluate(metricList, pureAlert);
+        if (r != 0) {
+            return r;
         }
         // regexp rule is special, it has to generate alert for the element,
         // that triggert the evaluation
         pureAlert._element = metricList.getLastMetric().getElementName();
+
         return 0;
-    };
+    }
 
     bool isTopicInteresting(const std::string& topic) const
     {
         return zrex_matches(_rex, topic.c_str());
-    };
+    }
 
     std::vector<std::string> getNeededTopics(void) const
     {
         return std::vector<std::string>{_rex_str};
-    };
+    }
 
 private:
-    zrex_t*     _rex{nullptr};
+    zrex_t* _rex{nullptr};
     std::string _rex_str;
 };

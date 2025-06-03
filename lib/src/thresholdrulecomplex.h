@@ -23,17 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "luarule.h"
-#include <cxxtools/serializationinfo.h>
 #include <czmq.h>
 
 
 class ThresholdRuleComplex : public LuaRule
 {
 public:
-    std::string whoami() const
-    {
-        return "threshold";
-    }
+    std::string whoami() const { return "threshold"; }
 
     ThresholdRuleComplex(){};
 

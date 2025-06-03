@@ -31,4 +31,10 @@ namespace utils {
 /// @return std::map
 std::map<std::string, std::string> zhash_to_map(zhash_t* hash);
 
+/// replace tokens by values in a string
+/// @param text input string
+/// @param dict dictionnary (token/value) map
+/// @return the string result
+std::string replaceTokens(const std::string& text, const std::map<std::string, std::string>& dict);
+
 } // namespace utils

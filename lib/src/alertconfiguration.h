@@ -70,6 +70,7 @@ public:
 
     /// Reads the configuration from persistence
     /// Set of topics is empty if there are no rules or there are some errors
+    /// **Exit** if failed
     /// @return a set of topics to be consumed
     std::set<std::string> readConfiguration();
 

@@ -46,7 +46,7 @@ private:
     void luaSetGlobalVariables();
     double luaEvaluate(const std::vector<double>& arguments);
 
-    bool _valid = false;
-    lua_State* _lstate = NULL;
+    bool _valid{false};
+    lua_State* _lstate{nullptr};
     std::string _code;
 };

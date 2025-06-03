@@ -32,6 +32,7 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     if (si.findMember("threshold") == NULL) {
         return 1;
     }
+
     auto threshold = si.getMember("threshold");
     if (threshold.category() != cxxtools::SerializationInfo::Object) {
         log_error("Root of json must be an object with property 'threshold'.");
@@ -43,6 +44,7 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     if (target.category() != cxxtools::SerializationInfo::Array) {
         return 1;
     }
+
     log_debug("it is complex threshold rule");
 
     std::vector<std::basic_string<cxxtools::Char>> cxxtools_Char_metrics;
@@ -58,22 +60,25 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     if (threshold.findMember("rule_class") != NULL) {
         threshold.getMember("rule_class") >>= _rule_class;
     }
+
     // rule_source
     if (threshold.findMember("rule_source") == NULL) {
         // if key is not there, take default
         _rule_source = "Manual user input";
         threshold.addMember("rule_source") <<= _rule_source;
-    } else {
+    }
+    else {
         auto rule_source = threshold.getMember("rule_source");
         if (rule_source.category() != cxxtools::SerializationInfo::Value) {
             throw std::runtime_error("'rule_source' in json must be value.");
         }
         rule_source >>= _rule_source;
     }
+
     // values
     // TODO check low_critical < low_warning < high_warning < high_critical
     std::map<std::string, double> tmp_values;
-    auto                          values = threshold.getMember("values");
+    auto values = threshold.getMember("values");
     if (values.category() != cxxtools::SerializationInfo::Array) {
         log_error("parameter 'values' in json must be an array.");
         throw std::runtime_error("parameter 'values' in json must be an array");
@@ -93,8 +98,9 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     threshold.getMember("evaluation") >>= tmp;
     try {
         code(tmp);
-    } catch (const std::exception& e) {
-        log_error("something with lua function: %s", e.what());
+    }
+    catch (const std::exception& e) {
+        log_error("something with Lua function: %s", e.what());
         return 2;
     }
 

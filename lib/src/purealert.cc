@@ -19,23 +19,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "purealert.h"
 #include <fty_log.h>
 
-bool PureAlert::isStatusKnown(const char* status)
+bool PureAlert::isStatusKnown(const std::string& status)
 {
-    if (!status)
-        return false; // inconsistent
-
-    if (strcmp(status, ALERT_RESOLVED) == 0)
+    if ((status == ALERT_RESOLVED)
+        || (status == ALERT_START)
+        || (status == ALERT_ACK1)
+        || (status == ALERT_ACK2)
+        || (status == ALERT_ACK3)
+        || (status == ALERT_ACK4)
+    ) {
         return true;
-    if (strcmp(status, ALERT_START) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK1) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK2) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK3) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK4) == 0)
-        return true;
+    }
 
     return false;
 }

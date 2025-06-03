@@ -97,7 +97,6 @@ static const std::map<std::pair<std::string, uint8_t>, uint32_t> times = {
 static void s_handle_stream_deliver_alert(fty_alert_actions_t*, fty_proto_t**, const char*);
 static void s_handle_stream_deliver_asset(fty_alert_actions_t*, fty_proto_t**, const char*);
 
-
 //  --------------------------------------------------------------------------
 //  fty_proto_t destroy for freefn
 static void delete_fty_proto_item(void* item)
@@ -151,7 +150,6 @@ fty_alert_actions_t* fty_alert_actions_new()
     return self;
 }
 
-
 //  --------------------------------------------------------------------------
 //  Destroy the fty_alert_actions
 
@@ -174,7 +172,6 @@ void fty_alert_actions_destroy(fty_alert_actions_t** self_p)
         *self_p = NULL;
     }
 }
-
 
 //  --------------------------------------------------------------------------
 //  Calculate alert interval for asset based on severity and priority
@@ -207,7 +204,6 @@ uint64_t get_alert_interval(s_alert_cache* alert_cache, uint64_t override_time)
     log_warning("alert severity/priority pair not found (%s, %d)", severity, priority);
     return 0;
 }
-
 
 //  --------------------------------------------------------------------------
 //  Create new s_alert_cache object
@@ -384,7 +380,6 @@ void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, char actio
     zuuid_destroy(&uuid);
 }
 
-
 //  --------------------------------------------------------------------------
 //  Send message to sensor-gpoi to set gpo to desired state
 
@@ -435,7 +430,6 @@ void send_gpo_action(fty_alert_actions_t* self, char* gpo_iname, char* gpo_state
     zuuid_destroy(&zuuid);
 }
 
-
 //  --------------------------------------------------------------------------
 //  Send active actions for an alert that is sent for the first time
 //  Emails, smses and gpos are handled here
@@ -448,6 +442,7 @@ void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
     if (!action) {
         log_debug("no action defined");
     }
+
     while (action) {
         log_debug("action: %s", action);
 
@@ -473,13 +468,15 @@ void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
             } else {
                 log_warning("unexpected parameter received for email action");
             }
-        } else if (streq(action_what, SMS_ACTION)) {
+        }
+        else if (streq(action_what, SMS_ACTION)) {
             if (NULL == tmp) { // sanity check
                 send_email(self, alert_item, SMS_ACTION_VALUE);
             } else {
                 log_warning("unexpected parameter received for sms action");
             }
-        } else if (streq(action_what, GPO_ACTION)) {
+        }
+        else if (streq(action_what, GPO_ACTION)) {
             char* gpo_iname = tmp; // asset iname
             if (NULL == gpo_iname) {
                 log_warning("GPO_ACTION misses asset iname");
@@ -498,10 +495,12 @@ void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
             log_debug("send_gpo_action: gpo_iname: %s, gpo_state: %s, tmp: %s", gpo_iname, gpo_state, tmp);
             if (NULL == tmp) {       // sanity check
                 send_gpo_action(self, gpo_iname, gpo_state);
-            } else {
+            }
+            else {
                 log_warning("unexpected parameter received for gpo_interaction action");
             }
-        } else {
+        }
+        else {
             log_warning("unsupported alert action : %s ", action_what);
         }
 
@@ -509,7 +508,6 @@ void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
         action = fty_proto_action_next(alert_item->alert_msg);
     }
 }
-
 
 //  --------------------------------------------------------------------------
 //  Send active actions for an alert that is periodically repeated
@@ -545,14 +543,16 @@ void action_alert_repeat(fty_alert_actions_t* self, s_alert_cache* alert_item)
             if (streq(action_what, EMAIL_ACTION)) {
                 if (!tmp) { // sanity check
                     send_email(self, alert_item, EMAIL_ACTION_VALUE);
-                } else {
+                }
+                else {
                     log_warning("unexpected parameter received for email action (tmp: %s)", tmp);
                 }
             }
             else if (streq(action_what, SMS_ACTION)) {
                 if (!tmp) { // sanity check
                     send_email(self, alert_item, SMS_ACTION_VALUE);
-                } else {
+                }
+                else {
                     log_warning("unexpected parameter received for sms action (tmp: %s)", tmp);
                 }
             }
@@ -568,7 +568,6 @@ void action_alert_repeat(fty_alert_actions_t* self, s_alert_cache* alert_item)
         action = fty_proto_action_next(alert_item->alert_msg);
     }
 }
-
 
 //  --------------------------------------------------------------------------
 //  Send resolve actions for an alert
@@ -594,9 +593,11 @@ void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
         char* tmp = strtok(NULL, ":");
         if (streq(action_what, EMAIL_ACTION)) {
             // happily ignored
-        } else if (streq(action_what, SMS_ACTION)) {
+        }
+        else if (streq(action_what, SMS_ACTION)) {
             // happily ignored
-        } else if (streq(action_what, GPO_ACTION)) {
+        }
+        else if (streq(action_what, GPO_ACTION)) {
             char* gpo_iname = tmp; // asset iname
             if (NULL == gpo_iname) {
                 log_warning("GPO_ACTION miss asset iname");
@@ -614,17 +615,20 @@ void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
             // for resolve opposite values are sent
             if (0 == strcmp(gpo_state, GPO_STATE_OPEN)) {
                 strcpy(gpo_state, GPO_STATE_CLOSE);
-            } else {
+            }
+            else {
                 strcpy(gpo_state, GPO_STATE_OPEN);
             }
             tmp = strtok(NULL, ":"); // required state
             log_debug("send_gpo_action: gpo_iname: %s, gpo_state: %s, tmp: %s", gpo_iname, gpo_state, tmp);
             if (NULL == tmp) {       // sanity check
                 send_gpo_action(self, gpo_iname, gpo_state);
-            } else {
+            }
+            else {
                 log_warning("unexpected parameter received for send_gpo_action");
             }
-        } else {
+        }
+        else {
             log_warning("unsupported alert action : %s", action_what);
         }
         free(action_dup);
@@ -633,7 +637,6 @@ void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
 
     log_debug("action_resolve done for %s", fty_proto_name(alert_item->alert_msg));
 }
-
 
 //  --------------------------------------------------------------------------
 //  Check for timed out alerts, resolve them and delete them
@@ -646,6 +649,8 @@ void check_timed_out_alerts(fty_alert_actions_t* self)
 
     for (void* item = zhash_first(self->alerts_cache); item; item = zhash_next(self->alerts_cache))
     {
+        if (zsys_interrupted) break;
+
         s_alert_cache* it = static_cast<s_alert_cache*>(item);
         uint64_t alert_ttl_ms = uint64_t(fty_proto_ttl(it->alert_msg)) * 1000;
 
@@ -656,7 +661,6 @@ void check_timed_out_alerts(fty_alert_actions_t* self)
         }
     }
 }
-
 
 //  --------------------------------------------------------------------------
 //  Resend alerts periodically based on times table - severity and priority
@@ -669,12 +673,14 @@ void check_alerts_and_send_if_needed(fty_alert_actions_t* self)
 
     for (void* item = zhash_first(self->alerts_cache); item; item = zhash_next(self->alerts_cache))
     {
+        if (zsys_interrupted) break;
+
         s_alert_cache* it = static_cast<s_alert_cache*>(item);
 
         uint64_t notification_delay = get_alert_interval(it, self->notification_override);
         if ((notification_delay != 0)
             && ((it->last_notification + notification_delay) <= now)
-        ){
+        ) {
             log_debug("%s action started", fty_proto_rule(it->alert_msg));
 
             it->last_notification = static_cast<uint64_t>(zclock_mono());
@@ -688,7 +694,6 @@ void check_alerts_and_send_if_needed(fty_alert_actions_t* self)
         }
     }
 }
-
 
 //  --------------------------------------------------------------------------
 //  Handle incoming alerts through stream
@@ -812,7 +817,6 @@ static void s_handle_stream_deliver_alert(fty_alert_actions_t* self, fty_proto_t
     }
 }
 
-
 //  --------------------------------------------------------------------------
 //  Handle incoming assets through stream
 
@@ -907,7 +911,6 @@ static void s_handle_stream_deliver_asset(
     fty_proto_destroy(asset_p);
 }
 
-
 //  --------------------------------------------------------------------------
 //  Handle incoming alert/asset notifications through stream
 
@@ -918,18 +921,21 @@ void s_handle_stream_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, const ch
 
     fty_proto_t* proto_msg = fty_proto_decode(msg_p);
 
-    if (proto_msg && fty_proto_id(proto_msg) == FTY_PROTO_ALERT) {
+    if (!proto_msg) {
+        log_error("fty_proto_decode() failed");
+    }
+    else if (fty_proto_id(proto_msg) == FTY_PROTO_ALERT) {
         s_handle_stream_deliver_alert(self, &proto_msg, subject);
     }
-    else if (proto_msg && fty_proto_id(proto_msg) == FTY_PROTO_ASSET) {
+    else if (fty_proto_id(proto_msg) == FTY_PROTO_ASSET) {
         s_handle_stream_deliver_asset(self, &proto_msg, subject);
     }
     else {
         log_warning("Message not FTY_PROTO_ALERT nor FTY_PROTO_ASSET, ignoring.");
-        fty_proto_destroy(&proto_msg);
     }
-}
 
+    fty_proto_destroy(&proto_msg);
+}
 
 //  --------------------------------------------------------------------------
 //  Handle incoming alerts through pipe
@@ -953,32 +959,36 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
 
     if (streq(cmd, "CONNECT")) {
         char* endpoint = zmsg_popstr(msg);
-        int   rv       = mlm_client_connect(self->client, endpoint, 1000, self->name);
-        if (rv == -1) {
+        int r = mlm_client_connect(self->client, endpoint, 1000, self->name);
+        if (r != 0) {
             log_error("can't connect to malamute endpoint '%s'", endpoint);
         }
-        rv = mlm_client_connect(self->requestreply_client, endpoint, 1000, self->requestreply_name);
-        if (rv == -1)
+        r = mlm_client_connect(self->requestreply_client, endpoint, 1000, self->requestreply_name);
+        if (r != 0) {
             log_error("can't connect requestreply to malamute endpoint '%s'", endpoint);
+        }
         zstr_free(&endpoint);
-    } else if (streq(cmd, "CONSUMER")) {
+    }
+    else if (streq(cmd, "CONSUMER")) {
         char* stream  = zmsg_popstr(msg);
         char* pattern = zmsg_popstr(msg);
-        int   rv      = mlm_client_set_consumer(self->client, stream, pattern);
-        if (rv == -1) {
+        int r = mlm_client_set_consumer(self->client, stream, pattern);
+        if (r != 0) {
             log_error("can't set consumer on stream '%s', '%s'", stream, pattern);
         }
         zstr_free(&pattern);
         zstr_free(&stream);
-    } else if (streq(cmd, "ASKFORASSETS")) {
+    }
+    else if (streq(cmd, "ASKFORASSETS")) {
         log_debug("asking for assets");
         zmsg_t* republish = zmsg_new();
-        int     rv = mlm_client_sendto(self->client, FTY_ASSET_AGENT_ADDRESS, "REPUBLISH", NULL, 5000, &republish);
+        int r = mlm_client_sendto(self->client, FTY_ASSET_AGENT_ADDRESS, "REPUBLISH", NULL, 5000, &republish);
         zmsg_destroy(&republish);
-        if (rv != 0) {
+        if (r != 0) {
             log_error("can't send REPUBLISH message");
         }
-    } else if (streq(cmd, "TESTTIMEOUT")) {
+    }
+    else if (streq(cmd, "TESTTIMEOUT")) {
         char* rcvd = zmsg_popstr(msg);
         log_debug("setting test timeout to received value (timeout: %s)", rcvd);
         uint64_t aux;
@@ -986,7 +996,8 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
             timeout = aux;
         }
         zstr_free(&rcvd);
-    } else if (streq(cmd, "TESTCHECKINTERVAL")) {
+    }
+    else if (streq(cmd, "TESTCHECKINTERVAL")) {
         char* rcvd = zmsg_popstr(msg);
         log_debug("setting test interval for checks (rcvd: %s)", rcvd);
         uint64_t aux;
@@ -1006,7 +1017,6 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
     zmsg_destroy(msg_p);
     return 0;
 }
-
 
 //  --------------------------------------------------------------------------
 //  fty_alert_actions actor function
@@ -1060,8 +1070,9 @@ void fty_alert_actions(zsock_t* pipe, void* args)
                 term = true; //$TERM
             }
             zmsg_destroy(&msg);
-            if (term)
+            if (term) {
                 break;
+            }
             continue;
         }
 
@@ -1071,10 +1082,11 @@ void fty_alert_actions(zsock_t* pipe, void* args)
             s_handle_stream_deliver(self, &msg, mlm_client_subject(self->client));
             continue;
         }
+        zmsg_destroy(&msg);
+
         // all other messages should be ignored
         log_debug("received message through '%s' from '%s' with subject '%s' that is ignored",
             mlm_client_address(self->client), mlm_client_sender(self->client), mlm_client_subject(self->client));
-        zmsg_destroy(&msg);
     }
 
     zpoller_destroy(&poller);

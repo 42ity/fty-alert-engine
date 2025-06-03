@@ -373,12 +373,12 @@ void Autoconfig::onSend(fty_proto_t* message)
 
 void Autoconfig::onPoll()
 {
-    static TemplateRuleConfigurator iTemplateRuleConfigurator;
-
     bool save = false;
 
     {
         ConfigurableDevices_GUARD;
+        TemplateRuleConfigurator trc;
+
         //std::map<std::string, AutoConfigurationInfo>
         for (auto& it : _configurableDevices) {
             if (zsys_interrupted) {
@@ -389,16 +389,13 @@ void Autoconfig::onPoll()
             }
 
             bool device_configured = true;
-            if (iTemplateRuleConfigurator.isApplicable(it.second))
+            if (trc.isApplicable(it.second))
             {
-                std::string la;
-                if (it.second.attributes.count("logical_asset") != 0) {
-                    la = it.second.attributes["logical_asset"];
-                }
+                std::string ename_la; //empty
+                const auto iname_la = it.second.getAttr("logical_asset");
+                if (!iname_la.empty()) { ename_la = Autoconfig::getEname(iname_la); }
 
-                device_configured &= iTemplateRuleConfigurator.configure(
-                    it.first, it.second, Autoconfig::getEname(la), _clientSender
-                );
+                device_configured &= trc.configure(it.first, it.second, ename_la, _clientSender);
             }
             else {
                 log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
@@ -496,12 +493,12 @@ std::list<std::string> Autoconfig::getAssetsThatMatchTemplate(const std::string&
 {
     ConfigurableDevices_GUARD;
 
-    TemplateRuleConfigurator templateRuleConfigurator;
+    TemplateRuleConfigurator trc;
     std::list<std::string> assets;
 
     for (const auto& it : _configurableDevices) {
         const AutoConfigurationInfo& info = it.second;
-        if (templateRuleConfigurator.isApplicable(info, template_name)) {
+        if (trc.isApplicable(info, template_name)) {
             assets.push_back(it.first); // iname
         }
     }
@@ -521,8 +518,8 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, filter);
 
-    TemplateRuleConfigurator templateRuleConfigurator;
-    std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
+    TemplateRuleConfigurator trc;
+    std::vector<std::pair<std::string, std::string>> templates = trc.loadAllTemplates();
 
     log_debug("templates rules count: '%zu'", templates.size());
 

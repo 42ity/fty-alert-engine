@@ -27,4 +27,15 @@ TEST_CASE("utils test")
 
         zhash_destroy(&hash);
     }
+
+    SECTION("replaceTokens")
+    {
+        CHECK(replaceTokens("", {}) == "");
+        CHECK(replaceTokens("a", {}) == "a");
+        CHECK(replaceTokens("a", { {"a", "b"} }) == "b");
+        CHECK(replaceTokens("a", { {"a", "b"}, {"b", "c"} }) == "c");
+
+        CHECK(replaceTokens("hello world", { {" world", ""} }) == "hello");
+        CHECK(replaceTokens("hello world", { {"hello", "你好"}, {" world", ""} }) == "你好");
+    }
 }

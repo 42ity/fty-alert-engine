@@ -428,20 +428,22 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
 static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const std::string& rule_name)
 {
     auto buildActionList = [](const PureAlert& alert) {
-        zlist_t* al = zlist_new();
-        //zlist_autofree(al);
-        for (const auto& action : alert._actions) {
-            zlist_append(al, const_cast<char*>(action.c_str()));
+        zlist_t* al = nullptr;
+        if (!alert._actions.empty()) {
+            al = zlist_new();
+            //zlist_autofree(al);
+            for (const auto& action : alert._actions) {
+                zlist_append(al, const_cast<char*>(action.c_str()));
+            }
         }
         return al;
     };
 
+    bool isWarranty = (rule_name == "warranty");
+
     for (const auto& alert : alertsToSend) {
         // Asset id is missing in the rule name for warranty alarms
-        std::string fullRuleName = rule_name;
-        if (fullRuleName == "warranty") {
-            fullRuleName += "@" + alert._element;
-        }
+        const std::string fullRuleName = isWarranty ? (rule_name + "@" + alert._element) : rule_name;
 
         zlist_t* actions = buildActionList(alert);
         zmsg_t* msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
@@ -449,14 +451,13 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
             alert._severity.c_str(), alert._description.c_str(), actions);
         zlist_destroy(&actions);
 
-        if (!msg) {
-            log_error("encode alert failed (%s)", fullRuleName.c_str());
+        if (msg) {
+            std::string topic = fullRuleName + "/" + alert._severity + "@" + alert._element;
+            mlm_client_send(client, topic.c_str(), &msg);
+            log_info("Send Alert %s/%s (severity: %s)", fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str());
         }
         else {
-            std::string topic = rule_name + "/" + alert._severity + "@" + alert._element;
-            mlm_client_send(client, topic.c_str(), &msg);
-            log_info("Send Alert for %s with state %s and severity %s",
-                fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str());
+            log_error("Encode alert failed (%s)", fullRuleName.c_str());
         }
         zmsg_destroy(&msg);
     }
@@ -748,8 +749,8 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
         isEvaluate = true;
 
-        auto&       it_ac = ac.at(rulename);
-        const auto& rule  = it_ac.first;
+        auto& it_ac = ac.at(rulename);
+        const auto& rule = it_ac.first;
         log_debug("### Evaluate rule '%s'", rule->name().c_str());
 
         try {
@@ -762,39 +763,45 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
             PureAlert alertToSend;
             r = ac.updateAlert(it_ac, pureAlert, alertToSend);
+            if (r != 0) {
+                log_debug("### alert updated, nothing to send");
+                continue;
+            }
             alertToSend._ttl = triggeringMetric.getTtl() * 3;
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the
             // corrent message to stream alert description is modified
             if (rule->name() == "warranty") {
                 int remaining_days = static_cast<int>(triggeringMetric.getValue());
-                if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expired)\"}") {
-                    remaining_days = abs(remaining_days);
-                    // clang-format off
-                    alertToSend._description =
-                        std::string("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)\", ") +
-                        "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
-                        triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) + "\"} }";
-                    // clang-format on
+                remaining_days = abs(remaining_days);
+
+                const std::map<std::string, std::string> dict = {
+                    { "__ename__", triggeringMetric.getElementName() },
+                    { "__remaining_days__", std::to_string(remaining_days) },
+                    { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
+                    { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
+                };
+
+                const std::string ad = alertToSend._description;
+                if (ad.find("Warranty expired") != std::string::npos) {
+                    const std::string desc = R"xx({
+                        "key": "__TRLua_is_expired__",
+                        "variables": { "asset": { "value": "", "assetLink": "__ename__" }, "days": "__remaining_days__" }
+                    })xx";
+                    alertToSend._description = utils::replaceTokens(desc, dict);
                 }
-                else if (alertToSend._description == "{\"key\":\"TRANSLATE_LUA (Warranty expires in)\"}") {
-                    // Style note: do not break long translated lines, that would break their parser
-                    // clang-format off
-                    alertToSend._description =
-                            std::string("{\"key\" : \"TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)\", ") +
-                                        "\"variables\" : { \"asset\" : { \"value\" : \"\", \"assetLink\" : \"" +
-                                        triggeringMetric.getElementName() + "\" }, \"days\" : \"" + std::to_string(remaining_days) + "\"} }";
-                    // clang-format on
+                else if (ad.find("Warranty expires in") != std::string::npos) {
+                    const std::string desc = R"xx({
+                        "key": "__TRLua_expires_in__",
+                        "variables": { "asset": { "value": "", "assetLink": "__ename__" }, "days": "__remaining_days__" }
+                    })xx";
+                    alertToSend._description = utils::replaceTokens(desc, dict);
                 }
                 else {
-                    log_error("Unable to identify Warranty alert description");
+                    log_error("Unable to identify Warranty alert description (description: %s)", ad.c_str());
                 }
             }
 
-            if (r == -1) {
-                log_debug("### alert updated, nothing to send");
-                continue;
-            }
             send_alerts(client, {alertToSend}, rule);
         }
         catch (const std::exception& e) {
@@ -810,8 +817,9 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
 {
     // process accumulated metrics
     for (auto& element : result) {
-        if (zsys_interrupted)
+        if (zsys_interrupted) {
             break;
+        }
 
         // metric
         const char* type      = fty_proto_type(element); // metric type
@@ -930,8 +938,8 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             else if (streq(cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr(msg);
                 log_debug("CONNECT received (endpoint: %s)", endpoint);
-                int rv = mlm_client_connect(client, endpoint, 1000, name);
-                if (rv == -1) {
+                int r = mlm_client_connect(client, endpoint, 1000, name);
+                if (r != 0) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 }
                 zstr_free(&endpoint);
@@ -939,8 +947,8 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             else if (streq(cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr(msg);
                 log_debug("PRODUCER received (stream: %s)", stream);
-                int rv = mlm_client_set_producer(client, stream);
-                if (rv == -1) {
+                int r = mlm_client_set_producer(client, stream);
+                if (r != 0) {
                     log_error("%s: can't set producer on stream '%s'", name, stream);
                 }
                 zstr_free(&stream);
@@ -1016,8 +1024,8 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             else if (streq(cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr(zmsg);
                 log_debug("%s: CONNECT received %s", name, endpoint);
-                int rv = mlm_client_connect(client, endpoint, 1000, name);
-                if (rv == -1) {
+                int r = mlm_client_connect(client, endpoint, 1000, name);
+                if (r != 0) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 }
                 zstr_free(&endpoint);
@@ -1025,8 +1033,8 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             else if (streq(cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr(zmsg);
                 log_debug("%s: PRODUCER received %s", name, stream);
-                int rv = mlm_client_set_producer(client, stream);
-                if (rv == -1) {
+                int r = mlm_client_set_producer(client, stream);
+                if (r != 0) {
                     log_error("%s: can't set producer on stream '%s'", name, stream);
                 }
                 zstr_free(&stream);
@@ -1037,7 +1045,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 if (dirname) {
                     // Read initial configuration
                     alertConfiguration.setPath(dirname);
-                    // XXX: somes to subscribe are returned, but not used for now
+                    log_info("Reading configuration from '%s'", alertConfiguration.getPersistencePath().c_str());
                     alertConfiguration.readConfiguration();
                 }
                 else {

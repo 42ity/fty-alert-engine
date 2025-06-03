@@ -67,16 +67,11 @@ public:
         , _actions{actions}
         , _ttl{0} {};
 
-    std::string rule_class()
-    {
-        return _rule_class;
-    };
-    void rule_class(const std::string& rule_class)
-    {
-        _rule_class = rule_class;
-    };
-    static bool isStatusKnown(const char* status);
-    void        print(void) const;
+    std::string rule_class() const { return _rule_class; }
+    void rule_class(const std::string& rule_class) { _rule_class = rule_class; }
+
+    static bool isStatusKnown(const std::string& status);
+    void        print() const;
 };
 
 typedef std::unique_ptr<PureAlert> PureAlertPtr;

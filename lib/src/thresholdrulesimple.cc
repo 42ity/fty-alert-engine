@@ -29,6 +29,7 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     if (si.findMember("threshold") == NULL) {
         return 1;
     }
+
     auto threshold = si.getMember("threshold");
     if (threshold.category() != cxxtools::SerializationInfo::Object) {
         log_error("Root of json must be an object with property 'threshold'.");
@@ -40,22 +41,26 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     if (target.category() != cxxtools::SerializationInfo::Value) {
         return 1;
     }
+
     // rule_source
     if (threshold.findMember("rule_source") == NULL) {
         // if key is not there, take default
         _rule_source = "Manual user input";
         threshold.addMember("rule_source") <<= _rule_source;
-    } else {
+    }
+    else {
         auto rule_source = threshold.getMember("rule_source");
         if (rule_source.category() != cxxtools::SerializationInfo::Value) {
             throw std::runtime_error("'rule_source' in json must be value.");
         }
         rule_source >>= _rule_source;
     }
+
     log_debug("rule_source = %s", _rule_source.c_str());
     if (_rule_source != "Manual user input") {
         return 1;
     }
+
     log_debug("it is simple threshold rule");
 
     si_getValueUtf8(threshold, "target", _metric);
@@ -66,10 +71,11 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     if (threshold.findMember("rule_class") != NULL) {
         threshold.getMember("rule_class") >>= _rule_class;
     }
+
     // values
     // TODO check low_critical < low_warning < high_warning < hign crtical
     std::map<std::string, double> tmp_values;
-    auto                          values = threshold.getMember("values");
+    auto values = threshold.getMember("values");
     if (values.category() != cxxtools::SerializationInfo::Array) {
         log_error("parameter 'values' in json must be an array.");
         throw std::runtime_error("parameter 'values' in json must be an array");
@@ -84,21 +90,8 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
         throw std::runtime_error("parameter 'results' in json must be an array.");
     }
     outcomes >>= _outcomes;
+
     return 0;
-}
-
-// log alarm audit
-// private
-void ThresholdRuleSimple::log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const
-{
-    std::string auditValues = metric.getSource() + "=" + std::to_string(metric.getValue());
-
-    std::string auditDesc =
-        (pureAlert._status == ALERT_RESOLVED) ? ALERT_RESOLVED : // RESOLVED
-        std::string{pureAlert._status + "/" + pureAlert._severity.substr(0, 1)} // ACTIVE/C ACTIVE/W
-    ;
-
-    audit_log_info("%8s %s (%s)", auditDesc.c_str(), _name.c_str(), auditValues.c_str());
 }
 
 int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureAlert)
@@ -205,4 +198,17 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
 
     log_audit_alarm(lastMetric, pureAlert);
     return 0;
+}
+
+// log alarm audit
+void ThresholdRuleSimple::log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const
+{
+    std::string auditValues = metric.getSource() + "=" + std::to_string(metric.getValue());
+
+    std::string auditDesc =
+        (pureAlert._status == ALERT_RESOLVED) ? ALERT_RESOLVED : // RESOLVED
+        std::string{pureAlert._status + "/" + pureAlert._severity.substr(0, 1)} // ACTIVE/C ACTIVE/W
+    ;
+
+    audit_log_info("%8s %s (%s)", auditDesc.c_str(), _name.c_str(), auditValues.c_str());
 }

@@ -115,6 +115,7 @@ public: // virtual methods
         _variables.clear();
         _variables.insert(vars.cbegin(), vars.cend());
     }
+
     /// get/set code
     virtual void code(const std::string& /* code */)
     {
@@ -208,15 +209,6 @@ public: // methods
         catch (const std::exception& e) {
             log_error("%s, save() exception '%s'", _name.c_str(), e.what());
         }
-
-/**
-        std::string full_name = path + name;
-        log_debug("trying to save file : '%s'", full_name.c_str());
-        std::ofstream ofs(full_name, std::ofstream::out);
-        ofs.exceptions(~std::ofstream::goodbit);
-        ofs << getJsonRule();
-        ofs.close();
-*/
     }
 
     /// Delete rule from the persistance

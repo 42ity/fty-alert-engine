@@ -23,17 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "rule.h"
-#include <cxxtools/serializationinfo.h>
 
 class ThresholdRuleSimple : public Rule
 {
 public:
     ThresholdRuleSimple() {};
 
-    std::string whoami() const
-    {
-        return "threshold";
-    }
+    std::string whoami() const { return "threshold"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 

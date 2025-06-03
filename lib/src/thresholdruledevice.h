@@ -19,22 +19,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// @file thresholdruledevice.h
 /// @author Alena Chernikava <AlenaChernikava@Eaton.com>
 /// @brief Threshold rule representation for rules directly extracted from device
+
 #pragma once
 
 #include "rule.h"
 #include "audit_log.h"
 #include <fty/expected.h>
-#include <cxxtools/serializationinfo.h>
 
 class ThresholdRuleDevice : public Rule
 {
 public:
     ThresholdRuleDevice() {}
 
-    std::string whoami() const
-    {
-        return "threshold";
-    }
+    std::string whoami() const { return "threshold"; }
 
     // throws -> it is device threshold but with errors
     // 0 - ok
@@ -45,6 +42,7 @@ public:
         if (si.findMember("threshold") == NULL) {
             return 1;
         }
+
         auto threshold = si.getMember("threshold");
         if (threshold.category() != cxxtools::SerializationInfo::Object) {
             log_error("Root of json must be an object with property 'threshold'.");
@@ -65,7 +63,8 @@ public:
             // if key is not there, take default
             _rule_source = "Manual user input";
             threshold.addMember("rule_source") <<= _rule_source;
-        } else {
+        }
+        else {
             auto rule_source = threshold.getMember("rule_source");
             if (rule_source.category() != cxxtools::SerializationInfo::Value) {
                 throw std::runtime_error("'rule_source' in json must be value.");
@@ -85,6 +84,7 @@ public:
         if (threshold.findMember("rule_class") != NULL) {
             threshold.getMember("rule_class") >>= _rule_class;
         }
+
         // values
         // TODO check low_critical < low_warning < high_warning < high critical
         std::map<std::string, double> tmp_values;
@@ -103,6 +103,7 @@ public:
             throw std::runtime_error("parameter 'results' in json must be an array.");
         }
         outcomes >>= _outcomes;
+
         return 0;
     }
 
@@ -219,6 +220,7 @@ public:
         pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), "ok", this->_element, this->_rule_class);
 
         log_audit_alarm(lastMetric, pureAlert);
+
         return 0;
     }
 

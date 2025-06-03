@@ -54,9 +54,10 @@ int readRule(std::istream& f, RulePtr& rule)
             si.addMember(member0.name()) <<= member0;
         }
 
-        // try to parse/fill a new rule
+        // try to parse/fill a new rule from si
         // returns 0 if success (rule is set)
-        // returns 2 if error (malformed si)
+        // returns 2 if error (malformed si or Lua error)
+        // do nothing else (continue)
         #define TRY_RULE_FILL(new_rule) \
         { \
             std::unique_ptr<Rule> rule_{new_rule}; \
@@ -80,7 +81,7 @@ int readRule(std::istream& f, RulePtr& rule)
         log_error("Cannot parse JSON (e: %s)", e.what());
     }
 
-    return 1;
+    return 1; // read failed
 }
 
 std::set<std::string> AlertConfiguration::readConfiguration()
@@ -94,17 +95,17 @@ std::set<std::string> AlertConfiguration::readConfiguration()
         if (!std::filesystem::exists(_path)) {
             std::filesystem::create_directories(_path);
         }
-        std::filesystem::path d(_path);
+        std::filesystem::path dir(_path);
 
         // every rule at the begining has empty set of alerts
-        for (const auto& fn : std::filesystem::directory_iterator(d)) {
+        for (const auto& fn : std::filesystem::directory_iterator(dir)) {
 
             // filter on .rule files
             if (fn.path().extension() != ".rule") {
                 continue;
             }
 
-            std::string fname = fn.path().filename();
+            const std::string fname{fn.path().filename()};
 
             // read rule from the file
             std::unique_ptr<Rule> rule{nullptr};
@@ -119,20 +120,20 @@ std::set<std::string> AlertConfiguration::readConfiguration()
                 }
             }
 
+            const std::string rulename{rule->name()};
+
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule (5 = strlen(".rule")
             if (!rule->hasSameNameAs(fname.substr(0, fname.length() - 5))) {
-                log_warning("'%s' differs from rule name '%s', ignore it", fname.c_str(), rule->name().c_str());
+                log_warning("'%s' differs from rule name '%s', ignore it", fname.c_str(), rulename.c_str());
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if (haveRule(rule)) {
-                log_warning("rule with name '%s' already known, ignore this one. File '%s'", rule->name().c_str(), fname.c_str());
+                log_warning("rule '%s' already known & ignoree (file: '%s')", rulename.c_str(), fname.c_str());
                 continue;
             }
-
-            std::string rulename = rule->name();
 
             // record topics we are interested in
             for (const auto& interestedTopic : rule->getNeededTopics()) {
@@ -147,14 +148,15 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             }
 
             // add rule to the configuration
-            std::vector<PureAlert> emptyAlerts;
+            const std::vector<PureAlert> emptyAlerts;
             _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), emptyAlerts)));
+
             log_debug("file '%s' read correctly", fname.c_str());
         }
     }
     catch (const std::exception& e) {
-        log_fatal("EXIT_FAILURE - Can't read configuration: %s", e.what());
-        exit(EXIT_FAILURE); // ZZZ
+        log_fatal("EXIT_FAILURE - Can't read %s configuration (e: %s)", _path.c_str(), e.what());
+        exit(EXIT_FAILURE); // ZZZ EXIT
     }
 
     return result;
@@ -175,48 +177,53 @@ int AlertConfiguration::addRule(
 
     RulePtr temp_rule{nullptr};
     int r = readRule(newRuleString, temp_rule);
-    if (r == 1) {
-        log_error("nothing created, json error");
+    if (r != 0) { // failed
+        switch (r) {
+            case 1:
+                log_error("nothing created, json error"); // json error !?
+                return -1;
+            case 2:
+                log_error("nothing created, Lua error");
+                return -5;
+            default:;
+        }
+        log_error("nothing created, error: %d", r);
         return -1;
     }
-    if (r == 2) {
-        log_error("nothing created, lua error");
-        return -5;
-    }
+
+    const std::string rulename{temp_rule->name()};
 
     // PQSWMBT-3723, don't instanciate sensor temp./humidity rules directly
-    if ((temp_rule->name().find("humidity.default@sensor-") == 0) // starts with...
-        || (temp_rule->name().find("temperature.default@sensor-") == 0)) {
-        log_debug("rule instanciation rejected (%s)", temp_rule->name().c_str());
+    if ((rulename.find("humidity.default@sensor-") == 0) // starts with...
+        || (rulename.find("temperature.default@sensor-") == 0)) {
+        log_debug("rule instanciation rejected (%s)", rulename.c_str());
         return -100;
     }
     // end PQSWMBT-3723
 
     // PQSWMBT-4921 Xphase rule exceptions (see templateruleconfigurator.cc)
-    auto asset = temp_rule->name().substr(temp_rule->name().find("@") + 1);
-    if (!ruleXphaseIsApplicable(temp_rule->name(), getAssetInfoFromAutoconfig(asset))) {
-        log_debug("Xphase rule instanciation rejected (%s)", temp_rule->name().c_str());
+    auto asset = rulename.substr(temp_rule->name().find("@") + 1);
+    if (!ruleXphaseIsApplicable(rulename, getAssetInfoFromAutoconfig(asset))) {
+        log_debug("Xphase rule instanciation rejected (%s)", rulename.c_str());
         return -101;
     }
     // end PQSWMBT-4921
 
-    log_info("addRule %s", temp_rule->name().c_str());
+    log_info("addRule %s", rulename.c_str());
 
     if (haveRule(temp_rule)) {
-        log_debug("rule %s already exists", temp_rule->name().c_str());
+        log_debug("rule %s already exists", rulename.c_str());
         return -2;
     }
 
     try {
-        temp_rule->save(getPersistencePath(), temp_rule->name() + ".rule");
+        temp_rule->save(getPersistencePath(), rulename + ".rule");
     }
     catch (const std::exception& e) {
-        std::string filename = getPersistencePath() + temp_rule->name() + ".rule";
+        std::string filename = getPersistencePath() + rulename + ".rule";
         log_error("Error saving file '%s' (e: %s)", filename.c_str(), e.what());
         return -6;
     }
-
-    std::string rulename = temp_rule->name();
 
     // in any case we need to check new subjects
     for (const auto& interestedTopic : temp_rule->getNeededTopics()) {
@@ -253,7 +260,7 @@ int AlertConfiguration::touchRule(const std::string& rule_name, std::vector<Pure
 
     // resolve found alerts
     for (auto& oneAlert : rule_to_update->second.second) {
-        oneAlert._status      = ALERT_RESOLVED;
+        oneAlert._status = ALERT_RESOLVED;
         oneAlert._description = "Rule was changed implicitly";
         // put them into the list of alerts that had changed
         alertsToSend.push_back(oneAlert);
@@ -289,15 +296,20 @@ int AlertConfiguration::updateRule(
         return -2;
     }
 
-    RulePtr temp_rule;
+    RulePtr temp_rule{nullptr};
     int r = readRule(newRuleString, temp_rule);
-    if (r == 1) {
-        log_error("nothing to update, json error");
+    if (r != 0) { // failed
+        switch (r) {
+            case 1:
+                log_error("nothing created, json error"); // json error !?
+                return -1;
+            case 2:
+                log_error("nothing created, Lua error");
+                return -5;
+            default:;
+        }
+        log_error("nothing created, error: %d", r);
         return -1;
-    }
-    if (r == 2) {
-        log_error("nothing to update, lua error");
-        return -5;
     }
 
     // if name of the rule changed, then
@@ -338,13 +350,12 @@ int AlertConfiguration::updateRule(
         getPersistencePath().append(rule_removed_name).append(".rule").c_str());
     if (r != 0) {
         log_error(
-            "Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart "
-            "the daemon",
+            "Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon",
             rule_removed_name.c_str());
         return -6;
     }
 
-    // so, in the files now everything ok
+    // here, everything ok with files
     // and we need to fix information in the memory
 
     // resolve found alerts
@@ -447,7 +458,7 @@ int AlertConfiguration::deleteRules(
 
             // *resolve* found alerts
             for (auto& oneAlert : rule_to_remove->second.second) {
-                oneAlert._status      = ALERT_RESOLVED;
+                oneAlert._status = ALERT_RESOLVED;
                 oneAlert._description = "Rule deleted";
                 // put them into the list of alerts that changed
                 alertsToSend[rule_removed_name].push_back(oneAlert);
@@ -557,7 +568,7 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
         // but  only if alert is not resolved
         // IPMVAL-2411 fix: enlarge to RESOLVED status (eg. any known status)
         //             was: if (pureAlert._status != ALERT_RESOLVED)
-        if (PureAlert::isStatusKnown(pureAlert._status.c_str())) {
+        if (PureAlert::isStatusKnown(pureAlert._status)) {
             oneRuleAlerts.second.push_back(pureAlert);
             log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'",
                 oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());

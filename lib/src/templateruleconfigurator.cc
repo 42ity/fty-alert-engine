@@ -21,6 +21,7 @@
 
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
+#include "utils.h"
 
 #include <fty_log.h>
 #include <fty_proto.h>
@@ -172,17 +173,13 @@ bool TemplateRuleConfigurator::configure (
         bool fast_track = false;
         std::string port, severity, normal_state, model, iname_la, ename;
         {
-            #define ATTVAL(key, defval) ((info.attributes.count(key) != 0) ? info.attributes.at(key) : defval)
-
-            fast_track = ATTVAL("fast_track", "") == "true";
-            port = ATTVAL("port", "");
-            severity = ATTVAL("alarm_severity", "");
-            normal_state = ATTVAL("normal_state", "");
-            model = ATTVAL("model", "");
-            iname_la = ATTVAL("logical_asset", "");
-            ename = ATTVAL("name", "");
-
-            #undef ATTVAL
+            fast_track = info.getAttr("fast_track", "") == "true";
+            port = info.getAttr("port", "");
+            severity = info.getAttr("alarm_severity", "");
+            normal_state = info.getAttr("normal_state", "");
+            model = info.getAttr("model", "");
+            iname_la = info.getAttr("logical_asset", "");
+            ename = info.getAttr("name", "");
 
             if (!port.empty()) { port = "GPI" + port; }
         }
@@ -218,7 +215,7 @@ bool TemplateRuleConfigurator::configure (
             }
 
             // generate the rule from the template
-            const std::string rule = replaceTokens(templat, dict);
+            const std::string rule = utils::replaceTokens(templat, dict);
 
             log_debug("Sending rule for %s\n%s", name.c_str(), rule.c_str());
             result &= sendNewRule(rule, client);
@@ -263,7 +260,7 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, c
         // for sensor gpio, we need to parse the template content to check model
         const std::string templat((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-        const std::string model = info.attributes.at("model");
+        const std::string model = info.getAttr("model");
         if (!isModelOk(model, templat)) {
             return false; // model not found
         }
@@ -373,21 +370,4 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const std::string&
         return prefix + type + prefix; // ex: __rack__
     }
     return prefix + type + "_" + subtype + prefix; // ex: __device_ups__
-}
-
-std::string TemplateRuleConfigurator::replaceTokens(const std::string& text, const std::map<std::string, std::string>& dict) const
-{
-    std::string result{text};
-
-    for (const auto& it : dict) {
-        const std::string& token{it.first};
-        const std::string& value{it.second};
-
-        size_t pos = 0;
-        while ((pos = result.find(token, pos)) != std::string::npos) {
-            result.replace(pos, token.length(), value);
-            pos += value.length();
-        }
-    }
-    return result;
 }
