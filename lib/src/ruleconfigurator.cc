@@ -50,9 +50,18 @@ bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client
     int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &msg);
     zmsg_destroy(&msg);
 
-    // consume response (ignored)
+    // consume response
     void* which = poller ? zpoller_wait(poller, 5000) : NULL;
-    if (which) { msg = mlm_client_recv(client); zmsg_destroy(&msg); }
+    if (which) {
+        msg = mlm_client_recv(client);
+        char* status = zmsg_popstr(msg);
+        char* reason = zmsg_popstr(msg);
+        if (streq(status, "OK")) { log_debug("OK"); }
+        else { log_debug("%s %s", status, reason); }
+        zstr_free(&reason);
+        zstr_free(&status);
+        zmsg_destroy(&msg);
+    }
     zpoller_destroy(&poller);
 
     if (r != 0) {

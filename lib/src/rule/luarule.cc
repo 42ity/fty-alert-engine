@@ -17,7 +17,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "luarule.h"
-#include "audit_log.h"
+#include "misc/audit_log.h"
+
 #include <algorithm>
 #include <fty_log.h>
 

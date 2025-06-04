@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
-#include "src/audit_log.h"
+
+#include "src/misc/audit_log.h"
 #include <fty_log.h>
 
 #include <sys/stat.h>

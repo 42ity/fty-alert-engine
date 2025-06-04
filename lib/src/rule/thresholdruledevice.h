@@ -23,7 +23,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "rule.h"
-#include "audit_log.h"
+#include "misc/audit_log.h"
+
 #include <fty/expected.h>
 
 class ThresholdRuleDevice : public Rule

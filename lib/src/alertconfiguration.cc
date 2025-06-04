@@ -20,11 +20,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 
-#include "regexrule.h"
-#include "thresholdrulesimple.h"
-#include "thresholdruledevice.h"
-#include "thresholdrulecomplex.h"
-#include "normalrule.h"
+#include "rule/regexrule.h"
+#include "rule/thresholdrulesimple.h"
+#include "rule/thresholdruledevice.h"
+#include "rule/thresholdrulecomplex.h"
+#include "rule/normalrule.h"
 
 #include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>

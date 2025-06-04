@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "metriclist.h"
+#include "metric/metriclist.h"
 #include "purealert.h"
 
 #include <fty_log.h>

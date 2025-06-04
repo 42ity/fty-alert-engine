@@ -4,8 +4,10 @@ cmake_policy(VERSION 3.13)
 etn_target(static ${PROJECT_NAME}-static
     PRIVATE
     SOURCES
-        src/*.h
-        src/*.cc
+        src/misc/*
+        src/rule/*
+        src/metric/*
+        src/*
     PUBLIC_INCLUDE_DIR
         src
     USES

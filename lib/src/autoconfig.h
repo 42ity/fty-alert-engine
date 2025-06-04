@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "utils.h"
+#include "misc/utils.h"
 
 #include <fty_proto.h>
 

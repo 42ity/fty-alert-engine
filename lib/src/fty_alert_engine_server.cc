@@ -471,7 +471,7 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
 static void enable_rule_evaluation(const RulePtr& rule)
 {
     auto topics = rule->getNeededTopics();
-    for (auto& topic : topics) {
+    for (const auto& topic : topics) {
         auto it = evaluateMetrics.find(topic);
         if (it != evaluateMetrics.end())
             { it->second = true; } // enabled
@@ -815,6 +815,8 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
 static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricList, mlm_client_t* client)
 {
+    const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+
     // process accumulated metrics
     for (auto& element : result) {
         if (zsys_interrupted) {
@@ -822,36 +824,32 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
         }
 
         // metric
-        const char* type      = fty_proto_type(element); // metric type
-        const char* name      = fty_proto_name(element); // asset iname
-        const char* value     = fty_proto_value(element);
-        uint32_t    ttl       = fty_proto_ttl(element);
-        uint64_t    timestamp = fty_proto_aux_number(element, "time", static_cast<uint64_t>(::time(NULL)));
+        const char* type  = fty_proto_type(element); // metric type
+        const char* name  = fty_proto_name(element); // asset iname
+        const char* value = fty_proto_value(element);
 
-        // TODO: 2016-04-27 ACE: fix it later, when "string" values
-        // in the metric would be considered as
-        // normal behaviour, but for now it is not supposed to be so
-        // -> generated messages into the log
-        double dvalue = 0;
+        // check metric is a number ("string" value is not supported)
+        double dvalue = 0.0;
         {
             char* end = nullptr;
             errno = 0;
             dvalue = strtod(value, &end);
-            bool convertFailed = (errno == ERANGE) || (end == value) || (end && (*end != 0));
-            if (convertFailed) {
-                log_debug("%s@%s: '%s' ignored (strtod failed)", type, name, value);
-                continue;
-            }
+            bool failed = (errno == ERANGE) || (end == value) || (end && (*end != 0));
+            if (failed)
+                { log_trace("%s@%s: '%s' ignored (non numeric)", type, name, value); continue; }
         }
 
         //log_debug("Get '%s@%s' (value: %s)", type, name, value);
 
+        uint64_t ts  = fty_proto_aux_number(element, "time", now); //timestamp
+        uint32_t ttl = fty_proto_ttl(element);
+
         // Update metricList with new value
-        MetricInfo metric(name, type, dvalue, timestamp, ttl);
+        MetricInfo metric(name, type, dvalue, ts, ttl);
         metricList.addMetric(metric);
 
         // search if this metric is already evaluated and if this metric is evaluate
-        const std::string metricTopic = metric.generateTopic();
+        const std::string metricTopic{metric.generateTopic()};
         auto it = evaluateMetrics.find(metricTopic);
         bool exist = it != evaluateMetrics.end();
         bool evaluate = exist ? it->second : false;
@@ -865,7 +863,7 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
             }
             else if (!isEvaluate) { // update evaluate state
                 evaluateMetrics[metricTopic] = isEvaluate;
-           }
+            }
         }
     }
 }

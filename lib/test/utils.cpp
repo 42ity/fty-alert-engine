@@ -1,5 +1,6 @@
-#include "src/utils.h"
 #include <catch2/catch.hpp>
+
+#include "src/misc/utils.h"
 
 TEST_CASE("utils test")
 {

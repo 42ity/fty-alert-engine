@@ -1,10 +1,11 @@
 #include <catch2/catch.hpp>
 
+#include "src/fty_alert_engine_server.h"
 #include "src/autoconfig.h"
 #include "src/templateruleconfigurator.h"
-#include "src/audit_log.h"
-#include "src/fty_alert_engine_server.h"
-#include "src/luarule.h"
+#include "src/rule/luarule.h"
+#include "src/misc/audit_log.h"
+
 #include <fty_shm.h>
 #include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>

@@ -1,8 +1,10 @@
 #include <catch2/catch.hpp>
-#include <fty_log.h>
-#include "src/rule.h"
+
+#include "src/rule/rule.h"
 #include "src/templateruleconfigurator.h"
 #include "src/alertconfiguration.h"
+
+#include <fty_log.h>
 
 static bool double_equals(double d1, double d2)
 {

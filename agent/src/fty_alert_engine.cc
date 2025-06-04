@@ -19,7 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "fty_alert_engine_server.h"
 #include "fty_alert_actions.h"
 #include "autoconfig.h"
-#include "audit_log.h"
+#include "misc/audit_log.h"
 
 #include <fty_common_mlm.h>
 #include <czmq.h>

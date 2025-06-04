@@ -358,9 +358,18 @@ void Autoconfig::onSend(fty_proto_t* message)
                 log_error("mlm_client_sendto() failed (dest='%s', subject='%s', cmd='%s')", dest, subject, cmd);
             }
 
-            // consume response (ignored)
+            // consume response
             void* which = poller ? zpoller_wait(poller, 5000) : NULL;
-            if (which) { msg = mlm_client_recv(_clientSender); zmsg_destroy(&msg); }
+            if (which) {
+                msg = mlm_client_recv(_clientSender);
+                char* status = zmsg_popstr(msg);
+                char* reason = zmsg_popstr(msg);
+                if (streq(status, "OK")) { log_debug("OK"); }
+                else { log_debug("%s %s", status, reason); }
+                zstr_free(&reason);
+                zstr_free(&status);
+                zmsg_destroy(&msg);
+            }
             zpoller_destroy(&poller);
         }
     }

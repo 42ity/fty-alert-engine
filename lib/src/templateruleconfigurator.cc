@@ -21,7 +21,7 @@
 
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
-#include "utils.h"
+#include "misc/utils.h"
 
 #include <fty_log.h>
 #include <fty_proto.h>

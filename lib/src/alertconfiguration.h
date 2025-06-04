@@ -25,7 +25,8 @@
 #pragma once
 
 #include "purealert.h"
-#include "rule.h"
+#include "rule/rule.h"
+
 #include <istream>
 #include <memory>
 #include <set>
