@@ -463,11 +463,6 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
     }
 }
 
-static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const RulePtr& rule)
-{
-    send_alerts(client, alertsToSend, rule->name());
-}
-
 static void enable_rule_evaluation(const RulePtr& rule)
 {
     auto topics = rule->getNeededTopics();
@@ -551,7 +546,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     }
 
     if (sendAlerts) {
-        send_alerts(client, alertsToSend, new_rule_it->second.first);
+        send_alerts(client, alertsToSend, new_rule_it->second.first->name());
     }
 
     if (updateEvaluateMetrics) {
@@ -629,7 +624,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     }
 
     if (sendAlerts) {
-        send_alerts(client, alertsToSend, new_rule_it->second.first);
+        send_alerts(client, alertsToSend, new_rule_it->second.first->name());
     }
 
     if (updateEvaluateMetrics) {
@@ -733,13 +728,13 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
     std::string sTopic;
     // end_warranty_date is the only "regex rule", for optimization purpose, use some trick for those.
     if (triggeringMetric.getSource() == "end_warranty_date")
-        sTopic = "^end_warranty_date@.+";
+        { sTopic = "^end_warranty_date@.+"; }
     else
-        sTopic = triggeringMetric.generateTopic();
+        { sTopic = triggeringMetric.generateTopic(); }
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
 
-    log_debug("### evaluate topic '%s' (rules size: %zu)", sTopic.c_str(), rules_of_metric.size());
+    log_debug("### evaluate topic '%s' (rules_of_metric size: %zu)", sTopic.c_str(), rules_of_metric.size());
 
     for (const auto& rulename : rules_of_metric) {
         if (ac.count(rulename) == 0) {
@@ -770,7 +765,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
             alertToSend._ttl = triggeringMetric.getTtl() * 3;
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the
-            // corrent message to stream alert description is modified
+            // current message to stream alert description is modified
             if (rule->name() == "warranty") {
                 int remaining_days = static_cast<int>(triggeringMetric.getValue());
                 remaining_days = abs(remaining_days);
@@ -802,7 +797,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                 }
             }
 
-            send_alerts(client, {alertToSend}, rule);
+            send_alerts(client, {alertToSend}, rule->name());
         }
         catch (const std::exception& e) {
             log_error("Evaluation failed (%s, e: '%s')", rule->name().c_str(), e.what());
@@ -836,7 +831,7 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
             dvalue = strtod(value, &end);
             bool failed = (errno == ERANGE) || (end == value) || (end && (*end != 0));
             if (failed)
-                { log_trace("%s@%s: '%s' ignored (non numeric)", type, name, value); continue; }
+                { log_debug("%s@%s: '%s' ignored (non numeric)", type, name, value); continue; }
         }
 
         //log_debug("Get '%s@%s' (value: %s)", type, name, value);
@@ -908,7 +903,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             // get metrics and evaluate related alerts
             fty::shm::shmMetrics result;
             fty::shm::read_metrics(".*", ".*", result);
-            log_debug("number of metrics read: %zu", result.size());
+            log_debug("== Ticking. Number of metrics read: %zu", result.size());
             metric_processing(result, metricList, client);
 
             timeout = int64_t(fty_get_polling_interval()) * 1000;

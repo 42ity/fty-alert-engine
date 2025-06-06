@@ -73,13 +73,10 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
     const char* name = name_.c_str();
 
     if (_client) { mlm_client_destroy(&_client); }
-    if (_clientSender) { mlm_client_destroy(&_clientSender); }
 
     _client = mlm_client_new();
-    _clientSender = mlm_client_new(); // used by onSend()
-    if (!(_client && _clientSender)) {
+    if (!_client) {
         log_error("mlm_client_new() failed");
-        mlm_client_destroy(&_clientSender);
         mlm_client_destroy(&_client);
         return;
     }
@@ -87,7 +84,6 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
     zpoller_t* poller = zpoller_new(pipe, mlm_client_msgpipe(_client), NULL);
     if (!poller) {
         log_error("zpoller_new() failed");
-        mlm_client_destroy(&_clientSender);
         mlm_client_destroy(&_client);
         return;
     }
@@ -156,11 +152,6 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                 if (r != 0) {
                     log_error("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 }
-                std::string nameSender{name_ + "-sender"};
-                r = mlm_client_connect(_clientSender, endpoint, 1000, nameSender.c_str());
-                if (r != 0) {
-                    log_error("%s: can't connect %s to malamute endpoint '%s'", name, nameSender.c_str(), endpoint);
-                }
                 zstr_free(&endpoint);
             }
             else if (streq(cmd, "CONSUMER")) {
@@ -225,6 +216,11 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     zstr_free(&filter);
                     zstr_free(&correl_id);
                 }
+                else if (streq(cmd, "OK") || streq(cmd, "ERROR")) {
+                    //nop
+                    //residual sendto responses alert/ADD or alert/DELETE_ELEMENT
+                    //RuleConfigurator::sendNewRule'), Autoconfig::onSend()
+                }
                 else {
                     log_warning("Recv unexpected mailbox msg (cmd='%s', subject='%s', sender='%s')", cmd, subject, sender);
                     if (zmsg_size(msg) != 0) { zmsg_print(msg); }
@@ -242,7 +238,6 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
     log_info("%s ended", name);
 
     zpoller_destroy(&poller);
-    mlm_client_destroy(&_clientSender);
     mlm_client_destroy(&_client);
 }
 
@@ -345,32 +340,16 @@ void Autoconfig::onSend(fty_proto_t* message)
 
             log_debug("Send %s/%s %s to %s", subject, cmd, asset_name.c_str(), dest);
 
-            zpoller_t* poller = zpoller_new(mlm_client_msgpipe(_clientSender), NULL);
-            if (!poller) { log_error("zpoller_new() failed"); }
-
             // delete all rules for this asset
             zmsg_t* msg = zmsg_new();
             zmsg_addstr(msg, cmd);
             zmsg_addstr(msg, asset_name.c_str());
-            int r = mlm_client_sendto(_clientSender, dest, subject, NULL, 5000, &msg);
+            int r = mlm_client_sendto(_client, dest, subject, NULL, 5000, &msg);
             zmsg_destroy(&msg);
+            // ignore response (no wait)
             if (r != 0) {
                 log_error("mlm_client_sendto() failed (dest='%s', subject='%s', cmd='%s')", dest, subject, cmd);
             }
-
-            // consume response
-            void* which = poller ? zpoller_wait(poller, 5000) : NULL;
-            if (which) {
-                msg = mlm_client_recv(_clientSender);
-                char* status = zmsg_popstr(msg);
-                char* reason = zmsg_popstr(msg);
-                if (streq(status, "OK")) { log_debug("OK"); }
-                else { log_debug("%s %s", status, reason); }
-                zstr_free(&reason);
-                zstr_free(&status);
-                zmsg_destroy(&msg);
-            }
-            zpoller_destroy(&poller);
         }
     }
 
@@ -404,7 +383,7 @@ void Autoconfig::onPoll()
                 const auto iname_la = it.second.getAttr("logical_asset");
                 if (!iname_la.empty()) { ename_la = Autoconfig::getEname(iname_la); }
 
-                device_configured &= trc.configure(it.first, it.second, ename_la, _clientSender);
+                device_configured &= trc.configure(it.first, it.second, ename_la, _client);
             }
             else {
                 log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());

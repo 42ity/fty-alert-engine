@@ -117,7 +117,6 @@ public:
     Autoconfig() {}
     ~Autoconfig() {
         mlm_client_destroy(&_client);
-        mlm_client_destroy(&_clientSender);
     }
 
     static std::string StateFile;       //!< pathfile where Autoconfig state is saved
@@ -147,8 +146,7 @@ private: // methods
 
 private: // properties
     mlm_client_t* _client{nullptr};
-    mlm_client_t* _clientSender{nullptr};
-    int           _timeout{5000}; // ms
+    int _timeout{5000}; // ms
 
     // list of configurable devices (related to alarms)
     std::map<std::string, AutoConfigurationInfo> _configurableDevices;

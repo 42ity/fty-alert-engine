@@ -43,26 +43,10 @@ bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client
 
     log_debug("Sending '%s/ADD' to '%s'", subject, dest);
 
-    zpoller_t* poller = zpoller_new(mlm_client_msgpipe(client), NULL);
-    if (!poller) { log_error("zpoller_new() failed"); }
-
     const int timeout_ms = 5000;
     int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &msg);
     zmsg_destroy(&msg);
-
-    // consume response
-    void* which = poller ? zpoller_wait(poller, 5000) : NULL;
-    if (which) {
-        msg = mlm_client_recv(client);
-        char* status = zmsg_popstr(msg);
-        char* reason = zmsg_popstr(msg);
-        if (streq(status, "OK")) { log_debug("OK"); }
-        else { log_debug("%s %s", status, reason); }
-        zstr_free(&reason);
-        zstr_free(&status);
-        zmsg_destroy(&msg);
-    }
-    zpoller_destroy(&poller);
+    // ignore response (no consumption)
 
     if (r != 0) {
         log_error("mlm_client_sendto() failed (dest = '%s', subject = '%s/ADD', timeout = %d)", dest, subject, timeout_ms);
