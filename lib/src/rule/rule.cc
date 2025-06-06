@@ -106,29 +106,32 @@ void operator >>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
     outcome._actions.clear();
     outcome._actions.reserve(actions.memberCount());
     for (const auto& a : actions) {
-        std::string type, res;
         switch (a.category()) {
             case cxxtools::SerializationInfo::Value:
                 // old-style format ["EMAIL", "SMS"]
                 outcome._actions.resize(outcome._actions.size() + 1);
                 a >>= outcome._actions.back();
                 break;
-            case cxxtools::SerializationInfo::Object:
+            case cxxtools::SerializationInfo::Object: {
+                std::string type, res;
                 // [{"action": "EMAIL"}, {"action": "SMS"}]
                 a.getMember("action") >>= type;
                 if (type == "EMAIL" || type == "SMS" || type == "AUTOMATION") {
                     res = type;
-                } else if (type == "GPO_INTERACTION") {
+                }
+                else if (type == "GPO_INTERACTION") {
                     std::string asset, mode;
                     a.getMember("asset") >>= asset;
                     a.getMember("mode") >>= mode;
                     res = type + ":" + asset + ":" + mode;
-                } else {
+                }
+                else {
                     log_warning("Unknown action type: '%s'", type.c_str());
                     res = type;
                 }
                 outcome._actions.push_back(res);
                 break;
+            }
             default:
                 throw std::runtime_error("Invalid format of action");
         }
@@ -139,7 +142,7 @@ void operator >>= (const cxxtools::SerializationInfo& si, Outcome& outcome)
 // TODO error handling mistakes can be hidden here
 void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, double>& values)
 {
-    /*
+    /**
        "values":[ {"low_critical"  : "30"},
                   {"low_warning"   : "40"},
                   {"high_warning"  : "50"},
@@ -166,7 +169,7 @@ void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, 
 // TODO error handling mistakes can be hidden here
 void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes)
 {
-    /*
+    /**
         "results": [
             {"low_critical"  : { "action" : [{ "action": "EMAIL"},{ "action": "SMS"}], "description" : "low critical description" }},
             {"low_warning"   : { "action" : [{ "action": "EMAIL"}], "description" : "low warning description" }},

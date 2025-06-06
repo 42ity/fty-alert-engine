@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "metric/metriclist.h"
 #include "purealert.h"
+#include "metric/metriclist.h"
 
 #include <fty_log.h>
 #include <fty_common_json.h>
@@ -72,16 +72,6 @@ struct Outcome
 
         return oss.str();
     }
-
-};
-
-static const char* text_results[] = {
-    "high_critical",
-    "high_warning",
-    "ok",
-    "low_warning",
-    "low_critical",
-    "unknown",
 };
 
 enum RULE_RESULT
@@ -92,6 +82,15 @@ enum RULE_RESULT
     RULE_RESULT_TO_HIGH_WARNING  = 1,
     RULE_RESULT_TO_HIGH_CRITICAL = 2,
     RULE_RESULT_UNKNOWN          = 3,
+};
+
+static const std::map<std::string, int> mapTextResults = {
+    { "low_critical", RULE_RESULT_TO_LOW_CRITICAL },
+    { "low_warning", RULE_RESULT_TO_LOW_WARNING },
+    { "ok", RULE_RESULT_OK },
+    { "high_warning", RULE_RESULT_TO_HIGH_WARNING },
+    { "high_critical", RULE_RESULT_TO_HIGH_CRITICAL },
+    { "unknown", RULE_RESULT_UNKNOWN },
 };
 
 /// Deserialzation of outcome
@@ -112,8 +111,7 @@ public: // virtual methods
     virtual int fill(const cxxtools::SerializationInfo& si) = 0;
     virtual void globalVariables(const std::map<std::string, double>& vars)
     {
-        _variables.clear();
-        _variables.insert(vars.cbegin(), vars.cend());
+        _variables = vars;
     }
 
     /// get/set code
@@ -201,6 +199,7 @@ public: // methods
     {
         // ASSUMPTION: file name is the same as rule name
         // rule name and file name are CASE INSENSITIVE.
+        // assume path / term
 
         try {
             std::string full_name = path + name;
@@ -212,7 +211,7 @@ public: // methods
     }
 
     /// Delete rule from the persistance
-    /// @param[in] path - a path to files
+    /// @param[in] path - a path to files (assume / term)
     /// @return 0 on success, non-zero on error
     int remove(const std::string& path) const noexcept
     {
@@ -221,24 +220,21 @@ public: // methods
         return std::remove(full_name.c_str());
     }
 
-    static const char* resultToString(int result)
+    static std::string resultToString(int result)
     {
-        if (result > RULE_RESULT_TO_HIGH_CRITICAL || result < RULE_RESULT_TO_LOW_CRITICAL) {
-            return text_results[RULE_RESULT_UNKNOWN - RULE_RESULT_TO_LOW_CRITICAL];
+        for (const auto& it : mapTextResults) {
+            if (result == it.second)
+                { return it.first.c_str(); }
         }
-        return text_results[result - RULE_RESULT_TO_LOW_CRITICAL];
+        static const std::string unknown{"unknown"};
+        return unknown.c_str();
     }
 
-    static int resultToInt(const char* result)
+    static int resultToInt(const std::string& result)
     {
-        if (result == NULL) {
-            return RULE_RESULT_UNKNOWN;
-        }
-        for (int i = RULE_RESULT_TO_LOW_CRITICAL; i <= RULE_RESULT_TO_HIGH_CRITICAL; i++) {
-            if (strcmp(text_results[i - RULE_RESULT_TO_LOW_CRITICAL], result) == 0) {
-                return i;
-            }
-        }
+        const auto& it = mapTextResults.find(result);
+        if (it != mapTextResults.cend())
+            { return it->second; }
         return RULE_RESULT_UNKNOWN;
     }
 

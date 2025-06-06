@@ -342,14 +342,20 @@ void Autoconfig::onSend(fty_proto_t* message)
 
             // delete all rules for this asset
             zmsg_t* msg = zmsg_new();
-            zmsg_addstr(msg, cmd);
-            zmsg_addstr(msg, asset_name.c_str());
-            int r = mlm_client_sendto(_client, dest, subject, NULL, 5000, &msg);
-            zmsg_destroy(&msg);
-            // ignore response (no wait)
-            if (r != 0) {
-                log_error("mlm_client_sendto() failed (dest='%s', subject='%s', cmd='%s')", dest, subject, cmd);
+            if (!msg) {
+                log_error("zmsg_new() failed");
             }
+            else {
+                zmsg_addstr(msg, cmd);
+                zmsg_addstr(msg, asset_name.c_str());
+                int r = mlm_client_sendto(_client, dest, subject, NULL, 5000, &msg);
+                // ignore response (no wait)
+                if (r != 0) {
+                    log_error("mlm_client_sendto() failed (dest='%s', subject='%s', cmd='%s', asset='%s')",
+                        dest, subject, cmd, asset_name.c_str());
+                }
+            }
+            zmsg_destroy(&msg);
         }
     }
 

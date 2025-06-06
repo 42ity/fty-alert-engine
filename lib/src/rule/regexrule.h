@@ -24,7 +24,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "luarule.h"
 #include <czmq.h> //zrex
-#include <fty_log.h>
 
 class RegexRule : public LuaRule
 {
@@ -41,105 +40,14 @@ public:
     /// @return 1 if rule has other type
     ///         2 if lua function has errors
     ///         0 if everything is ok
-    int fill(const cxxtools::SerializationInfo& si)
-    {
-        _si = si;
-        if (si.findMember("pattern") == NULL) {
-            return 1;
-        }
+    virtual int fill(const cxxtools::SerializationInfo& si);
 
-        log_debug("it is PATTERN rule");
+    /// returns 0 if ok
+    virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
-        auto pattern = si.getMember("pattern");
-        if (pattern.category() != cxxtools::SerializationInfo::Object) {
-            log_error("Root of json must be an object with property 'pattern'.");
-            throw std::runtime_error("Root of json must be an object with property 'pattern'.");
-        }
+    bool isTopicInteresting(const std::string& topic) const;
 
-        pattern.getMember("rule_name") >>= _name;
-        pattern.getMember("target") >>= _rex_str;
-
-        // TODO what if regexp is not correct?
-        _rex = zrex_new(_rex_str.c_str());
-        if (!_rex) {
-            log_error("zrex_new() failed (rex: %s)", _rex_str);
-            return 1;
-        }
-
-        // rule_class
-        if (pattern.findMember("rule_class") != NULL) {
-            pattern.getMember("rule_class") >>= _rule_class;
-        }
-
-        // rule_source
-        if (pattern.findMember("rule_source") == NULL) {
-            // if key is not there, take default
-            _rule_source = "Manual user input";
-            pattern.addMember("rule_source") <<= _rule_source;
-        }
-        else {
-            auto rule_source = pattern.getMember("rule_source");
-            if (rule_source.category() != cxxtools::SerializationInfo::Value) {
-                throw std::runtime_error("'rule_source' in json must be value.");
-            }
-            rule_source >>= _rule_source;
-        }
-        log_debug("rule_source = %s", _rule_source.c_str());
-
-        // values
-        std::map<std::string, double> tmp_values;
-        auto values = pattern.getMember("values");
-        if (values.category() != cxxtools::SerializationInfo::Array) {
-            log_error("parameter 'values' in json must be an array.");
-            throw std::runtime_error("parameter 'values' in json must be an array");
-        }
-        values >>= tmp_values;
-        globalVariables(tmp_values);
-
-        // outcomes
-        auto outcomes = pattern.getMember("results");
-        if (outcomes.category() != cxxtools::SerializationInfo::Array) {
-            log_error("parameter 'results' in json must be an array.");
-            throw std::runtime_error("parameter 'results' in json must be an array.");
-        }
-        outcomes >>= _outcomes;
-
-        std::string tmp;
-        pattern.getMember("evaluation") >>= tmp;
-        try {
-            code(tmp);
-        }
-        catch (const std::exception& e) {
-            log_error("something with Lua function: %s", e.what());
-            return 2;
-        }
-
-        return 0;
-    }
-
-    int evaluate(const MetricList& metricList, PureAlert& pureAlert)
-    {
-        _metrics = {metricList.getLastMetric().generateTopic()};
-        int r = LuaRule::evaluate(metricList, pureAlert);
-        if (r != 0) {
-            return r;
-        }
-        // regexp rule is special, it has to generate alert for the element,
-        // that triggert the evaluation
-        pureAlert._element = metricList.getLastMetric().getElementName();
-
-        return 0;
-    }
-
-    bool isTopicInteresting(const std::string& topic) const
-    {
-        return zrex_matches(_rex, topic.c_str());
-    }
-
-    std::vector<std::string> getNeededTopics(void) const
-    {
-        return std::vector<std::string>{_rex_str};
-    }
+    std::vector<std::string> getNeededTopics() const;
 
 private:
     zrex_t* _rex{nullptr};

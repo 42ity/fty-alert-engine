@@ -24,7 +24,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "rule.h"
+
 #include <lua.hpp>
+#include <string>
+#include <map>
 
 class LuaRule : public Rule
 {

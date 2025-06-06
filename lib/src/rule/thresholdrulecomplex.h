@@ -23,15 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "luarule.h"
-#include <czmq.h>
-
 
 class ThresholdRuleComplex : public LuaRule
 {
 public:
-    std::string whoami() const { return "threshold"; }
-
     ThresholdRuleComplex(){};
+
+    std::string whoami() const { return "threshold"; }
 
     /// parse json and check lua and fill the object
     ///

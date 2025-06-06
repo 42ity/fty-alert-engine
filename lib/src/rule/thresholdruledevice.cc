@@ -16,14 +16,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "thresholdrulesimple.h"
+#include "thresholdruledevice.h"
 #include "misc/audit_log.h"
-#include <fty_log.h>
 
-// throws -> it is simple threshold but with errors
-// 0 - ok
-// 1 - it is not simple threshold rule
-int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
+int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
 {
     _si = si;
     if (si.findMember("threshold") == NULL) {
@@ -41,6 +37,9 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     if (target.category() != cxxtools::SerializationInfo::Value) {
         return 1;
     }
+    std::string value;
+    target >>= value;
+    _metrics.push_back(value);
 
     // rule_source
     if (threshold.findMember("rule_source") == NULL) {
@@ -55,15 +54,13 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
         }
         rule_source >>= _rule_source;
     }
-
     log_debug("rule_source = %s", _rule_source.c_str());
-    if (_rule_source != "Manual user input") {
+    if (_rule_source == "Manual user input") {
         return 1;
     }
 
-    log_debug("it is simple threshold rule");
+    log_debug("it is device threshold rule");
 
-    si_getValueUtf8(threshold, "target", _metric);
     si_getValueUtf8(threshold, "rule_name", _name);
     si_getValueUtf8(threshold, "element", _element);
 
@@ -73,7 +70,7 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     }
 
     // values
-    // TODO check low_critical < low_warning < high_warning < hign crtical
+    // TODO check low_critical < low_warning < high_warning < high critical
     std::map<std::string, double> tmp_values;
     auto values = threshold.getMember("values");
     if (values.category() != cxxtools::SerializationInfo::Array) {
@@ -94,7 +91,7 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     return 0;
 }
 
-int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureAlert)
+int ThresholdRuleDevice::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
     // ASSUMPTION: constants are in values
     //  high_critical
@@ -102,7 +99,7 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     //  low_warning
     //  low_critical
 
-    log_debug("ThresholdRuleSimple::evaluate %s", _name.c_str());
+    log_debug("ThresholdRuleDevice::evaluate %s", _name.c_str());
 
 #if 0 //DBG, trace _outcomes
     log_debug("%s: outcomes (size: %zu)", _name.c_str(), _outcomes.size());
@@ -122,8 +119,11 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
                 log_error("%s: outcome high_critical is missing", _name.c_str());
             }
             else {
-                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert = PureAlert(ALERT_START,
+                    lastMetric.getTimestamp(),
+                    outcome->second._description,
+                    this->_element,
+                    this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions  = outcome->second._actions;
 
@@ -141,8 +141,11 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
                 log_error("%s: outcome high_warning is missing", _name.c_str());
             }
             else {
-                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert = PureAlert(ALERT_START,
+                    lastMetric.getTimestamp(),
+                    outcome->second._description,
+                    this->_element,
+                    this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions  = outcome->second._actions;
 
@@ -160,8 +163,11 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
                 log_error("%s: outcome low_critical is missing", _name.c_str());
             }
             else {
-                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert = PureAlert(ALERT_START,
+                    lastMetric.getTimestamp(),
+                    outcome->second._description,
+                    this->_element,
+                    this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions  = outcome->second._actions;
 
@@ -179,8 +185,11 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
                 log_error("%s: outcome low_warning is missing", _name.c_str());
             }
             else {
-                pureAlert           = PureAlert(ALERT_START, lastMetric.getTimestamp(),
-                    outcome->second._description, this->_element, this->_rule_class);
+                pureAlert = PureAlert(ALERT_START,
+                    lastMetric.getTimestamp(),
+                    outcome->second._description,
+                    this->_element,
+                    this->_rule_class);
                 pureAlert._severity = outcome->second._severity;
                 pureAlert._actions  = outcome->second._actions;
 
@@ -194,32 +203,20 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     // TODO actions
     pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), "ok", this->_element, this->_rule_class);
 
-    //pureAlert.print();
-
     log_audit_alarm(lastMetric, pureAlert);
+
     return 0;
 }
 
-
-bool ThresholdRuleSimple::isTopicInteresting(const std::string& topic) const
-{
-    return (_metric == topic);
-}
-
-std::vector<std::string> ThresholdRuleSimple::getNeededTopics() const
-{
-    return {_metric};
-}
-
 // log alarm audit
-void ThresholdRuleSimple::log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const
+void ThresholdRuleDevice::log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const
 {
     std::string auditValues = metric.getSource() + "=" + std::to_string(metric.getValue());
 
     std::string auditDesc =
         (pureAlert._status == ALERT_RESOLVED) ? ALERT_RESOLVED : // RESOLVED
-        std::string{pureAlert._status + "/" + pureAlert._severity.substr(0, 1)} // ACTIVE/C ACTIVE/W
-    ;
+        std::string{pureAlert._status + "/" + pureAlert._severity.substr(0, 1)}; // ACTIVE/C ACTIVE/W
 
     audit_log_info("%8s %s (%s)", auditDesc.c_str(), _name.c_str(), auditValues.c_str());
 }
+

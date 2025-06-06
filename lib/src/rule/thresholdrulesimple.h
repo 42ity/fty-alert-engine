@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class ThresholdRuleSimple : public Rule
 {
 public:
-    ThresholdRuleSimple() {};
+    ThresholdRuleSimple() {}
 
     std::string whoami() const { return "threshold"; }
 
@@ -35,15 +35,9 @@ public:
 
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
-    bool isTopicInteresting(const std::string& topic) const
-    {
-        return (_metric == topic);
-    }
+    bool isTopicInteresting(const std::string& topic) const;
 
-    std::vector<std::string> getNeededTopics(void) const
-    {
-        return {_metric};
-    }
+    std::vector<std::string> getNeededTopics() const;
 
 private:
     void log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const;

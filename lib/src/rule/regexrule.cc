@@ -16,67 +16,57 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*!
- *  \file thresholdrulecomplex.h
- *  \author Alena Chernikava <AlenaChernikava@Eaton.com>
- *  \brief Complex threshold rule representation
- */
+#include "regexrule.h"
+#include <fty_log.h>
 
-#include "thresholdrulecomplex.h"
-
-int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
+int RegexRule::fill(const cxxtools::SerializationInfo& si)
 {
     _si = si;
-    if (si.findMember("threshold") == NULL) {
+    if (si.findMember("pattern") == NULL) {
         return 1;
     }
 
-    auto threshold = si.getMember("threshold");
-    if (threshold.category() != cxxtools::SerializationInfo::Object) {
-        log_error("Root of json must be an object with property 'threshold'.");
-        throw std::runtime_error("Root of json must be an object with property 'threshold'.");
+    log_debug("it is PATTERN rule");
+
+    auto pattern = si.getMember("pattern");
+    if (pattern.category() != cxxtools::SerializationInfo::Object) {
+        log_error("Root of json must be an object with property 'pattern'.");
+        throw std::runtime_error("Root of json must be an object with property 'pattern'.");
     }
 
-    // target
-    auto target = threshold.getMember("target");
-    if (target.category() != cxxtools::SerializationInfo::Array) {
+    pattern.getMember("rule_name") >>= _name;
+    pattern.getMember("target") >>= _rex_str;
+
+    // TODO what if regexp is not correct?
+    _rex = zrex_new(_rex_str.c_str());
+    if (!_rex) {
+        log_error("zrex_new() failed (rex: %s)", _rex_str);
         return 1;
     }
-
-    log_debug("it is complex threshold rule");
-
-    std::vector<std::basic_string<cxxtools::Char>> cxxtools_Char_metrics;
-    target >>= cxxtools_Char_metrics;
-    for (const auto& ccm : cxxtools_Char_metrics) {
-        _metrics.push_back(cxxtools::Utf8Codec::encode(ccm));
-    }
-
-    si_getValueUtf8(threshold, "rule_name", _name);
-    si_getValueUtf8(threshold, "element", _element);
 
     // rule_class
-    if (threshold.findMember("rule_class") != NULL) {
-        threshold.getMember("rule_class") >>= _rule_class;
+    if (pattern.findMember("rule_class") != NULL) {
+        pattern.getMember("rule_class") >>= _rule_class;
     }
 
     // rule_source
-    if (threshold.findMember("rule_source") == NULL) {
+    if (pattern.findMember("rule_source") == NULL) {
         // if key is not there, take default
         _rule_source = "Manual user input";
-        threshold.addMember("rule_source") <<= _rule_source;
+        pattern.addMember("rule_source") <<= _rule_source;
     }
     else {
-        auto rule_source = threshold.getMember("rule_source");
+        auto rule_source = pattern.getMember("rule_source");
         if (rule_source.category() != cxxtools::SerializationInfo::Value) {
             throw std::runtime_error("'rule_source' in json must be value.");
         }
         rule_source >>= _rule_source;
     }
+    log_debug("rule_source = %s", _rule_source.c_str());
 
     // values
-    // TODO check low_critical < low_warning < high_warning < high_critical
     std::map<std::string, double> tmp_values;
-    auto values = threshold.getMember("values");
+    auto values = pattern.getMember("values");
     if (values.category() != cxxtools::SerializationInfo::Array) {
         log_error("parameter 'values' in json must be an array.");
         throw std::runtime_error("parameter 'values' in json must be an array");
@@ -85,7 +75,7 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     globalVariables(tmp_values);
 
     // outcomes
-    auto outcomes = threshold.getMember("results");
+    auto outcomes = pattern.getMember("results");
     if (outcomes.category() != cxxtools::SerializationInfo::Array) {
         log_error("parameter 'results' in json must be an array.");
         throw std::runtime_error("parameter 'results' in json must be an array.");
@@ -93,7 +83,7 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     outcomes >>= _outcomes;
 
     std::string tmp;
-    threshold.getMember("evaluation") >>= tmp;
+    pattern.getMember("evaluation") >>= tmp;
     try {
         code(tmp);
     }
@@ -103,4 +93,27 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     }
 
     return 0;
+}
+
+int RegexRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
+{
+    _metrics = {metricList.getLastMetric().generateTopic()};
+
+    int r = LuaRule::evaluate(metricList, pureAlert);
+    if (r == 0) { // ok
+        // regexp rule is special, it has to generate alert for the element,
+        // that trigger the evaluation
+        pureAlert._element = metricList.getLastMetric().getElementName();
+    }
+    return r;
+}
+
+bool RegexRule::isTopicInteresting(const std::string& topic) const
+{
+    return _rex ? zrex_matches(_rex, topic.c_str()) : false;
+}
+
+std::vector<std::string> RegexRule::getNeededTopics() const
+{
+    return std::vector<std::string>{_rex_str};
 }

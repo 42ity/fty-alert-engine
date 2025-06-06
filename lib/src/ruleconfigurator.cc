@@ -46,7 +46,7 @@ bool RuleConfigurator::sendNewRule(const std::string& rule, mlm_client_t* client
     const int timeout_ms = 5000;
     int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &msg);
     zmsg_destroy(&msg);
-    // ignore response (no consumption)
+    // ignore response (no wait)
 
     if (r != 0) {
         log_error("mlm_client_sendto() failed (dest = '%s', subject = '%s/ADD', timeout = %d)", dest, subject, timeout_ms);

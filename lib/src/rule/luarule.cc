@@ -166,8 +166,7 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
                 pureAlert.print();
             }
             else {
-                log_error("LuaRule::evaluate %s '%s' result returned, but not defined",
-                    _name.c_str(), statusText);
+                log_error("LuaRule::evaluate %s '%s' result returned, but not defined", _name.c_str(), statusText);
                 res = RULE_RESULT_UNKNOWN;
             }
         }
@@ -264,10 +263,11 @@ void LuaRule::luaSetGlobalVariables()
             }
         };
 
-        const std::string LC{"low_critical"}; // see text_results[]
-        const std::string LW{"low_warning"};
-        const std::string HW{"high_warning"};
-        const std::string HC{"high_critical"};
+        // see mapTextResults
+        static const std::string LC{Rule::resultToString(RULE_RESULT_TO_LOW_CRITICAL)};
+        static const std::string LW{Rule::resultToString(RULE_RESULT_TO_LOW_WARNING)};
+        static const std::string HW{Rule::resultToString(RULE_RESULT_TO_HIGH_WARNING)};
+        static const std::string HC{Rule::resultToString(RULE_RESULT_TO_HIGH_CRITICAL)};
 
         const bool hasLC{globals.count(LC) != 0};
         const bool hasLW{globals.count(LW) != 0};
