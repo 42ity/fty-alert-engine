@@ -182,20 +182,28 @@ void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, 
         if (oneElement.memberCount() != 1) {
             throw std::runtime_error("unexpected member count element in results");
         }
-        auto outcomeName = oneElement.getMember(0).name();
+
+        const std::string outcomeName = oneElement.getMember(0).name();
+        int outcomeResult = Rule::resultToInt(outcomeName);
+
+        std::string severity;
+        switch (outcomeResult) {
+            case RULE_RESULT_LOW_CRITICAL:
+            case RULE_RESULT_HIGH_CRITICAL:
+                severity = "CRITICAL";
+                break;
+            case RULE_RESULT_LOW_WARNING:
+            case RULE_RESULT_HIGH_WARNING:
+                severity = "WARNING";
+                break;
+            default:
+                log_error("rule outcome '%s' is not supported (r=%d)", outcomeName.c_str(), outcomeResult);
+                throw std::runtime_error("unsupported result");
+        }
 
         Outcome outcome;
         oneElement.getMember(0) >>= outcome;
-        if (outcomeName == "low_critical" || outcomeName == "high_critical") {
-            outcome._severity = "CRITICAL";
-        }
-        else if (outcomeName == "low_warning" || outcomeName == "high_warning") {
-            outcome._severity = "WARNING";
-        }
-
-        if (outcome._severity.empty()) {
-            throw std::runtime_error("unsupported result");
-        }
+        outcome._severity = severity;
 
         outcomes.emplace(outcomeName, outcome);
     }
@@ -216,6 +224,9 @@ std::vector<std::string> Rule::getNeededTopics() const
     return _metrics;
 }
 
+///
+/// Rule matchers
+///
 
 RuleNameMatcher::RuleNameMatcher(const std::string& name) : _name(name) {}
 

@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /// @file purealert.h
 /// @author Alena Chernikava <AlenaChernikava@Eaton.com>
 /// @brief General representation of alert
+
 #pragma once
 
 #include <memory>
@@ -45,17 +46,16 @@ public:
     std::string              _rule_class;
     uint64_t                 _ttl{0};
 
-    PureAlert()
-        : _timestamp{0} {};
+    PureAlert() : _timestamp{0} {}
 
-    PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name,
-        const std::string& rule_class)
+    PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name, const std::string& rule_class)
         : _status{s}
         , _timestamp{tm}
         , _description{descr}
         , _element{element_name}
         , _rule_class{rule_class}
-        , _ttl{0} {};
+        , _ttl{0}
+    {}
 
     PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name,
         const std::string& severity, const std::vector<std::string>& actions)
@@ -65,13 +65,13 @@ public:
         , _element{element_name}
         , _severity{severity}
         , _actions{actions}
-        , _ttl{0} {};
-
-    std::string rule_class() const { return _rule_class; }
-    void rule_class(const std::string& rule_class) { _rule_class = rule_class; }
+        , _ttl{0}
+    {}
 
     static bool isStatusKnown(const std::string& status);
-    void        print() const;
+
+    //dbg
+    void print() const;
 };
 
 typedef std::unique_ptr<PureAlert> PureAlertPtr;

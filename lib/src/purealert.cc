@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "purealert.h"
 #include <fty_log.h>
+#include <sstream>
 
 bool PureAlert::isStatusKnown(const std::string& status)
 {
@@ -36,6 +37,12 @@ bool PureAlert::isStatusKnown(const std::string& status)
 
 void PureAlert::print() const
 {
-    log_debug("status(%s), timestamp(%zu), descr(%s), element(%s), severity(%s)",
-        _status.c_str(), _timestamp, _description.c_str(), _element.c_str(), _severity.c_str());
+    std::ostringstream oss;
+    oss << "status(" << _status << ")"
+        << ", timestamp(" << _timestamp << ")"
+        << ", description(" << _description << ")"
+        << ", element(" << _element << ")"
+        << ", severity(" << _severity << ")";
+
+    logDebug("{}", oss.str());
 }

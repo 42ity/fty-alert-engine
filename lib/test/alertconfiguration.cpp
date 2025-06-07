@@ -11,6 +11,42 @@ static bool double_equals(double d1, double d2)
     return std::abs(d1 - d2) < std::numeric_limits<double>::epsilon() * (std::abs(d1 + d2) + 1);
 }
 
+TEST_CASE("rule outcome tokens")
+{
+    REQUIRE(RULE_RESULT_LOW_CRITICAL == -2);
+    REQUIRE(RULE_RESULT_UNKNOWN == 3);
+
+    CHECK(Rule::resultToString(RULE_RESULT_LOW_CRITICAL - 1) == Rule::resultToString(RULE_RESULT_UNKNOWN));
+    CHECK(Rule::resultToString(RULE_RESULT_UNKNOWN + 1) == Rule::resultToString(RULE_RESULT_UNKNOWN));
+
+    CHECK(Rule::resultToInt("") == RULE_RESULT_UNKNOWN);
+    CHECK(Rule::resultToInt("hello") == RULE_RESULT_UNKNOWN);
+
+    for (const auto& r : {
+        RULE_RESULT_LOW_CRITICAL,
+        RULE_RESULT_LOW_WARNING,
+        RULE_RESULT_OK,
+        RULE_RESULT_HIGH_WARNING,
+        RULE_RESULT_HIGH_CRITICAL,
+        RULE_RESULT_UNKNOWN
+    }
+    ) {
+        CHECK(r == Rule::resultToInt(Rule::resultToString(r)));
+    }
+
+    for (const auto& s : {
+        "low_critical",
+        "low_warning",
+        "ok",
+        "high_warning",
+        "high_critical",
+        "unknown"
+    }
+    ) {
+        CHECK(s == Rule::resultToString(Rule::resultToInt(s)));
+    }
+}
+
 TEST_CASE("alertconfiguration test")
 {
     gDisable_ruleXphaseIsApplicable = true; // require autoconfig runtime

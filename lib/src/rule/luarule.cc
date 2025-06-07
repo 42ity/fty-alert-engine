@@ -163,7 +163,7 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
                 // Some known outcome was found
                 log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
                 pureAlert = PureAlert(ALERT_START, now, outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
-                pureAlert.print();
+                //pureAlert.print();
             }
             else {
                 log_error("LuaRule::evaluate %s '%s' result returned, but not defined", _name.c_str(), statusText);
@@ -205,7 +205,7 @@ double LuaRule::luaEvaluate(const std::vector<double>& arguments)
     lua_settop(_lstate, 0);
 
     lua_getglobal(_lstate, "main");
-    for (const auto arg : arguments) {
+    for (const auto& arg : arguments) {
         lua_pushnumber(_lstate, arg);
     }
 
@@ -233,7 +233,7 @@ void LuaRule::luaSetGlobalVariables()
     }
 
     // register results name/value in state
-    for (int result = RULE_RESULT_TO_LOW_CRITICAL; result <= RULE_RESULT_UNKNOWN; result++) {
+    for (int result = RULE_RESULT_LOW_CRITICAL; result <= RULE_RESULT_UNKNOWN; result++) {
         std::string resultName = Rule::resultToString(result);
         transform(resultName.begin(), resultName.end(), resultName.begin(), ::toupper); // UPPER
         lua_pushnumber(_lstate, result); // value
@@ -264,10 +264,10 @@ void LuaRule::luaSetGlobalVariables()
         };
 
         // see mapTextResults
-        static const std::string LC{Rule::resultToString(RULE_RESULT_TO_LOW_CRITICAL)};
-        static const std::string LW{Rule::resultToString(RULE_RESULT_TO_LOW_WARNING)};
-        static const std::string HW{Rule::resultToString(RULE_RESULT_TO_HIGH_WARNING)};
-        static const std::string HC{Rule::resultToString(RULE_RESULT_TO_HIGH_CRITICAL)};
+        static const std::string LC{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
+        static const std::string LW{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
+        static const std::string HW{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
+        static const std::string HC{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
 
         const bool hasLC{globals.count(LC) != 0};
         const bool hasLW{globals.count(LW) != 0};

@@ -76,21 +76,22 @@ struct Outcome
 
 enum RULE_RESULT
 {
-    RULE_RESULT_TO_LOW_CRITICAL  = -2,
-    RULE_RESULT_TO_LOW_WARNING   = -1,
-    RULE_RESULT_OK               = 0,
-    RULE_RESULT_TO_HIGH_WARNING  = 1,
-    RULE_RESULT_TO_HIGH_CRITICAL = 2,
-    RULE_RESULT_UNKNOWN          = 3,
+    RULE_RESULT_LOW_CRITICAL  = -2,
+    RULE_RESULT_LOW_WARNING   = -1,
+    RULE_RESULT_OK            = 0,
+    RULE_RESULT_HIGH_WARNING  = 1,
+    RULE_RESULT_HIGH_CRITICAL = 2,
+    RULE_RESULT_UNKNOWN       = 3,
 };
 
-static const std::map<std::string, int> mapTextResults = {
-    { "low_critical", RULE_RESULT_TO_LOW_CRITICAL },
-    { "low_warning", RULE_RESULT_TO_LOW_WARNING },
-    { "ok", RULE_RESULT_OK },
-    { "high_warning", RULE_RESULT_TO_HIGH_WARNING },
-    { "high_critical", RULE_RESULT_TO_HIGH_CRITICAL },
-    { "unknown", RULE_RESULT_UNKNOWN },
+///RULE_RESULT outcome serialization tokens
+static const std::map<int, std::string> mapTextResults = {
+    { RULE_RESULT_LOW_CRITICAL,  "low_critical"  },
+    { RULE_RESULT_LOW_WARNING,   "low_warning"   },
+    { RULE_RESULT_OK,            "ok"            },
+    { RULE_RESULT_HIGH_WARNING,  "high_warning"  },
+    { RULE_RESULT_HIGH_CRITICAL, "high_critical" },
+    { RULE_RESULT_UNKNOWN,       "unknown"       },
 };
 
 /// Deserialzation of outcome
@@ -222,19 +223,18 @@ public: // methods
 
     static std::string resultToString(int result)
     {
-        for (const auto& it : mapTextResults) {
-            if (result == it.second)
-                { return it.first.c_str(); }
-        }
-        static const std::string unknown{"unknown"};
-        return unknown.c_str();
+        const auto& it = mapTextResults.find(result);
+        if (it != mapTextResults.cend())
+            { return it->second; }
+        return mapTextResults.at(RULE_RESULT_UNKNOWN);
     }
 
     static int resultToInt(const std::string& result)
     {
-        const auto& it = mapTextResults.find(result);
-        if (it != mapTextResults.cend())
-            { return it->second; }
+        for (const auto& it : mapTextResults) {
+            if (result == it.second)
+                { return it.first; }
+        }
         return RULE_RESULT_UNKNOWN;
     }
 

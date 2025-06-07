@@ -752,7 +752,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
             PureAlert pureAlert;
             int r = rule->evaluate(knownMetricValues, pureAlert);
             if (r != 0) {
-                log_error("### Cannot evaluate the rule '%s'", rule->name().c_str());
+                log_debug("### Cannot evaluate the rule '%s'", rule->name().c_str());
                 continue;
             }
 

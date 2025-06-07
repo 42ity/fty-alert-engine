@@ -492,20 +492,12 @@ int AlertConfiguration::deleteRules(
         }
     }
 
-    // delete rules from memory
-    //    auto new_end = std::remove_if (_alerts.begin (),
-    //                                   _alerts.end (),
-    //                                    [matcher] (std::pair < RulePtr, std::vector<PureAlert> > const &alert) {
-    //                                        return (*matcher)(*(alert.first));
-    //                                    });
-    //    _alerts.erase (new_end, _alerts.end ());
-
     return 0;
 }
 
 int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& oneRuleAlerts, const PureAlert& pureAlert, PureAlert& alert_to_send)
 {
-    bool isAlertFound = false;
+    bool alertFound{false};
 
     for (auto& oneAlert : oneRuleAlerts.second) // this object can be changed -> no const
     {
@@ -515,7 +507,7 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
         }
 
         // we found the alert
-        isAlertFound = true;
+        alertFound = true;
 
         if (pureAlert._status == ALERT_START) {
             if (oneAlert._status == ALERT_RESOLVED) {
@@ -538,6 +530,7 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
                 log_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'",
                     oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
             }
+
             // in both cases we need to send an alert
             alert_to_send = oneAlert;
             return 0;
@@ -551,8 +544,10 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
                 oneAlert._description = pureAlert._description;
                 oneAlert._severity    = pureAlert._severity;
                 oneAlert._actions     = pureAlert._actions;
+
                 log_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'",
                     oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
+
                 alert_to_send = oneAlert;
                 return 0;
             }
@@ -561,17 +556,21 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
                 return -1;
             }
         }
+
+        break; // the alert is processed (alertFound)
     } // end of proceesing existing alerts
 
-    if (!isAlertFound) {
+    if (!alertFound) {
         // this is completly new alert -> need to add it to the list
         // but  only if alert is not resolved
         // IPMVAL-2411 fix: enlarge to RESOLVED status (eg. any known status)
         //             was: if (pureAlert._status != ALERT_RESOLVED)
         if (PureAlert::isStatusKnown(pureAlert._status)) {
             oneRuleAlerts.second.push_back(pureAlert);
+
             log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'",
                 oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
+
             alert_to_send = PureAlert(pureAlert);
             return 0;
         }
