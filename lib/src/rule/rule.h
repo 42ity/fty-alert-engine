@@ -84,20 +84,11 @@ enum RULE_RESULT
     RULE_RESULT_UNKNOWN       = 3,
 };
 
-///RULE_RESULT outcome serialization tokens
-static const std::map<int, std::string> mapTextResults = {
-    { RULE_RESULT_LOW_CRITICAL,  "low_critical"  },
-    { RULE_RESULT_LOW_WARNING,   "low_warning"   },
-    { RULE_RESULT_OK,            "ok"            },
-    { RULE_RESULT_HIGH_WARNING,  "high_warning"  },
-    { RULE_RESULT_HIGH_CRITICAL, "high_critical" },
-    { RULE_RESULT_UNKNOWN,       "unknown"       },
-};
-
 /// Deserialzation of outcome
 void operator >>= (const cxxtools::SerializationInfo& si, Outcome& outcome);
 void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes);
 
+/// Values
 void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, double>& values);
 
 class Rule;
@@ -221,22 +212,9 @@ public: // methods
         return std::remove(full_name.c_str());
     }
 
-    static std::string resultToString(int result)
-    {
-        const auto& it = mapTextResults.find(result);
-        if (it != mapTextResults.cend())
-            { return it->second; }
-        return mapTextResults.at(RULE_RESULT_UNKNOWN);
-    }
-
-    static int resultToInt(const std::string& result)
-    {
-        for (const auto& it : mapTextResults) {
-            if (result == it.second)
-                { return it.first; }
-        }
-        return RULE_RESULT_UNKNOWN;
-    }
+    /// RULE_RESULT <-> token
+    static std::string resultToString(int result);
+    static int resultToInt(const std::string& result);
 
 protected: // properties
     /// Vector of metrics to be evaluated

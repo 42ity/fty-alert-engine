@@ -91,120 +91,55 @@ int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
     return 0;
 }
 
+/// returns 0 if ok (pureAlert initialized)
 int ThresholdRuleDevice::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
-    // ASSUMPTION: constants are in values
-    //  high_critical
-    //  high_warning
-    //  low_warning
-    //  low_critical
-
     log_debug("ThresholdRuleDevice::evaluate %s", _name.c_str());
 
-#if 0 //DBG, trace _outcomes
-    log_debug("%s: outcomes (size: %zu)", _name.c_str(), _outcomes.size());
-    for (auto& outcome : _outcomes) {
-        log_debug("%s: %s", outcome.first.c_str(), outcome.second.str().c_str());
-    }
-#endif
+    // outcome tokens
+    static const std::string LC_TOKEN{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
 
     const auto GV = getGlobalVariables();
     const MetricInfo lastMetric = metricList.getLastMetric();
 
-    auto valueToCheck = GV.find("high_critical");
-    if (valueToCheck != GV.cend()) {
-        if (valueToCheck->second < lastMetric.getValue()) {
-            auto outcome = _outcomes.find("high_critical");
-            if (outcome == _outcomes.cend()) {
-                log_error("%s: outcome high_critical is missing", _name.c_str());
-            }
-            else {
-                pureAlert = PureAlert(ALERT_START,
-                    lastMetric.getTimestamp(),
-                    outcome->second._description,
-                    this->_element,
-                    this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-
-                log_audit_alarm(lastMetric, pureAlert);
-                return 0;
-            }
-        }
-    }
-
-    valueToCheck = GV.find("high_warning");
-    if (valueToCheck != GV.cend()) {
-        if (valueToCheck->second < lastMetric.getValue()) {
-            auto outcome = _outcomes.find("high_warning");
-            if (outcome == _outcomes.cend()) {
-                log_error("%s: outcome high_warning is missing", _name.c_str());
-            }
-            else {
-                pureAlert = PureAlert(ALERT_START,
-                    lastMetric.getTimestamp(),
-                    outcome->second._description,
-                    this->_element,
-                    this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-
-                log_audit_alarm(lastMetric, pureAlert);
-                return 0;
+    auto checkThreshold = [this, &GV, &lastMetric, &pureAlert] (const std::string& TOKEN, bool revCond) {
+        auto threshold = GV.find(TOKEN);
+        if (threshold != GV.cend()) {
+            auto metricValue = lastMetric.getValue();
+            auto thresholdValue = threshold->second;
+            if (    (!revCond && (metricValue > thresholdValue))
+                 || ( revCond && (metricValue < thresholdValue))
+            ) {
+                const auto outcome = _outcomes.find(TOKEN);
+                if (outcome != _outcomes.cend()) {
+                    pureAlert = PureAlert(ALERT_START, lastMetric.getTimestamp(), outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert._severity = outcome->second._severity;
+                    pureAlert._actions  = outcome->second._actions;
+                    return true; // ALERT_START
+                }
+                else {
+                    log_error("%s: outcome %s is missing", _name.c_str(), TOKEN.c_str());
+                }
             }
         }
+        return false;
+    };
+
+    // in order
+    if (   !checkThreshold(HC_TOKEN, false)
+        && !checkThreshold(HW_TOKEN, false)
+        && !checkThreshold(LC_TOKEN, true )
+        && !checkThreshold(LW_TOKEN, true )
+    ) {
+        // if we are here -> no alert was detected (TODO actions)
+        const std::string descr{"ok"};
+        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), descr, this->_element, this->_rule_class);
     }
-
-    valueToCheck = GV.find("low_critical");
-    if (valueToCheck != GV.cend()) {
-        if (valueToCheck->second > lastMetric.getValue()) {
-            auto outcome = _outcomes.find("low_critical");
-            if (outcome == _outcomes.cend()) {
-                log_error("%s: outcome low_critical is missing", _name.c_str());
-            }
-            else {
-                pureAlert = PureAlert(ALERT_START,
-                    lastMetric.getTimestamp(),
-                    outcome->second._description,
-                    this->_element,
-                    this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-
-                log_audit_alarm(lastMetric, pureAlert);
-                return 0;
-            }
-        }
-    }
-
-    valueToCheck = GV.find("low_warning");
-    if (valueToCheck != GV.cend()) {
-        if (valueToCheck->second > lastMetric.getValue()) {
-            auto outcome = _outcomes.find("low_warning");
-            if (outcome == _outcomes.cend()) {
-                log_error("%s: outcome low_warning is missing", _name.c_str());
-            }
-            else {
-                pureAlert = PureAlert(ALERT_START,
-                    lastMetric.getTimestamp(),
-                    outcome->second._description,
-                    this->_element,
-                    this->_rule_class);
-                pureAlert._severity = outcome->second._severity;
-                pureAlert._actions  = outcome->second._actions;
-
-                log_audit_alarm(lastMetric, pureAlert);
-                return 0;
-            }
-        }
-    }
-
-    // if we are here -> no alert was detected
-    // TODO actions
-    pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), "ok", this->_element, this->_rule_class);
 
     log_audit_alarm(lastMetric, pureAlert);
-
     return 0;
 }
 

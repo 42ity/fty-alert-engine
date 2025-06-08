@@ -95,6 +95,7 @@ int RegexRule::fill(const cxxtools::SerializationInfo& si)
     return 0;
 }
 
+/// returns 0 if ok (pureAlert initialized)
 int RegexRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
     _metrics = {metricList.getLastMetric().generateTopic()};

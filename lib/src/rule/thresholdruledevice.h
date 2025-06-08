@@ -36,6 +36,7 @@ public:
     // 1 - it is not device threshold rule
     virtual int fill(const cxxtools::SerializationInfo& si);
 
+    /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
 private:

@@ -152,14 +152,15 @@ void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, 
         auto        variableName = oneElement.getMember(0).name();
         std::string valueString;
         oneElement.getMember(0) >>= valueString;
-        std::size_t pos = 0;
         try {
+            size_t pos = 0;
             double valueDouble = std::stod(valueString, &pos);
             if (pos != valueString.length()) {
                 throw std::invalid_argument("Value should be double");
             }
             values.emplace(variableName, valueDouble);
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             log_error("Value '%s' is not double (%s)", valueString.c_str(), e.what());
             throw std::runtime_error("Value should be double");
         }
@@ -183,8 +184,8 @@ void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, 
             throw std::runtime_error("unexpected member count element in results");
         }
 
-        const std::string outcomeName = oneElement.getMember(0).name();
-        int outcomeResult = Rule::resultToInt(outcomeName);
+        const std::string outcomeToken = oneElement.getMember(0).name();
+        int outcomeResult = Rule::resultToInt(outcomeToken);
 
         std::string severity;
         switch (outcomeResult) {
@@ -197,7 +198,7 @@ void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, 
                 severity = "WARNING";
                 break;
             default:
-                log_error("rule outcome '%s' is not supported (r=%d)", outcomeName.c_str(), outcomeResult);
+                log_error("rule outcome '%s' is not supported (r=%d)", outcomeToken.c_str(), outcomeResult);
                 throw std::runtime_error("unsupported result");
         }
 
@@ -205,7 +206,7 @@ void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, 
         oneElement.getMember(0) >>= outcome;
         outcome._severity = severity;
 
-        outcomes.emplace(outcomeName, outcome);
+        outcomes.emplace(outcomeToken, outcome);
     }
 }
 
@@ -222,6 +223,35 @@ bool Rule::isTopicInteresting(const std::string& topic) const
 std::vector<std::string> Rule::getNeededTopics() const
 {
     return _metrics;
+}
+
+/// RULE_RESULT tokens map
+static const std::map<int, std::string> mapTextResults = {
+    { RULE_RESULT_LOW_CRITICAL,  "low_critical"  },
+    { RULE_RESULT_LOW_WARNING,   "low_warning"   },
+    { RULE_RESULT_OK,            "ok"            },
+    { RULE_RESULT_HIGH_WARNING,  "high_warning"  },
+    { RULE_RESULT_HIGH_CRITICAL, "high_critical" },
+    { RULE_RESULT_UNKNOWN,       "unknown"       },
+};
+
+/// RULE_RESULT -> token
+std::string Rule::resultToString(int result)
+{
+    const auto& it = mapTextResults.find(result);
+    if (it != mapTextResults.cend())
+        { return it->second; }
+    return mapTextResults.find(RULE_RESULT_UNKNOWN)->second;
+}
+
+/// token -> RULE_RESULT
+int Rule::resultToInt(const std::string& result)
+{
+    for (const auto& it : mapTextResults) {
+        if (result == it.second)
+            { return it.first; }
+    }
+    return RULE_RESULT_UNKNOWN;
 }
 
 ///

@@ -42,7 +42,7 @@ public:
     ///         0 if everything is ok
     virtual int fill(const cxxtools::SerializationInfo& si);
 
-    /// returns 0 if ok
+    /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
     bool isTopicInteresting(const std::string& topic) const;

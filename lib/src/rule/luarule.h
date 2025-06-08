@@ -43,6 +43,8 @@ public:
 
     void globalVariables(const std::map<std::string, double>& vars);
     void code(const std::string& newCode);
+
+    /// returns 0 if ok (pureAlert initialized)
     int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
 private:
