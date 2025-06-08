@@ -218,7 +218,7 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                 }
                 else if (streq(cmd, "OK") || streq(cmd, "ERROR")) {
                     //nop
-                    //residual sendto responses alert/ADD or alert/DELETE_ELEMENT
+                    //residual sendto() responses alert/ADD or alert/DELETE_ELEMENT
                     //RuleConfigurator::sendNewRule'), Autoconfig::onSend()
                 }
                 else {
@@ -371,7 +371,7 @@ void Autoconfig::onPoll()
 
     {
         ConfigurableDevices_GUARD;
-        TemplateRuleConfigurator trc;
+        TemplateRuleConfigurator TRC;
 
         //std::map<std::string, AutoConfigurationInfo>
         for (auto& it : _configurableDevices) {
@@ -383,13 +383,13 @@ void Autoconfig::onPoll()
             }
 
             bool device_configured = true;
-            if (trc.isApplicable(it.second))
+            if (TRC.isApplicable(it.second))
             {
                 std::string ename_la; //empty
                 const auto iname_la = it.second.getAttr("logical_asset");
                 if (!iname_la.empty()) { ename_la = Autoconfig::getEname(iname_la); }
 
-                device_configured &= trc.configure(it.first, it.second, ename_la, _client);
+                device_configured &= TRC.configure(it.first, it.second, ename_la, _client);
             }
             else {
                 log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
@@ -487,12 +487,12 @@ std::list<std::string> Autoconfig::getAssetsThatMatchTemplate(const std::string&
 {
     ConfigurableDevices_GUARD;
 
-    TemplateRuleConfigurator trc;
+    TemplateRuleConfigurator TRC;
     std::list<std::string> assets;
 
     for (const auto& it : _configurableDevices) {
         const AutoConfigurationInfo& info = it.second;
-        if (trc.isApplicable(info, template_name)) {
+        if (TRC.isApplicable(info, template_name)) {
             assets.push_back(it.first); // iname
         }
     }
@@ -512,8 +512,8 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     zmsg_addstr(reply, "LIST");
     zmsg_addstr(reply, filter);
 
-    TemplateRuleConfigurator trc;
-    std::vector<std::pair<std::string, std::string>> templates = trc.loadAllTemplates();
+    TemplateRuleConfigurator TRC;
+    std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();
 
     log_debug("templates rules count: '%zu'", templates.size());
 

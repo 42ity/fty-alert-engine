@@ -160,8 +160,8 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 bool TemplateRuleConfigurator::configure (
     const std::string& name,
     const AutoConfigurationInfo& info,
-    const std::string &ename_la,
-    mlm_client_t *client
+    const std::string& ename_la,
+    mlm_client_t* client
 )
 {
     log_debug("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
@@ -235,14 +235,16 @@ bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::st
     return (templat.find(model) != std::string::npos);
 }
 
+/// related to template file names from dir
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info)
 {
     return checkTemplate(info.type, info.subtype);
 }
 
+/// related to the given template name
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name)
 {
-    const std::string type_name{convertTypeSubType2Name(info.type.c_str(),info.subtype.c_str())};
+    const std::string type_name{convertTypeSubType2Name(info.type.c_str(), info.subtype.c_str())};
 
     if (templat_name.find(type_name) == std::string::npos) {
         return false; // no match
