@@ -20,8 +20,11 @@
 */
 
 #include "autoconfig.h"
+#include "autoconfig_info.h"
 #include "templateruleconfigurator.h"
+#include "misc/utils.h"
 
+#include <fty_proto.h>
 #include <fty_log.h>
 #include <fty_common_asset_types.h>
 #include <fty_common_json.h>
@@ -49,10 +52,10 @@ inline void operator >>= (const cxxtools::SerializationInfo& si, AutoConfigurati
     try {
         std::string temp, dateStr;
 
-        si.getMember("configured") >>= info.configured;
         si.getMember("type") >>= temp; // ignored!?
         si.getMember("subtype") >>= temp; // ignored!?
         si.getMember("operation") >>= temp; // ignored!?
+        si.getMember("configured") >>= info.configured;
         si.getMember("date") >>= dateStr;
         si.getMember("attributes") >>= info.attributes;
         si.getMember("locations") >>= info.locations;
@@ -200,7 +203,7 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     log_error("Can't decode message (subject='%s', sender='%s')", subject, sender);
                 }
                 else if (fty_proto_id(proto) == FTY_PROTO_ASSET) {
-                    onSend(proto);
+                    onAssetStream(proto);
                 }
                 else {
                     log_warning("Recv unexpected stream msg (id=%d, subject='%s', sender='%s')", fty_proto_id(proto), subject, sender);
@@ -219,7 +222,7 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                 else if (streq(cmd, "OK") || streq(cmd, "ERROR")) {
                     //nop
                     //residual sendto() responses alert/ADD or alert/DELETE_ELEMENT
-                    //RuleConfigurator::sendNewRule'), Autoconfig::onSend()
+                    //RuleConfigurator::sendNewRule'), Autoconfig::onAssetStream()
                 }
                 else {
                     log_warning("Recv unexpected mailbox msg (cmd='%s', subject='%s', sender='%s')", cmd, subject, sender);
@@ -247,40 +250,40 @@ std::string Autoconfig::getEname(const std::string& assetName) const
     return (it != _containers.end()) ? it->second : "";
 }
 
-void Autoconfig::onSend(fty_proto_t* message)
+void Autoconfig::onAssetStream(fty_proto_t* proto)
 {
-    if (!(message && (fty_proto_id(message) == FTY_PROTO_ASSET))) {
+    if (!(proto && (fty_proto_id(proto) == FTY_PROTO_ASSET))) {
         return; // proto ASSET only
     }
 
-    if (streq(fty_proto_operation(message), FTY_PROTO_ASSET_OP_INVENTORY)) {
-        return; // ignore INVENTORY messages
+    if (streq(fty_proto_operation(proto), FTY_PROTO_ASSET_OP_INVENTORY)) {
+        return; // ignore INVENTORY op
     }
 
-    // log_debug("== OnSend"); fty_proto_print(message);
+    //log_debug("== onAssetStream"); fty_proto_print(proto);
 
-    const std::string asset_name{fty_proto_name(message)};
+    const std::string asset_name{fty_proto_name(proto)};
 
-    auto currentInfo = configurableDevicesGet(asset_name);
+    const AutoConfigurationInfo currentInfo = configurableDevicesGet(asset_name);
 
     // filter UPDATE message to ignore it when no change is detected.
     // This code is mainly to prevent overload activity on hourly REPUBLISH $all
-    if (streq(fty_proto_operation(message), FTY_PROTO_ASSET_OP_UPDATE)
+    if (streq(fty_proto_operation(proto), FTY_PROTO_ASSET_OP_UPDATE)
         && !currentInfo.empty()
-        && (currentInfo == message)
+        && (currentInfo == proto)
     ) {
         log_debug("Asset %s UPDATED but no change detected", asset_name.c_str());
         return;
     }
 
     AutoConfigurationInfo info;
-    info.type = fty_proto_aux_string(message, FTY_PROTO_ASSET_TYPE, "");
-    info.subtype = fty_proto_aux_string(message, FTY_PROTO_ASSET_SUBTYPE, "");
-    info.update_ts = fty_proto_ext_string(message, "update_ts", "");
-    info.operation = fty_proto_operation(message);
+    info.type = fty_proto_aux_string(proto, FTY_PROTO_ASSET_TYPE, "");
+    info.subtype = fty_proto_aux_string(proto, FTY_PROTO_ASSET_SUBTYPE, "");
+    info.update_ts = fty_proto_ext_string(proto, "update_ts", "");
+    info.operation = fty_proto_operation(proto);
 
     if (info.type.empty()) {
-        log_debug("Extracting empty type from asset message (%s)", asset_name.c_str());
+        log_debug("Extracting empty type from asset proto (%s)", asset_name.c_str());
         return;
     }
 
@@ -289,12 +292,12 @@ void Autoconfig::onSend(fty_proto_t* message)
 
     bool updateAsset = // vs. removeAsset
         (info.operation != FTY_PROTO_ASSET_OP_DELETE)
-        && streq(fty_proto_aux_string(message, FTY_PROTO_ASSET_STATUS, "active"), "active");
+        && streq(fty_proto_aux_string(proto, FTY_PROTO_ASSET_STATUS, "active"), "active");
 
     // update containers map
     if (persist::is_container(info.type)) {
         if (updateAsset) {
-            _containers[asset_name] = fty_proto_ext_string(message, "name", "");
+            _containers[asset_name] = fty_proto_ext_string(proto, "name", "");
         }
         else { // remove
             if (_containers.count(asset_name) != 0) {
@@ -306,19 +309,18 @@ void Autoconfig::onSend(fty_proto_t* message)
     // update configurableDevices map
     if (updateAsset)
     {
-        if (!currentInfo.empty() && (info.update_ts != currentInfo.update_ts)) {
-            log_debug("Changed asset %s", asset_name.c_str());
+        if (info.configured && !currentInfo.empty() && (info.update_ts != currentInfo.update_ts)) {
             info.configured = false;
         }
 
         // get ext. attributes
-        info.attributes = utils::zhash_to_map(fty_proto_ext(message));
+        info.attributes = utils::zhash_to_map(fty_proto_ext(proto));
 
         // asset locations: inspect aux attributes 'parent_name.X' (X in [1..4]])
         info.locations.clear();
         for (int i = 1; i <= 4; i++) {
             const std::string auxName{"parent_name." + std::to_string(i)};
-            const char* parentiName = fty_proto_aux_string(message, auxName.c_str(), NULL);
+            const char* parentiName = fty_proto_aux_string(proto, auxName.c_str(), NULL);
             if (parentiName) {
                 info.locations.push_back(parentiName);
             }

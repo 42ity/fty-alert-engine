@@ -22,6 +22,7 @@
 #include "fty_alert_engine_server.h"
 #include "alertconfiguration.h"
 #include "autoconfig.h"
+#include "misc/utils.h"
 
 #include <malamute.h>
 #include <fty_log.h>

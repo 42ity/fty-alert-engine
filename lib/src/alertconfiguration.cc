@@ -57,12 +57,12 @@ int readRule(std::istream& f, RulePtr& rule)
         // try to parse/fill a new rule from si
         // returns 0 if success (rule is set)
         // returns 2 if error (malformed si or Lua error)
-        // do nothing else (continue)
+        // else do nothing (unrecognized & continue)
         #define TRY_RULE_FILL(new_rule) \
         { \
-            std::unique_ptr<Rule> rule_{new_rule}; \
-            switch (rule_->fill(si)) { \
-                case 0: rule = std::move(rule_); return 0; \
+            std::unique_ptr<Rule> tmpRule{new_rule}; \
+            switch (tmpRule->fill(si)) { \
+                case 0: rule = std::move(tmpRule); return 0; \
                 case 2: return 2; \
                 default:; \
             } \
