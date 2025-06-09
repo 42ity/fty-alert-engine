@@ -67,7 +67,7 @@ private: // methods
 
     std::string getContainerEname(const std::string& assetName) const;
 
-    void setPollingInterval();
+    void choosePollingInterval();
     void saveState();
     void loadState();
 
@@ -78,7 +78,7 @@ private: // properties
     mlm_client_t* _client{nullptr};
     int _timeout{5000}; // ms
 
-    // list of configurable devices (related to alarms)
+    // list of configurable assets (related to alarms)
     std::map<std::string, AutoConfigurationInfo> _configurableDevices;
     std::recursive_mutex _configurableDevicesMutex; // multi-thread access protection
 

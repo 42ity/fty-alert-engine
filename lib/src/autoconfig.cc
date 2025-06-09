@@ -362,7 +362,7 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
         _configurableDevices.size(), _containers.size());
 
     saveState();
-    setPollingInterval();
+    choosePollingInterval();
 }
 
 void Autoconfig::onPoll()
@@ -413,14 +413,14 @@ void Autoconfig::onPoll()
         saveState();
     }
 
-    setPollingInterval();
+    choosePollingInterval();
 }
 
-void Autoconfig::setPollingInterval()
+void Autoconfig::choosePollingInterval()
 {
     ConfigurableDevices_GUARD;
 
-    bool soon{false}, lazy{false};
+    bool fast{false}, slow{false};
 
     for (const auto& it : _configurableDevices) {
         if (zsys_interrupted) { break; }
@@ -431,17 +431,17 @@ void Autoconfig::setPollingInterval()
 
         if (it.second.date == 0) {
             // a device that we didn't try to configure?
-            soon = true; // do it soon
+            fast = true; // to do quickly
             break;
         }
         else {
             // a device failed to configure?
-            lazy = true; // do it with laziness
+            slow = true; // to redo slowly
         }
     }
 
     // timeout in ms (-1 as infinite)
-    _timeout = soon ? 5000 : (lazy ? 60000 : -1);
+    _timeout = fast ? 5000 : (slow ? 60000 : -1);
 }
 
 void Autoconfig::loadState()
@@ -596,7 +596,7 @@ void Autoconfig::run(zsock_t* pipe, const std::string& name)
 {
     // starting
     loadState();
-    setPollingInterval();
+    choosePollingInterval();
 
     // main loop
     main(pipe, name);
