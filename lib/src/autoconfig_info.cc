@@ -42,7 +42,7 @@ std::string AutoConfigurationInfo::dump(const std::vector<std::string>& attrFilt
     if (empty()) { return "<empty>"; } // not initialized
 
     std::ostringstream oss;
-    oss << type << "(" << subtype << ")/" << operation;
+    oss << type << "(" << subtype << ")";
 
     for (const auto& it : attributes) {
         const std::string key{it.first};
@@ -65,15 +65,8 @@ std::string AutoConfigurationInfo::dump(const std::vector<std::string>& attrFilt
 // eq. w/ fty_proto object
 bool AutoConfigurationInfo::operator == (fty_proto_t* proto) const
 {
-    bool b;
-
-    b = (operation == fty_proto_operation(proto))
-        && (type == fty_proto_aux_string(proto, FTY_PROTO_ASSET_TYPE, ""))
-        && (subtype == fty_proto_aux_string(proto, FTY_PROTO_ASSET_SUBTYPE, ""));
-    if (!b) { return false; }
-
-    // self is implicitly active, so we have to test it
-    b = streq(fty_proto_aux_string(proto, FTY_PROTO_ASSET_STATUS, "active"), "active");
+    bool b = (type == fty_proto_aux_string(proto, FTY_PROTO_ASSET_TYPE, ""))
+             && (subtype == fty_proto_aux_string(proto, FTY_PROTO_ASSET_SUBTYPE, ""));
     if (!b) { return false; }
 
     // test all ext attributes

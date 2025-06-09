@@ -55,7 +55,6 @@ public:
 
     void run(zsock_t* pipe, const std::string& name);
 
-    std::string getEname(const std::string& assetName) const;
     AutoConfigurationInfo configurableDevicesGet(const std::string& assetName);
 
 private: // methods
@@ -65,6 +64,8 @@ private: // methods
 
     void configurableDevicesAdd(const std::string& assetName, const AutoConfigurationInfo& info);
     void configurableDevicesRemove(const std::string& assetName);
+
+    std::string getContainerEname(const std::string& assetName) const;
 
     void setPollingInterval();
     void saveState();

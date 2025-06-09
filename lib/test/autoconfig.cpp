@@ -34,8 +34,8 @@ TEST_CASE("autoconfig_test")
     for (auto& templatePath : testVector) {
         Autoconfig::RuleFilePath = templatePath;
 
-        TemplateRuleConfigurator templateRuleConfigurator;
-        std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
+        TemplateRuleConfigurator TRC;
+        std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();
 
         printf("%s : number of template rules = '%zu'\n", templatePath.c_str(), templates.size());
 

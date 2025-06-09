@@ -1,18 +1,21 @@
-#include "src/ruleconfigurator.h"
 #include <catch2/catch.hpp>
+#include "src/templateruleconfigurator.h"
 
-TEST_CASE("ruleconfigurator test")
+TEST_CASE("templateruleconfigurator test")
 {
-    RuleConfigurator rc;
+    TemplateRuleConfigurator TRC;
 
     SECTION("default+safe")
     {
-        CHECK(rc.configure("asset_name", AutoConfigurationInfo(), "logical_asset") == false);
-        CHECK(rc.isApplicable(AutoConfigurationInfo()) == false);
-        CHECK(rc.sendNewRule("hello world", NULL) == false);
+        CHECK(TRC.configure("asset_name", AutoConfigurationInfo(), "logical_asset", NULL) == false);
+        CHECK(TRC.isApplicable(AutoConfigurationInfo()) == false);
+        CHECK(TRC.sendAddRule("hello world", NULL) == false);
+
+        Autoconfig::RuleFilePath = "";
+        CHECK(TRC.loadAllTemplates().empty());
     }
 
-    SECTION("sendNewRule mlm")
+    SECTION("sendAddRule mlm")
     {
         const char* TEST_ENDPOINT = "inproc://ruleconfigurator-test";
 
@@ -30,7 +33,7 @@ TEST_CASE("ruleconfigurator test")
         mlm_client_connect(autoconf, TEST_ENDPOINT, 1000, "autoconf-ruleconfigurator-test");
 
         const char* theRuleJsonpayload = "theRuleJsonPayload";
-        CHECK(rc.sendNewRule(theRuleJsonpayload, client) == true);
+        CHECK(TRC.sendAddRule(theRuleJsonpayload, client) == true);
 
         zpoller_t* poller = zpoller_new(mlm_client_msgpipe(autoconf), NULL);
         REQUIRE(poller);

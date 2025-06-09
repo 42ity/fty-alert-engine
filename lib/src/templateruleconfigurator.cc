@@ -26,6 +26,7 @@
 #include <fty_log.h>
 #include <fty_proto.h>
 #include <fty_shm.h>
+#include <cxxtools/regex.h>
 #include <cxxtools/directory.h>
 #include <fstream>
 #include <algorithm>
@@ -164,73 +165,67 @@ bool TemplateRuleConfigurator::configure (
     mlm_client_t* client
 )
 {
+    if (info.empty() || !client)
+        { return false; }
+
     log_debug("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
         name.c_str(), info.type.c_str(), info.subtype.c_str());
 
-    if ((info.operation == FTY_PROTO_ASSET_OP_CREATE)
-        || (info.operation == FTY_PROTO_ASSET_OP_UPDATE)
-    ) {
-        bool fast_track = false;
-        std::string port, severity, normal_state, model, iname_la, ename;
-        {
-            fast_track = info.getAttr("fast_track", "") == "true";
-            port = info.getAttr("port", "");
-            severity = info.getAttr("alarm_severity", "");
-            normal_state = info.getAttr("normal_state", "");
-            model = info.getAttr("model", "");
-            iname_la = info.getAttr("logical_asset", "");
-            ename = info.getAttr("name", "");
+    bool fast_track{false};
+    std::string port, severity, normal_state, model, iname_la, ename;
+    {
+        fast_track = info.getAttr("fast_track", "") == "true";
+        port = info.getAttr("port", "");
+        severity = info.getAttr("alarm_severity", "");
+        normal_state = info.getAttr("normal_state", "");
+        model = info.getAttr("model", "");
+        iname_la = info.getAttr("logical_asset", "");
+        ename = info.getAttr("name", "");
 
-            if (!port.empty()) { port = "GPI" + port; }
-        }
+        if (!port.empty()) { port = "GPI" + port; }
+    }
 
-        std::string rule_result = severity;
-        std::transform(rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
+    std::string rule_result = severity;
+    std::transform(rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
 
-        // dictionary of tokens replacement
-        const std::map<std::string, std::string> dict = {
-            { "__ename__", ename },
-            { "__logicalasset_iname__", iname_la },
-            { "__logicalasset__", ename_la },
-            { "__name__", name },
-            { "__normalstate__", normal_state },
-            { "__port__", port },
-            { "__rule_result__", rule_result },
-            { "__severity__", severity },
-        };
+    // dictionary of tokens replacement
+    const std::map<std::string, std::string> dict = {
+        { "__ename__", ename },
+        { "__logicalasset_iname__", iname_la },
+        { "__logicalasset__", ename_la },
+        { "__name__", name },
+        { "__normalstate__", normal_state },
+        { "__port__", port },
+        { "__rule_result__", rule_result },
+        { "__severity__", severity },
+    };
 
-        std::vector<std::string> templates = loadTemplates(info.type, info.subtype, fast_track);
+    std::vector<std::string> templates = loadTemplates(info.type, info.subtype, fast_track);
 
-        bool result = true;
-        for (const auto& templat : templates) {
-            // extra check for sensorgpio
-            if (info.subtype == "sensorgpio") {
-                if (!isModelOk(model, templat)) {
-                    log_debug("Skip rule for gpio: %s", name.c_str());
-                    continue;
-                }
-                else {
-                    log_debug("Ready to send rule for gpio: %s", name.c_str());
-                }
+    bool result = true;
+    for (const auto& templat : templates) {
+        // extra check for sensorgpio
+        if (info.subtype == "sensorgpio") {
+            if (!isModelOk(model, templat)) {
+                log_debug("Skip rule for gpio: %s", name.c_str());
+                continue;
             }
-
-            // generate the rule from the template
-            const std::string rule = utils::replaceTokens(templat, dict);
-
-            log_debug("Sending rule for %s\n%s", name.c_str(), rule.c_str());
-            result &= sendNewRule(rule, client);
+            else {
+                log_debug("Ready to send rule for gpio: %s", name.c_str());
+            }
         }
 
-        return result;
-    }
-    else {
-        log_info("Unhandled operation '%s' on asset '%s'", info.operation.c_str(), name.c_str());
+        // generate the rule from the template (json)
+        const std::string rule{utils::replaceTokens(templat, dict)};
+
+        log_debug("Sending rule for %s\n%s", name.c_str(), rule.c_str());
+        result &= sendAddRule(rule, client);
     }
 
-    return true;
+    return result;
 }
 
-bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::string& templat) const
+bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::string& templat)
 {
     return (templat.find(model) != std::string::npos);
 }
@@ -271,7 +266,7 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, c
     return true;
 }
 
-bool TemplateRuleConfigurator::templateDirExists() const
+bool TemplateRuleConfigurator::templateDirExists()
 {
     if (cxxtools::Directory::exists(Autoconfig::RuleFilePath)) {
         return true;
@@ -281,7 +276,7 @@ bool TemplateRuleConfigurator::templateDirExists() const
     return false;
 }
 
-std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const std::string& type, const std::string& subtype, bool fast_track) const
+std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const std::string& type, const std::string& subtype, bool fast_track)
 {
     if (!templateDirExists()) {
         return {};
@@ -316,7 +311,7 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const std::stri
     return templates;
 }
 
-std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadAllTemplates() const
+std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadAllTemplates()
 {
     if (!templateDirExists()) {
         return {};
@@ -344,7 +339,7 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
     return templates;
 }
 
-bool TemplateRuleConfigurator::checkTemplate(const std::string& type, const std::string& subtype) const
+bool TemplateRuleConfigurator::checkTemplate(const std::string& type, const std::string& subtype)
 {
     if (!templateDirExists()) {
         return false;
@@ -362,7 +357,7 @@ bool TemplateRuleConfigurator::checkTemplate(const std::string& type, const std:
     return false;
 }
 
-std::string TemplateRuleConfigurator::convertTypeSubType2Name(const std::string& type, const std::string& subtype) const
+std::string TemplateRuleConfigurator::convertTypeSubType2Name(const std::string& type, const std::string& subtype)
 {
     static const std::string prefix{"__"};
 
@@ -372,4 +367,37 @@ std::string TemplateRuleConfigurator::convertTypeSubType2Name(const std::string&
         return prefix + type + prefix; // ex: __rack__
     }
     return prefix + type + "_" + subtype + prefix; // ex: __device_ups__
+}
+
+/// send ADD/rule to fty-alert-engine or fty-alert-flexible
+/// returns true if success, else false
+bool TemplateRuleConfigurator::sendAddRule(const std::string& rule, mlm_client_t* client)
+{
+    if (!client) { log_error("client is NULL"); return false; }
+
+    zmsg_t* msg = zmsg_new();
+    if (!msg) { log_error("zmsg_new() failed"); return false; }
+
+    zmsg_addstr(msg, "ADD");
+    zmsg_addstr(msg, rule.c_str()); //json
+
+    const char* dest = Autoconfig::AlertEngineName.c_str();
+    const char* subject = RULES_SUBJECT;
+
+    cxxtools::Regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", REG_EXTENDED);
+    if (reg.match(rule)) {
+        dest = "fty-alert-flexible";
+    }
+
+    log_debug("Sending '%s/ADD' to '%s'", subject, dest);
+
+    const int timeout_ms = 5000;
+    int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &msg);
+    zmsg_destroy(&msg);
+    // ignore response (no wait)
+
+    if (r != 0) {
+        log_error("mlm_client_sendto() failed (dest = '%s', subject = '%s/ADD', timeout = %d)", dest, subject, timeout_ms);
+    }
+    return (r == 0);
 }

@@ -40,7 +40,6 @@ inline void operator <<= (cxxtools::SerializationInfo& si, const AutoConfigurati
 {
     si.addMember("type") <<= info.type;
     si.addMember("subtype") <<= info.subtype;
-    si.addMember("operation") <<= info.operation;
     si.addMember("configured") <<= info.configured;
     si.addMember("date") <<= std::to_string(info.date);
     si.addMember("attributes") <<= info.attributes;
@@ -54,7 +53,6 @@ inline void operator >>= (const cxxtools::SerializationInfo& si, AutoConfigurati
 
         si.getMember("type") >>= temp; // ignored!?
         si.getMember("subtype") >>= temp; // ignored!?
-        si.getMember("operation") >>= temp; // ignored!?
         si.getMember("configured") >>= info.configured;
         si.getMember("date") >>= dateStr;
         si.getMember("attributes") >>= info.attributes;
@@ -220,9 +218,9 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     zstr_free(&correl_id);
                 }
                 else if (streq(cmd, "OK") || streq(cmd, "ERROR")) {
-                    //nop
-                    //residual sendto() responses alert/ADD or alert/DELETE_ELEMENT
-                    //RuleConfigurator::sendNewRule'), Autoconfig::onAssetStream()
+                    // nop
+                    // residual sendto() responses for alert/ADD or alert/DELETE_ELEMENT requests
+                    // see TemplateRuleConfigurator::sendAddRule'), Autoconfig::onAssetStream()
                 }
                 else {
                     log_warning("Recv unexpected mailbox msg (cmd='%s', subject='%s', sender='%s')", cmd, subject, sender);
@@ -244,7 +242,8 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
     mlm_client_destroy(&_client);
 }
 
-std::string Autoconfig::getEname(const std::string& assetName) const
+// returns the extended name of a container asset
+std::string Autoconfig::getContainerEname(const std::string& assetName) const
 {
     const auto it = _containers.find(assetName); // iname | ename
     return (it != _containers.end()) ? it->second : "";
@@ -253,26 +252,29 @@ std::string Autoconfig::getEname(const std::string& assetName) const
 void Autoconfig::onAssetStream(fty_proto_t* proto)
 {
     if (!(proto && (fty_proto_id(proto) == FTY_PROTO_ASSET))) {
-        return; // proto ASSET only
-    }
-
-    if (streq(fty_proto_operation(proto), FTY_PROTO_ASSET_OP_INVENTORY)) {
-        return; // ignore INVENTORY op
+        return; // not a proto ASSET
     }
 
     //log_debug("== onAssetStream"); fty_proto_print(proto);
 
-    const std::string asset_name{fty_proto_name(proto)};
+    const std::string operation{fty_proto_operation(proto)};
+    const std::string assetName{fty_proto_name(proto)};
+    const std::string status{fty_proto_aux_string(proto, FTY_PROTO_ASSET_STATUS, "active")};
 
-    const AutoConfigurationInfo currentInfo = configurableDevicesGet(asset_name);
+    if (operation == FTY_PROTO_ASSET_OP_INVENTORY) {
+        return; // ignore INVENTORY
+    }
+
+    // update VS delete?
+    const bool updateAsset{(operation != FTY_PROTO_ASSET_OP_DELETE) && (status == "active")};
+
+    const AutoConfigurationInfo currentInfo = configurableDevicesGet(assetName);
 
     // filter UPDATE message to ignore it when no change is detected.
-    // This code is mainly to prevent overload activity on hourly REPUBLISH $all
-    if (streq(fty_proto_operation(proto), FTY_PROTO_ASSET_OP_UPDATE)
-        && !currentInfo.empty()
-        && (currentInfo == proto)
+    // This code is mainly to prevent overload activity on hourly REPUBLISH/all
+    if (updateAsset && !currentInfo.empty() && (currentInfo == proto)
     ) {
-        log_debug("Asset %s UPDATED but no change detected", asset_name.c_str());
+        log_debug("Asset %s UPDATED but no change detected", assetName.c_str());
         return;
     }
 
@@ -280,28 +282,25 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
     info.type = fty_proto_aux_string(proto, FTY_PROTO_ASSET_TYPE, "");
     info.subtype = fty_proto_aux_string(proto, FTY_PROTO_ASSET_SUBTYPE, "");
     info.update_ts = fty_proto_ext_string(proto, "update_ts", "");
-    info.operation = fty_proto_operation(proto);
+    info.date = 0;
+    info.configured = false;
 
-    if (info.type.empty()) {
-        log_debug("Extracting empty type from asset proto (%s)", asset_name.c_str());
+    if (info.empty()) {
+        log_debug("Extracting empty info from asset proto (%s)", assetName.c_str());
         return;
     }
 
-    log_debug("Decoded asset='%s', type='%s', subtype='%s', operation='%s'",
-        asset_name.c_str(), info.type.c_str(), info.subtype.c_str(), info.operation.c_str());
-
-    bool updateAsset = // vs. removeAsset
-        (info.operation != FTY_PROTO_ASSET_OP_DELETE)
-        && streq(fty_proto_aux_string(proto, FTY_PROTO_ASSET_STATUS, "active"), "active");
+    logDebug("Decoded operatiob={}, asset={}, status={}, info.type={}, info.subtype={}",
+        operation, assetName, status, info.type, info.subtype);
 
     // update containers map
     if (persist::is_container(info.type)) {
         if (updateAsset) {
-            _containers[asset_name] = fty_proto_ext_string(proto, "name", "");
+            _containers[assetName] = fty_proto_ext_string(proto, "name", "");
         }
         else { // remove
-            if (_containers.count(asset_name) != 0) {
-                _containers.erase(asset_name);
+            if (_containers.count(assetName) != 0) {
+                _containers.erase(assetName);
             }
         }
     }
@@ -309,10 +308,6 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
     // update configurableDevices map
     if (updateAsset)
     {
-        if (info.configured && !currentInfo.empty() && (info.update_ts != currentInfo.update_ts)) {
-            info.configured = false;
-        }
-
         // get ext. attributes
         info.attributes = utils::zhash_to_map(fty_proto_ext(proto));
 
@@ -326,11 +321,11 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
             }
         }
 
-        configurableDevicesAdd(asset_name, info);
+        configurableDevicesAdd(assetName, info);
     }
     else // remove
     {
-        configurableDevicesRemove(asset_name);
+        configurableDevicesRemove(assetName);
 
         if (info.subtype == "sensorgpio" || info.subtype == "gpo") {
             // don't do anything
@@ -340,28 +335,31 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
             const char* subject = RULES_SUBJECT;
             const char* cmd = "DELETE_ELEMENT";
 
-            log_debug("Send %s/%s %s to %s", subject, cmd, asset_name.c_str(), dest);
+            log_debug("Send %s/%s %s to %s", subject, cmd, assetName.c_str(), dest);
 
             // delete all rules for this asset
             zmsg_t* msg = zmsg_new();
             if (!msg) {
-                log_error("zmsg_new() failed");
+                log_error("zmsg_new() failed (%s/%s/%s/%s)",
+                    dest, subject, cmd, assetName.c_str());
             }
             else {
                 zmsg_addstr(msg, cmd);
-                zmsg_addstr(msg, asset_name.c_str());
+                zmsg_addstr(msg, assetName.c_str());
                 int r = mlm_client_sendto(_client, dest, subject, NULL, 5000, &msg);
                 // ignore response (no wait)
+
                 if (r != 0) {
-                    log_error("mlm_client_sendto() failed (dest='%s', subject='%s', cmd='%s', asset='%s')",
-                        dest, subject, cmd, asset_name.c_str());
+                    log_error("mlm_client_sendto() failed (%s/%s/%s/%s)",
+                        dest, subject, cmd, assetName.c_str());
                 }
             }
             zmsg_destroy(&msg);
         }
     }
 
-    log_debug("cache size: Assets(%zu), Containers(%zu)", _configurableDevices.size(), _containers.size());
+    log_debug("cache size: Assets(%zu), Containers(%zu)",
+        _configurableDevices.size(), _containers.size());
 
     saveState();
     setPollingInterval();
@@ -384,17 +382,18 @@ void Autoconfig::onPoll()
                 continue;
             }
 
-            bool device_configured = true;
+            bool device_configured{false};
             if (TRC.isApplicable(it.second))
             {
                 std::string ename_la; //empty
                 const auto iname_la = it.second.getAttr("logical_asset");
-                if (!iname_la.empty()) { ename_la = Autoconfig::getEname(iname_la); }
+                if (!iname_la.empty()) { ename_la = getContainerEname(iname_la); }
 
-                device_configured &= TRC.configure(it.first, it.second, ename_la, _client);
+                device_configured = TRC.configure(it.first, it.second, ename_la, _client);
             }
             else {
-                log_info ("No applicable configurator for device '%s', not configuring", it.first.c_str ());
+                log_info("No applicable configurator for device '%s'", it.first.c_str ());
+                device_configured = true; // no more interesting
             }
 
             if (device_configured) {

@@ -21,7 +21,9 @@
 
 #pragma once
 
-#include "ruleconfigurator.h"
+#include "autoconfig.h"
+
+#include <malamute.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -30,25 +32,22 @@
 extern bool gDisable_ruleXphaseIsApplicable; // to pass selftest
 bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfigurationInfo& assetInfo);
 
-class TemplateRuleConfigurator : public RuleConfigurator
+class TemplateRuleConfigurator
 {
 public:
-    virtual ~TemplateRuleConfigurator(){};
-
-    using RuleConfigurator::configure;
-
     bool configure(const std::string& name, const AutoConfigurationInfo& info, const std::string& logical_asset, mlm_client_t* client);
     bool isApplicable(const AutoConfigurationInfo& info);
     bool isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name);
 
-    std::vector<std::pair<std::string, std::string>> loadAllTemplates() const;
+    std::vector<std::pair<std::string, std::string>> loadAllTemplates();
+
+    bool sendAddRule(const std::string& rule /*json*/, mlm_client_t* client);
 
 private:
-    bool templateDirExists() const;
-    bool checkTemplate(const std::string& type, const std::string& subtype) const;
-    std::vector<std::string> loadTemplates(const std::string& type, const std::string& subtype, bool fast_track) const;
+    bool templateDirExists();
+    bool checkTemplate(const std::string& type, const std::string& subtype);
+    std::vector<std::string> loadTemplates(const std::string& type, const std::string& subtype, bool fast_track);
 
-    bool isModelOk(const std::string& model, const std::string& templat) const;
-    std::string convertTypeSubType2Name(const std::string& type, const std::string& subtype) const;
-    std::string replaceTokens(const std::string& text, const std::map<std::string, std::string>& dict) const;
+    bool isModelOk(const std::string& model, const std::string& templat);
+    std::string convertTypeSubType2Name(const std::string& type, const std::string& subtype);
 };
