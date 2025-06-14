@@ -560,7 +560,7 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     // send reply
     const char* sender = mlm_client_sender(_client);
     const char* subject = RULES_SUBJECT;
-    int r = mlm_client_sendto(_client, sender, subject, mlm_client_tracker(_client), 1000, &reply);
+    int r = mlm_client_sendto(_client, sender, subject, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() failed (sender: %s, subject: %s, LIST)", sender, subject);

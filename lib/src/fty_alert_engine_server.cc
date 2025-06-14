@@ -62,7 +62,7 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
         zmsg_t* reply = zmsg_new();
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "INVALID_TYPE");
-        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
         zmsg_destroy(&reply);
         return;
     }
@@ -96,7 +96,7 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
     }
     mtxAlertConfig.unlock();
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
 }
 
@@ -111,7 +111,7 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
         zmsg_t* msg = zmsg_new(); \
         zmsg_addstr(msg, "ERROR"); \
         zmsg_addstr(msg, reason); \
-        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &msg); \
+        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &msg); \
         zmsg_destroy(&msg); \
         return; \
     }
@@ -397,7 +397,7 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
     }
     mtxAlertConfig.unlock();
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     #undef RETURN_REPLY_ERROR
 }
@@ -422,7 +422,7 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
     }
     mtxAlertConfig.unlock();
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
 }
 
@@ -540,7 +540,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     }
 
     // send the reply
-    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
@@ -618,7 +618,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     }
 
     // send the reply
-    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
@@ -664,7 +664,7 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
         sendAlerts = true;
     }
 
-    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
@@ -706,7 +706,7 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
             log_warning("touch_rule:%s: result not handled (r: %d)", rule_name, r);
     }
 
-    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, mlm_client_tracker(client), 1000, &reply);
+    r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
