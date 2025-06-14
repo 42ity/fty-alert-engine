@@ -85,7 +85,6 @@ public:
     /// Sets a path to configuration files
     /// @param[in] path - a directory where rules are stored
     void setPath(const std::string& path) { _path = path; }
-    void setPath(const char* path) { setPath(std::string{path ? path : ""}); }
     /// Gets current path to configuration files
     std::string getPersistencePath() const { return _path + '/'; }
 
