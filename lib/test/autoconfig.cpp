@@ -9,7 +9,7 @@
 
 #define SELFTEST_DIR_RO "."
 
-TEST_CASE("autoconfig_test")
+TEST_CASE("autoconfig loadAllTemplates")
 {
     // Basic test: try to load JSON rules to see if these are well formed
     // This will avoid regression in the future, since fty-alert-engine only
