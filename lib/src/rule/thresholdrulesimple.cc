@@ -108,17 +108,17 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     const auto GV = getGlobalVariables();
     const MetricInfo lastMetric = metricList.getLastMetric();
 
-    auto checkThreshold = [this, &GV, &lastMetric, &pureAlert] (const std::string& TOKEN, bool revCond) {
+    auto checkThreshold = [this, &GV, &lastMetric, &pureAlert] (const std::string& TOKEN, bool ltCond) {
         auto threshold = GV.find(TOKEN);
         if (threshold != GV.cend()) {
             auto metricValue = lastMetric.getValue();
             auto thresholdValue = threshold->second;
-            if (    (!revCond && (metricValue > thresholdValue))
-                 || ( revCond && (metricValue < thresholdValue))
+            if (    (!ltCond && (metricValue > thresholdValue)) // higher than
+                 || ( ltCond && (metricValue < thresholdValue)) // lower than
             ) {
                 const auto outcome = _outcomes.find(TOKEN);
                 if (outcome != _outcomes.cend()) {
-                    pureAlert = PureAlert(ALERT_START, lastMetric.getTimestamp(), outcome->second._description, this->_element, this->_rule_class);
+                    pureAlert = PureAlert(ALERT_START, lastMetric.getTimestamp(), outcome->second._description, _element, _rule_class);
                     pureAlert._severity = outcome->second._severity;
                     pureAlert._actions  = outcome->second._actions;
                     return true; // ALERT_START
@@ -132,14 +132,14 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     };
 
     // in order
-    if (   !checkThreshold(HC_TOKEN, false)
+    if (   !checkThreshold(HC_TOKEN, false) // higher than
         && !checkThreshold(HW_TOKEN, false)
-        && !checkThreshold(LC_TOKEN, true )
+        && !checkThreshold(LC_TOKEN, true ) // lower than
         && !checkThreshold(LW_TOKEN, true )
     ) {
         // if we are here -> no alert was detected (TODO actions)
         const std::string descr{"ok"};
-        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), descr, this->_element, this->_rule_class);
+        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.getTimestamp(), descr, _element, _rule_class);
     }
 
     log_audit_alarm(lastMetric, pureAlert);
