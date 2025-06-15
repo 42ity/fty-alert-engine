@@ -20,29 +20,33 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <fty_log.h>
 #include <sstream>
 
+//static
 bool PureAlert::isStatusKnown(const std::string& status)
 {
-    if ((status == ALERT_RESOLVED)
-        || (status == ALERT_START)
-        || (status == ALERT_ACK1)
-        || (status == ALERT_ACK2)
-        || (status == ALERT_ACK3)
-        || (status == ALERT_ACK4)
-    ) {
-        return true;
-    }
-
-    return false;
+    return (status == ALERT_RESOLVED)
+           || (status == ALERT_START)
+           || (status == ALERT_ACK1)
+           || (status == ALERT_ACK2)
+           || (status == ALERT_ACK3)
+           || (status == ALERT_ACK4)
+    ;
 }
 
-void PureAlert::print() const
+std::string PureAlert::str() const
 {
     std::ostringstream oss;
     oss << "status(" << _status << ")"
         << ", timestamp(" << _timestamp << ")"
         << ", description(" << _description << ")"
         << ", element(" << _element << ")"
-        << ", severity(" << _severity << ")";
+        << ", severity(" << _severity << ")"
+        << ", rule_class(" << _rule_class << ")"
+        << ", ttl(" << _ttl << ")";
 
-    logDebug("{}", oss.str());
+    return oss.str();
+}
+
+void PureAlert::print() const
+{
+    logDebug("{}", str());
 }

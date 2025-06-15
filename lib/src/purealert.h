@@ -22,22 +22,23 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-#include <memory>
+#include <memory> //unique_ptr
 #include <string>
 #include <vector>
 
-#define ALERT_UNKNOWN  "UNKNOWN"
+// alert status
 #define ALERT_START    "ACTIVE"
 #define ALERT_ACK1     "ACK-WIP"
 #define ALERT_ACK2     "ACK-PAUSE"
 #define ALERT_ACK3     "ACK-IGNORE"
 #define ALERT_ACK4     "ACK-SILENCE"
 #define ALERT_RESOLVED "RESOLVED"
+#define ALERT_UNKNOWN  "UNKNOWN"
 
 class PureAlert
 {
 public:
-    std::string              _status;
+    std::string              _status{ALERT_UNKNOWN};
     uint64_t                 _timestamp{0};
     std::string              _description;
     std::string              _element;
@@ -48,29 +49,43 @@ public:
 
     PureAlert() : _timestamp{0} {}
 
-    PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name, const std::string& rule_class)
-        : _status{s}
-        , _timestamp{tm}
-        , _description{descr}
-        , _element{element_name}
-        , _rule_class{rule_class}
-        , _ttl{0}
+    PureAlert(
+        const std::string& status,
+        uint64_t timestamp,
+        const std::string& description,
+        const std::string& element_name,
+        const std::string& rule_class
+    ) : _status{status}
+      , _timestamp{timestamp}
+      , _description{description}
+      , _element{element_name}
+      , _severity{}
+      , _actions{}
+      , _rule_class{rule_class}
+      , _ttl{0}
     {}
 
-    PureAlert(const std::string& s, uint64_t tm, const std::string& descr, const std::string& element_name,
-        const std::string& severity, const std::vector<std::string>& actions)
-        : _status{s}
-        , _timestamp{tm}
-        , _description{descr}
-        , _element{element_name}
-        , _severity{severity}
-        , _actions{actions}
-        , _ttl{0}
+    PureAlert(
+        const std::string& status,
+        uint64_t timestamp,
+        const std::string& description,
+        const std::string& element_name,
+        const std::string& severity,
+        const std::vector<std::string>& actions
+    ) : _status{status}
+      , _timestamp{timestamp}
+      , _description{description}
+      , _element{element_name}
+      , _severity{severity}
+      , _actions{actions}
+      , _rule_class{}
+      , _ttl{0}
     {}
 
     static bool isStatusKnown(const std::string& status);
 
     //dbg
+    std::string str() const;
     void print() const;
 };
 
