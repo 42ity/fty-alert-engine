@@ -31,33 +31,27 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <czmq.h>
 #include <algorithm>
 #include <filesystem>
+#include <istream>
 
-int readRule(std::istream& f, RulePtr& rule)
+int readRule(const std::string& jsonPayload, RulePtr& rule)
 {
     rule.reset();
 
     // TODO check, that rule actions have unique names (in the rule)
     // TODO check, that values have unique name (in the rule)
     try {
-        // SerializationInfo can contain more items, which is not what we
-        // want. Pick the first one
+        // json w/ unique member
         cxxtools::SerializationInfo si;
-        {
-            cxxtools::SerializationInfo si2;
-            std::string json_string(std::istreambuf_iterator<char>(f), {});
-            JSON::readFromString(json_string, si2);
-            if (si2.memberCount() == 0) {
-                throw std::runtime_error("empty input json document");
-            }
-
-            auto member0 = si2.getMember(0);
-            si.addMember(member0.name()) <<= member0;
-        }
+        JSON::readFromString(jsonPayload, si);
+        if (si.memberCount() == 0)
+            { throw std::runtime_error("empty member json document"); }
+        if (si.memberCount() != 1)
+            { throw std::runtime_error("multiple members json document"); }
 
         // try to parse/fill a new rule from si
-        // returns 0 if success (rule is set)
+        // returns 0 if success (rule is set as recognized)
         // returns 2 if error (malformed si or Lua error)
-        // else do nothing (unrecognized & continue)
+        // else do nothing (unrecognized)
         #define TRY_RULE_FILL(new_rule) \
         { \
             std::unique_ptr<Rule> tmpRule{new_rule}; \
@@ -75,13 +69,13 @@ int readRule(std::istream& f, RulePtr& rule)
         TRY_RULE_FILL(new NormalRule());
 
         // unrecognized rule
-        log_error("Cannot detect the type of the rule");
+        log_error("readRule: can't recognize the type of the rule");
     }
     catch (const std::exception& e) {
-        log_error("Cannot parse JSON (e: %s)", e.what());
+        log_error("readRule: can't parse JSON (e: %s)", e.what());
     }
 
-    return 1; // read failed
+    return 1; // read failed (unrecognized or internal/json error)
 }
 
 std::set<std::string> AlertConfiguration::readConfiguration()
@@ -89,10 +83,11 @@ std::set<std::string> AlertConfiguration::readConfiguration()
     // list of topics, that are needed to be consumed for rules
     std::set<std::string> result;
 
-    log_debug("read rules files from '%s'", _path.c_str());
+    log_debug("read rule files from '%s'", _path.c_str());
 
     try {
         if (!std::filesystem::exists(_path)) {
+            log_debug("create directory '%s'", _path.c_str());
             std::filesystem::create_directories(_path);
         }
         std::filesystem::path dir(_path);
@@ -110,9 +105,10 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             // read rule from the file
             std::unique_ptr<Rule> rule{nullptr};
             {
-                std::ifstream f(fn.path());
-                log_debug("processing file: '%s'", fn.path().native().c_str());
-                int r = readRule(f, rule);
+                log_debug("processing file: '%s'", fn.path().c_str());
+                std::ifstream ifs{fn.path()};
+                const std::string json{std::istreambuf_iterator<char>(ifs), {}};
+                int r = readRule(json, rule);
                 if (r != 0) {
                     // rule can't be read correctly from the file
                     log_warning("'%s' ignored (r = %d)", fname.c_str(), r);
@@ -138,6 +134,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             // record topics we are interested in
             for (const auto& interestedTopic : rule->getNeededTopics()) {
                 result.insert(interestedTopic);
+
                 auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
                 if (_it_metrics != _metrics_alerts_map.end()) {
                     _it_metrics->second.push_back(rulename);
@@ -163,7 +160,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 }
 
 int AlertConfiguration::addRule(
-    std::istream& newRuleString,
+    const std::string& json,
     std::set<std::string>& newSubjectsToSubscribe,
     std::vector<PureAlert>& /* alertsToSend */,
     AlertConfiguration::iterator& it
@@ -176,7 +173,7 @@ int AlertConfiguration::addRule(
     }
 
     RulePtr temp_rule{nullptr};
-    int r = readRule(newRuleString, temp_rule);
+    int r = readRule(json, temp_rule);
     if (r != 0) { // failed
         switch (r) {
             case 1:
@@ -229,6 +226,7 @@ int AlertConfiguration::addRule(
     for (const auto& interestedTopic : temp_rule->getNeededTopics()) {
         //log_debug("interestedTopic:", interestedTopic.c_str());
         newSubjectsToSubscribe.insert(interestedTopic);
+
         auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
         if (_it_metrics != _metrics_alerts_map.end()) {
             log_debug("_it_metrics %s: add rule %s ", _it_metrics->first.c_str(), rulename.c_str());
@@ -273,7 +271,7 @@ int AlertConfiguration::touchRule(const std::string& rule_name, std::vector<Pure
 }
 
 int AlertConfiguration::updateRule(
-    std::istream& newRuleString,
+    const std::string& newRuleString,
     const std::string& old_name,
     std::set<std::string>& newSubjectsToSubscribe, std::vector<PureAlert>& alertsToSend,
     AlertConfiguration::iterator& it
@@ -291,6 +289,10 @@ int AlertConfiguration::updateRule(
     }
 
     // need to find out if rule exists already or not
+    if (old_name.empty()) {
+        log_error("rule old_name is empty");
+        return -2;
+    }
     if (!haveRule(old_name)) {
         log_error("rule doesn't exist");
         return -2;
@@ -397,6 +399,7 @@ int AlertConfiguration::updateRule(
     // As we changed the rule, we need to check new subjects
     for (const auto& interestedTopic : temp_rule->getNeededTopics()) {
         newSubjectsToSubscribe.insert(interestedTopic);
+
         auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
         if (_it_metrics != _metrics_alerts_map.end()) {
             _it_metrics->second.push_back(rulename);
@@ -557,7 +560,7 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
             }
         }
 
-        break; // the alert is processed (alertFound)
+        break; // the alert is processed (alertFound == true)
     } // end of proceesing existing alerts
 
     if (!alertFound) {

@@ -5,10 +5,18 @@
 #include "src/alertconfiguration.h"
 
 #include <fty_log.h>
+#include <istream>
 
 static bool double_equals(double d1, double d2)
 {
     return std::abs(d1 - d2) < std::numeric_limits<double>::epsilon() * (std::abs(d1 + d2) + 1);
+}
+
+static std::string readFile(const std::string& path)
+{
+    std::ifstream ifs{path};
+    const std::string buf{std::istreambuf_iterator<char>(ifs), {}};
+    return buf;
 }
 
 TEST_CASE("rule outcome tokens")
@@ -49,8 +57,6 @@ TEST_CASE("rule outcome tokens")
 
 TEST_CASE("alertconfiguration test")
 {
-    gDisable_ruleXphaseIsApplicable = true; // require autoconfig runtime
-
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
 
@@ -60,8 +66,34 @@ TEST_CASE("alertconfiguration test")
     std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
 
     {
-        std::ifstream f(dir + "pattern.rule");
-        REQUIRE(readRule(f, rule) == 0);
+        std::string json;
+
+        json = "{}";
+        REQUIRE(readRule(json, rule) == 1); // no member
+
+        json = "{ \"member0\":{}, \"member1\":{} }";
+        REQUIRE(readRule(json, rule) == 1); // multi member
+
+        json = "{ \"member\":{";
+        REQUIRE(readRule(json, rule) == 1); // invalid
+
+        json = "{ \"hello\":{} }";
+        REQUIRE(readRule(json, rule) == 1); // unrecognized
+    }
+
+    {
+        AlertConfiguration ac;
+        std::set<std::string> topics;
+        ac.setPath("./tmp/fake");
+        REQUIRE_NOTHROW((topics = ac.readConfiguration()));
+        CHECK(topics.size() == 0);
+        CHECK(ac.size() == 0);
+    }
+
+    {
+        std::string json(readFile(dir + "pattern.rule"));
+        REQUIRE(readRule(json, rule) == 0);
+
         CHECK(rule->whoami() == "pattern");
         CHECK(rule->name() == "warranty2");
         CHECK(rule->rule_class() == "");
@@ -86,8 +118,9 @@ TEST_CASE("alertconfiguration test")
                "low_warning ) then return LOW_WARNING end return OK end");
     }
     {
-        std::ifstream f(dir + "simplethreshold.rule");
-        REQUIRE(readRule(f, rule) == 0);
+        std::string json(readFile(dir + "simplethreshold.rule"));
+        REQUIRE(readRule(json, rule) == 0);
+
         CHECK(rule->whoami() == "threshold");
         CHECK(rule->name() == "simplethreshold");
         CHECK(rule->rule_class() == "example class");
@@ -116,8 +149,9 @@ TEST_CASE("alertconfiguration test")
         CHECK(rule->_outcomes["high_critical"]._actions == action_EMAIL);
     }
     {
-        std::ifstream f(dir + "devicethreshold.rule");
-        REQUIRE(readRule(f, rule) == 0);
+        std::string json(readFile(dir + "devicethreshold.rule"));
+        REQUIRE(readRule(json, rule) == 0);
+
         CHECK(rule->whoami() == "threshold");
         CHECK(rule->name() == "device_threshold_test");
         CHECK(rule->rule_class() == "");
@@ -146,8 +180,9 @@ TEST_CASE("alertconfiguration test")
         CHECK(rule->_outcomes["high_critical"]._actions == action_EMAIL);
     }
     {
-        std::ifstream f(dir + "complexthreshold.rule");
-        REQUIRE(readRule(f, rule) == 0);
+        std::string json(readFile(dir + "complexthreshold.rule"));
+        REQUIRE(readRule(json, rule) == 0);
+
         CHECK(rule->whoami() == "threshold");
         CHECK(rule->name() == "complexthreshold");
         CHECK(rule->rule_class() == "example class");
@@ -177,8 +212,9 @@ TEST_CASE("alertconfiguration test")
         CHECK(rule->_outcomes["high_critical"]._actions == action_EMAIL);
     }
     {
-        std::ifstream f(dir + "single.rule");
-        REQUIRE(readRule(f, rule) == 0);
+        std::string json(readFile(dir + "single.rule"));
+        REQUIRE(readRule(json, rule) == 0);
+
         CHECK(rule->whoami() == "single");
         CHECK(rule->name() == "single");
         CHECK(rule->rule_class() == "");

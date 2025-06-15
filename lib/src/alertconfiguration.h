@@ -27,7 +27,6 @@
 #include "purealert.h"
 #include "rule/rule.h"
 
-#include <istream>
 #include <memory>
 #include <set>
 #include <string>
@@ -36,20 +35,20 @@
 
 /// Parses the input and reads the rule
 ///
-/// @param[in]  f    - an input stream to parse a rule
-/// @param[out] rule - a parsed rule
+/// @param[in]  jsonPayload - to parse a rule
+/// @param[out] rule - the parsed rule
 ///
 /// @return 1 if rule has errors in json
-///         2 if lua function has errors
-///         0 if everything is ok
-int readRule(std::istream& f, RulePtr& rule);
+///         2 if Lua function has errors
+///         0 if everything is ok (rule is set)
+int readRule(const std::string& jsonPayload, RulePtr& rule);
 
 /// Alert configuration is a class that manages rules and evaruted alerts
 ///
 /// ASSUMPTIONS:
 ///  1. Rules are stored in files. One rule = one file
-///  2. File name is a rule name
-///  3. Files should have extention ".rule"
+///  2. File name is the rule name
+///  3. Rule files must have extention ".rule"
 ///  4. Directory to the files is configurable. Cannot be changed without recompilation
 ///  5. If rule has at least one mistake or broke any other rule, it is ignored
 ///  6. Rule name is unique
@@ -71,7 +70,7 @@ public:
 
     /// Reads the configuration from persistence
     /// Set of topics is empty if there are no rules or there are some errors
-    /// **Exit** if failed
+    /// NOTICE: **Exit** if failed
     /// @return a set of topics to be consumed
     std::set<std::string> readConfiguration();
 
@@ -90,33 +89,32 @@ public:
 
     /// Adds a rule to the configuration
     /// alertsToSend must be sent in the order from the first element to the last element
-    /// @param[in] newRuleString - an input stream to parse a rule
+    /// @param[in] newRuleString - json to parse a rule
     /// @param[out] newSubjectsToSubscribe - subjects that are required by the new rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
     /// @return -1 when rule has error in JSON
     ///         -2 when rule with such name already exists
-    ///         -5 when rule has error in lua
+    ///         -5 when rule has error in Lua
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and added correctly (but it can be not saved)
-    int addRule(std::istream& newRuleString, std::set<std::string>& newSubjectsToSubscribe,
+    int addRule(const std::string& newRuleString, std::set<std::string>& newSubjectsToSubscribe,
         std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Updates existing rule in the configuration
     /// alertsToSend must be sent in the order from the first element to the last element
-    /// @param[in] newRuleString - an input stream to parse a rule (can have a new name for this rule)
+    /// @param[in] newRuleString - json to parse a rule (can have a new name for this rule)
     /// @param[in] rule_name - old name of the rule
     /// @param[out] newSubjectsToSubscribe - subjects that are required by the new rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
     /// @return -2 when rule with old_name doesn't exist -> nothing to update
     ///         -1 when rule has error in JSON
-    ///         -5 when rule has error in lua
-    ///         -3 if name of the rule is changed, but for the new name rule
-    ///            already exists
+    ///         -5 when rule has error in Lua
+    ///         -3 if name of the rule is changed, but for the new name rule already exists
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and updated correctly (but it can be not saved)
-    int updateRule(std::istream& newRuleString, const std::string& rule_name, std::set<std::string>& newSubjectsToSubscribe,
+    int updateRule(const std::string& newRuleString, const std::string& rule_name, std::set<std::string>& newSubjectsToSubscribe,
         std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Touch existing rule in the configuration.
@@ -146,9 +144,9 @@ public:
 
     int deleteRules(RuleMatcher* matcher, std::map<std::string, std::vector<PureAlert>>& alertsToSend, std::vector<std::string>& rulesDeleted);
 
-    const std::vector<std::string> getRulesByMetric(const std::string& metric)
+    const std::vector<std::string> getRulesByTopic(const std::string& topic)
     {
-        const auto& it = _metrics_alerts_map.find(metric);
+        const auto& it = _metrics_alerts_map.find(topic);
         return (it != _metrics_alerts_map.cend()) ? it->second : std::vector<std::string>{};
     }
 

@@ -440,11 +440,11 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
         return al;
     };
 
-    bool isWarranty = (rule_name == "warranty");
+    const bool isWarranty{rule_name == "warranty"};
 
     for (const auto& alert : alertsToSend) {
         // Asset id is missing in the rule name for warranty alarms
-        const std::string fullRuleName = isWarranty ? (rule_name + "@" + alert._element) : rule_name;
+        const std::string fullRuleName{isWarranty ? (rule_name + "@" + alert._element) : rule_name};
 
         zlist_t* actions = buildActionList(alert);
         zmsg_t* msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
@@ -453,7 +453,7 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
         zlist_destroy(&actions);
 
         if (msg) {
-            std::string topic = fullRuleName + "/" + alert._severity + "@" + alert._element;
+            const std::string topic{fullRuleName + "/" + alert._severity + "@" + alert._element};
             mlm_client_send(client, topic.c_str(), &msg);
             log_info("Send Alert %s/%s (severity: %s)", fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str());
         }
@@ -478,13 +478,12 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
 {
     if (!json_representation) { json_representation = ""; }
 
-    std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
     std::vector<PureAlert>       alertsToSend;
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int r = ac.addRule(f, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    int r = ac.addRule(json_representation, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
@@ -558,17 +557,14 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
 static void update_rule(mlm_client_t* client, const char* json_representation, const char* rule_name, AlertConfiguration& ac)
 {
     if (!json_representation) { json_representation = ""; }
+    if (!rule_name) { rule_name = ""; }
 
-    std::istringstream           f(json_representation);
     std::set<std::string>        newSubjectsToSubscribe;
     std::vector<PureAlert>       alertsToSend;
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int r = -7;
-    if (rule_name) {
-        r = ac.updateRule(f, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
-    }
+    int r = ac.updateRule(json_representation, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
@@ -733,7 +729,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
     else
         { sTopic = triggeringMetric.generateTopic(); }
 
-    const std::vector<std::string> rules_of_metric = ac.getRulesByMetric(sTopic);
+    const std::vector<std::string> rules_of_metric = ac.getRulesByTopic(sTopic);
 
     log_debug("### evaluate topic '%s' (rules_of_metric size: %zu)", sTopic.c_str(), rules_of_metric.size());
 
