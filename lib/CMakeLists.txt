@@ -31,11 +31,11 @@ etn_test_target(${PROJECT_NAME}-static
     SOURCES
         test/main.cpp
         test/utils.cpp
-        test/audit_test.cpp
+        test/audit.cpp
         test/autoconfig.cpp
         test/templateruleconfigurator.cpp
         test/alertconfiguration.cpp
-        test/engine_server_test.cpp
+        test/engine_server.cpp
         test/alert_actions.cpp
     SUBDIR
         test
