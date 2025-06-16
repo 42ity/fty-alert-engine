@@ -69,6 +69,8 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
         rule_source >>= _rule_source;
     }
 
+    log_debug("rule_source = %s", _rule_source.c_str());
+
     // values
     // TODO check low_critical < low_warning < high_warning < high_critical
     std::map<std::string, double> tmp_values;
