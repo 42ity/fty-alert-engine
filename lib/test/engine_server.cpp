@@ -1581,23 +1581,3 @@ TEST_CASE("engine_server agent")
     // release audit context
     AuditLog::deinit();
 }
-
-TEST_CASE("engine_server utf8eq")
-{
-    static const std::vector<std::string> strings{
-        "ŽlUťOUčKý kůň",
-        "\u017dlu\u0165ou\u010dk\xc3\xbd K\u016f\xc5\x88",
-        "Žluťou\u0165ký kůň", "ŽLUťou\u0165Ký kůň",
-        "Ka\xcc\x81rol",
-        "K\xc3\xa1rol",
-        "супер test",
-        "\u0441\u0443\u043f\u0435\u0440 Test"
-    };
-
-    REQUIRE(utf8eq(strings[0], strings[1]) == 1);
-    REQUIRE(utf8eq(strings[0], strings[2]) == 0);
-    REQUIRE(utf8eq(strings[1], strings[2]) == 0);
-    REQUIRE(utf8eq(strings[2], strings[3]) == 1);
-    REQUIRE(utf8eq(strings[4], strings[5]) == 0);
-    REQUIRE(utf8eq(strings[6], strings[7]) == 1);
-}

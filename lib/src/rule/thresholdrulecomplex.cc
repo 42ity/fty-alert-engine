@@ -45,11 +45,7 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
 
     log_debug("it is complex threshold rule");
 
-    std::vector<std::basic_string<cxxtools::Char>> cxxtools_Char_metrics;
-    target >>= cxxtools_Char_metrics;
-    for (const auto& ccm : cxxtools_Char_metrics) {
-        _metrics.push_back(cxxtools::Utf8Codec::encode(ccm));
-    }
+    target >>= _metrics;
 
     si_getValueUtf8(threshold, "rule_name", _name);
     si_getValueUtf8(threshold, "element", _element);

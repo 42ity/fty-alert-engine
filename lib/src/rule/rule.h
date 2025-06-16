@@ -28,7 +28,6 @@
 #include <fty_log.h>
 #include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>
-#include <cxxtools/utf8codec.h>
 
 #include <czmq.h>
 #include <fstream>
@@ -38,11 +37,6 @@
 #include <map>
 #include <string>
 #include <vector>
-
-//  1  - equals
-//  0  - different
-// -1  - error
-int utf8eq(const std::string& s1, const std::string& s2);
 
 void si_getValueUtf8(const cxxtools::SerializationInfo& si, const std::string& member_name, std::string& result);
 
@@ -157,20 +151,12 @@ public: // methods
     /// TODO check this assumption
     std::string _element;
 
-    /// Checks if rules have same names
-    /// @param[in] rule - rule to check
-    /// @return true/false
-    bool hasSameNameAs(const RulePtr& rule) const
-    {
-        return hasSameNameAs(rule->_name);
-    }
-
     /// Checks if rule has this name
     /// @param[in] name - name to check
     /// @return true/false
     bool hasSameNameAs(const std::string& name) const
     {
-        return utf8eq(_name, name);
+        return _name == name;
     }
 
     /// Gets a json representation of the rule
@@ -187,14 +173,11 @@ public: // methods
     };
 
     /// Save rule to the persistance
+    /// assume path with / term
     void save(const std::string& path, const std::string& name) const noexcept
     {
-        // ASSUMPTION: file name is the same as rule name
-        // rule name and file name are CASE INSENSITIVE.
-        // assume path / term
-
         try {
-            std::string full_name = path + name;
+            const std::string full_name{path + name};
             JSON::writeToFile(full_name, _si, true);
         }
         catch (const std::exception& e) {
@@ -207,7 +190,7 @@ public: // methods
     /// @return 0 on success, non-zero on error
     int remove(const std::string& path) const noexcept
     {
-        std::string full_name = path + _name + ".rule";
+        const std::string full_name{path + _name + ".rule"};
         log_debug("trying to remove file : '%s'", full_name.c_str());
         return std::remove(full_name.c_str());
     }
@@ -217,8 +200,8 @@ public: // methods
     static int resultToInt(const std::string& result);
 
 protected: // properties
-    /// Vector of metrics to be evaluated
-    std::vector<std::string> _metrics;
+    /// json representation (see fill())
+    cxxtools::SerializationInfo _si;
 
     /// Every rule should have a rule name
     /// ASSUMPTION: rule name has only ascii characters.
@@ -226,18 +209,18 @@ protected: // properties
     /// Rule name treated as case INSENSITIVE string
     std::string _name;
 
-    ///
-    cxxtools::SerializationInfo _si;
+    /// Vector of metrics to be evaluated
+    std::vector<std::string> _metrics;
 
-    ///
+    /// The rule source
     std::string _rule_source;
 
     /// Human readable info about this rule purpose like "internal temperature"
     std::string _rule_class;
 
 private: // properties
-    /// User is able to define his own constants, that can be used in evaluation function
-    /// Maps name of the variable to the value.
+    /// To define its own constant variables (as thresholds) that can be used
+    /// in evaluation function. Maps variable name and its the value.
     std::map<std::string, double> _variables;
 };
 
