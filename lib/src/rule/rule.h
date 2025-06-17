@@ -134,6 +134,7 @@ public: // methods
     void rule_class(const std::string& rule_class) { _rule_class = rule_class; }
 
     std::string element() const { return _element; }
+    void element(const std::string& element) { _element = element; }
 
     std::map<std::string, double> getGlobalVariables() const { return _variables; }
 
@@ -145,11 +146,6 @@ public: // methods
     ///
     /// TODO make it private
     std::map<std::string, Outcome> _outcomes;
-
-    /// TODO rework this part, as it it legacy already
-    /// Every rule produces alerts for element
-    /// TODO check this assumption
-    std::string _element;
 
     /// Checks if rule has this name
     /// @param[in] name - name to check
@@ -217,6 +213,9 @@ protected: // properties
 
     /// Human readable info about this rule purpose like "internal temperature"
     std::string _rule_class;
+
+    /// Every rule produces alerts for element
+    std::string _element;
 
 private: // properties
     /// To define its own constant variables (as thresholds) that can be used

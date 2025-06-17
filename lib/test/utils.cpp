@@ -56,5 +56,8 @@ TEST_CASE("utils")
 
         CHECK(replaceTokens("hello world", { {" world", ""} }) == "hello");
         CHECK(replaceTokens("hello world", { {"hello", "你好"}, {" world", ""} }) == "你好");
+
+        CHECK(replaceTokens("abc", { {"a", "aa"}, {"b", "bb"}, {"c", "cc"} }) == "aabbcc");
+        CHECK(replaceTokens("aabbcc", { {"aa", "a"}, {"bb", "b"}, {"cc", "c"} }) == "abc");
     }
 }

@@ -115,7 +115,7 @@ TEST_CASE("alertconfiguration")
         CHECK(rule->whoami() == "pattern");
         CHECK(rule->name() == "warranty2");
         CHECK(rule->rule_class() == "");
-        CHECK(rule->_element == "");
+        CHECK(rule->element() == "");
         CHECK(rule->getNeededTopics() == std::vector<std::string>{"^end_warranty_date@.+"});
         std::map<std::string, double> vars = rule->getGlobalVariables();
         CHECK(double_equals(vars["low_warning"], 60.0));
@@ -142,7 +142,7 @@ TEST_CASE("alertconfiguration")
         CHECK(rule->whoami() == "threshold");
         CHECK(rule->name() == "simplethreshold");
         CHECK(rule->rule_class() == "example class");
-        CHECK(rule->_element == "fff");
+        CHECK(rule->element() == "fff");
         CHECK(rule->getNeededTopics() == std::vector<std::string>{"abc@fff"});
         std::map<std::string, double> vars = rule->getGlobalVariables();
         CHECK(double_equals(vars["low_warning"], 40.0));
@@ -173,7 +173,7 @@ TEST_CASE("alertconfiguration")
         CHECK(rule->whoami() == "threshold");
         CHECK(rule->name() == "device_threshold_test");
         CHECK(rule->rule_class() == "");
-        CHECK(rule->_element == "ggg");
+        CHECK(rule->element() == "ggg");
         CHECK(rule->getNeededTopics() == std::vector<std::string>{"device_metric@ggg"});
         std::map<std::string, double> vars = rule->getGlobalVariables();
         CHECK(double_equals(vars["low_warning"], 40.0));
@@ -204,7 +204,7 @@ TEST_CASE("alertconfiguration")
         CHECK(rule->whoami() == "threshold");
         CHECK(rule->name() == "complexthreshold");
         CHECK(rule->rule_class() == "example class");
-        CHECK(rule->_element == "fff");
+        CHECK(rule->element() == "fff");
         std::vector<std::string> topics = {"abc@fff1", "abc@fff2"};
         CHECK(rule->getNeededTopics() == topics);
         std::map<std::string, double> vars = rule->getGlobalVariables();
@@ -236,7 +236,7 @@ TEST_CASE("alertconfiguration")
         CHECK(rule->whoami() == "single");
         CHECK(rule->name() == "single");
         CHECK(rule->rule_class() == "");
-        CHECK(rule->_element == "aaa");
+        CHECK(rule->element() == "aaa");
         std::vector<std::string> topics = {"abc@sss1", "abc@sss2"};
         CHECK(rule->getNeededTopics() == topics);
         std::map<std::string, double> vars = rule->getGlobalVariables();

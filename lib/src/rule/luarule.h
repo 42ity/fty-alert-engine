@@ -39,9 +39,9 @@ public:
     LuaRule(const LuaRule& r);
     ~LuaRule();
 
-    std::string code() const { return _code; }
-
     void globalVariables(const std::map<std::string, double>& vars);
+
+    std::string code() const { return _code; }
     void code(const std::string& newCode);
 
     /// returns 0 if ok (pureAlert initialized)

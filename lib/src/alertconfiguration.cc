@@ -50,7 +50,7 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
 
         // try to parse/fill a new rule from si
         // returns 0 if success (rule is set as recognized)
-        // returns 2 if error (malformed si or Lua error)
+        // returns 2 if error (incompatible or Lua error)
         // else do nothing (unrecognized)
         #define TRY_RULE_FILL(new_rule) \
         { \
