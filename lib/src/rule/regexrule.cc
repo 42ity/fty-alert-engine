@@ -62,7 +62,6 @@ int RegexRule::fill(const cxxtools::SerializationInfo& si)
         }
         rule_source >>= _rule_source;
     }
-
     log_debug("rule_source = %s", _rule_source.c_str());
 
     // values

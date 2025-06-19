@@ -124,7 +124,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule (5 = strlen(".rule"))
-            if (rule->name() != fname.substr(0, fname.length() - 5)) {
+            if (rulename != fname.substr(0, fname.length() - 5)) {
                 log_warning("'%s' differs from rule name '%s', ignore it", fname.c_str(), rulename.c_str());
                 continue;
             }

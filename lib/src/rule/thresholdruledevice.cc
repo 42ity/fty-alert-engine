@@ -39,7 +39,7 @@ int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
     }
     std::string value;
     target >>= value;
-    _metrics.push_back(value);
+    _metrics.push_back(value); // singleton
 
     // rule_source
     if (threshold.findMember("rule_source") == NULL) {
@@ -54,7 +54,6 @@ int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
         }
         rule_source >>= _rule_source;
     }
-
     log_debug("rule_source = %s", _rule_source.c_str());
     if (_rule_source == "Manual user input") {
         return 1;

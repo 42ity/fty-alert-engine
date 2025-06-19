@@ -42,18 +42,9 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     if (target.category() != cxxtools::SerializationInfo::Array) {
         return 1;
     }
-
-    log_debug("it is complex threshold rule");
-
     target >>= _metrics;
 
-    si_getValueUtf8(threshold, "rule_name", _name);
-    si_getValueUtf8(threshold, "element", _element);
-
-    // rule_class
-    if (threshold.findMember("rule_class") != NULL) {
-        threshold.getMember("rule_class") >>= _rule_class;
-    }
+    log_debug("it is complex threshold rule");
 
     // rule_source
     if (threshold.findMember("rule_source") == NULL) {
@@ -68,8 +59,15 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
         }
         rule_source >>= _rule_source;
     }
-
     log_debug("rule_source = %s", _rule_source.c_str());
+
+    si_getValueUtf8(threshold, "rule_name", _name);
+    si_getValueUtf8(threshold, "element", _element);
+
+    // rule_class
+    if (threshold.findMember("rule_class") != NULL) {
+        threshold.getMember("rule_class") >>= _rule_class;
+    }
 
     // values
     // TODO check low_critical < low_warning < high_warning < high_critical

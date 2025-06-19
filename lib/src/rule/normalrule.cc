@@ -42,14 +42,6 @@ int NormalRule::fill(const cxxtools::SerializationInfo& si)
     }
     target >>= _metrics;
 
-    single.getMember("rule_name") >>= _name;
-    single.getMember("element") >>= _element;
-
-    // rule_class
-    if (single.findMember("rule_class") != NULL) {
-        single.getMember("rule_class") >>= _rule_class;
-    }
-
     // rule_source
     if (single.findMember("rule_source") == NULL) {
         // if key is not there, take default
@@ -63,8 +55,15 @@ int NormalRule::fill(const cxxtools::SerializationInfo& si)
         }
         rule_source >>= _rule_source;
     }
-
     log_debug("rule_source = %s", _rule_source.c_str());
+
+    single.getMember("rule_name") >>= _name;
+    single.getMember("element") >>= _element;
+
+    // rule_class
+    if (single.findMember("rule_class") != NULL) {
+        single.getMember("rule_class") >>= _rule_class;
+    }
 
     // values
     // values are not required for single rule

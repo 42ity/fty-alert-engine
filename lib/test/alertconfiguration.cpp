@@ -75,7 +75,7 @@ TEST_CASE("rule outcome tokens")
     }
 }
 
-TEST_CASE("alertconfiguration")
+TEST_CASE("alertconfiguration readRule")
 {
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");

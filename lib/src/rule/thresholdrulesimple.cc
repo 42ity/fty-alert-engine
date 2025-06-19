@@ -41,6 +41,9 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     if (target.category() != cxxtools::SerializationInfo::Value) {
         return 1;
     }
+    std::string value;
+    target >>= value;
+    _metrics.push_back(value); // singleton
 
     // rule_source
     if (threshold.findMember("rule_source") == NULL) {
@@ -55,17 +58,12 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
         }
         rule_source >>= _rule_source;
     }
-
     log_debug("rule_source = %s", _rule_source.c_str());
     if (_rule_source != "Manual user input") {
         return 1;
     }
 
     log_debug("it is simple threshold rule");
-
-    std::string value;
-    si_getValueUtf8(threshold, "target", value);
-    _metrics = {value}; // unique
 
     si_getValueUtf8(threshold, "rule_name", _name);
     si_getValueUtf8(threshold, "element", _element);
