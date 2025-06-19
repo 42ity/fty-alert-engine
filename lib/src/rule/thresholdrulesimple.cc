@@ -63,7 +63,10 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
 
     log_debug("it is simple threshold rule");
 
-    si_getValueUtf8(threshold, "target", _metric);
+    std::string value;
+    si_getValueUtf8(threshold, "target", value);
+    _metrics = {value}; // unique
+
     si_getValueUtf8(threshold, "rule_name", _name);
     si_getValueUtf8(threshold, "element", _element);
 
@@ -105,7 +108,7 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
     static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
 
-    const auto GV = getGlobalVariables();
+    const auto GV = globalVariables();
     const MetricInfo lastMetric = metricList.getLastMetric();
 
     auto checkThreshold = [this, &GV, &lastMetric, &pureAlert] (const std::string& TOKEN, bool ltCond) {
@@ -144,16 +147,6 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
 
     log_audit_alarm(lastMetric, pureAlert);
     return 0;
-}
-
-bool ThresholdRuleSimple::isTopicInteresting(const std::string& topic) const
-{
-    return (_metric == topic);
-}
-
-std::vector<std::string> ThresholdRuleSimple::getNeededTopics() const
-{
-    return {_metric};
 }
 
 // log alarm audit

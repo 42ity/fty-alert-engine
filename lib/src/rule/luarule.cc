@@ -22,12 +22,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <algorithm>
 #include <fty_log.h>
 
-// outcome tokens (see mapTextResults)
-static const std::string LC_TOKEN{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
-static const std::string LW_TOKEN{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
-static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
-static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
-
 LuaRule::~LuaRule()
 {
     if (_lstate)
@@ -37,17 +31,17 @@ LuaRule::~LuaRule()
 LuaRule::LuaRule(const LuaRule& r)
 {
     _name = r._name;
-    globalVariables(r.getGlobalVariables());
+    globalVariables(r.Rule::globalVariables());
     code(r._code);
 }
 
-void LuaRule::globalVariables(const std::map<std::string, double>& vars)
+void LuaRule::globalVariables(const std::map<std::string, double>& variables)
 {
-    Rule::globalVariables(vars);
+    Rule::globalVariables(variables);
     luaSetGlobalVariables();
 }
 
-void LuaRule::code(const std::string& newCode)
+void LuaRule::code(const std::string& code)
 {
     _valid = false;
 
@@ -70,7 +64,7 @@ void LuaRule::code(const std::string& newCode)
     luaL_openlibs(_lstate);
 
     // set _code *first* then set Lua globals
-    _code = newCode;
+    _code = code;
     luaSetGlobalVariables();
 
     // compile Lua code
@@ -109,6 +103,12 @@ static std::string auditValue(const std::string& metric, double value)
 /// returns 0 if ok (pureAlert initialized)
 int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
+    // outcome tokens
+    static const std::string LC_TOKEN{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
+
     log_debug("LuaRule::evaluate %s", _name.c_str());
 
     std::string auditValues;
@@ -239,6 +239,12 @@ double LuaRule::luaEvaluate(const std::vector<double>& arguments)
 
 void LuaRule::luaSetGlobalVariables()
 {
+    // outcome tokens
+    static const std::string LC_TOKEN{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
+
     if (!_lstate) {
         return; // no state to set
     }
@@ -251,7 +257,7 @@ void LuaRule::luaSetGlobalVariables()
         lua_setglobal(_lstate, resultName.c_str()); // variable name
     }
 
-    std::map<std::string, double> globals{getGlobalVariables()};
+    std::map<std::string, double> globals{Rule::globalVariables()};
 
     if (!globals.empty()) {
         // BSOS-1570, some alerts are malformed, missing values definition (thresholds)

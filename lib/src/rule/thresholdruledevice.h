@@ -24,22 +24,20 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "rule.h"
 
-class ThresholdRuleDevice : public Rule
+class ThresholdRuleDevice final : public Rule
 {
 public:
     ThresholdRuleDevice() {}
 
-    std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleDevice"; }
 
-    // throws -> it is device threshold but with errors
-    // 0 - ok
-    // 1 - it is not device threshold rule
+    virtual std::string whoami() const { return "threshold"; }
+
     virtual int fill(const cxxtools::SerializationInfo& si);
 
     /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
 private:
-    // log alarm audit
     void log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const;
 };

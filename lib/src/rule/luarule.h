@@ -32,20 +32,20 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class LuaRule : public Rule
 {
 public:
-    /**
-     * \brief set the evaluation code
-     */
     LuaRule() {}
     LuaRule(const LuaRule& r);
     ~LuaRule();
 
-    void globalVariables(const std::map<std::string, double>& vars);
+    virtual std::string clazz() const { return Rule::clazz() + "/LuaRule"; }
 
-    std::string code() const { return _code; }
-    void code(const std::string& newCode);
+    virtual void globalVariables(const std::map<std::string, double>& variables);
 
     /// returns 0 if ok (pureAlert initialized)
-    int evaluate(const MetricList& metricList, PureAlert& pureAlert);
+    virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
+
+    /// get/set Lua code
+    std::string code() const { return _code; }
+    void code(const std::string& code);
 
 private:
     void luaSetGlobalVariables();
@@ -53,5 +53,5 @@ private:
 
     bool _valid{false};
     lua_State* _lstate{nullptr};
-    std::string _code;
+    std::string _code; // Lua
 };

@@ -55,12 +55,9 @@ struct Outcome
     std::string str() //dump DBG
     {
         std::ostringstream oss;
-
-        int i = 0;
-        for (auto& a : _actions) {
-            oss << "actions[" << i << "](" << a << "),";
-            i++;
-        }
+        size_t i = 0;
+        for (auto& a : _actions)
+            { oss << "actions[" << i++ << "](" << a << "),"; }
         oss << "severity(" << _severity << "),"
             << "description(" << _description << ")";
 
@@ -93,22 +90,16 @@ class Rule
 {
 public: // virtual methods
     virtual ~Rule() {}
-    virtual std::string whoami() const { return ""; }
-    virtual int fill(const cxxtools::SerializationInfo& si) = 0;
-    virtual void globalVariables(const std::map<std::string, double>& vars)
-    {
-        _variables = vars;
-    }
 
-    /// get/set code
-    virtual void code(const std::string& /* code */)
-    {
-        throw std::runtime_error("Method not supported by this type of rule");
-    }
-    virtual std::string code() const
-    {
-        throw std::runtime_error("Method not supported by this type of rule");
-    }
+    virtual std::string whoami() const { return ""; }
+    virtual std::string clazz() const { return "/Rule"; }
+
+    /// Initialize the rule from SerializationInfo (json)
+    /// @param[in] si - a SerializationInfo object
+    /// @return 0 if the rule is recognized and initialized correctly
+    ///         1 if the rule is not recognized
+    ///         2 if an error occured (bad json object)
+    virtual int fill(const cxxtools::SerializationInfo& si) = 0;
 
     /// Evaluates the rule
     /// @param[in] metricList - a list of known metrics
@@ -126,70 +117,33 @@ public: // virtual methods
     /// @return a set of topics
     virtual std::vector<std::string> getNeededTopics() const;
 
+    // LuaRule virtual requirement
+    virtual void globalVariables(const std::map<std::string, double>& variables) { _variables = variables; }
+
 public: // methods
     std::string name() const { return _name; }
-    void name(const std::string& name) { _name = name; }
 
     std::string rule_class() const { return _rule_class; }
-    void rule_class(const std::string& rule_class) { _rule_class = rule_class; }
 
     std::string element() const { return _element; }
-    void element(const std::string& element) { _element = element; }
 
-    std::map<std::string, double> getGlobalVariables() const { return _variables; }
+    std::map<std::string, double> globalVariables() const { return _variables; }
 
-    /// User is able to define his own set of result, that should be used in evaluation
-    ///
-    /// Maps result name into the definition of possible outcome.
-    /// Outcome name "ok" (case sensitive) for outcome is reserved
-    /// and cannot be redefined by user.
-    ///
-    /// TODO make it private
-    std::map<std::string, Outcome> _outcomes;
-
-    /// Checks if rule has this name
-    /// @param[in] name - name to check
-    /// @return true/false
-    bool hasSameNameAs(const std::string& name) const
-    {
-        return _name == name;
-    }
+    std::map<std::string, Outcome> outcomes() const { return _outcomes; }
+    Outcome outcome(const std::string& key) const { return (_outcomes.count(key) != 0) ? _outcomes.at(key) : Outcome(); }
 
     /// Gets a json representation of the rule
-    /// @return json representation of the rule as string
-    std::string getJsonRule() const noexcept
-    {
-        try {
-            return JSON::writeToString(_si, true);
-        }
-        catch (const std::exception& e) {
-            log_error("%s, getJsonRule() exception '%s'", _name.c_str(), e.what());
-        }
-        return "{}";
-    };
+    /// @return json payload
+    std::string json() const noexcept;
 
     /// Save rule to the persistance
     /// assume path with / term
-    void save(const std::string& path, const std::string& name) const noexcept
-    {
-        try {
-            const std::string full_name{path + name};
-            JSON::writeToFile(full_name, _si, true);
-        }
-        catch (const std::exception& e) {
-            log_error("%s, save() exception '%s'", _name.c_str(), e.what());
-        }
-    }
+    void save(const std::string& path, const std::string& name) const noexcept;
 
     /// Delete rule from the persistance
     /// @param[in] path - a path to files (assume / term)
     /// @return 0 on success, non-zero on error
-    int remove(const std::string& path) const noexcept
-    {
-        const std::string full_name{path + _name + ".rule"};
-        log_debug("trying to remove file : '%s'", full_name.c_str());
-        return std::remove(full_name.c_str());
-    }
+    int remove(const std::string& path) const noexcept;
 
     /// RULE_RESULT <-> token
     static std::string resultToString(int result);
@@ -200,12 +154,9 @@ protected: // properties
     cxxtools::SerializationInfo _si;
 
     /// Every rule should have a rule name
-    /// ASSUMPTION: rule name has only ascii characters.
-    /// TODO This assumption is not checked anywhere.
-    /// Rule name treated as case INSENSITIVE string
     std::string _name;
 
-    /// Vector of metrics to be evaluated
+    /// Vector of metrics to be evaluated (aka topics)
     std::vector<std::string> _metrics;
 
     /// The rule source
@@ -214,12 +165,18 @@ protected: // properties
     /// Human readable info about this rule purpose like "internal temperature"
     std::string _rule_class;
 
-    /// Every rule produces alerts for element
+    /// Every rule produces alerts for element/asset
     std::string _element;
 
+    /// User is able to define his own set of result, that should be used in evaluation
+    /// Maps result name into the definition of possible outcome.
+    /// Outcome name "ok" (case sensitive) for outcome is reserved
+    /// and cannot be redefined by user.
+    std::map<std::string, Outcome> _outcomes;
+
 private: // properties
-    /// To define its own constant variables (as thresholds) that can be used
-    /// in evaluation function. Maps variable name and its the value.
+    /// To define its own constant variables (as threshold values) that can be used
+    /// for evaluation. Maps variable name and its value.
     std::map<std::string, double> _variables;
 };
 

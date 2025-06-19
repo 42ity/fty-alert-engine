@@ -25,29 +25,24 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "luarule.h"
 #include <czmq.h> //zrex
 
-class RegexRule : public LuaRule
+class RegexRule final : public LuaRule
 {
 public:
     RegexRule() {}
     ~RegexRule() { zrex_destroy(&_rex); }
 
-    std::string whoami() const { return "pattern"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/RegexRule"; }
 
-    /// parse json and check lua and fill the object
-    ///
-    /// ATTENTION: throws, if bad JSON
-    ///
-    /// @return 1 if rule has other type
-    ///         2 if lua function has errors
-    ///         0 if everything is ok
+    virtual std::string whoami() const { return "pattern"; }
+
     virtual int fill(const cxxtools::SerializationInfo& si);
 
     /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
-    bool isTopicInteresting(const std::string& topic) const;
+    virtual bool isTopicInteresting(const std::string& topic) const;
 
-    std::vector<std::string> getNeededTopics() const;
+    virtual std::vector<std::string> getNeededTopics() const;
 
 private:
     zrex_t* _rex{nullptr};

@@ -34,6 +34,7 @@ static std::string readFile(const std::string& path)
 {
     std::ifstream ifs{path};
     const std::string buf{std::istreambuf_iterator<char>(ifs), {}};
+    logDebug("path {}\n{}", path, buf);
     return buf;
 }
 

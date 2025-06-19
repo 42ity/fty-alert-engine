@@ -154,6 +154,42 @@ std::vector<std::string> Rule::getNeededTopics() const
     return _metrics;
 }
 
+/// Gets a json representation of the rule
+/// @return json payload
+std::string Rule::json() const noexcept
+{
+    try {
+        return JSON::writeToString(_si, true);
+    }
+    catch (const std::exception& e) {
+        log_error("json parser exception (%s, e: %s)", _name.c_str(), e.what());
+    }
+    return "{}";
+}
+
+/// Save rule to the persistance
+/// assume path with / term
+void Rule::save(const std::string& path, const std::string& name) const noexcept
+{
+    try {
+        const std::string full_name{path + name};
+        JSON::writeToFile(full_name, _si, true);
+    }
+    catch (const std::exception& e) {
+        log_error("save() failed (%s, e: %s)", _name.c_str(), e.what());
+    }
+}
+
+/// Delete rule from the persistance
+/// @param[in] path - a path to files (assume / term)
+/// @return 0 on success, non-zero on error
+int Rule::remove(const std::string& path) const noexcept
+{
+    const std::string full_name{path + _name + ".rule"};
+    log_debug("remove file '%s'", full_name.c_str());
+    return std::remove(full_name.c_str());
+}
+
 /// RULE_RESULT tokens map
 static const std::map<int, std::string> mapTextResults = {
     { RULE_RESULT_LOW_CRITICAL,  "low_critical"  },

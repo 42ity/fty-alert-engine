@@ -87,7 +87,7 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
         const auto& rule = i.second.first;
         if (filterOnType(rule->whoami()) && filterOnClass(rule->rule_class())) {
             log_debug("Adding rule '%s'", rule->name().c_str());
-            zmsg_addstr(reply, rule->getJsonRule().c_str());
+            zmsg_addstr(reply, rule->json().c_str());
         }
         else {
             log_debug("Skipping rule '%s' (type: '%s', rule_class: '%s')",
@@ -389,7 +389,7 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
         const auto& rule = i.second.first;
         if (match(rule)) {
             log_debug("%s add rule '%s'", COMMAND_LIST2, rule->name().c_str());
-            zmsg_addstr(reply, rule->getJsonRule().c_str());
+            zmsg_addstr(reply, rule->json().c_str());
         }
         else {
             log_debug("%s skip rule '%s'", COMMAND_LIST2, rule->name().c_str());
@@ -413,7 +413,7 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
         const auto& rule  = it_ac.first;
         log_debug("found rule %s", name);
         zmsg_addstr(reply, "OK");
-        zmsg_addstr(reply, rule->getJsonRule().c_str());
+        zmsg_addstr(reply, rule->json().c_str());
     }
     else {
         log_debug("rule not found (name: %s)", name);

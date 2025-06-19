@@ -103,7 +103,7 @@ int ThresholdRuleDevice::evaluate(const MetricList& metricList, PureAlert& pureA
     static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
     static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
 
-    const auto GV = getGlobalVariables();
+    const auto GV = globalVariables();
     const MetricInfo lastMetric = metricList.getLastMetric();
 
     auto checkThreshold = [this, &GV, &lastMetric, &pureAlert] (const std::string& TOKEN, bool ltCond) {

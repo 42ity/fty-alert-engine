@@ -24,25 +24,20 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "rule.h"
 
-class ThresholdRuleSimple : public Rule
+class ThresholdRuleSimple final : public Rule
 {
 public:
     ThresholdRuleSimple() {}
 
-    std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleSimple"; }
+
+    virtual std::string whoami() const { return "threshold"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 
     /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
-    bool isTopicInteresting(const std::string& topic) const;
-
-    std::vector<std::string> getNeededTopics() const;
-
 private:
     void log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const;
-
-    // needed metric topic
-    std::string _metric;
 };

@@ -24,19 +24,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "luarule.h"
 
-class ThresholdRuleComplex : public LuaRule
+class ThresholdRuleComplex final : public LuaRule
 {
 public:
-    ThresholdRuleComplex(){};
+    ThresholdRuleComplex() {}
 
-    std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/ThresholdRuleComplex"; }
 
-    /// parse json and check lua and fill the object
-    ///
-    /// ATTENTION: throws, if bad JSON
-    ///
-    /// @return 1 if rule has other type
-    ///         2 if lua function has errors
-    ///         0 if everything is ok
+    virtual std::string whoami() const { return "threshold"; }
+
     virtual int fill(const cxxtools::SerializationInfo& si);
 };

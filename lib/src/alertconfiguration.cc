@@ -56,8 +56,12 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
         { \
             std::unique_ptr<Rule> tmpRule{new_rule}; \
             switch (tmpRule->fill(si)) { \
-                case 0: rule = std::move(tmpRule); return 0; \
-                case 2: return 2; \
+                case 0: \
+                    rule = std::move(tmpRule); \
+                    logDebug("rule '{}' (clazz: '{}')", rule->name(), rule->clazz()); \
+                    return 0; \
+                case 2: \
+                    return 2; \
                 default:; \
             } \
         }
@@ -119,8 +123,8 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             const std::string rulename{rule->name()};
 
             // ASSUMPTION: name of the file is the same as name of the rule
-            // If they are different ignore this rule (5 = strlen(".rule")
-            if (!rule->hasSameNameAs(fname.substr(0, fname.length() - 5))) {
+            // If they are different ignore this rule (5 = strlen(".rule"))
+            if (rule->name() != fname.substr(0, fname.length() - 5)) {
                 log_warning("'%s' differs from rule name '%s', ignore it", fname.c_str(), rulename.c_str());
                 continue;
             }
@@ -316,7 +320,7 @@ int AlertConfiguration::updateRule(
 
     // if name of the rule changed, then
     // need to find out if rule with new rulename exists already or not
-    if (!temp_rule->hasSameNameAs(old_name) && haveRule(temp_rule->name())) {
+    if ((temp_rule->name() != old_name) && haveRule(temp_rule->name())) {
         // rule with new old_name
         log_error("Rule with such name already exists");
         return -3;
