@@ -1304,27 +1304,31 @@ TEST_CASE("engine_server agent")
         zhash_autofree (aux);
         zhash_insert (aux, "type", const_cast<char*>("datacenter"));
         zhash_insert (aux, "priority", const_cast<char*>("P1"));
-        zmsg_t *m = fty_proto_encode_asset (aux,
-                "test",
-                FTY_PROTO_ASSET_OP_CREATE,
-                NULL);
+        zmsg_t *m = fty_proto_encode_asset (aux, "test", FTY_PROTO_ASSET_OP_CREATE, NULL);
         REQUIRE(m);
         zhash_destroy (&aux);
         int rv = mlm_client_send (asset_producer, "datacenter.@test", &m);
         REQUIRE(rv == 0);
 
-        zclock_sleep (20000);
+        log_debug("wait for 'test' asset processing...");
+        // see Autoconfig::choosePollingInterval()
+        zclock_sleep(5000 + 500);
+        for (int i = 0; i < 5; i++) {
+            // alert file is written?
+            foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
+            if (foo) { zstr_free(&foo); break; } else { zclock_sleep(500); }
+        }
 
-        foo = readFile ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
+        foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
+        foo = readFile((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
         REQUIRE(foo);
         zstr_free(&foo);
-        foo =  readFile ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
+        foo = readFile((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile ((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str ());
+        foo = readFile((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str ());
         REQUIRE(foo);
         zstr_free(&foo);
 
@@ -1333,6 +1337,7 @@ TEST_CASE("engine_server agent")
         rv = fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
         REQUIRE(rv == 0);
 
+        // wait for alert notification
         zmsg_t *recv = mlm_client_recv (consumer);
 
         fty_shm_delete_test_dir();
@@ -1357,21 +1362,25 @@ TEST_CASE("engine_server agent")
         zhash_autofree (aux2);
         zhash_insert (aux2, "type", const_cast<char*>("row"));
         zhash_insert (aux2, "priority", const_cast<char*>("P2"));
-        zmsg_t *m = fty_proto_encode_asset (aux2,
-                        "test",
-                        FTY_PROTO_ASSET_OP_UPDATE,
-                        NULL);
+        zmsg_t *m = fty_proto_encode_asset (aux2, "test2", FTY_PROTO_ASSET_OP_UPDATE, NULL);
         REQUIRE(m);
         zhash_destroy (&aux2);
-        int rv = mlm_client_send (asset_producer, "row.@test", &m);
+        int rv = mlm_client_send (asset_producer, "row.@test2", &m);
         REQUIRE(rv == 0);
 
-        zclock_sleep (20000);
+        log_debug("wait for 'test2' asset processing...");
+        // see Autoconfig::choosePollingInterval()
+        zclock_sleep(5000 + 500);
+        for (int i = 0; i < 5; i++) {
+            // alert file is written?
+            foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test2.rule").c_str ());
+            if (foo) { zstr_free(&foo); break; } else { zclock_sleep(500); }
+        }
 
-        foo = readFile ((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
+        foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test2.rule").c_str ());
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile ((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
+        foo = readFile((str_SELFTEST_DIR_RW + "/average.temperature@test2.rule").c_str ());
         REQUIRE(foo);
         zstr_free(&foo);
 
@@ -1382,9 +1391,10 @@ TEST_CASE("engine_server agent")
 
         int ttl = wanted_ttl;
         zclock_sleep (3 * ttl);
-        rv = fty::shm::write_metric("test", "average.temperature", "1000", "C", ttl);
+        rv = fty::shm::write_metric("test2", "average.temperature", "1000", "C", ttl);
         REQUIRE( rv == 0 );
 
+        // wait for alert notification
         zmsg_t *recv = mlm_client_recv (consumer);
 
         fty_shm_delete_test_dir();
@@ -1393,8 +1403,8 @@ TEST_CASE("engine_server agent")
         REQUIRE(recv != NULL);
         REQUIRE(fty_proto_is (recv));
         fty_proto_t *brecv = fty_proto_decode (&recv);
-        REQUIRE(streq (fty_proto_rule (brecv), "average.temperature@test"));
-        REQUIRE(streq (fty_proto_name (brecv), "test"));
+        REQUIRE(streq (fty_proto_rule (brecv), "average.temperature@test2"));
+        REQUIRE(streq (fty_proto_name (brecv), "test2"));
         REQUIRE(streq (fty_proto_state (brecv), "ACTIVE"));
         REQUIRE(streq (fty_proto_severity (brecv), "CRITICAL"));
         fty_proto_destroy (&brecv);
