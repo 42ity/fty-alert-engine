@@ -203,7 +203,7 @@ int AlertConfiguration::addRule(
     // end PQSWMBT-3723
 
     // PQSWMBT-4921 Xphase rule exceptions (see templateruleconfigurator.cc)
-    auto asset = rulename.substr(temp_rule->name().find("@") + 1);
+    const std::string asset = rulename.substr(rulename.find("@") + 1);
     if (!ruleXphaseIsApplicable(rulename, getAssetInfoFromAutoconfig(asset))) {
         log_debug("Xphase rule instanciation rejected (%s)", rulename.c_str());
         return -101;
@@ -221,7 +221,7 @@ int AlertConfiguration::addRule(
         temp_rule->save(getPersistencePath(), rulename + ".rule");
     }
     catch (const std::exception& e) {
-        std::string filename = getPersistencePath() + rulename + ".rule";
+        const std::string filename{getPersistencePath() + rulename + ".rule"};
         log_error("Error saving file '%s' (e: %s)", filename.c_str(), e.what());
         return -6;
     }
@@ -242,8 +242,7 @@ int AlertConfiguration::addRule(
         }
     }
 
-    std::vector<PureAlert> emptyAlerts;
-    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(temp_rule), emptyAlerts)));
+    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(temp_rule), std::vector<PureAlert>{}/*empty*/)));
 
     it = _alerts_map.find(rulename);
 

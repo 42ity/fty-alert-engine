@@ -35,7 +35,7 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 class TemplateRuleConfigurator
 {
 public:
-    bool configure(const std::string& name, const AutoConfigurationInfo& info, const std::string& logical_asset, mlm_client_t* client);
+    bool configure(const std::string& iname /*asset*/, const AutoConfigurationInfo& info, const std::string& ename_la /*logical_asset*/, mlm_client_t* client);
     bool isApplicable(const AutoConfigurationInfo& info);
     bool isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name);
 

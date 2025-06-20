@@ -159,9 +159,9 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 }
 
 bool TemplateRuleConfigurator::configure (
-    const std::string& name,
+    const std::string& iname, // asset iname
     const AutoConfigurationInfo& info,
-    const std::string& ename_la,
+    const std::string& ename_la, // logical asset
     mlm_client_t* client
 )
 {
@@ -169,7 +169,7 @@ bool TemplateRuleConfigurator::configure (
         { return false; }
 
     log_debug("TemplateRuleConfigurator::configure (name = '%s', info.type = '%s', info.subtype = '%s')",
-        name.c_str(), info.type.c_str(), info.subtype.c_str());
+        iname.c_str(), info.type.c_str(), info.subtype.c_str());
 
     bool fast_track{false};
     std::string port, severity, normal_state, model, iname_la, ename;
@@ -193,7 +193,7 @@ bool TemplateRuleConfigurator::configure (
         { "__ename__", ename },
         { "__logicalasset_iname__", iname_la },
         { "__logicalasset__", ename_la },
-        { "__name__", name },
+        { "__name__", iname },
         { "__normalstate__", normal_state },
         { "__port__", port },
         { "__rule_result__", rule_result },
@@ -207,18 +207,18 @@ bool TemplateRuleConfigurator::configure (
         // extra check for sensorgpio
         if (info.subtype == "sensorgpio") {
             if (!isModelOk(model, templat)) {
-                log_debug("Skip rule for gpio: %s", name.c_str());
+                log_debug("Skip rule for gpio: %s", iname.c_str());
                 continue;
             }
             else {
-                log_debug("Ready to send rule for gpio: %s", name.c_str());
+                log_debug("Ready to send rule for gpio: %s", iname.c_str());
             }
         }
 
         // generate the rule from the template (json)
         const std::string rule{utils::replaceTokens(templat, dict)};
 
-        log_debug("Sending rule for %s\n%s", name.c_str(), rule.c_str());
+        log_debug("Sending rule for %s\n%s", iname.c_str(), rule.c_str());
         result &= sendAddRule(rule, client);
     }
 
