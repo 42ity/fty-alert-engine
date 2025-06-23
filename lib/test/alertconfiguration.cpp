@@ -20,11 +20,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "src/rule/rule.h"
 #include "src/rule/luarule.h"
+#include "src/rule/outcome.h"
 #include "src/templateruleconfigurator.h"
 #include "src/alertconfiguration.h"
 
 #include <fty_log.h>
 #include <istream>
+#include <fstream>
 
 static bool double_equals(double d1, double d2)
 {
@@ -41,14 +43,16 @@ static std::string readFile(const std::string& path)
 
 TEST_CASE("rule outcome tokens")
 {
+    using namespace outcome;
+
     REQUIRE(RULE_RESULT_LOW_CRITICAL == -2);
     REQUIRE(RULE_RESULT_UNKNOWN == 3);
 
-    CHECK(Rule::resultToString(RULE_RESULT_LOW_CRITICAL - 1) == Rule::resultToString(RULE_RESULT_UNKNOWN));
-    CHECK(Rule::resultToString(RULE_RESULT_UNKNOWN + 1) == Rule::resultToString(RULE_RESULT_UNKNOWN));
+    CHECK(resultToString(RULE_RESULT_LOW_CRITICAL - 1) == resultToString(RULE_RESULT_UNKNOWN));
+    CHECK(resultToString(RULE_RESULT_UNKNOWN + 1) == resultToString(RULE_RESULT_UNKNOWN));
 
-    CHECK(Rule::resultToInt("") == RULE_RESULT_UNKNOWN);
-    CHECK(Rule::resultToInt("hello") == RULE_RESULT_UNKNOWN);
+    CHECK(resultToInt("") == RULE_RESULT_UNKNOWN);
+    CHECK(resultToInt("hello") == RULE_RESULT_UNKNOWN);
 
     for (const auto& r : {
         RULE_RESULT_LOW_CRITICAL,
@@ -59,7 +63,7 @@ TEST_CASE("rule outcome tokens")
         RULE_RESULT_UNKNOWN
     }
     ) {
-        CHECK(r == Rule::resultToInt(Rule::resultToString(r)));
+        CHECK(r == resultToInt(resultToString(r)));
     }
 
     for (const auto& s : {
@@ -71,7 +75,7 @@ TEST_CASE("rule outcome tokens")
         "unknown"
     }
     ) {
-        CHECK(s == Rule::resultToString(Rule::resultToInt(s)));
+        CHECK(s == resultToString(resultToInt(s)));
     }
 }
 
@@ -80,10 +84,11 @@ TEST_CASE("alertconfiguration readRule")
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
 
-    const std::string        dir("test/testrules/");
-    std::unique_ptr<Rule>    rule;
-    std::vector<std::string> action_EMAIL     = {"EMAIL"};
-    std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
+    const std::string dir("test/testrules/");
+    const std::vector<std::string> action_EMAIL     = {"EMAIL"};
+    const std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
+
+    std::unique_ptr<Rule> rule;
 
     {
         std::string json;
@@ -119,19 +124,23 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(rule->rule_class() == "");
         CHECK(rule->element() == "");
         CHECK(rule->getNeededTopics() == std::vector<std::string>{"^end_warranty_date@.+"});
+
         std::map<std::string, double> vars = rule->globalVariables();
-        CHECK(double_equals(vars["low_warning"], 60.0));
+        CHECK(vars.size() == 2);
         CHECK(double_equals(vars["low_critical"], 10.0));
+        CHECK(double_equals(vars["low_warning"], 60.0));
         CHECK(double_equals(vars["high_warning"], 0.0));
         CHECK(double_equals(vars["high_critical"], 0.0));
 
-        CHECK(rule->outcome("low_warning")._description == "Warranty for device will expire in less than 60 days");
-        CHECK(rule->outcome("low_warning")._severity == "WARNING");
-        CHECK(rule->outcome("low_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("low_critical")._description == "Warranty for device will expire in less than 10 days");
-        CHECK(rule->outcome("low_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("low_critical")._actions == action_EMAIL);
+        Outcome oc;
+        oc = rule->outcome("low_warning");
+        CHECK(oc._description == "Warranty for device will expire in less than 60 days");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("low_critical");
+        CHECK(oc._description == "Warranty for device will expire in less than 10 days");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL);
 
         auto luaRule = std::unique_ptr<LuaRule>(dynamic_cast<LuaRule*>(rule.release()));
         REQUIRE(luaRule);
@@ -139,6 +148,7 @@ TEST_CASE("alertconfiguration readRule")
                "function main(value) if( value <= low_critical ) then return LOW_CRITICAL end if ( value <= "
                "low_warning ) then return LOW_WARNING end return OK end");
     }
+
     {
         std::string json(readFile(dir + "simplethreshold.rule"));
         REQUIRE(readRule(json, rule) == 0);
@@ -148,28 +158,33 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(rule->rule_class() == "example class");
         CHECK(rule->element() == "fff");
         CHECK(rule->getNeededTopics() == std::vector<std::string>{"abc@fff"});
+
         std::map<std::string, double> vars = rule->globalVariables();
-        CHECK(double_equals(vars["low_warning"], 40.0));
+        CHECK(vars.size() == 4);
         CHECK(double_equals(vars["low_critical"], 30.0));
+        CHECK(double_equals(vars["low_warning"], 40.0));
         CHECK(double_equals(vars["high_warning"], 50.0));
         CHECK(double_equals(vars["high_critical"], 60.0));
 
-        CHECK(rule->outcome("low_warning")._description == "wow LOW warning description");
-        CHECK(rule->outcome("low_warning")._severity == "WARNING");
-        CHECK(rule->outcome("low_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("low_critical")._description == "WOW low critical description");
-        CHECK(rule->outcome("low_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("low_critical")._actions == action_EMAIL_SMS);
-
-        CHECK(rule->outcome("high_warning")._description == "wow high WARNING description");
-        CHECK(rule->outcome("high_warning")._severity == "WARNING");
-        CHECK(rule->outcome("high_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("high_critical")._description == "wow high critical DESCTIPRION");
-        CHECK(rule->outcome("high_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("high_critical")._actions == action_EMAIL);
+        Outcome oc;
+        oc = rule->outcome("low_warning");
+        CHECK(oc._description == "wow LOW warning description");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("low_critical");
+        CHECK(oc._description == "WOW low critical description");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL_SMS);
+        oc = rule->outcome("high_warning");
+        CHECK(oc._description == "wow high WARNING description");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("high_critical");
+        CHECK(oc._description == "wow high critical DESCTIPRION");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL);
     }
+
     {
         std::string json(readFile(dir + "devicethreshold.rule"));
         REQUIRE(readRule(json, rule) == 0);
@@ -179,28 +194,33 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(rule->rule_class() == "");
         CHECK(rule->element() == "ggg");
         CHECK(rule->getNeededTopics() == std::vector<std::string>{"device_metric@ggg"});
+
         std::map<std::string, double> vars = rule->globalVariables();
-        CHECK(double_equals(vars["low_warning"], 40.0));
+        CHECK(vars.size() == 4);
         CHECK(double_equals(vars["low_critical"], 30.0));
+        CHECK(double_equals(vars["low_warning"], 40.0));
         CHECK(double_equals(vars["high_warning"], 50.0));
         CHECK(double_equals(vars["high_critical"], 60.0));
 
-        CHECK(rule->outcome("low_warning")._description == "wow LOW warning description");
-        CHECK(rule->outcome("low_warning")._severity == "WARNING");
-        CHECK(rule->outcome("low_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("low_critical")._description == "WOW low critical description");
-        CHECK(rule->outcome("low_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("low_critical")._actions == action_EMAIL_SMS);
-
-        CHECK(rule->outcome("high_warning")._description == "wow high WARNING description");
-        CHECK(rule->outcome("high_warning")._severity == "WARNING");
-        CHECK(rule->outcome("high_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("high_critical")._description == "wow high critical DESCTIPRION");
-        CHECK(rule->outcome("high_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("high_critical")._actions == action_EMAIL);
+        Outcome oc;
+        oc = rule->outcome("low_warning");
+        CHECK(oc._description == "wow LOW warning description");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("low_critical");
+        CHECK(oc._description == "WOW low critical description");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL_SMS);
+        oc = rule->outcome("high_warning");
+        CHECK(oc._description == "wow high WARNING description");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("high_critical");
+        CHECK(oc._description == "wow high critical DESCTIPRION");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL);
     }
+
     {
         std::string json(readFile(dir + "complexthreshold.rule"));
         REQUIRE(readRule(json, rule) == 0);
@@ -211,28 +231,33 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(rule->element() == "fff");
         std::vector<std::string> topics = {"abc@fff1", "abc@fff2"};
         CHECK(rule->getNeededTopics() == topics);
+
         std::map<std::string, double> vars = rule->globalVariables();
-        CHECK(double_equals(vars["low_warning"], 40.0));
+        CHECK(vars.size() == 4);
         CHECK(double_equals(vars["low_critical"], 30.0));
+        CHECK(double_equals(vars["low_warning"], 40.0));
         CHECK(double_equals(vars["high_warning"], 50.0));
         CHECK(double_equals(vars["high_critical"], 60.0));
 
-        CHECK(rule->outcome("low_warning")._description == "wow LOW warning description");
-        CHECK(rule->outcome("low_warning")._severity == "WARNING");
-        CHECK(rule->outcome("low_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("low_critical")._description == "WOW low critical description");
-        CHECK(rule->outcome("low_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("low_critical")._actions == action_EMAIL_SMS);
-
-        CHECK(rule->outcome("high_warning")._description == "wow high WARNING description");
-        CHECK(rule->outcome("high_warning")._severity == "WARNING");
-        CHECK(rule->outcome("high_warning")._actions == action_EMAIL);
-
-        CHECK(rule->outcome("high_critical")._description == "wow high critical DESCTIPRION");
-        CHECK(rule->outcome("high_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("high_critical")._actions == action_EMAIL);
+        Outcome oc;
+        oc = rule->outcome("low_warning");
+        CHECK(oc._description == "wow LOW warning description");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("low_critical");
+        CHECK(oc._description == "WOW low critical description");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL_SMS);
+        oc = rule->outcome("high_warning");
+        CHECK(oc._description == "wow high WARNING description");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL);
+        oc = rule->outcome("high_critical");
+        CHECK(oc._description == "wow high critical DESCTIPRION");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL);
     }
+
     {
         std::string json(readFile(dir + "single.rule"));
         REQUIRE(readRule(json, rule) == 0);
@@ -243,22 +268,27 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(rule->element() == "aaa");
         std::vector<std::string> topics = {"abc@sss1", "abc@sss2"};
         CHECK(rule->getNeededTopics() == topics);
+
         std::map<std::string, double> vars = rule->globalVariables();
+        CHECK(vars.size() == 2);
         CHECK(double_equals(vars["a1"], 2.0));
         CHECK(double_equals(vars["a2"], -3.0));
-        CHECK(double_equals(vars["low_warning"], 0.0));
         CHECK(double_equals(vars["low_critical"], 0.0));
+        CHECK(double_equals(vars["low_warning"], 0.0));
         CHECK(double_equals(vars["high_warning"], 0.0));
         CHECK(double_equals(vars["high_critical"], 0.0));
 
-        CHECK(rule->outcome("high_warning")._description == "RES r2");
-        CHECK(rule->outcome("high_warning")._severity == "WARNING");
-        std::vector<std::string> action_EMAIL_GPO = {"EMAIL", "GPO_INTERACTION:gpo-42:open"};
-        CHECK(rule->outcome("high_warning")._actions == action_EMAIL_GPO);
+        const std::vector<std::string> action_EMAIL_GPO = {"EMAIL", "GPO_INTERACTION:gpo-42:open"};
 
-        CHECK(rule->outcome("high_critical")._description == "RES r1");
-        CHECK(rule->outcome("high_critical")._severity == "CRITICAL");
-        CHECK(rule->outcome("high_critical")._actions == action_EMAIL_SMS);
+        Outcome oc;
+        oc = rule->outcome("high_warning");
+        CHECK(oc._description == "RES r2");
+        CHECK(oc._severity == "WARNING");
+        CHECK(oc._actions == action_EMAIL_GPO);
+        oc = rule->outcome("high_critical");
+        CHECK(oc._description == "RES r1");
+        CHECK(oc._severity == "CRITICAL");
+        CHECK(oc._actions == action_EMAIL_SMS);
 
         auto luaRule = std::unique_ptr<LuaRule>(dynamic_cast<LuaRule*>(rule.release()));
         REQUIRE(luaRule);

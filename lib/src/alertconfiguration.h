@@ -27,11 +27,10 @@
 #include "purealert.h"
 #include "rule/rule.h"
 
-#include <memory>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <vector>
+#include <set>
+#include <unordered_map>
 
 /// Parses the input and reads the rule
 ///

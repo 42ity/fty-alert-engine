@@ -29,9 +29,8 @@ class ThresholdRuleSimple final : public Rule
 public:
     ThresholdRuleSimple() {}
 
-    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleSimple"; }
-
     virtual std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleSimple"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 

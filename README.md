@@ -114,6 +114,33 @@ where
 * 'reason' is string detailing reason for error. Possible values are: INVALID\_TYPE
 * subject of the message MUST be 'rfc-evaluator-rules'
 
+#### List of rules (LIST version 2)
+
+The USER peer sends the following messages using MAILBOX SEND to
+FTY-ALERT-ENGINE-SERVER ("fty-alert-engine") peer:
+
+* LIST2/'jsonPayload'
+
+where
+* '/' indicates a multipart string message
+* 'jsonPayload' describes a json payload to filter rules on (type, rule_class, asset_type, asset_sub_type, in (location), category) attributes
+* subject of the message MUST be 'rfc-evaluator-rules'
+* see lib/src/fty_alert_engine_server.cc::list_rules2()
+
+The FTY-ALERT-ENGINE-SERVER peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* LIST2/'jsonPayload'/'rule\-1'/.../'rule\-n'
+* ERROR/'reason'
+
+where
+* '/' indicates a multipart frame message
+* 'type' MUST be copied from the request
+* 'ruleclass' MUST be copied from the request (empty string if it was empty)
+* 'rule\-1',...'rule\-n' MUST be JSONs corresponding to rules of given type and rule class
+* 'reason' is string detailing reason for error. Possible values are: INVALID\_TYPE
+* subject of the message MUST be 'rfc-evaluator-rules'
+
 #### Getting rule content
 
 The USER peer sends the following messages using MAILBOX SEND to
@@ -291,7 +318,6 @@ where command is one of:
 * GET
 * ADD
 * DELETE
-*
 
 ### Stream subscriptions
 

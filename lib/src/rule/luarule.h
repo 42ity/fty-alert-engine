@@ -45,7 +45,7 @@ public:
 
     /// get/set Lua code
     std::string code() const { return _code; }
-    void code(const std::string& code);
+    void code(const std::string& code); // throw on error
 
 private:
     void luaSetGlobalVariables();

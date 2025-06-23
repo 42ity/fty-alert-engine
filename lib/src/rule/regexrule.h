@@ -31,9 +31,8 @@ public:
     RegexRule() {}
     ~RegexRule() { zrex_destroy(&_rex); }
 
-    virtual std::string clazz() const { return LuaRule::clazz() + "/RegexRule"; }
-
     virtual std::string whoami() const { return "pattern"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/RegexRule"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 

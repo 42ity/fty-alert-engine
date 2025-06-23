@@ -29,9 +29,8 @@ class NormalRule final : public LuaRule
 public:
     NormalRule() {}
 
-    virtual std::string clazz() const { return LuaRule::clazz() + "/NormalRule"; }
-
     virtual std::string whoami() const { return "single"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/NormalRule"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 };

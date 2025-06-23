@@ -22,15 +22,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 void MetricList::addMetric(const MetricInfo& metricInfo)
 {
+    const std::string topic{metricInfo.getTopic()};
     // try to find topic
-    auto it = _knownMetrics.find(metricInfo.generateTopic());
+    auto it = _knownMetrics.find(topic);
     if (it != _knownMetrics.cend()) {
-        // found -> update
-        it->second = metricInfo;
+        it->second = metricInfo; // replace existing
     }
     else {
-        // not found -> insert
-        _knownMetrics.emplace(metricInfo.generateTopic(), metricInfo);
+        _knownMetrics.emplace(topic, metricInfo); // new
     }
 
     _lastInsertedMetric = metricInfo;

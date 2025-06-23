@@ -724,10 +724,10 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
     std::string sTopic;
     // end_warranty_date is the only "regex rule", for optimization purpose, use some trick for those.
-    if (triggeringMetric.getSource() == "end_warranty_date")
+    if (triggeringMetric.getType() == "end_warranty_date")
         { sTopic = "^end_warranty_date@.+"; }
     else
-        { sTopic = triggeringMetric.generateTopic(); }
+        { sTopic = triggeringMetric.getTopic(); }
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByTopic(sTopic);
 
@@ -768,7 +768,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                 remaining_days = abs(remaining_days);
 
                 const std::map<std::string, std::string> dict = {
-                    { "__ename__", triggeringMetric.getElementName() },
+                    { "__name__", triggeringMetric.getAssetName() },
                     { "__remaining_days__", std::to_string(remaining_days) },
                     { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
                     { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
@@ -778,14 +778,14 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                 if (ad.find("Warranty expired") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_is_expired__",
-                        "variables": { "asset": { "value": "", "assetLink": "__ename__" }, "days": "__remaining_days__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__remaining_days__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
                 else if (ad.find("Warranty expires in") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_expires_in__",
-                        "variables": { "asset": { "value": "", "assetLink": "__ename__" }, "days": "__remaining_days__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__remaining_days__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
@@ -827,8 +827,10 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
             errno = 0;
             dvalue = strtod(value, &end);
             bool failed = (errno == ERANGE) || (end == value) || (end && (*end != 0));
-            if (failed)
-                { log_debug("%s@%s: '%s' ignored (non numeric)", type, name, value); continue; }
+            if (failed) {
+                log_debug("%s@%s: '%s' ignored (NaN)", type, name, value);
+                continue;
+            }
         }
 
         //log_debug("Get '%s@%s' (value: %s)", type, name, value);
@@ -841,7 +843,7 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
         metricList.addMetric(metric);
 
         // search if this metric is already evaluated and if this metric is evaluate
-        const std::string metricTopic{metric.generateTopic()};
+        const std::string metricTopic{metric.getTopic()};
         auto it = evaluateMetrics.find(metricTopic);
         bool exist = it != evaluateMetrics.end();
         bool evaluate = exist ? it->second : false;
@@ -922,7 +924,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             bool term = false;
 
             if (streq(cmd, "$TERM")) {
-                log_debug("%s: $TERM received", name);
+                log_debug("%s: $TERM", name);
                 term = true;
             }
             else if (streq(cmd, "CONNECT")) {
@@ -1008,7 +1010,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             bool term = false;
 
             if (streq(cmd, "$TERM")) {
-                log_debug("%s: $TERM received", name);
+                log_debug("%s: $TERM", name);
                 term = true;
             }
             else if (streq(cmd, "CONNECT")) {

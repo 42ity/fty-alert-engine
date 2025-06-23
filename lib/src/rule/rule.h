@@ -24,66 +24,16 @@
 
 #include "purealert.h"
 #include "metric/metriclist.h"
+#include "outcome.h"
 
-#include <fty_log.h>
-#include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>
 
-#include <czmq.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <set>
 #include <map>
 #include <string>
 #include <vector>
+#include <memory> //unique_ptr
 
-void si_getValueUtf8(const cxxtools::SerializationInfo& si, const std::string& member_name, std::string& result);
-
-/// Helper structure to store a possible outcome of rule evaluation
-///
-/// Rule evaluation outcome has three values:
-/// - actions
-/// - severity // severity is detected automatically !!!! user cannot change it
-/// - description
-struct Outcome
-{
-    std::vector<std::string> _actions;
-    std::string              _severity;
-    std::string              _description;
-
-    std::string str() //dump DBG
-    {
-        std::ostringstream oss;
-        size_t i = 0;
-        for (auto& a : _actions)
-            { oss << "actions[" << i++ << "](" << a << "),"; }
-        oss << "severity(" << _severity << "),"
-            << "description(" << _description << ")";
-
-        return oss.str();
-    }
-};
-
-enum RULE_RESULT
-{
-    RULE_RESULT_LOW_CRITICAL  = -2,
-    RULE_RESULT_LOW_WARNING   = -1,
-    RULE_RESULT_OK            = 0,
-    RULE_RESULT_HIGH_WARNING  = 1,
-    RULE_RESULT_HIGH_CRITICAL = 2,
-    RULE_RESULT_UNKNOWN       = 3,
-};
-
-/// Deserialzation of outcome
-void operator >>= (const cxxtools::SerializationInfo& si, Outcome& outcome);
-void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, Outcome>& outcomes);
-
-/// Values
-void operator >>= (const cxxtools::SerializationInfo& si, std::map<std::string, double>& values);
-
-class Rule;
-using RulePtr = std::unique_ptr<Rule>;
+#define RULE_SOURCE_DEFAULT "Manual user input"
 
 /// General representation for rules
 class Rule
@@ -96,6 +46,7 @@ public: // virtual methods
 
     /// Initialize the rule from SerializationInfo (json)
     /// @param[in] si - a SerializationInfo object
+    /// Can throw (rule json syntax error)
     /// @return 0 if the rule is recognized and initialized correctly
     ///         1 if the rule is not recognized
     ///         2 if an error occured (bad json object)
@@ -113,8 +64,8 @@ public: // virtual methods
     /// @return true/false
     virtual bool isTopicInteresting(const std::string& topic) const;
 
-    /// Returns a set of topics, that are necessary for rule evaluation
-    /// @return a set of topics
+    /// Returns the topics that are necessary for rule evaluation
+    /// @return a vector of topics
     virtual std::vector<std::string> getNeededTopics() const;
 
     // LuaRule virtual requirement
@@ -145,10 +96,6 @@ public: // methods
     /// @return 0 on success, non-zero on error
     int remove(const std::string& path) const noexcept;
 
-    /// RULE_RESULT <-> token
-    static std::string resultToString(int result);
-    static int resultToInt(const std::string& result);
-
 protected: // properties
     /// json representation (see fill())
     cxxtools::SerializationInfo _si;
@@ -160,7 +107,7 @@ protected: // properties
     std::vector<std::string> _metrics;
 
     /// The rule source
-    std::string _rule_source;
+    ///std::string _rule_source; // not used
 
     /// Human readable info about this rule purpose like "internal temperature"
     std::string _rule_class;
@@ -180,6 +127,8 @@ private: // properties
     std::map<std::string, double> _variables;
 };
 
+using RulePtr = std::unique_ptr<Rule>;
+
 ///
 /// Rule matchers
 ///
@@ -193,21 +142,23 @@ protected:
     virtual ~RuleMatcher() = default;
 };
 
+/// Rule has same name as
 class RuleNameMatcher : public RuleMatcher
 {
 public:
     RuleNameMatcher(const std::string& name);
-    bool operator()(const Rule& rule) override;
+    bool operator () (const Rule& rule) override;
 
 private:
     std::string _name;
 };
 
+/// Rule has same element as
 class RuleElementMatcher : public RuleMatcher
 {
 public:
     RuleElementMatcher(const std::string& element);
-    bool operator()(const Rule& rule) override;
+    bool operator () (const Rule& rule) override;
 
 private:
     std::string _element;

@@ -17,84 +17,65 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "normalrule.h"
+#include "misc/json.h"
+
 #include <fty_log.h>
 
 int NormalRule::fill(const cxxtools::SerializationInfo& si)
 {
     _si = si;
-    if (si.findMember("single") == NULL) {
-        return 1;
+
+    // *must* single root object
+    const std::string rootName{"single"};
+    auto root{JSON::findMember(si, rootName)};
+    if (!root) {
+        return 1; // not recognized
+    }
+    if (!JSON::isObject(root)) {
+        const std::string err{"Object member expected (" + rootName + ")"};
+        log_error("%s", err.c_str());
+        throw std::runtime_error(err);
     }
 
-    log_debug("it is SINGLE rule");
-
-    auto single = si.getMember("single");
-    if (single.category() != cxxtools::SerializationInfo::Object) {
-        log_error("Root of json must be an object with property 'single'.");
-        throw std::runtime_error("Root of json must be an object with property 'single'.");
+    // *must* target defined as array
+    auto target{JSON::findMember(root, "target")};
+    if (!JSON::isArray(target)) {
+        return 1; // not recognized
     }
+    *target >>= _metrics;
 
-    // target
-    auto target = single.getMember("target");
-    if (target.category() != cxxtools::SerializationInfo::Array) {
-        log_error("property 'target' in json must be an Array");
-        throw std::runtime_error("property 'target' in json must be an Array");
-    }
-    target >>= _metrics;
+    log_debug("Rule class: %s, root: %s)", clazz().c_str(), rootName.c_str());
 
-    // rule_source
-    if (single.findMember("rule_source") == NULL) {
-        // if key is not there, take default
-        _rule_source = "Manual user input";
-        single.addMember("rule_source") <<= _rule_source;
-    }
-    else {
-        auto rule_source = single.getMember("rule_source");
-        if (rule_source.category() != cxxtools::SerializationInfo::Value) {
-            throw std::runtime_error("'rule_source' in json must be value.");
-        }
-        rule_source >>= _rule_source;
-    }
-    log_debug("rule_source = %s", _rule_source.c_str());
+    _name = JSON::getStringUtf8(JSON::findMember(root, "rule_name"));
+    _element = JSON::getStringUtf8(JSON::findMember(root, "element"));
+    _rule_class = JSON::getString(JSON::findMember(root, "rule_class"));
 
-    single.getMember("rule_name") >>= _name;
-    single.getMember("element") >>= _element;
-
-    // rule_class
-    if (single.findMember("rule_class") != NULL) {
-        single.getMember("rule_class") >>= _rule_class;
-    }
-
-    // values
-    // values are not required for single rule
-    if (single.findMember("values") != NULL) {
-        std::map<std::string, double> tmp_values;
-        auto values = single.getMember("values");
-        if (values.category() != cxxtools::SerializationInfo::Array) {
-            log_error("parameter 'values' in json must be an array.");
-            throw std::runtime_error("parameter 'values' in json must be an array");
-        }
-        values >>= tmp_values;
-        globalVariables(tmp_values);
+    // rule_source (not used, useless!?)
+    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
+    if (_rule_source.empty()) {
+        // Undefined: update _si w/ default (required!?)
+        _rule_source = RULE_SOURCE_DEFAULT;
+        JSON::setObjectProperty(_si.findMember(rootName), "rule_source", _rule_source);
     }
 
     // outcomes
-    auto outcomes = single.getMember("results");
-    if (outcomes.category() != cxxtools::SerializationInfo::Array) {
-        log_error("parameter 'results' in json must be an array.");
-        throw std::runtime_error("parameter 'results' in json must be an array.");
-    }
-    outcomes >>= _outcomes;
+    _outcomes = JSON::getMapOutcome(JSON::findMember(root, "results"));
 
-    std::string tmp;
-    single.getMember("evaluation") >>= tmp;
+    // values *optional* (TODO: check low_critical<low_warning<high_warning<high_critical)
+    globalVariables({}); // emptied
+    if (auto values = JSON::findMember(root, "values")) {
+        globalVariables(JSON::getMapDouble(values));
+    }
+
+    // evaluation (Lua code)
     try {
-        code(tmp);
+        const std::string evaluation{JSON::getString(JSON::findMember(root, "evaluation"))};
+        code(evaluation);
     }
     catch (const std::exception& e) {
-        log_warning("something with Lua function: %s", e.what());
-        return 2;
+        log_error("Invalid Lua code (e: %s)", e.what());
+        return 2; // error
     }
 
-    return 0;
+    return 0; // recognized and initialized correctly
 }

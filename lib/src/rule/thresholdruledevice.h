@@ -29,9 +29,8 @@ class ThresholdRuleDevice final : public Rule
 public:
     ThresholdRuleDevice() {}
 
-    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleDevice"; }
-
     virtual std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleDevice"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 

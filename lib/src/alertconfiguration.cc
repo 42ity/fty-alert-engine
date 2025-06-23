@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "rule/thresholdrulecomplex.h"
 #include "rule/normalrule.h"
 
+#include <fty_log.h>
 #include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>
 #include <czmq.h>
@@ -52,13 +53,13 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
         // returns 0 if success (rule is set as recognized)
         // returns 2 if error (incompatible or Lua error)
         // else do nothing (unrecognized)
-        #define TRY_RULE_FILL(new_rule) \
+        #define TRY_RULE_FILL(newRule) \
         { \
-            std::unique_ptr<Rule> tmpRule{new_rule}; \
+            std::unique_ptr<Rule> tmpRule{newRule}; \
             switch (tmpRule->fill(si)) { \
                 case 0: \
                     rule = std::move(tmpRule); \
-                    logDebug("rule '{}' (clazz: '{}')", rule->name(), rule->clazz()); \
+                    logDebug("recognize rule named '{}' ({})", rule->name(), rule->clazz()); \
                     return 0; \
                 case 2: \
                     return 2; \

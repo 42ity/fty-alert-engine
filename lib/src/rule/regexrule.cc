@@ -17,94 +17,83 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "regexrule.h"
+#include "misc/json.h"
+
 #include <fty_log.h>
 
 int RegexRule::fill(const cxxtools::SerializationInfo& si)
 {
     _si = si;
-    if (si.findMember("pattern") == NULL) {
-        return 1;
+
+    // *must* pattern root object
+    const std::string rootName{"pattern"};
+    auto root{JSON::findMember(si, rootName)};
+    if (!root) {
+        return 1; // not recognized
+    }
+    if (!JSON::isObject(root)) {
+        const std::string err{"Object member expected (" + rootName + ")"};
+        log_error("%s", err.c_str());
+        throw std::runtime_error(err);
     }
 
-    log_debug("it is PATTERN rule");
-
-    auto pattern = si.getMember("pattern");
-    if (pattern.category() != cxxtools::SerializationInfo::Object) {
-        log_error("Root of json must be an object with property 'pattern'.");
-        throw std::runtime_error("Root of json must be an object with property 'pattern'.");
+    // *must* target defined as value
+    auto target{JSON::findMember(root, "target")};
+    if (!JSON::isValue(target)) {
+        return 1; // not recognized
     }
+    _rex_str = JSON::getString(target);
 
-    pattern.getMember("rule_name") >>= _name;
-    pattern.getMember("target") >>= _rex_str;
-
-    // TODO what if regexp is not correct?
-    _rex = zrex_new(_rex_str.c_str());
+    // build zrex object
+    _rex = zrex_new(_rex_str.c_str()); // TODO: what if regexp is not correct?
     if (!_rex) {
-        log_error("zrex_new() failed (rex: %s)", _rex_str);
-        return 1;
+        log_error("zrex_new() failed (rex: %s)", _rex_str.c_str());
+        return 1; // not recognized
     }
 
-    // rule_class
-    if (pattern.findMember("rule_class") != NULL) {
-        pattern.getMember("rule_class") >>= _rule_class;
-    }
+    log_debug("Rule class: %s, root: %s)", clazz().c_str(), rootName.c_str());
 
-    // rule_source
-    if (pattern.findMember("rule_source") == NULL) {
-        // if key is not there, take default
-        _rule_source = "Manual user input";
-        pattern.addMember("rule_source") <<= _rule_source;
-    }
-    else {
-        auto rule_source = pattern.getMember("rule_source");
-        if (rule_source.category() != cxxtools::SerializationInfo::Value) {
-            throw std::runtime_error("'rule_source' in json must be value.");
-        }
-        rule_source >>= _rule_source;
-    }
-    log_debug("rule_source = %s", _rule_source.c_str());
+    _name = JSON::getStringUtf8(JSON::findMember(root, "rule_name"));
+    _rule_class = JSON::getString(JSON::findMember(root, "rule_class"));
+    // no _element (rex runtime)
 
-    // values
-    std::map<std::string, double> tmp_values;
-    auto values = pattern.getMember("values");
-    if (values.category() != cxxtools::SerializationInfo::Array) {
-        log_error("parameter 'values' in json must be an array.");
-        throw std::runtime_error("parameter 'values' in json must be an array");
+    // rule_source (not used, useless!?)
+    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
+    if (_rule_source.empty()) {
+        // Undefined: update _si w/ default (required!?)
+        _rule_source = RULE_SOURCE_DEFAULT;
+        JSON::setObjectProperty(_si.findMember(rootName), "rule_source", _rule_source);
     }
-    values >>= tmp_values;
-    globalVariables(tmp_values);
 
     // outcomes
-    auto outcomes = pattern.getMember("results");
-    if (outcomes.category() != cxxtools::SerializationInfo::Array) {
-        log_error("parameter 'results' in json must be an array.");
-        throw std::runtime_error("parameter 'results' in json must be an array.");
-    }
-    outcomes >>= _outcomes;
+    _outcomes = JSON::getMapOutcome(JSON::findMember(root, "results"));
 
-    std::string tmp;
-    pattern.getMember("evaluation") >>= tmp;
+    // values (TODO: check low_critical<low_warning<high_warning<high_critical)
+    globalVariables(JSON::getMapDouble(JSON::findMember(root, "values")));
+
+    // evaluation (Lua code)
     try {
-        code(tmp);
+        const std::string evaluation{JSON::getString(JSON::findMember(root, "evaluation"))};
+        code(evaluation);
     }
     catch (const std::exception& e) {
-        log_error("something with Lua function: %s", e.what());
-        return 2;
+        log_error("Invalid Lua code (e: %s)", e.what());
+        return 2; // error
     }
 
-    return 0;
+    return 0; // recognized and initialized correctly
 }
 
 /// returns 0 if ok (pureAlert initialized)
 int RegexRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
-    _metrics = {metricList.getLastMetric().generateTopic()};
+    _metrics = {metricList.getLastMetric().getTopic()};
 
     int r = LuaRule::evaluate(metricList, pureAlert);
     if (r == 0) { // ok
-        // regexp rule is special, it has to generate alert for the element,
+        // regexp rule is special, it has to generate alert for the asset
         // that trigger the evaluation
-        pureAlert._element = metricList.getLastMetric().getElementName();
+        pureAlert._element = metricList.getLastMetric().getAssetName();
     }
     return r;
 }

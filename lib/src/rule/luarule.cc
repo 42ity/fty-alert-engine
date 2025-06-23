@@ -19,8 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "luarule.h"
 #include "misc/audit_log.h"
 
-#include <algorithm>
 #include <fty_log.h>
+#include <algorithm>
 
 LuaRule::~LuaRule()
 {
@@ -41,14 +41,16 @@ void LuaRule::globalVariables(const std::map<std::string, double>& variables)
     luaSetGlobalVariables();
 }
 
+// throw on error
 void LuaRule::code(const std::string& code)
 {
-    _valid = false;
+    #define DESTROY_LSTATE \
+        if (_lstate) { lua_close(_lstate); _lstate = NULL; }
 
-    // cleanup
+    // reet/cleanup
+    _valid = false;
     _code.clear();
-    if (_lstate)
-        { lua_close(_lstate); _lstate = NULL; }
+    DESTROY_LSTATE;
 
     // create new Lua state
 #if LUA_VERSION_NUM > 501
@@ -73,6 +75,7 @@ void LuaRule::code(const std::string& code)
         const char* luaError = lua_tostring(_lstate, -1);
         log_error("Lua error: %s", luaError);
         lua_pop(_lstate, 1);
+        DESTROY_LSTATE;
         throw std::runtime_error("Lua code compilation failed!");
     }
 
@@ -81,11 +84,14 @@ void LuaRule::code(const std::string& code)
     r = lua_isfunction(_lstate, lua_gettop(_lstate));
     if (r != 1) {
         lua_pop(_lstate, 1);
+        DESTROY_LSTATE;
         throw std::runtime_error("Lua main function not found!"); // missing
     }
     lua_pop(_lstate, 1);
 
     _valid = true; // ok
+
+    #undef DESTROY_LSTATE
 }
 
 static std::string auditValue(const std::string& metric, double value)
@@ -104,10 +110,10 @@ static std::string auditValue(const std::string& metric, double value)
 int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
     // outcome tokens
-    static const std::string LC_TOKEN{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
-    static const std::string LW_TOKEN{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
-    static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
-    static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
+    static const std::string LC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_CRITICAL)};
 
     log_debug("LuaRule::evaluate %s", _name.c_str());
 
@@ -140,7 +146,7 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
         int status = static_cast<int>(luaEvaluate(values));
         auto now = static_cast<uint64_t>(::time(NULL));
 
-        if (status == RULE_RESULT_OK) {
+        if (status == outcome::RULE_RESULT_OK) {
             log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
             // When alert is resolved, it doesn't have new severity
             const std::string description{"The alarm is now resolved"};
@@ -150,7 +156,7 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
             evalOK = true;
         }
         else {
-            const std::string statusText = resultToString(status);
+            const std::string statusText = outcome::resultToString(status);
 
             auto outcome = _outcomes.find(statusText);
 
@@ -240,18 +246,18 @@ double LuaRule::luaEvaluate(const std::vector<double>& arguments)
 void LuaRule::luaSetGlobalVariables()
 {
     // outcome tokens
-    static const std::string LC_TOKEN{Rule::resultToString(RULE_RESULT_LOW_CRITICAL)};
-    static const std::string LW_TOKEN{Rule::resultToString(RULE_RESULT_LOW_WARNING)};
-    static const std::string HW_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_WARNING)};
-    static const std::string HC_TOKEN{Rule::resultToString(RULE_RESULT_HIGH_CRITICAL)};
+    static const std::string LC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_CRITICAL)};
 
     if (!_lstate) {
         return; // no state to set
     }
 
     // register results name/value in state
-    for (int result = RULE_RESULT_LOW_CRITICAL; result <= RULE_RESULT_UNKNOWN; result++) {
-        std::string resultName = Rule::resultToString(result);
+    for (int result = outcome::RULE_RESULT_LOW_CRITICAL; result <= outcome::RULE_RESULT_UNKNOWN; result++) {
+        std::string resultName = outcome::resultToString(result);
         transform(resultName.begin(), resultName.end(), resultName.begin(), ::toupper); // UPPER
         lua_pushnumber(_lstate, result); // value
         lua_setglobal(_lstate, resultName.c_str()); // variable name

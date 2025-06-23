@@ -23,80 +23,62 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  */
 
 #include "thresholdrulecomplex.h"
+#include "misc/json.h"
+
+#include <fty_log.h>
 
 int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
 {
     _si = si;
-    if (si.findMember("threshold") == NULL) {
-        return 1;
+
+    // *must* threshold root object
+    const std::string rootName{"threshold"};
+    auto root{JSON::findMember(si, rootName)};
+    if (!root) {
+        return 1; // not recognized
+    }
+    if (!JSON::isObject(root)) {
+        const std::string err{"Object member expected (" + rootName + ")"};
+        log_error("%s", err.c_str());
+        throw std::runtime_error(err);
     }
 
-    auto threshold = si.getMember("threshold");
-    if (threshold.category() != cxxtools::SerializationInfo::Object) {
-        log_error("Root of json must be an object with property 'threshold'.");
-        throw std::runtime_error("Root of json must be an object with property 'threshold'.");
+    // *must* target defined as array
+    auto target{JSON::findMember(root, "target")};
+    if (!JSON::isArray(target)) {
+        return 1; // not recognized
     }
+    *target >>= _metrics;
 
-    // target
-    auto target = threshold.getMember("target");
-    if (target.category() != cxxtools::SerializationInfo::Array) {
-        return 1;
+    log_debug("Rule class: %s, root: %s)", clazz().c_str(), rootName.c_str());
+
+    _name = JSON::getStringUtf8(JSON::findMember(root, "rule_name"));
+    _element = JSON::getStringUtf8(JSON::findMember(root, "element"));
+    _rule_class = JSON::getString(JSON::findMember(root, "rule_class"));
+
+    // rule_source (not used, useless!?)
+    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
+    if (_rule_source.empty()) {
+        // Undefined: update _si w/ default (required!?)
+        _rule_source = RULE_SOURCE_DEFAULT;
+        JSON::setObjectProperty(_si.findMember(rootName), "rule_source", _rule_source);
     }
-    target >>= _metrics;
-
-    log_debug("it is complex threshold rule");
-
-    // rule_source
-    if (threshold.findMember("rule_source") == NULL) {
-        // if key is not there, take default
-        _rule_source = "Manual user input";
-        threshold.addMember("rule_source") <<= _rule_source;
-    }
-    else {
-        auto rule_source = threshold.getMember("rule_source");
-        if (rule_source.category() != cxxtools::SerializationInfo::Value) {
-            throw std::runtime_error("'rule_source' in json must be value.");
-        }
-        rule_source >>= _rule_source;
-    }
-    log_debug("rule_source = %s", _rule_source.c_str());
-
-    si_getValueUtf8(threshold, "rule_name", _name);
-    si_getValueUtf8(threshold, "element", _element);
-
-    // rule_class
-    if (threshold.findMember("rule_class") != NULL) {
-        threshold.getMember("rule_class") >>= _rule_class;
-    }
-
-    // values
-    // TODO check low_critical < low_warning < high_warning < high_critical
-    std::map<std::string, double> tmp_values;
-    auto values = threshold.getMember("values");
-    if (values.category() != cxxtools::SerializationInfo::Array) {
-        log_error("parameter 'values' in json must be an array.");
-        throw std::runtime_error("parameter 'values' in json must be an array");
-    }
-    values >>= tmp_values;
-    globalVariables(tmp_values);
 
     // outcomes
-    auto outcomes = threshold.getMember("results");
-    if (outcomes.category() != cxxtools::SerializationInfo::Array) {
-        log_error("parameter 'results' in json must be an array.");
-        throw std::runtime_error("parameter 'results' in json must be an array.");
-    }
-    outcomes >>= _outcomes;
+    _outcomes = JSON::getMapOutcome(JSON::findMember(root, "results"));
 
-    std::string tmp;
-    threshold.getMember("evaluation") >>= tmp;
+    // values (TODO: check low_critical<low_warning<high_warning<high_critical)
+    globalVariables(JSON::getMapDouble(JSON::findMember(root, "values")));
+
+    // evaluation (Lua code)
     try {
-        code(tmp);
+        const std::string evaluation{JSON::getString(JSON::findMember(root, "evaluation"))};
+        code(evaluation);
     }
     catch (const std::exception& e) {
-        log_error("something with Lua function: %s", e.what());
-        return 2;
+        log_error("Invalid Lua code (e: %s)", e.what());
+        return 2; // error
     }
 
-    return 0;
+    return 0; // recognized and initialized correctly
 }

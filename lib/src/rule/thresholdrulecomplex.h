@@ -29,9 +29,8 @@ class ThresholdRuleComplex final : public LuaRule
 public:
     ThresholdRuleComplex() {}
 
-    virtual std::string clazz() const { return LuaRule::clazz() + "/ThresholdRuleComplex"; }
-
     virtual std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/ThresholdRuleComplex"; }
 
     virtual int fill(const cxxtools::SerializationInfo& si);
 };

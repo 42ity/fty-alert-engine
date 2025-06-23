@@ -22,9 +22,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-#include <memory> //unique_ptr
 #include <string>
 #include <vector>
+#include <memory> //unique_ptr
 
 // alert status
 #define ALERT_START    "ACTIVE"
@@ -41,7 +41,7 @@ public:
     std::string              _status{ALERT_UNKNOWN};
     uint64_t                 _timestamp{0};
     std::string              _description;
-    std::string              _element;
+    std::string              _element; // asset iname
     std::string              _severity;
     std::vector<std::string> _actions;
     std::string              _rule_class;
@@ -53,12 +53,12 @@ public:
         const std::string& status,
         uint64_t timestamp,
         const std::string& description,
-        const std::string& element_name,
+        const std::string& element,
         const std::string& rule_class
     ) : _status{status}
       , _timestamp{timestamp}
       , _description{description}
-      , _element{element_name}
+      , _element{element}
       , _severity{}
       , _actions{}
       , _rule_class{rule_class}
@@ -69,13 +69,13 @@ public:
         const std::string& status,
         uint64_t timestamp,
         const std::string& description,
-        const std::string& element_name,
+        const std::string& element,
         const std::string& severity,
         const std::vector<std::string>& actions
     ) : _status{status}
       , _timestamp{timestamp}
       , _description{description}
-      , _element{element_name}
+      , _element{element}
       , _severity{severity}
       , _actions{actions}
       , _rule_class{}
@@ -89,4 +89,4 @@ public:
     void print() const;
 };
 
-typedef std::unique_ptr<PureAlert> PureAlertPtr;
+using PureAlertPtr = std::unique_ptr<PureAlert>;

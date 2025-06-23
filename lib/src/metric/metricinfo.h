@@ -31,37 +31,37 @@ public:
     MetricInfo() = default;
 
     MetricInfo(
-        const std::string& element_name,
-        const std::string& source,
+        const std::string& asset,
+        const std::string& type,
         double value,
         uint64_t timestamp,
         uint64_t ttl
     )
-        : _element_name(element_name) // asset iname
-        , _source(source) // metric type
+        : _asset(asset) // asset iname
+        , _type(type) // metric type
         , _value(value)
         , _timestamp(timestamp)
         , _ttl(ttl)
     {}
 
     /// accessors
-    std::string getElementName() const { return _element_name; }
-    std::string getSource() const { return _source; }
+    std::string getAssetName() const { return _asset; }
+    std::string getType() const { return _type; }
     double getValue() const { return _value; }
     uint64_t getTimestamp() const { return _timestamp; }
     uint64_t getTtl() const { return _ttl; }
 
     /// topic name (built)
-    std::string generateTopic() const
+    std::string getTopic() const
     {
-        return _source + "@" + _element_name; // <metric type>@<asset iname>
+        return _type + "@" + _asset; // <metric type>@<asset iname>
     }
 
     friend class MetricList;
 
 private:
-    std::string _element_name; /// asset iname
-    std::string _source; /// metric type
+    std::string _asset; /// asset iname
+    std::string _type; /// metric type
     double      _value{0};
     uint64_t    _timestamp{0}; /// latest update (epoch time, sec.)
     uint64_t    _ttl{0}; /// time to live (sec)
