@@ -20,7 +20,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "src/rule/rule.h"
 #include "src/rule/luarule.h"
-#include "src/rule/outcome.h"
 #include "src/templateruleconfigurator.h"
 #include "src/alertconfiguration.h"
 
@@ -41,52 +40,10 @@ static std::string readFile(const std::string& path)
     return buf;
 }
 
-TEST_CASE("rule outcome tokens")
-{
-    using namespace outcome;
-
-    REQUIRE(RULE_RESULT_LOW_CRITICAL == -2);
-    REQUIRE(RULE_RESULT_UNKNOWN == 3);
-
-    CHECK(resultToString(RULE_RESULT_LOW_CRITICAL - 1) == resultToString(RULE_RESULT_UNKNOWN));
-    CHECK(resultToString(RULE_RESULT_UNKNOWN + 1) == resultToString(RULE_RESULT_UNKNOWN));
-
-    CHECK(resultToInt("") == RULE_RESULT_UNKNOWN);
-    CHECK(resultToInt("hello") == RULE_RESULT_UNKNOWN);
-
-    for (const auto& r : {
-        RULE_RESULT_LOW_CRITICAL,
-        RULE_RESULT_LOW_WARNING,
-        RULE_RESULT_OK,
-        RULE_RESULT_HIGH_WARNING,
-        RULE_RESULT_HIGH_CRITICAL,
-        RULE_RESULT_UNKNOWN
-    }
-    ) {
-        CHECK(r == resultToInt(resultToString(r)));
-    }
-
-    for (const auto& s : {
-        "low_critical",
-        "low_warning",
-        "ok",
-        "high_warning",
-        "high_critical",
-        "unknown"
-    }
-    ) {
-        CHECK(s == resultToString(resultToInt(s)));
-    }
-}
-
 TEST_CASE("alertconfiguration readRule")
 {
     setenv("BIOS_LOG_PATTERN", "%D %c [%t] -%-5p- %M (%l) %m%n", 1);
     ManageFtyLog::setInstanceFtylog("fty-alert-configuration");
-
-    const std::string dir("test/testrules/");
-    const std::vector<std::string> action_EMAIL     = {"EMAIL"};
-    const std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
 
     std::unique_ptr<Rule> rule;
 
@@ -97,7 +54,7 @@ TEST_CASE("alertconfiguration readRule")
         REQUIRE(readRule(json, rule) == 1); // no member
 
         json = "{ \"member0\":{}, \"member1\":{} }";
-        REQUIRE(readRule(json, rule) == 1); // multi member
+        REQUIRE(readRule(json, rule) == 1); // multi members
 
         json = "{ \"member\":{";
         REQUIRE(readRule(json, rule) == 1); // invalid
@@ -106,14 +63,21 @@ TEST_CASE("alertconfiguration readRule")
         REQUIRE(readRule(json, rule) == 1); // unrecognized
     }
 
-    {
-        AlertConfiguration ac;
-        std::set<std::string> topics;
-        ac.setPath("./tmp/fake");
-        REQUIRE_NOTHROW((topics = ac.readConfiguration()));
-        CHECK(topics.size() == 0);
-        CHECK(ac.size() == 0);
-    }
+    const std::string low_critical(outcome::resultToString(outcome::RULE_RESULT_LOW_CRITICAL));
+    const std::string low_warning(outcome::resultToString(outcome::RULE_RESULT_LOW_WARNING));
+    const std::string high_warning(outcome::resultToString(outcome::RULE_RESULT_HIGH_WARNING));
+    const std::string high_critical(outcome::resultToString(outcome::RULE_RESULT_HIGH_CRITICAL));
+    logDebug("low_critical: '{}'", low_critical);
+    logDebug("low_warning: '{}'", low_warning);
+    logDebug("high_warning: '{}'", high_warning);
+    logDebug("high_critical: '{}'", high_critical);
+
+    const std::vector<std::string> action_EMAIL     = {"EMAIL"};
+    const std::vector<std::string> action_EMAIL_SMS = {"EMAIL", "SMS"};
+    const std::vector<std::string> action_EMAIL_GPO = {"EMAIL", "GPO_INTERACTION:gpo-42:open"};
+
+    const std::string dir("test/testrules/");
+    logDebug("dir: {}", dir);
 
     {
         std::string json(readFile(dir + "pattern.rule"));
@@ -127,17 +91,17 @@ TEST_CASE("alertconfiguration readRule")
 
         std::map<std::string, double> vars = rule->globalVariables();
         CHECK(vars.size() == 2);
-        CHECK(double_equals(vars["low_critical"], 10.0));
-        CHECK(double_equals(vars["low_warning"], 60.0));
-        CHECK(double_equals(vars["high_warning"], 0.0));
-        CHECK(double_equals(vars["high_critical"], 0.0));
+        CHECK(double_equals(vars[low_critical], 10.0));
+        CHECK(double_equals(vars[low_warning], 60.0));
+        CHECK(double_equals(vars[high_warning], 0.0));
+        CHECK(double_equals(vars[high_critical], 0.0));
 
         Outcome oc;
-        oc = rule->outcome("low_warning");
+        oc = rule->outcome(low_warning);
         CHECK(oc._description == "Warranty for device will expire in less than 60 days");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("low_critical");
+        oc = rule->outcome(low_critical);
         CHECK(oc._description == "Warranty for device will expire in less than 10 days");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL);
@@ -161,25 +125,25 @@ TEST_CASE("alertconfiguration readRule")
 
         std::map<std::string, double> vars = rule->globalVariables();
         CHECK(vars.size() == 4);
-        CHECK(double_equals(vars["low_critical"], 30.0));
-        CHECK(double_equals(vars["low_warning"], 40.0));
-        CHECK(double_equals(vars["high_warning"], 50.0));
-        CHECK(double_equals(vars["high_critical"], 60.0));
+        CHECK(double_equals(vars[low_critical], 30.0));
+        CHECK(double_equals(vars[low_warning], 40.0));
+        CHECK(double_equals(vars[high_warning], 50.0));
+        CHECK(double_equals(vars[high_critical], 60.0));
 
         Outcome oc;
-        oc = rule->outcome("low_warning");
+        oc = rule->outcome(low_warning);
         CHECK(oc._description == "wow LOW warning description");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("low_critical");
+        oc = rule->outcome(low_critical);
         CHECK(oc._description == "WOW low critical description");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL_SMS);
-        oc = rule->outcome("high_warning");
+        oc = rule->outcome(high_warning);
         CHECK(oc._description == "wow high WARNING description");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("high_critical");
+        oc = rule->outcome(high_critical);
         CHECK(oc._description == "wow high critical DESCTIPRION");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL);
@@ -197,25 +161,25 @@ TEST_CASE("alertconfiguration readRule")
 
         std::map<std::string, double> vars = rule->globalVariables();
         CHECK(vars.size() == 4);
-        CHECK(double_equals(vars["low_critical"], 30.0));
-        CHECK(double_equals(vars["low_warning"], 40.0));
-        CHECK(double_equals(vars["high_warning"], 50.0));
-        CHECK(double_equals(vars["high_critical"], 60.0));
+        CHECK(double_equals(vars[low_critical], 30.0));
+        CHECK(double_equals(vars[low_warning], 40.0));
+        CHECK(double_equals(vars[high_warning], 50.0));
+        CHECK(double_equals(vars[high_critical], 60.0));
 
         Outcome oc;
-        oc = rule->outcome("low_warning");
+        oc = rule->outcome(low_warning);
         CHECK(oc._description == "wow LOW warning description");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("low_critical");
+        oc = rule->outcome(low_critical);
         CHECK(oc._description == "WOW low critical description");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL_SMS);
-        oc = rule->outcome("high_warning");
+        oc = rule->outcome(high_warning);
         CHECK(oc._description == "wow high WARNING description");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("high_critical");
+        oc = rule->outcome(high_critical);
         CHECK(oc._description == "wow high critical DESCTIPRION");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL);
@@ -234,25 +198,25 @@ TEST_CASE("alertconfiguration readRule")
 
         std::map<std::string, double> vars = rule->globalVariables();
         CHECK(vars.size() == 4);
-        CHECK(double_equals(vars["low_critical"], 30.0));
-        CHECK(double_equals(vars["low_warning"], 40.0));
-        CHECK(double_equals(vars["high_warning"], 50.0));
-        CHECK(double_equals(vars["high_critical"], 60.0));
+        CHECK(double_equals(vars[low_critical], 30.0));
+        CHECK(double_equals(vars[low_warning], 40.0));
+        CHECK(double_equals(vars[high_warning], 50.0));
+        CHECK(double_equals(vars[high_critical], 60.0));
 
         Outcome oc;
-        oc = rule->outcome("low_warning");
+        oc = rule->outcome(low_warning);
         CHECK(oc._description == "wow LOW warning description");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("low_critical");
+        oc = rule->outcome(low_critical);
         CHECK(oc._description == "WOW low critical description");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL_SMS);
-        oc = rule->outcome("high_warning");
+        oc = rule->outcome(high_warning);
         CHECK(oc._description == "wow high WARNING description");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL);
-        oc = rule->outcome("high_critical");
+        oc = rule->outcome(high_critical);
         CHECK(oc._description == "wow high critical DESCTIPRION");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL);
@@ -273,19 +237,17 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(vars.size() == 2);
         CHECK(double_equals(vars["a1"], 2.0));
         CHECK(double_equals(vars["a2"], -3.0));
-        CHECK(double_equals(vars["low_critical"], 0.0));
-        CHECK(double_equals(vars["low_warning"], 0.0));
-        CHECK(double_equals(vars["high_warning"], 0.0));
-        CHECK(double_equals(vars["high_critical"], 0.0));
-
-        const std::vector<std::string> action_EMAIL_GPO = {"EMAIL", "GPO_INTERACTION:gpo-42:open"};
+        CHECK(double_equals(vars[low_critical], 0.0));
+        CHECK(double_equals(vars[low_warning], 0.0));
+        CHECK(double_equals(vars[high_warning], 0.0));
+        CHECK(double_equals(vars[high_critical], 0.0));
 
         Outcome oc;
-        oc = rule->outcome("high_warning");
+        oc = rule->outcome(high_warning);
         CHECK(oc._description == "RES r2");
         CHECK(oc._severity == "WARNING");
         CHECK(oc._actions == action_EMAIL_GPO);
-        oc = rule->outcome("high_critical");
+        oc = rule->outcome(high_critical);
         CHECK(oc._description == "RES r1");
         CHECK(oc._severity == "CRITICAL");
         CHECK(oc._actions == action_EMAIL_SMS);
@@ -295,5 +257,35 @@ TEST_CASE("alertconfiguration readRule")
         CHECK(luaRule->code() ==
                "function main(abc_sss1, abc_sss2) local new_value = abc_sss1*a1 + abc_sss2*a2 if  ( new_value > 0 ) "
                "then return HIGH_WARNING end if ( new_value < -10 ) then return HIGH_CRITICAL end return OK end");
+    }
+}
+
+TEST_CASE("alertconfiguration readConfiguration")
+{
+    {
+        AlertConfiguration ac;
+        ac.setPath("./tmp/fake"); // bad path
+        CHECK(ac.getPersistencePath() == "./tmp/fake/");
+
+        std::set<std::string> topics;
+        REQUIRE_NOTHROW((topics = ac.readConfiguration()));
+        CHECK(topics.size() == 0);
+        CHECK(ac.size() == 0);
+    }
+
+    {
+        const std::string dir("test/testrules/");
+        logDebug("dir: {}", dir);
+
+        AlertConfiguration ac;
+        ac.setPath(dir);
+
+        std::set<std::string> topics;
+        REQUIRE_NOTHROW((topics = ac.readConfiguration()));
+        CHECK(topics.size() != 0);
+        CHECK(ac.size() != 0);
+
+        logDebug("== ac topics:"); for (const auto& it : topics) { logDebug("{}", it); }
+        logDebug("== ac alerts:"); for (const auto& it : ac) { logDebug("{}", it.first); }
     }
 }

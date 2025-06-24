@@ -59,5 +59,8 @@ TEST_CASE("utils")
 
         CHECK(replaceTokens("abc", { {"a", "aa"}, {"b", "bb"}, {"c", "cc"} }) == "aabbcc");
         CHECK(replaceTokens("aabbcc", { {"aa", "a"}, {"bb", "b"}, {"cc", "c"} }) == "abc");
+
+        CHECK(replaceTokens("xyz", { {"a", "b"} }) == "xyz");
+        CHECK(replaceTokens("xyz", { {"x", "x"}, {"z", "z"} }) == "xyz");
     }
 }

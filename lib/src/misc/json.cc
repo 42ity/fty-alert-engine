@@ -144,6 +144,9 @@ std::vector<std::string> getActions(const cxxtools::SerializationInfo* p)
             else if (isObject(&it)) {
                 // rich style format [{"action": "EMAIL"}, {"action": "SMS"}]
                 auto action = findMember(&it, "action");
+                if (!action) {
+                    throw std::invalid_argument("'action' member expected");
+                }
                 if (!isValue(action)) {
                     throw std::invalid_argument("Value member expected");
                 }

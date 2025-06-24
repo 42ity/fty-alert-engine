@@ -26,8 +26,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <map>
 
-///struct Outcome;
-
 namespace JSON {
 
 /// returns the member object if found, else nullptr

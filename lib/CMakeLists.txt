@@ -31,6 +31,8 @@ etn_test_target(${PROJECT_NAME}-static
     SOURCES
         test/main.cpp
         test/utils.cpp
+        test/json.cpp
+        test/outcome.cpp
         test/audit.cpp
         test/autoconfig.cpp
         test/templateruleconfigurator.cpp
