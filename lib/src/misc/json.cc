@@ -50,17 +50,18 @@ bool isValue(const cxxtools::SerializationInfo* p)
     return p && (p->category() == cxxtools::SerializationInfo::Value);
 }
 
+#if 0 // not used
 // throw on error (p changed)
 void setObjectProperty(cxxtools::SerializationInfo* p, const std::string& property, const std::string& value)
 {
     try {
         if (!isObject(p)) {
-           throw std::invalid_argument("Object member expected");
+            throw std::invalid_argument("Object member expected");
         }
 
         auto x = p->findMember(property);
-        if (x) { *x <<= value; }
-        else { p->addMember(property) <<= value; }
+        if (x) { *x <<= value; } // update
+        else { p->addMember(property) <<= value; } // create
     }
     catch (const std::exception& e) {
         const std::string err{"setObjectProperty(), e: " + std::string(e.what())};
@@ -68,6 +69,7 @@ void setObjectProperty(cxxtools::SerializationInfo* p, const std::string& proper
         throw std::runtime_error(err);
     }
 }
+#endif
 
 std::string getStringUtf8(const cxxtools::SerializationInfo* p)
 {
@@ -96,7 +98,7 @@ std::map<std::string, double> getMapDouble(const cxxtools::SerializationInfo* p)
 
     try {
         if (!isArray(p)) {
-           throw std::invalid_argument("Array member expected");
+            throw std::invalid_argument("Array member expected");
         }
 
         for (const auto& it : *p) { // iterate through the array
@@ -133,7 +135,7 @@ std::vector<std::string> getActions(const cxxtools::SerializationInfo* p)
 
     try {
         if (!isArray(p)) {
-           throw std::invalid_argument("Array member expected");
+            throw std::invalid_argument("Array member expected");
         }
 
         for (const auto& it : *p) { // iterate through the array
@@ -196,7 +198,7 @@ static Outcome getOutcome(const cxxtools::SerializationInfo* p)
 
     try {
         if (!isObject(p)) {
-           throw std::invalid_argument("Object member expected");
+            throw std::invalid_argument("Object member expected");
         }
 
         outcome._actions = getActions(findMember(p, "action"));
@@ -228,7 +230,7 @@ std::map<std::string, Outcome> getMapOutcome(const cxxtools::SerializationInfo* 
 
     try {
         if (!isArray(p)) {
-           throw std::invalid_argument("Array member expected");
+            throw std::invalid_argument("Array member expected");
         }
 
         for (const auto& it : *p) { // iterate through the array

@@ -22,7 +22,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "rule/regexrule.h"
 #include "rule/thresholdrulesimple.h"
-#include "rule/thresholdruledevice.h"
 #include "rule/thresholdrulecomplex.h"
 #include "rule/normalrule.h"
 
@@ -69,7 +68,6 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
 
         TRY_RULE_FILL(new RegexRule());
         TRY_RULE_FILL(new ThresholdRuleSimple());
-        TRY_RULE_FILL(new ThresholdRuleDevice());
         TRY_RULE_FILL(new ThresholdRuleComplex());
         TRY_RULE_FILL(new NormalRule());
 

@@ -23,8 +23,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int NormalRule::fill(const cxxtools::SerializationInfo& si)
 {
-    _si = si;
-
     // *must* single root object
     const std::string rootName{"single"};
     auto root{JSON::findMember(si, rootName)};
@@ -50,22 +48,12 @@ int NormalRule::fill(const cxxtools::SerializationInfo& si)
     _element = JSON::getStringUtf8(JSON::findMember(root, "element"));
     _rule_class = JSON::getString(JSON::findMember(root, "rule_class"));
 
-    // rule_source (not used, useless!?)
-    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
-    if (_rule_source.empty()) {
-        // Undefined: update _si w/ default (required!?)
-        _rule_source = RULE_SOURCE_DEFAULT;
-        JSON::setObjectProperty(_si.findMember(rootName), "rule_source", _rule_source);
-    }
-
     // outcomes
     _outcomes = JSON::getMapOutcome(JSON::findMember(root, "results"));
 
     // values *optional* (TODO: check low_critical<low_warning<high_warning<high_critical)
-    globalVariables({}); // emptied
-    if (auto values = JSON::findMember(root, "values")) {
-        globalVariables(JSON::getMapDouble(values));
-    }
+    auto values{JSON::findMember(root, "values")};
+    globalVariables(values ? JSON::getMapDouble(values) : std::map<std::string, double>{});
 
     // evaluation (Lua code)
     try {
@@ -77,5 +65,6 @@ int NormalRule::fill(const cxxtools::SerializationInfo& si)
         return 2; // error
     }
 
+    _si = si;
     return 0; // recognized and initialized correctly
 }

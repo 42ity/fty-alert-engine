@@ -33,8 +33,6 @@
 #include <vector>
 #include <memory> //unique_ptr
 
-#define RULE_SOURCE_DEFAULT "Manual user input"
-
 /// General representation for rules
 class Rule
 {
@@ -105,9 +103,6 @@ protected: // properties
 
     /// Vector of metrics to be evaluated (aka topics)
     std::vector<std::string> _metrics;
-
-    /// The rule source
-    ///std::string _rule_source; // not used
 
     /// Human readable info about this rule purpose like "internal temperature"
     std::string _rule_class;

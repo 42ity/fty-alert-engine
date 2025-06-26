@@ -27,8 +27,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // 1 - it is not simple threshold rule
 int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
 {
-    _si = si;
-
     // *must* threshold root object
     const std::string rootName{"threshold"};
     auto root{JSON::findMember(si, rootName)};
@@ -48,18 +46,6 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     }
     _metrics.push_back(JSON::getString(target)); // singleton
 
-    // *must* rule_source default
-    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
-    if (_rule_source.empty()) {
-        // Undefined: update _si w/ default (required!?)
-        _rule_source = RULE_SOURCE_DEFAULT;
-        JSON::setObjectProperty(_si.findMember(rootName), "rule_source", _rule_source);
-    }
-    if (_rule_source != RULE_SOURCE_DEFAULT) {
-        log_debug("rule_source = %s", _rule_source.c_str());
-        return 1; // not recognized
-    }
-
     log_debug("Rule class: %s, root: %s)", clazz().c_str(), rootName.c_str());
 
     _name = JSON::getStringUtf8(JSON::findMember(root, "rule_name"));
@@ -72,6 +58,7 @@ int ThresholdRuleSimple::fill(const cxxtools::SerializationInfo& si)
     // values (TODO: check low_critical<low_warning<high_warning<high_critical)
     globalVariables(JSON::getMapDouble(JSON::findMember(root, "values")));
 
+    _si = si;
     return 0; // recognized and initialized correctly
 }
 

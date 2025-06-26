@@ -29,8 +29,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
 {
-    _si = si;
-
     // *must* threshold root object
     const std::string rootName{"threshold"};
     auto root{JSON::findMember(si, rootName)};
@@ -56,14 +54,6 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
     _element = JSON::getStringUtf8(JSON::findMember(root, "element"));
     _rule_class = JSON::getString(JSON::findMember(root, "rule_class"));
 
-    // rule_source (not used, useless!?)
-    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
-    if (_rule_source.empty()) {
-        // Undefined: update _si w/ default (required!?)
-        _rule_source = RULE_SOURCE_DEFAULT;
-        JSON::setObjectProperty(_si.findMember(rootName), "rule_source", _rule_source);
-    }
-
     // outcomes
     _outcomes = JSON::getMapOutcome(JSON::findMember(root, "results"));
 
@@ -80,5 +70,6 @@ int ThresholdRuleComplex::fill(const cxxtools::SerializationInfo& si)
         return 2; // error
     }
 
+    _si = si;
     return 0; // recognized and initialized correctly
 }

@@ -37,9 +37,6 @@ bool isObject(const cxxtools::SerializationInfo* p);
 bool isArray(const cxxtools::SerializationInfo* p);
 bool isValue(const cxxtools::SerializationInfo* p);
 
-/// throw on error (p modified)
-void setObjectProperty(cxxtools::SerializationInfo* p, const std::string& property, const std::string& value);
-
 /// returns the string value, empty if error
 /// no throw
 std::string getStringUtf8(const cxxtools::SerializationInfo* p);
@@ -48,7 +45,6 @@ std::string getString(const cxxtools::SerializationInfo* p);
 /// throw on error
 std::map<std::string, double> getMapDouble(const cxxtools::SerializationInfo* p);
 std::vector<std::string> getActions(const cxxtools::SerializationInfo* p);
-///Outcome getOutcome(const cxxtools::SerializationInfo* p);
 std::map<std::string, Outcome> getMapOutcome(const cxxtools::SerializationInfo* p);
 
 } // namespace

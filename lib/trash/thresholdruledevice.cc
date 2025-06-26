@@ -24,8 +24,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
 {
-    _si = si;
-
     // *must* threshold root object
     const std::string rootName{"threshold"};
     auto root{JSON::findMember(si, rootName)};
@@ -45,10 +43,10 @@ int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
     }
     _metrics.push_back(JSON::getString(target)); // singleton
 
-    // *must* rule_source not the default
-    std::string _rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
-    if (_rule_source.empty() || (_rule_source == RULE_SOURCE_DEFAULT)) {
-        log_debug("rule_source = %s", _rule_source.c_str());
+    // *must* rule_source not empty (= "NUT" !?)
+    std::string rule_source = JSON::getString(JSON::findMember(root, "rule_source"));
+    if (rule_source.empty()) {
+        log_debug("rule_source = '%s'", "<empty>");
         return 1; // not recognized
     }
 
@@ -64,6 +62,7 @@ int ThresholdRuleDevice::fill(const cxxtools::SerializationInfo& si)
     // values (TODO: check low_critical<low_warning<high_warning<high_critical)
     globalVariables(JSON::getMapDouble(JSON::findMember(root, "values")));
 
+    _si = si;
     return 0; // recognized and initialized correctly
 }
 
