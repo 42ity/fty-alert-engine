@@ -1,6 +1,0 @@
-- src/rule/thresholdruledevice.cc (.h)
-    ThresholdRuleDevice has been trashed (2.8.4) due to copy/paste abuse. This rule model is strictly the same
-    as ThrresholdRuleSimple. It only play to the existency (or not) of a "rule_source" property in the json payload (fill()),
-    that is *never* handled during the life of the rule/alarm.
-    Notice the "rule_source" property is set by fty-nut runtime, as "NUT" string. It is handled on UI side to differentiate
-    between threshold alerts that can or can not be modified by user (threshold values).

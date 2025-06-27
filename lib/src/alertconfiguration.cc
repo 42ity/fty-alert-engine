@@ -33,6 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <filesystem>
 #include <istream>
 
+// returns 0 if ok, else error
 int readRule(const std::string& jsonPayload, RulePtr& rule)
 {
     rule.reset();
@@ -43,10 +44,8 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
         // json w/ unique member
         cxxtools::SerializationInfo si;
         JSON::readFromString(jsonPayload, si);
-        if (si.memberCount() == 0)
-            { throw std::runtime_error("empty member json document"); }
         if (si.memberCount() != 1)
-            { throw std::runtime_error("multiple members json document"); }
+            { throw std::runtime_error("Unique member expected"); }
 
         // try to parse/fill a new rule from si
         // returns 0 if success (rule is set as recognized)
@@ -58,9 +57,9 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
             switch (tmpRule->fill(si)) { \
                 case 0: \
                     rule = std::move(tmpRule); \
-                    logDebug("recognize rule named '{}' ({})", rule->name(), rule->clazz()); \
+                    logDebug("readRule: recognize rule '{}' ({})", rule->name(), rule->clazz()); \
                     return 0; \
-                case 2: \
+                case 2: /*Lua error*/ \
                     return 2; \
                 default:; \
             } \
@@ -72,13 +71,13 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
         TRY_RULE_FILL(new NormalRule());
 
         // unrecognized rule
-        log_error("readRule: can't recognize the type of the rule");
+        log_error("readRule: rule not recognized");
     }
     catch (const std::exception& e) {
-        log_error("readRule: can't parse JSON (e: %s)", e.what());
+        log_error("readRule: JSON parse error (e: %s)", e.what());
     }
 
-    return 1; // read failed (unrecognized or internal/json error)
+    return 1; // failed (unrecognized or internal/json error)
 }
 
 std::set<std::string> AlertConfiguration::readConfiguration()
