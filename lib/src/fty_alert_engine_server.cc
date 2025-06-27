@@ -478,12 +478,11 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
 {
     if (!json_representation) { json_representation = ""; }
 
-    std::set<std::string>        newSubjectsToSubscribe;
-    std::vector<PureAlert>       alertsToSend;
+    std::vector<PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int r = ac.addRule(json_representation, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    int r = ac.addRule(json_representation, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
@@ -559,12 +558,11 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     if (!json_representation) { json_representation = ""; }
     if (!rule_name) { rule_name = ""; }
 
-    std::set<std::string>        newSubjectsToSubscribe;
-    std::vector<PureAlert>       alertsToSend;
+    std::vector<PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int r = ac.updateRule(json_representation, rule_name, newSubjectsToSubscribe, alertsToSend, new_rule_it);
+    int r = ac.updateRule(json_representation, rule_name, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();

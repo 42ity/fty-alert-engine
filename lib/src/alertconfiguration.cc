@@ -134,15 +134,15 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             }
 
             // record topics we are interested in
-            for (const auto& interestedTopic : rule->getNeededTopics()) {
-                result.insert(interestedTopic);
+            for (const auto& topic : rule->getNeededTopics()) {
+                result.insert(topic);
 
-                auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
+                auto _it_metrics = _metrics_alerts_map.find(topic);
                 if (_it_metrics != _metrics_alerts_map.end()) {
                     _it_metrics->second.push_back(rulename);
                 }
                 else {
-                    _metrics_alerts_map.insert(std::make_pair(interestedTopic, std::vector<std::string>{rulename}));
+                    _metrics_alerts_map.insert(std::make_pair(topic, std::vector<std::string>{rulename}));
                 }
             }
 
@@ -163,17 +163,10 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 
 int AlertConfiguration::addRule(
     const std::string& json,
-    std::set<std::string>& newSubjectsToSubscribe,
     std::vector<PureAlert>& /* alertsToSend */,
     AlertConfiguration::iterator& it
 )
 {
-    // ASSUMPTIONS: newSubjectsToSubscribe is empty
-    if (!newSubjectsToSubscribe.empty()) {
-        log_debug("ERROR ASSUMPTION: newSubjectsToSubscribe is empty");
-        newSubjectsToSubscribe.clear();
-    }
-
     RulePtr rule{nullptr};
     int r = readRule(json, rule);
     if (r != 0) { // failed
@@ -225,18 +218,16 @@ int AlertConfiguration::addRule(
     }
 
     // in any case we need to check new subjects
-    for (const auto& interestedTopic : rule->getNeededTopics()) {
-        //log_debug("interestedTopic:", interestedTopic.c_str());
-        newSubjectsToSubscribe.insert(interestedTopic);
-
-        auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
+    for (const auto& topic : rule->getNeededTopics()) {
+        //log_debug("topic:", topic.c_str());
+        auto _it_metrics = _metrics_alerts_map.find(topic);
         if (_it_metrics != _metrics_alerts_map.end()) {
             log_debug("_it_metrics %s: add rule %s ", _it_metrics->first.c_str(), rulename.c_str());
             _it_metrics->second.push_back(rulename);
         }
         else {
-            log_debug("_metrics_alerts_map insert: topic: %s, rule %s ", interestedTopic.c_str(), rulename.c_str());
-            _metrics_alerts_map.insert(std::make_pair(interestedTopic, std::vector<std::string>{rulename}));
+            log_debug("_metrics_alerts_map insert: topic: %s, rule %s ", topic.c_str(), rulename.c_str());
+            _metrics_alerts_map.insert(std::make_pair(topic, std::vector<std::string>{rulename}));
         }
     }
 
@@ -274,16 +265,10 @@ int AlertConfiguration::touchRule(const std::string& rule_name, std::vector<Pure
 int AlertConfiguration::updateRule(
     const std::string& newRuleString, // json
     const std::string& old_name,
-    std::set<std::string>& newSubjectsToSubscribe, std::vector<PureAlert>& alertsToSend,
+    std::vector<PureAlert>& alertsToSend,
     AlertConfiguration::iterator& it
 )
 {
-    // ASSUMPTIONS: newSubjectsToSubscribe and alertsToSend are empty
-    if (!newSubjectsToSubscribe.empty()) {
-        log_debug("ERROR ASSUMPTION: newSubjectsToSubscribe is empty");
-        newSubjectsToSubscribe.clear();
-    }
-
     if (!alertsToSend.empty()) {
         log_debug("ERROR ASSUMPTION: alertsToSend is empty");
         alertsToSend.clear();
@@ -373,8 +358,8 @@ int AlertConfiguration::updateRule(
         alertsToSend.push_back(oneAlert);
     }
 
-    for (const auto& interestedTopic : rule_to_update->second.first->getNeededTopics()) {
-        auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
+    for (const auto& topic : rule_to_update->second.first->getNeededTopics()) {
+        auto _it_metrics = _metrics_alerts_map.find(topic);
         if (_it_metrics != _metrics_alerts_map.end()) {
             int it_pos = 0;
             for (auto& it_rule_in_metric : _it_metrics->second) {
@@ -388,7 +373,7 @@ int AlertConfiguration::updateRule(
         else {
             // should not happened
             log_error("Remove rule %s with metric %s who was never been add.",
-                rule_removed_name.c_str(), interestedTopic.c_str());
+                rule_removed_name.c_str(), topic.c_str());
         }
     }
 
@@ -400,15 +385,13 @@ int AlertConfiguration::updateRule(
 
     // find new topics to subscribe
     // As we changed the rule, we need to check new subjects
-    for (const auto& interestedTopic : rule->getNeededTopics()) {
-        newSubjectsToSubscribe.insert(interestedTopic);
-
-        auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
+    for (const auto& topic : rule->getNeededTopics()) {
+        auto _it_metrics = _metrics_alerts_map.find(topic);
         if (_it_metrics != _metrics_alerts_map.end()) {
             _it_metrics->second.push_back(rulename);
         }
         else {
-            _metrics_alerts_map.insert(std::make_pair(interestedTopic, std::vector<std::string>{rulename}));
+            _metrics_alerts_map.insert(std::make_pair(topic, std::vector<std::string>{rulename}));
         }
     }
 
@@ -463,8 +446,8 @@ int AlertConfiguration::deleteRules(
                 alertsToSend[rule_removed_name].push_back(oneAlert);
             }
 
-            for (const auto& interestedTopic : rule_to_remove->second.first->getNeededTopics()) {
-                auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
+            for (const auto& topic : rule_to_remove->second.first->getNeededTopics()) {
+                auto _it_metrics = _metrics_alerts_map.find(topic);
                 if (_it_metrics != _metrics_alerts_map.end()) {
                     int it_pos = 0;
                     for (auto& it_rule_in_metric : _it_metrics->second) {
@@ -477,8 +460,7 @@ int AlertConfiguration::deleteRules(
                 }
                 else {
                     // should not happened
-                    log_error("Remove rule %s with metric %s who was never been add.", rule_removed_name.c_str(),
-                        interestedTopic.c_str());
+                    log_error("Remove rule %s with metric %s who was never been add.", rule_removed_name.c_str(), topic.c_str());
                 }
             }
             // clear the cache
@@ -500,9 +482,8 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
 
     for (auto& oneAlert : oneRuleAlerts.second) // this object can be changed -> no const
     {
-        bool isSameAlert = (pureAlert._element == oneAlert._element);
-        if (!isSameAlert) {
-            continue;
+        if (pureAlert._element != oneAlert._element) {
+            continue; // does not apply
         }
 
         // we found the alert

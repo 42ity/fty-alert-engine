@@ -89,7 +89,6 @@ public:
     /// Adds a rule to the configuration
     /// alertsToSend must be sent in the order from the first element to the last element
     /// @param[in] newRuleString - json to parse a rule
-    /// @param[out] newSubjectsToSubscribe - subjects that are required by the new rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
     /// @return -1 when rule has error in JSON
@@ -97,14 +96,12 @@ public:
     ///         -5 when rule has error in Lua
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and added correctly (but it can be not saved)
-    int addRule(const std::string& newRuleString, std::set<std::string>& newSubjectsToSubscribe,
-        std::vector<PureAlert>& alertsToSend, iterator& it);
+    int addRule(const std::string& newRuleString, std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Updates existing rule in the configuration
     /// alertsToSend must be sent in the order from the first element to the last element
     /// @param[in] newRuleString - json to parse a rule (can have a new name for this rule)
     /// @param[in] rule_name - old name of the rule
-    /// @param[out] newSubjectsToSubscribe - subjects that are required by the new rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
     /// @return -2 when rule with old_name doesn't exist -> nothing to update
@@ -113,8 +110,7 @@ public:
     ///         -3 if name of the rule is changed, but for the new name rule already exists
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and updated correctly (but it can be not saved)
-    int updateRule(const std::string& newRuleString, const std::string& rule_name, std::set<std::string>& newSubjectsToSubscribe,
-        std::vector<PureAlert>& alertsToSend, iterator& it);
+    int updateRule(const std::string& newRuleString, const std::string& rule_name, std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Touch existing rule in the configuration.
     /// Indicats that something in rule was changed implicitly.
