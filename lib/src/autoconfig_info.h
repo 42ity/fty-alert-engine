@@ -34,7 +34,7 @@ struct AutoConfigurationInfo
     uint64_t date{0}; // *must* be 0
     bool configured{false}; // *must* be false
 
-    std::map<std::string, std::string> attributes; // <key, value>
+    std::map<std::string, std::string> attributes; // ext. attributes <key, value>
     std::vector<std::string> locations; // inames (dc, room, ...)
 
     // not initialized?

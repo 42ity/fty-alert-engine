@@ -50,4 +50,6 @@ private:
 
     bool isModelOk(const std::string& model, const std::string& templat);
     std::string convertTypeSubType2Name(const std::string& type, const std::string& subtype);
+
+    std::string readFile(const std::string& pathfile);
 };
