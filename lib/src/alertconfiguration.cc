@@ -20,10 +20,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 
-#include "rule/regexrule.h"
 #include "rule/thresholdrulesimple.h"
 #include "rule/thresholdrulecomplex.h"
 #include "rule/normalrule.h"
+#include "rule/regexrule.h"
 
 #include <fty_log.h>
 #include <fty_common_json.h>
@@ -65,10 +65,10 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
             } \
         }
 
-        TRY_RULE_FILL(new RegexRule());
         TRY_RULE_FILL(new ThresholdRuleSimple());
         TRY_RULE_FILL(new ThresholdRuleComplex());
         TRY_RULE_FILL(new NormalRule());
+        TRY_RULE_FILL(new RegexRule());
 
         // unrecognized rule
         log_error("readRule: rule not recognized");
@@ -174,8 +174,8 @@ int AlertConfiguration::addRule(
         newSubjectsToSubscribe.clear();
     }
 
-    RulePtr temp_rule{nullptr};
-    int r = readRule(json, temp_rule);
+    RulePtr rule{nullptr};
+    int r = readRule(json, rule);
     if (r != 0) { // failed
         switch (r) {
             case 1:
@@ -190,7 +190,7 @@ int AlertConfiguration::addRule(
         return -1;
     }
 
-    const std::string rulename{temp_rule->name()};
+    const std::string rulename{rule->name()};
 
     // PQSWMBT-3723, don't instanciate sensor temp./humidity rules directly
     if ((rulename.find("humidity.default@sensor-") == 0) // starts with...
@@ -210,13 +210,13 @@ int AlertConfiguration::addRule(
 
     log_info("addRule %s", rulename.c_str());
 
-    if (haveRule(temp_rule)) {
+    if (haveRule(rule)) {
         log_debug("rule %s already exists", rulename.c_str());
         return -2;
     }
 
     try {
-        temp_rule->save(getPersistencePath(), rulename + ".rule");
+        rule->save(getPersistencePath(), rulename + ".rule");
     }
     catch (const std::exception& e) {
         const std::string filename{getPersistencePath() + rulename + ".rule"};
@@ -225,7 +225,7 @@ int AlertConfiguration::addRule(
     }
 
     // in any case we need to check new subjects
-    for (const auto& interestedTopic : temp_rule->getNeededTopics()) {
+    for (const auto& interestedTopic : rule->getNeededTopics()) {
         //log_debug("interestedTopic:", interestedTopic.c_str());
         newSubjectsToSubscribe.insert(interestedTopic);
 
@@ -240,7 +240,7 @@ int AlertConfiguration::addRule(
         }
     }
 
-    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(temp_rule), std::vector<PureAlert>{}/*empty*/)));
+    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), std::vector<PureAlert>{}/*empty*/)));
 
     it = _alerts_map.find(rulename);
 
@@ -272,7 +272,7 @@ int AlertConfiguration::touchRule(const std::string& rule_name, std::vector<Pure
 }
 
 int AlertConfiguration::updateRule(
-    const std::string& newRuleString,
+    const std::string& newRuleString, // json
     const std::string& old_name,
     std::set<std::string>& newSubjectsToSubscribe, std::vector<PureAlert>& alertsToSend,
     AlertConfiguration::iterator& it
@@ -299,8 +299,8 @@ int AlertConfiguration::updateRule(
         return -2;
     }
 
-    RulePtr temp_rule{nullptr};
-    int r = readRule(newRuleString, temp_rule);
+    RulePtr rule{nullptr};
+    int r = readRule(newRuleString, rule);
     if (r != 0) { // failed
         switch (r) {
             case 1:
@@ -315,9 +315,11 @@ int AlertConfiguration::updateRule(
         return -1;
     }
 
+    std::string rulename = rule->name();
+
     // if name of the rule changed, then
     // need to find out if rule with new rulename exists already or not
-    if ((temp_rule->name() != old_name) && haveRule(temp_rule->name())) {
+    if ((rulename != old_name) && haveRule(rulename)) {
         // rule with new old_name
         log_error("Rule with such name already exists");
         return -3;
@@ -325,46 +327,49 @@ int AlertConfiguration::updateRule(
 
     // find rule, that should be updated
     auto rule_to_update = _alerts_map.find(old_name);
+    const std::string rule_removed_name = rule_to_update->second.first->name();
 
-    // try to save the file, first
-    try {
-        temp_rule->save(getPersistencePath(), temp_rule->name() + ".rule.new");
-    }
-    catch (const std::exception& e) {
-        // if error happend, we didn't lose any previous data
-        std::string filename = getPersistencePath() + temp_rule->name() + ".rule.new";
-        log_error("Error while saving file '%s': %s", filename.c_str(), e.what());
-        return -6;
-    }
+    // handle rule file (old & new)
+    {
+        // first, save the file (new)
+        try {
+            rule->save(getPersistencePath(), rulename + ".rule.new");
+        }
+        catch (const std::exception& e) {
+            // if error happend, we didn't lose any previous data
+            std::string filename = getPersistencePath() + rulename + ".rule.new";
+            log_error("Error while saving file '%s': %s", filename.c_str(), e.what());
+            return -6;
+        }
 
-    // as we successfuly saved the new file, we can try to remove old one
-    r = rule_to_update->second.first->remove(getPersistencePath());
-    std::string rule_removed_name = rule_to_update->second.first->name();
-    if (r != 0) {
-        log_error(
-            "Old rule wasn't removed, but new one stored with postfix '.new' and is not used yet. Rename *.rule.new "
-            "file to *.rule, remove old .rule and then manually and restart the daemon",
-            rule_removed_name.c_str());
-        return -6;
-    }
+        // remove the old file
+        r = rule_to_update->second.first->remove(getPersistencePath());
+        if (r != 0) {
+            log_error(
+                "Old rule wasn't removed, but new one stored with postfix '.new' and is not used yet. Rename *.rule.new "
+                "file to *.rule, remove old .rule and then manually and restart the daemon",
+                rule_removed_name.c_str());
+            return -6;
+        }
 
-    // as we successfuly removed old rule, we can rename new rule to the right name
-    r = std::rename(getPersistencePath().append(rule_removed_name).append(".rule.new").c_str(),
-        getPersistencePath().append(rule_removed_name).append(".rule").c_str());
-    if (r != 0) {
-        log_error(
-            "Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon",
-            rule_removed_name.c_str());
-        return -6;
+        // rename new rule file to the right name
+        const auto name1{getPersistencePath() + rule_removed_name + ".rule.new"};
+        const auto name2{getPersistencePath() + rule_removed_name + ".rule"};
+        r = std::rename(name1.c_str(), name2.c_str());
+        if (r != 0) {
+            log_error(
+                "Error renaming .rule.new to .new for '%s'. Rename *.rule.new file to *.rule and then manually and restart the daemon",
+                rule_removed_name.c_str());
+            return -6;
+        }
     }
 
     // here, everything ok with files
-    // and we need to fix information in the memory
+    // and we need to fix information in the memory cache
 
-    // resolve found alerts
+    // resolve found alerts; put them into the list of alerts that changed
     for (auto& oneAlert : rule_to_update->second.second) {
         oneAlert._status = ALERT_RESOLVED;
-        // put them into the list of alerts that changed
         alertsToSend.push_back(oneAlert);
     }
 
@@ -387,18 +392,15 @@ int AlertConfiguration::updateRule(
         }
     }
 
-    // clear cache
+    // clear cache & delete old rule
     rule_to_update->second.second.clear();
-    // remove old rule
     rule_to_update->second.first.reset();
-    // remove entire entiry
+    // remove entire entry
     _alerts_map.erase(rule_to_update);
 
     // find new topics to subscribe
-    std::string rulename = temp_rule->name();
-
     // As we changed the rule, we need to check new subjects
-    for (const auto& interestedTopic : temp_rule->getNeededTopics()) {
+    for (const auto& interestedTopic : rule->getNeededTopics()) {
         newSubjectsToSubscribe.insert(interestedTopic);
 
         auto _it_metrics = _metrics_alerts_map.find(interestedTopic);
@@ -410,17 +412,10 @@ int AlertConfiguration::updateRule(
         }
     }
 
-    // put new rule with empty alerts into the cache
-    std::vector<PureAlert> emptyAlerts;
-    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(temp_rule), emptyAlerts)));
+    // put the rule with empty alerts into the cache
+    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), std::vector<PureAlert>{})));
 
     it = _alerts_map.find(rulename);
-
-    // CURRENT: wait until new measurements arrive
-    // TODO: reevaluate immediately ( new Method )
-    // reevaluate rule for every known metric
-    //  ( requires more sophisticated approach: need to refactor evaluate back
-    //  for 2 params + some logic here )
 
     return 0;
 }

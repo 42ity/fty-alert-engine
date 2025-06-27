@@ -593,8 +593,8 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
             zmsg_addstr(reply, "ALREADY_EXISTS");
             break;
         }
-        case -5: { // error during the rule creation (lua)
-            log_warning("rule has incorrect lua");
+        case -5: { // error during the rule creation (Lua)
+            log_warning("rule has incorrect Lua");
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_LUA");
             break;
