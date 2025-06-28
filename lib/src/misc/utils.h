@@ -20,7 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-#include <czmq.h>
+#include <czmq.h> //zhash_t
 #include <map>
 #include <string>
 
@@ -36,5 +36,10 @@ std::map<std::string, std::string> zhash_to_map(zhash_t* hash);
 /// @param dict dictionnary (token/value) map
 /// @return the string result
 std::string replaceTokens(const std::string& text, const std::map<std::string, std::string>& dict);
+
+/// read a file (binary mode)
+/// @param pathfile the full file path
+/// @return file content (empty string if error)
+std::string readFile(const std::string& pathfile);
 
 } // namespace utils

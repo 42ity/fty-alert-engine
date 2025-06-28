@@ -35,6 +35,7 @@ std::string Autoconfig::StateFilePath;
 std::string Autoconfig::RuleFilePath;
 std::string Autoconfig::StateFile;
 std::string Autoconfig::AlertEngineName;
+std::string Autoconfig::AlertFlexibleName;
 
 inline void operator <<= (cxxtools::SerializationInfo& si, const AutoConfigurationInfo& info)
 {
@@ -176,6 +177,17 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     log_error("%s: %s frame is missing", name, cmd);
                 }
                 zstr_free(&alert_engine_name);
+            }
+            else if (streq(cmd, "ALERT_FLEXIBLE_NAME")) {
+                char* alert_flexible_name = zmsg_popstr(msg);
+                log_debug("ALERT_FLEXIBLE_NAME received (%s)", alert_flexible_name);
+                if (alert_flexible_name) {
+                    Autoconfig::AlertFlexibleName = std::string(alert_flexible_name);
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
+                }
+                zstr_free(&alert_flexible_name);
             }
             else {
                 log_debug("%s: command not handled (%s)", name, cmd);

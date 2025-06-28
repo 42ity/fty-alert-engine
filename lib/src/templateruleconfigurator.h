@@ -45,11 +45,9 @@ public:
 
 private:
     bool templateDirExists();
-    bool checkTemplate(const std::string& type, const std::string& subtype);
-    std::vector<std::string> loadTemplates(const std::string& type, const std::string& subtype, bool fast_track);
+    bool checkTemplate(const AutoConfigurationInfo& info);
+    std::vector<std::string> loadTemplates(const AutoConfigurationInfo& info, bool fast_track);
 
     bool isModelOk(const std::string& model, const std::string& templat);
-    std::string convertTypeSubType2Name(const std::string& type, const std::string& subtype);
-
-    std::string readFile(const std::string& pathfile);
+    std::string typeSubtype2Name(const std::string& type, const std::string& subtype);
 };

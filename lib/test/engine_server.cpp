@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "src/templateruleconfigurator.h"
 #include "src/rule/luarule.h"
 #include "src/misc/audit_log.h"
+#include "src/misc/utils.h"
 
 #include <fty_shm.h>
 #include <fty_common_json.h>
@@ -30,14 +31,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <czmq.h>
 #include <filesystem>
 
-static char* readFile(const char* filename)
+// returned buffer *must* be freed
+static char* readFile(const std::string& path)
 {
-    const std::string path{filename ? filename : ""};
-
-    std::ifstream ifs{path};
-    const std::string buf{std::istreambuf_iterator<char>(ifs), {}};
+    const std::string buf{utils::readFile(path)};
     logDebug("path {}\n{}", path, buf);
-
     return buf.empty() ? NULL : strdup(buf.c_str());
 }
 
@@ -178,7 +176,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold3.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold3.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -198,7 +196,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -218,7 +216,7 @@ TEST_CASE("engine_server agent")
         //                 update simplethreshold2 with new name simplethreshold
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold2.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold2.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -235,7 +233,7 @@ TEST_CASE("engine_server agent")
 
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -396,7 +394,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -419,7 +417,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/ups.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/ups.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -657,7 +655,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/onbattery-5PX1500-01.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/onbattery-5PX1500-01.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -681,7 +679,7 @@ TEST_CASE("engine_server agent")
         zmsg_t* rule = zmsg_new();
         REQUIRE(rule);
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/complexthreshold_lua_error.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -704,7 +702,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/too_high-ROZ.ePDU13.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/too_high-ROZ.ePDU13.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -762,7 +760,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/rule_with_trash.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/rule_with_trash.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -812,7 +810,7 @@ TEST_CASE("engine_server agent")
         // 1.
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -830,7 +828,7 @@ TEST_CASE("engine_server agent")
         // 2.
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple2.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/check_update_threshold_simple2.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -854,7 +852,7 @@ TEST_CASE("engine_server agent")
         log_info("######## Test case #18 add some rule (type: pattern)");
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/pattern.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -929,7 +927,7 @@ TEST_CASE("engine_server agent")
         //      21.1.1  add rule: devicethreshold (rule_name == "device_threshold_test")
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/devicethreshold.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/devicethreshold.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -948,7 +946,7 @@ TEST_CASE("engine_server agent")
         log_info("######## Test case #21.1.2 add rule: devicethreshold2");
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -970,7 +968,7 @@ TEST_CASE("engine_server agent")
         //      21.2  update existing rule
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/devicethreshold2.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -1012,7 +1010,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstr(rule, "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value1.rule");
         REQUIRE(foo);
         zmsg_addstr(rule, foo);
         zstr_free(&foo);
@@ -1034,7 +1032,7 @@ TEST_CASE("engine_server agent")
         log_info ("######## Test case #22-2 a simple threshold with not double value (50AA)");
         rule = zmsg_new();
         zmsg_addstr(rule, "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/simplethreshold_string_value2.rule");
         REQUIRE(foo);
         zmsg_addstr(rule, foo);
         zstr_free(&foo);
@@ -1081,7 +1079,7 @@ TEST_CASE("engine_server agent")
         // 24.1 Create a rule we are going to test against
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/rule_to_touch.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/rule_to_touch.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -1203,7 +1201,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch1.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch1.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -1222,7 +1220,7 @@ TEST_CASE("engine_server agent")
         // 25.2 Add Second rule
         rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch2.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/rule_to_metrictouch2.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zstr_free(&foo);
@@ -1294,6 +1292,8 @@ TEST_CASE("engine_server agent")
     zstr_sendx(ag_configurator, "TEMPLATES_DIR", SELFTEST_TEMPLATES_DIR_RO, NULL);
     zstr_sendx(ag_configurator, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(ag_configurator, "ALERT_ENGINE_NAME", "fty-alert-engine", NULL);
+    zstr_sendx(ag_configurator, "ALERT_FLEXIBLE_NAME", "fty-alert-flexible", NULL);
+
     zclock_sleep(500); // THIS IS A HACK TO SETTLE DOWN THINGS
 
 #if 1 //
@@ -1315,20 +1315,20 @@ TEST_CASE("engine_server agent")
         zclock_sleep(5000 + 500);
         for (int i = 0; i < 5; i++) {
             // alert file is written?
-            foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
+            foo = readFile(str_SELFTEST_DIR_RW + "/average.humidity@test.rule");
             if (foo) { zstr_free(&foo); break; } else { zclock_sleep(500); }
         }
 
-        foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test.rule").c_str ());
+        foo = readFile(str_SELFTEST_DIR_RW + "/average.humidity@test.rule");
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile((str_SELFTEST_DIR_RW + "/average.temperature@test.rule").c_str ());
+        foo = readFile(str_SELFTEST_DIR_RW + "/average.temperature@test.rule");
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
+        foo = readFile(str_SELFTEST_DIR_RW + "/realpower.default@test.rule");
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile((str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule").c_str ());
+        foo = readFile(str_SELFTEST_DIR_RW + "/phase_imbalance@test.rule");
         REQUIRE(foo);
         zstr_free(&foo);
 
@@ -1373,20 +1373,20 @@ TEST_CASE("engine_server agent")
         zclock_sleep(5000 + 500);
         for (int i = 0; i < 5; i++) {
             // alert file is written?
-            foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test2.rule").c_str ());
+            foo = readFile(str_SELFTEST_DIR_RW + "/average.humidity@test2.rule");
             if (foo) { zstr_free(&foo); break; } else { zclock_sleep(500); }
         }
 
-        foo = readFile((str_SELFTEST_DIR_RW + "/average.humidity@test2.rule").c_str ());
+        foo = readFile(str_SELFTEST_DIR_RW + "/average.humidity@test2.rule");
         REQUIRE(foo);
         zstr_free(&foo);
-        foo = readFile((str_SELFTEST_DIR_RW + "/average.temperature@test2.rule").c_str ());
+        foo = readFile(str_SELFTEST_DIR_RW + "/average.temperature@test2.rule");
         REQUIRE(foo);
         zstr_free(&foo);
 
         // TODO: now inapplicable rules should be deleted in the future
-        /* realpower_default =  readFile ((str_SELFTEST_DIR_RW + "/realpower.default@test.rule").c_str ());
-        phase_imbalance = readFile ((str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule").c_str ());
+        /* realpower_default =  readFile(str_SELFTEST_DIR_RW + "/realpower.default@test.rule");
+        phase_imbalance = readFile(str_SELFTEST_DIR_RW + "/phase.imbalance@test.rule");
         REQUIRE(realpower_default == NULL && phase_imbalance == NULL); */
 
         int ttl = wanted_ttl;
@@ -1432,13 +1432,9 @@ TEST_CASE("engine_server agent")
         REQUIRE(streq(foo, "all"));
         zstr_free(&foo);
 
-        std::filesystem::path d(std::string(SELFTEST_TEMPLATES_DIR_RO));
+        std::filesystem::path dir(std::string(SELFTEST_TEMPLATES_DIR_RO));
         int file_counter = 0;
-        for (const auto& fn : std::filesystem::directory_iterator(d)) {
-            // read the template rule from the file
-            std::ifstream f(fn.path());
-            std::string   str((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-
+        for (const auto& fn : std::filesystem::directory_iterator(dir)) {
             foo = zmsg_popstr(recv); // template name
             REQUIRE(foo);
             REQUIRE(fn.path().filename().compare(foo) == 0);
@@ -1446,8 +1442,12 @@ TEST_CASE("engine_server agent")
 
             foo = zmsg_popstr(recv); // template content
             REQUIRE(foo);
-            REQUIRE(str.compare(foo) == 0);
+            // read the template rule from the file
+            char* buffer = readFile(fn.path());
+            REQUIRE(buffer);
+            REQUIRE(streq(buffer, foo));
             zstr_free(&foo);
+            zstr_free(&buffer);
 
             foo = zmsg_popstr(recv); // assets that match the rule
             REQUIRE(foo); // may be ""
@@ -1472,7 +1472,7 @@ TEST_CASE("engine_server agent")
     {
         zmsg_t* rule = zmsg_new();
         zmsg_addstrf(rule, "%s", "ADD");
-        foo = readFile((str_SELFTEST_DIR_RO + "/testrules/pattern.rule").c_str());
+        foo = readFile(str_SELFTEST_DIR_RO + "/testrules/pattern.rule");
         REQUIRE(foo);
         zmsg_addstrf(rule, "%s", foo);
         zmsg_addstrf(rule, "%s", "warranty2"); //update

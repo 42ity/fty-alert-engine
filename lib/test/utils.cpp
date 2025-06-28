@@ -63,4 +63,22 @@ TEST_CASE("utils")
         CHECK(replaceTokens("xyz", { {"a", "b"} }) == "xyz");
         CHECK(replaceTokens("xyz", { {"x", "x"}, {"z", "z"} }) == "xyz");
     }
+
+    SECTION("readFile")
+    {
+        const std::string dir("./test/testrules/");
+
+        CHECK(readFile("").empty());
+        CHECK(readFile(".").empty());
+        CHECK(readFile("fake00").empty());
+        CHECK(readFile("./fake00").empty());
+        CHECK(readFile("/tmp/fake00").empty());
+        CHECK(readFile(dir).empty());
+        CHECK(readFile(dir + "fake").empty());
+
+        CHECK(!readFile(dir + "single.rule").empty());
+        CHECK(!readFile(dir + "pattern.rule").empty());
+        CHECK(!readFile(dir + "simplethreshold.rule").empty());
+        CHECK(!readFile(dir + "complexthreshold.rule").empty());
+    }
 }

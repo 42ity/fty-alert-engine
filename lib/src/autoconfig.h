@@ -48,10 +48,11 @@ public:
         mlm_client_destroy(&_client);
     }
 
-    static std::string StateFile;       //!< pathfile where Autoconfig state is saved
-    static std::string StateFilePath;   //!< path to dir where Autoconfig state is saved
-    static std::string RuleFilePath;    //!< path to dir where Autoconfig rule templates are saved
-    static std::string AlertEngineName; //!< fty-alert-engine mlm client address
+    static std::string StateFile;         //!< pathfile where Autoconfig state is saved
+    static std::string StateFilePath;     //!< path to dir where Autoconfig state is saved
+    static std::string RuleFilePath;      //!< path to dir where Autoconfig rule templates are saved
+    static std::string AlertEngineName;   //!< fty-alert-engine mlm client address
+    static std::string AlertFlexibleName; //!< fty-alert-flexible mlm client address
 
     void run(zsock_t* pipe, const std::string& name);
 

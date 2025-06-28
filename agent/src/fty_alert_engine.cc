@@ -110,6 +110,7 @@ int main(int argc, char** argv)
     zstr_sendx(autoconf_actor, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); // rule template
     zstr_sendx(autoconf_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(autoconf_actor, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
+    zstr_sendx(autoconf_actor, "ALERT_FLEXIBLE_NAME", "fty-alert-flexible", NULL);
 
     // actions
     zactor_t* action_actor = zactor_new(fty_alert_actions, static_cast<void*>(const_cast<char*>(ACTIONS_AGENT_NAME)));

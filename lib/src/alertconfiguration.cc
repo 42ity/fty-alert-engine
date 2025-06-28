@@ -25,13 +25,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "rule/normalrule.h"
 #include "rule/regexrule.h"
 
+#include "misc/utils.h"
+
 #include <fty_log.h>
 #include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>
 #include <czmq.h>
 #include <algorithm>
 #include <filesystem>
-#include <istream>
 
 // returns 0 if ok, else error
 int readRule(const std::string& jsonPayload, RulePtr& rule)
@@ -105,11 +106,10 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             const std::string fname{fn.path().filename()};
 
             // read rule from the file
-            std::unique_ptr<Rule> rule{nullptr};
+            RulePtr rule{nullptr};
             {
                 log_debug("processing file: '%s'", fn.path().c_str());
-                std::ifstream ifs{fn.path()};
-                const std::string json{std::istreambuf_iterator<char>(ifs), {}};
+                const std::string json{utils::readFile(fn.path())};
                 int r = readRule(json, rule);
                 if (r != 0) {
                     // rule can't be read correctly from the file
@@ -129,7 +129,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 
             // ASSUMPTION: rules have unique names
             if (haveRule(rule)) {
-                log_warning("rule '%s' already known & ignoree (file: '%s')", rulename.c_str(), fname.c_str());
+                log_warning("rule '%s' already known & ignore it (file: '%s')", rulename.c_str(), fname.c_str());
                 continue;
             }
 

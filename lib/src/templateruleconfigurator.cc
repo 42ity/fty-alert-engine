@@ -26,9 +26,7 @@
 #include <fty_log.h>
 #include <fty_proto.h>
 #include <fty_shm.h>
-#include <cxxtools/regex.h>
 #include <cxxtools/directory.h>
-#include <fstream>
 #include <algorithm>
 
 bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest (require autoconfig)
@@ -131,10 +129,12 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
         }
         else {
             // exception for epdu: no phases.output available, assume: phases.input == phases.output
-            if (ruleName.find("@epdu-") != std::string::npos)
+            if (ruleName.find("@epdu-") != std::string::npos) {
                 isAppl = (assetInfo.getAttr("phases.input") == "3");
-            else
+            }
+            else {
                 isAppl = (assetInfo.getAttr("phases.output") == "3");
+            }
         }
     }
     else if (   (ruleName.find("phase_imbalance@datacenter-") == 0)
@@ -184,7 +184,7 @@ bool TemplateRuleConfigurator::configure (
         if (!port.empty()) { port = "GPI" + port; }
     }
 
-    std::string rule_result = severity;
+    std::string rule_result{severity};
     std::transform(rule_result.begin(), rule_result.end(), rule_result.begin(), ::tolower);
 
     // dictionary of tokens replacement
@@ -199,21 +199,21 @@ bool TemplateRuleConfigurator::configure (
         { "__severity__", severity },
     };
 
-    std::vector<std::string> templates = loadTemplates(info.type, info.subtype, fast_track);
-
     const bool isSensorGPIO{info.subtype == "sensorgpio"};
     const std::string gpioModel{isSensorGPIO ? info.getAttr("model", "") : ""};
 
-    bool result = true;
+    std::vector<std::string> templates{loadTemplates(info, fast_track)};
+
+    bool result{true};
     for (const auto& templat : templates) {
         // extra check for sensorgpio
         if (isSensorGPIO) {
             if (!isModelOk(gpioModel, templat)) {
-                log_debug("Skip rule for gpio: %s", iname.c_str());
+                log_debug("Skip rule for gpio: %s (model: %s)", iname.c_str(), gpioModel.c_str());
                 continue;
             }
             else {
-                log_debug("Ready to send rule for gpio: %s", iname.c_str());
+                log_debug("Ready to send rule for gpio: %s (model: %s)", iname.c_str(), gpioModel.c_str());
             }
         }
 
@@ -232,35 +232,31 @@ bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::st
     return !model.empty() && (templat.find(model) != std::string::npos);
 }
 
-/// /!\ NOTICE: related to template file names from dir
+/// /!\ NOTICE: related to template file names from template dir
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info)
 {
-    return checkTemplate(info.type, info.subtype);
+    return checkTemplate(info);
 }
 
 /// /!\ NOTICE: related to the given template name
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name)
 {
-    const std::string type_name{convertTypeSubType2Name(info.type, info.subtype)};
+    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
 
     if (templat_name.find(type_name) == std::string::npos) {
         return false; // no match
     }
 
-    cxxtools::Directory dir(Autoconfig::RuleFilePath);
-    {
-        std::ifstream file(dir.path() + "/" + templat_name);
-        if (!file.good()) {
-            return false; // missing/unreadable file
-        }
+    const std::string buf{utils::readFile(Autoconfig::RuleFilePath + "/" + templat_name)};
+    if (buf.empty()) {
+        return false; // empty/missing/unreadable file
     }
 
     if ((info.subtype == "sensorgpio")
         && (info.attributes.count("model") != 0)
     ) {
         // for sensor gpio, we need to parse the template content to check model
-        const std::string buf{readFile(dir.path() + "/" + templat_name)};
-        if (!isModelOk(info.getAttr("model"), buf)) {
+        if (!isModelOk(info.getAttr("model", ""), buf)) {
             return false; // model not found
         }
     }
@@ -268,44 +264,36 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, c
     return true;
 }
 
-bool TemplateRuleConfigurator::templateDirExists()
-{
-    if (cxxtools::Directory::exists(Autoconfig::RuleFilePath)) {
-        return true;
-    }
-
-    log_warning("'%s' directory does not exist", Autoconfig::RuleFilePath.c_str());
-    return false;
-}
-
-std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const std::string& type, const std::string& subtype, bool fast_track)
+std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfigurationInfo& info, bool fast_track)
 {
     if (!templateDirExists()) {
         return {};
     }
 
-    const std::string type_name{convertTypeSubType2Name(type, subtype)};
+    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
 
     std::vector<std::string> templates;
 
     cxxtools::Directory dir(Autoconfig::RuleFilePath);
-    for (const auto& fn : dir) {
-        if (fn.find(type_name) == std::string::npos) {
+    for (const auto& filename : dir) {
+        if (filename.find(type_name) == std::string::npos) {
             continue; // no match
         }
 
-        if (fast_track) {
-            if (fn == "realpower.default@__datacenter__.rule") {
-                log_debug("match %s but not used for fast track", fn.c_str());
-                continue;
-            }
+        if (fast_track
+            && (filename == "realpower.default@__datacenter__.rule")
+        ) {
+            log_debug("match %s but not used for fast track", filename.c_str());
+            continue;
         }
 
-        log_debug("match %s", fn.c_str());
+        log_debug("match %s", filename.c_str());
 
         // read/register the template rule from the file
-        const std::string buf{readFile(dir.path() + "/" + fn)};
-        templates.push_back(buf);
+        const std::string buf{utils::readFile(dir.path() + "/" + filename)};
+        if (!buf.empty()) { // readable
+            templates.push_back(buf);
+        }
     }
 
     return templates;
@@ -322,57 +310,65 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
 
     std::vector<std::pair<std::string, std::string>> templates;
 
-    for (const auto& fn : dir) {
-        if ((fn == ".") || (fn == "..")) { continue; }
+    for (const auto& filename : dir) {
+        if ((filename == ".") || (filename == "..")) { continue; }
 
         try {
             // read/register the template rule from the file
-            const std::string buf{readFile(dir.path() + "/" + fn)};
-            templates.push_back(std::make_pair(fn, buf));
+            const std::string buf{utils::readFile(dir.path() + "/" + filename)};
+            if (!buf.empty()) { // readable
+                templates.push_back(std::make_pair(filename, buf));
+            }
         }
         catch (const std::exception& e) {
-            log_error("Load failed: %s/%s (e: %s)", dir.path().c_str(), fn.c_str(), e.what());
+            log_error("Load failed: %s/%s (e: %s)", dir.path().c_str(), filename.c_str(), e.what());
         }
     }
     return templates;
 }
 
-bool TemplateRuleConfigurator::checkTemplate(const std::string& type, const std::string& subtype)
+bool TemplateRuleConfigurator::checkTemplate(const AutoConfigurationInfo& info)
 {
     if (!templateDirExists()) {
         return false;
     }
 
-    const std::string type_name{convertTypeSubType2Name(type, subtype)};
+    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
 
     cxxtools::Directory dir(Autoconfig::RuleFilePath);
-    for (const auto& fn : dir) {
-        if (fn.find(type_name) != std::string::npos) {
-            log_debug("Using template '%s'", fn.c_str());
+    for (const auto& filename : dir) {
+        if (filename.find(type_name) != std::string::npos) {
+            log_debug("Using template '%s'", filename.c_str());
             return true;
         }
     }
+
     return false;
 }
 
-std::string TemplateRuleConfigurator::convertTypeSubType2Name(const std::string& type, const std::string& subtype)
+std::string TemplateRuleConfigurator::typeSubtype2Name(const std::string& type, const std::string& subtype)
 {
-    static const std::string prefix{"__"};
+    const std::string prefix{"__"}; // & postfix
+    const std::string sep{"_"};
 
     if (subtype.empty()
         || (subtype == "unknown")
-        || (subtype == "N_A")) {
-        return prefix + type + prefix; // ex: __rack__
+        || (subtype == "N_A")
+    ) {
+        return prefix + type + prefix; // ex.: __rack__
     }
-    return prefix + type + "_" + subtype + prefix; // ex: __device_ups__
+
+    return prefix + type + sep + subtype + prefix; // ex.: __device_ups__
 }
 
-// returns file content (char buffer)
-std::string TemplateRuleConfigurator::readFile(const std::string& pathfile)
+bool TemplateRuleConfigurator::templateDirExists()
 {
-    std::ifstream file{pathfile};
-    std::string buf{(std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>()};
-    return buf;
+    if (cxxtools::Directory::exists(Autoconfig::RuleFilePath)) {
+        return true;
+    }
+
+    log_warning("'%s' directory does not exist", Autoconfig::RuleFilePath.c_str());
+    return false;
 }
 
 /// send ADD/rule to fty-alert-engine or fty-alert-flexible
@@ -390,9 +386,9 @@ bool TemplateRuleConfigurator::sendAddRule(const std::string& rule, mlm_client_t
     const char* dest = Autoconfig::AlertEngineName.c_str();
     const char* subject = RULES_SUBJECT;
 
-    cxxtools::Regex reg("^[[:blank:][:cntrl:]]*\\{[[:blank:][:cntrl:]]*\"flexible\"", REG_EXTENDED);
-    if (reg.match(rule)) {
-        dest = "fty-alert-flexible";
+    // redirect message to fty-alert-engine VS fty-alert-flexible
+    if (rule.substr(0, 100).find("\"flexible\"") != std::string::npos) {
+        dest = Autoconfig::AlertFlexibleName.c_str();
     }
 
     log_debug("Sending '%s/ADD' to '%s'", subject, dest);

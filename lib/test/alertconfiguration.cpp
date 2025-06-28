@@ -22,10 +22,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "src/rule/luarule.h"
 #include "src/templateruleconfigurator.h"
 #include "src/alertconfiguration.h"
+#include "src/misc/utils.h"
 
 #include <fty_log.h>
-#include <istream>
-#include <fstream>
 
 static bool double_equals(double d1, double d2)
 {
@@ -34,8 +33,7 @@ static bool double_equals(double d1, double d2)
 
 static std::string readFile(const std::string& path)
 {
-    std::ifstream ifs{path};
-    const std::string buf{std::istreambuf_iterator<char>(ifs), {}};
+    const std::string buf{utils::readFile(path)};
     logDebug("path {}\n{}", path, buf);
     return buf;
 }

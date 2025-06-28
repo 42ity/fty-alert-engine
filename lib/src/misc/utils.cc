@@ -18,6 +18,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "utils.h"
 
+#include <fty_log.h>
+#include <fstream>
+
 namespace utils {
 
 std::map<std::string, std::string> zhash_to_map(zhash_t* hash)
@@ -54,4 +57,21 @@ std::string replaceTokens(const std::string& text, const std::map<std::string, s
     }
     return result;
 }
+
+// returns file content (char buffer)
+std::string readFile(const std::string& pathfile)
+{
+    try {
+        std::ifstream file{pathfile};
+        if (!file.good()) {
+            throw std::runtime_error("File is invalid");
+        }
+        return {(std::istreambuf_iterator<char>(file)), {}};
+    }
+    catch (const std::exception& e) {
+        logError("read '{}' (e: {})", pathfile, e.what());
+    }
+    return "";
+}
+
 } // namespace utils
