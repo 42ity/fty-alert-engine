@@ -26,7 +26,7 @@
 #include <fty_log.h>
 #include <fty_proto.h>
 #include <fty_shm.h>
-#include <cxxtools/directory.h>
+#include <filesystem>
 #include <algorithm>
 
 bool gDisable_ruleXphaseIsApplicable{false}; // PQSWMBT-4921, to pass selftest (require autoconfig)
@@ -274,8 +274,10 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfi
 
     std::vector<std::string> templates;
 
-    cxxtools::Directory dir(Autoconfig::RuleFilePath);
-    for (const auto& filename : dir) {
+    std::filesystem::path dir(Autoconfig::RuleFilePath);
+
+    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{fn.path().filename()};
         if (filename.find(type_name) == std::string::npos) {
             continue; // no match
         }
@@ -290,7 +292,7 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfi
         log_debug("match %s", filename.c_str());
 
         // read/register the template rule from the file
-        const std::string buf{utils::readFile(dir.path() + "/" + filename)};
+        const std::string buf{utils::readFile(fn.path())};
         if (!buf.empty()) { // readable
             templates.push_back(buf);
         }
@@ -305,23 +307,25 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
         return {};
     }
 
-    cxxtools::Directory dir(Autoconfig::RuleFilePath);
-    log_info("Load templates from %s", dir.path().c_str());
+    std::filesystem::path dir(Autoconfig::RuleFilePath);
+    log_info("Load templates from %s", dir.c_str());
 
     std::vector<std::pair<std::string, std::string>> templates;
 
-    for (const auto& filename : dir) {
+    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{fn.path().filename()};
+
         if ((filename == ".") || (filename == "..")) { continue; }
 
         try {
             // read/register the template rule from the file
-            const std::string buf{utils::readFile(dir.path() + "/" + filename)};
+            const std::string buf{utils::readFile(fn.path())};
             if (!buf.empty()) { // readable
                 templates.push_back(std::make_pair(filename, buf));
             }
         }
         catch (const std::exception& e) {
-            log_error("Load failed: %s/%s (e: %s)", dir.path().c_str(), filename.c_str(), e.what());
+            log_error("Load failed: %s (e: %s)", fn.path().c_str(), e.what());
         }
     }
     return templates;
@@ -335,8 +339,10 @@ bool TemplateRuleConfigurator::checkTemplate(const AutoConfigurationInfo& info)
 
     const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
 
-    cxxtools::Directory dir(Autoconfig::RuleFilePath);
-    for (const auto& filename : dir) {
+    std::filesystem::path dir(Autoconfig::RuleFilePath);
+
+    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{fn.path().filename()};
         if (filename.find(type_name) != std::string::npos) {
             log_debug("Using template '%s'", filename.c_str());
             return true;
@@ -363,7 +369,7 @@ std::string TemplateRuleConfigurator::typeSubtype2Name(const std::string& type, 
 
 bool TemplateRuleConfigurator::templateDirExists()
 {
-    if (cxxtools::Directory::exists(Autoconfig::RuleFilePath)) {
+    if (std::filesystem::exists(Autoconfig::RuleFilePath)) {
         return true;
     }
 

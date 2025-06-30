@@ -39,8 +39,8 @@ TEST_CASE("autoconfig loadAllTemplates")
     {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) != NULL) {
-           printf("== Current working dir: %s\n", cwd);
-       }
+           log_debug("== Current working dir: %s", cwd);
+        }
     }
 
     // template paths (src/ and tests/)
@@ -55,7 +55,7 @@ TEST_CASE("autoconfig loadAllTemplates")
         TemplateRuleConfigurator TRC;
         std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();
 
-        printf("%s : number of template rules = '%zu'\n", templatePath.c_str(), templates.size());
+        log_debug("%s : number of template rules = '%zu'", templatePath.c_str(), templates.size());
 
         REQUIRE(templates.size() != 0);
 
@@ -72,11 +72,11 @@ TEST_CASE("autoconfig loadAllTemplates")
                 REQUIRE(si.memberCount() == 1);
 
                 auto ruleType = si.getMember(0).name();
-                printf("1/ ruleType: %s\n", ruleType.c_str());
+                log_debug("1/ ruleType: %s", ruleType.c_str());
                 REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
             }
             catch (const std::exception& e) {
-                printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
+                log_debug("JSON parse failed ('%s', e: '%s')", ruleFilename.c_str(), e.what());
                 REQUIRE(false);
             }
 
@@ -89,11 +89,11 @@ TEST_CASE("autoconfig loadAllTemplates")
                 REQUIRE(si.memberCount() == 1);
 
                 auto ruleType = si.getMember(0).name();
-                printf("2/ ruleType: %s\n", ruleType.c_str());
+                log_debug("2/ ruleType: %s", ruleType.c_str());
                 REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
             }
             catch (const std::exception& e) {
-                printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
+                log_debug("JSON parse failed ('%s', e: '%s')", ruleFilename.c_str(), e.what());
                 REQUIRE(false);
             }
         }

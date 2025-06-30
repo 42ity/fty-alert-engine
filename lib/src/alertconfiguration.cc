@@ -103,7 +103,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
                 continue;
             }
 
-            const std::string fname{fn.path().filename()};
+            const std::string filename{fn.path().filename()};
 
             // read rule from the file
             RulePtr rule{nullptr};
@@ -113,7 +113,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
                 int r = readRule(json, rule);
                 if (r != 0) {
                     // rule can't be read correctly from the file
-                    log_warning("'%s' ignored (r = %d)", fname.c_str(), r);
+                    log_warning("'%s' ignored (r = %d)", filename.c_str(), r);
                     continue;
                 }
             }
@@ -122,14 +122,14 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 
             // ASSUMPTION: name of the file is the same as name of the rule
             // If they are different ignore this rule (5 = strlen(".rule"))
-            if (rulename != fname.substr(0, fname.length() - 5)) {
-                log_warning("'%s' differs from rule name '%s', ignore it", fname.c_str(), rulename.c_str());
+            if (rulename != filename.substr(0, filename.length() - 5)) {
+                log_warning("'%s' differs from rule name '%s', ignore it", filename.c_str(), rulename.c_str());
                 continue;
             }
 
             // ASSUMPTION: rules have unique names
             if (haveRule(rule)) {
-                log_warning("rule '%s' already known & ignore it (file: '%s')", rulename.c_str(), fname.c_str());
+                log_warning("rule '%s' already known & ignore it (file: '%s')", rulename.c_str(), filename.c_str());
                 continue;
             }
 
@@ -150,7 +150,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             const std::vector<PureAlert> emptyAlerts;
             _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), emptyAlerts)));
 
-            log_debug("file '%s' read correctly", fname.c_str());
+            log_debug("file '%s' read correctly", filename.c_str());
         }
     }
     catch (const std::exception& e) {

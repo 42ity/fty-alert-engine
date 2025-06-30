@@ -19,6 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <catch2/catch.hpp>
 #include "src/templateruleconfigurator.h"
 
+#define SELFTEST_DIR_RO "."
+
 TEST_CASE("templateruleconfigurator")
 {
     TemplateRuleConfigurator TRC;
@@ -31,6 +33,12 @@ TEST_CASE("templateruleconfigurator")
 
         Autoconfig::RuleFilePath = "";
         CHECK(TRC.loadAllTemplates().empty());
+
+        Autoconfig::RuleFilePath = "/fake";
+        CHECK(TRC.loadAllTemplates().empty());
+
+        Autoconfig::RuleFilePath = SELFTEST_DIR_RO "/../../lib/rule_templates/";
+        CHECK(!TRC.loadAllTemplates().empty());
     }
 
     SECTION("sendAddRule malamute")
