@@ -487,8 +487,8 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
 
     zmsg_t* reply = zmsg_new();
 
-    bool sendAlerts = false;
-    bool updateEvaluateMetrics = false;
+    bool sendAlerts{false};
+    bool updateEvaluateMetrics{false};
     switch (r) {
         case 0: { // rule was created succesfully
             log_debug("rule added correctly");
@@ -529,6 +529,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
             zmsg_addstr(reply, "Xphase rule can't be instantiated.");
             break;
         }
+        case -1:
         default: { // error during the rule creation
             log_warning("default, bad or unrecognized json for rule %s", json_representation);
             zmsg_addstr(reply, "ERROR");
@@ -567,8 +568,8 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
 
     zmsg_t* reply = zmsg_new();
 
-    bool sendAlerts = false;
-    bool updateEvaluateMetrics = false;
+    bool sendAlerts{false};
+    bool updateEvaluateMetrics{false};
     switch (r) {
         case 0: { // rule was updated succesfully
             log_debug("rule updated");
@@ -603,6 +604,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
             zmsg_addstr(reply, "Internal error - operating with storage/disk failed.");
             break;
         }
+        case -1:
         default: { // error during the rule update
             log_warning("bad json default for %s", json_representation);
             zmsg_addstr(reply, "ERROR");
@@ -803,24 +805,25 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
     return isEvaluate;
 }
 
-static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricList, mlm_client_t* client)
+static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, mlm_client_t* client)
 {
     const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
 
-    // process accumulated metrics
-    for (auto& element : result) {
+    // process read metrics (fty_proto)
+    for (const auto& it_m : metrics) {
         if (zsys_interrupted) {
             break;
         }
 
-        // metric
-        const char* type  = fty_proto_type(element); // metric type
-        const char* name  = fty_proto_name(element); // asset iname
-        const char* value = fty_proto_value(element);
+        // fty_proto metric
+        const char* type  = fty_proto_type(it_m); // metric type
+        const char* name  = fty_proto_name(it_m); // asset iname
 
         // check metric is a number ("string" value is not supported)
         double dvalue = 0.0;
         {
+            const char* value = fty_proto_value(it_m);
+
             char* end = nullptr;
             errno = 0;
             dvalue = strtod(value, &end);
@@ -829,32 +832,31 @@ static void metric_processing(fty::shm::shmMetrics& result, MetricList& metricLi
                 log_debug("%s@%s: '%s' ignored (NaN)", type, name, value);
                 continue;
             }
+            //log_debug("Get '%s@%s' (value: %s)", type, name, value);
         }
 
-        //log_debug("Get '%s@%s' (value: %s)", type, name, value);
-
-        uint64_t ts  = fty_proto_aux_number(element, "time", now); //timestamp
-        uint32_t ttl = fty_proto_ttl(element);
+        uint64_t ts  = fty_proto_aux_number(it_m, "time", now); //timestamp
+        uint32_t ttl = fty_proto_ttl(it_m);
 
         // Update metricList with new value
         MetricInfo metric(name, type, dvalue, ts, ttl);
         metricList.addMetric(metric);
 
         // search if this metric is already evaluated and if this metric is evaluate
-        const std::string metricTopic{metric.getTopic()};
-        auto it = evaluateMetrics.find(metricTopic);
-        bool exist = it != evaluateMetrics.end();
-        bool evaluate = exist ? it->second : false;
+        const std::string topic{metric.getTopic()};
+        auto it_ev = evaluateMetrics.find(topic);
+        bool exist = it_ev != evaluateMetrics.end();
+        bool evaluate = exist ? it_ev->second : false;
 
         if (!exist || evaluate) {
             bool isEvaluate = evaluate_metric(client, metric, metricList, alertConfiguration);
 
             if (!exist) { // first time, add to the list
-                log_debug("Add '%s' (evaluate: %s)", metricTopic.c_str(), (isEvaluate ? "true" : "false"));
-                evaluateMetrics[metricTopic] = isEvaluate;
+                log_debug("Add '%s' (evaluate: %s)", topic.c_str(), (isEvaluate ? "true" : "false"));
+                evaluateMetrics[topic] = isEvaluate;
             }
             else if (!isEvaluate) { // update evaluate state
-                evaluateMetrics[metricTopic] = isEvaluate;
+                evaluateMetrics[topic] = isEvaluate;
             }
         }
     }
@@ -898,10 +900,10 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             metricList.removeOldMetrics();
 
             // get metrics and evaluate related alerts
-            fty::shm::shmMetrics result;
-            fty::shm::read_metrics(".*", ".*", result);
-            log_debug("== Ticking. Number of metrics read: %zu", result.size());
-            metric_processing(result, metricList, client);
+            fty::shm::shmMetrics metrics;
+            fty::shm::read_metrics(".*", ".*", metrics);
+            log_debug("== Ticking (%zu metrics)...", metrics.size());
+            metrics_poll(metrics, metricList, client);
 
             timeout = int64_t(fty_get_polling_interval()) * 1000;
         }
