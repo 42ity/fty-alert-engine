@@ -264,6 +264,7 @@ TEST_CASE("alert actions - malamute")
     const char* TEST_ASSETS = "ASSETS-TEST"; // notification streams
     const char* TEST_ALERTS = "ALERTS-TEST";
 
+    // see defines in fty_alert_actions.cc
     const char* FTY_EMAIL_AGENT_ADDRESS_TEST       = "fty-email-test";
     const char* FTY_SENSOR_GPIO_AGENT_ADDRESS_TEST = "fty-sensor-gpio-test";
 
@@ -285,6 +286,7 @@ TEST_CASE("alert actions - malamute")
     zstr_sendx(alert_actions, "INTEGRATION_TEST", "1", NULL);
     zstr_sendx(alert_actions, "TESTTIMEOUT", "1000", NULL);
     zstr_sendx(alert_actions, "TESTCHECKINTERVAL", "20000", NULL);
+
     zclock_sleep(500);
 
     mlm_client_t* asset_producer = mlm_client_new();
