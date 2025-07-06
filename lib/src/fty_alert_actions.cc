@@ -27,12 +27,9 @@
 #define FTY_EMAIL_AGENT_ADDRESS_TEST       "fty-email-test"
 #define FTY_SENSOR_GPIO_AGENT_ADDRESS_TEST "fty-sensor-gpio-test"
 
-#define EMAIL_ACTION       "EMAIL"
-#define SMS_ACTION         "SMS"
-#define EMAIL_SMS_ACTION   "EMAIL/SMS"
-#define GPO_ACTION         "GPO_INTERACTION"
-#define EMAIL_ACTION_VALUE 1
-#define SMS_ACTION_VALUE   0
+#define EMAIL_ACTION "EMAIL"
+#define SMS_ACTION   "SMS"
+#define GPO_ACTION   "GPO_INTERACTION"
 
 #define GPO_STATE_OPEN  "open"
 #define GPO_STATE_CLOSE "close"
@@ -94,7 +91,7 @@ void delete_alert_cache_item(void* item)
 //extern
 fty_alert_actions_t* fty_alert_actions_new()
 {
-    fty_alert_actions_t* self = static_cast<fty_alert_actions_t*>(zmalloc(sizeof(fty_alert_actions_t)));
+    fty_alert_actions_t* self = static_cast<fty_alert_actions_t*>(zmalloc(sizeof(*self)));
 
     do { // for break facilities
         if (!self) break;
@@ -114,9 +111,11 @@ fty_alert_actions_t* fty_alert_actions_new()
         self->assets_cache = zhash_new();
         if (!self->assets_cache) break;
 
-        self->notification_override = 0;
         self->name = NULL;
         self->requestreply_name = NULL;
+
+        self->notification_override = 0;
+        self->requestreply_timeout = 5000; //ms
         self->integration_test = false;
 
         return self; // ok
@@ -274,7 +273,7 @@ s_alert_cache* new_alert_cache_item(fty_alert_actions_t* self, fty_proto_t* msg)
 //  --------------------------------------------------------------------------
 //  Send email containing alert message
 
-static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, const char action_email)
+static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, const char* action)
 {
     log_debug("send_email() %s", fty_proto_rule(alert_item->alert_msg));
 
@@ -284,38 +283,44 @@ static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, con
     }
 
     const char* subject = NULL;
-    const char* contact = NULL;
-    switch (action_email) {
-        case EMAIL_ACTION_VALUE:
-            subject = "SENDMAIL_ALERT";
-            contact = fty_proto_ext_string(alert_item->related_asset, "contact_email", NULL);
-            break;
-        case SMS_ACTION_VALUE:
-            subject = "SENDSMS_ALERT";
-            contact = fty_proto_ext_string(alert_item->related_asset, "contact_sms", NULL);
-            break;
-        default:
-            log_error("Unknown action (%d)", static_cast<int>(action_email));
-            return;
+    const char* keyContact = NULL; // ext. key
+    if (streq(action, EMAIL_ACTION)) {
+        subject = "SENDMAIL_ALERT";
+        keyContact = "contact_email";
     }
-
-    if (!contact || (strlen(contact) == 0)) {
-        log_debug("%s: %s contact is empty (no mail/sms sent)", subject, fty_proto_name(alert_item->alert_msg));
+    else if (streq(action, SMS_ACTION)) {
+        subject = "SENDSMS_ALERT";
+        keyContact = "contact_sms";
+    }
+    else {
+        log_error("Unknown action (%s)", action);
         return;
     }
 
-    const char* extname = fty_proto_ext_string(alert_item->related_asset, "name", "");
-    const char* priority = fty_proto_aux_string(alert_item->related_asset, "priority", "");
+    // get contact value
+    const char* contact = fty_proto_ext_string(alert_item->related_asset, keyContact, NULL);
+    if (!(contact && (*contact))) {
+        log_debug("%s: %s %s is empty (no sending)", subject, fty_proto_name(alert_item->alert_msg), keyContact);
+        return;
+    }
 
-    zuuid_t* uuid = zuuid_new();
-    const char* sent_uuid = zuuid_str_canonical(uuid);
-
+    // preset msg
     zmsg_t* msg = NULL;
     {
         fty_proto_t* dup = fty_proto_dup(alert_item->alert_msg);
         msg = fty_proto_encode(&dup);
         fty_proto_destroy(&dup);
+        if (!msg) {
+            log_error("fty_proto_encode() failed");
+            return;
+        }
     }
+
+    // finalize msg (push)
+    zuuid_t* uuid = zuuid_new();
+    const char* sent_uuid = zuuid_str_canonical(uuid);
+    const char* extname = fty_proto_ext_string(alert_item->related_asset, "name", "");
+    const char* priority = fty_proto_aux_string(alert_item->related_asset, "priority", "");
 
     zmsg_pushstr(msg, contact);
     zmsg_pushstr(msg, extname); // asset friendly name
@@ -323,19 +328,21 @@ static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, con
     zmsg_pushstr(msg, sent_uuid);
 
     const char* address = (self->integration_test) ? FTY_EMAIL_AGENT_ADDRESS_TEST : FTY_EMAIL_AGENT_ADDRESS;
-    const int timeout_ms = 5000;
 
     log_info("request %s/%s (rule: %s, contact: %s)", address, subject, fty_proto_rule(alert_item->alert_msg), contact);
     //zmsg_print(msg);
 
+    // send request
+    const int timeout_ms = 5000;
     int r = mlm_client_sendto(self->requestreply_client, address, subject, NULL, timeout_ms, &msg);
     zmsg_destroy(&msg);
     if (r != 0) {
-        log_error("send %s/%s message failed (rv: %d)", address, subject, r);
+        log_error("send %s/%s message failed (r: %d)", address, subject, r);
         zuuid_destroy(&uuid);
         return;
     }
 
+    // recv reply
     void* which = zpoller_wait(self->requestreply_poller, static_cast<int>(self->requestreply_timeout));
     if (which == NULL) {
         log_error("no reply received on %s/%s request", address, subject);
@@ -388,7 +395,7 @@ static void send_gpo_action(fty_alert_actions_t* self, const char* gpo_iname, co
         log_error("cannot send %s/GPO_INTERACTION/%s message", address, gpo_iname);
     }
     else {
-        int timeout_ms = static_cast<int>(self->requestreply_timeout);
+        const int timeout_ms = static_cast<int>(self->requestreply_timeout);
         void* which = zpoller_wait(self->requestreply_poller, timeout_ms);
         if (which == NULL) {
             log_error("reply timedout (%d ms) on %s/GPO_INTERACTION/%s message", timeout_ms, address, gpo_iname);
@@ -449,39 +456,41 @@ static void action_alert(fty_alert_actions_t* self, s_alert_cache* alert_item)
         }
 
         const char* action_what = strtok(action_dup, DELIM);
-        log_debug("action_what: %s", action_what);
+        log_trace("action_what: %s", action_what);
 
         if (!action_what) {
             log_warning("alert action miss command (action: %s)", action);
         }
         else if (streq(action_what, EMAIL_ACTION)) {
-            char* tmp = strtok(NULL, DELIM);
+            const char* tmp = strtok(NULL, DELIM);
             if (!tmp) { // sanity check
-                send_email(self, alert_item, EMAIL_ACTION_VALUE);
-            } else {
+                send_email(self, alert_item, action_what);
+            }
+            else {
                 log_warning("unexpected parameter received for email action (action: %s)", action);
             }
         }
         else if (streq(action_what, SMS_ACTION)) {
-            char* tmp = strtok(NULL, DELIM);
+            const char* tmp = strtok(NULL, DELIM);
             if (!tmp) { // sanity check
-                send_email(self, alert_item, SMS_ACTION_VALUE);
-            } else {
+                send_email(self, alert_item, action_what);
+            }
+            else {
                 log_warning("unexpected parameter received for sms action (action: %s)", action);
             }
         }
         else if (streq(action_what, GPO_ACTION)) {
-            char* gpo_iname = strtok(NULL, DELIM); // asset iname
+            const char* gpo_iname = strtok(NULL, DELIM); // asset iname
             if (!gpo_iname) {
                 log_warning("GPO_ACTION misses asset iname (action: %s)", action);
                 continue;
             }
-            char* gpo_state = strtok(NULL, DELIM); // required state
+            const char* gpo_state = strtok(NULL, DELIM); // required state
             if (!gpo_state) {
                 log_warning("GPO_ACTION miss required state (action: %s)", action);
                 continue;
             }
-            char* tmp = strtok(NULL, DELIM);
+            const char* tmp = strtok(NULL, DELIM);
             log_debug("send_gpo_action: gpo_iname: %s, gpo_state: %s, tmp: %s", gpo_iname, gpo_state, tmp);
             if (!tmp) { // sanity check
                 send_gpo_action(self, gpo_iname, gpo_state);
@@ -535,25 +544,25 @@ static void action_alert_repeat(fty_alert_actions_t* self, s_alert_cache* alert_
             continue;
         }
 
-        char* action_what = strtok(action_dup, DELIM);
-        log_debug("action_what: %s", action_what);
+        const char* action_what = strtok(action_dup, DELIM);
+        log_trace("action_what: %s", action_what);
 
         if (!action_what) {
             log_warning("alert action miss command (action: %s)", action);
         }
         else if (streq(action_what, EMAIL_ACTION)) {
-            char* tmp = strtok(NULL, DELIM);
+            const char* tmp = strtok(NULL, DELIM);
             if (!tmp) { // sanity check
-                send_email(self, alert_item, EMAIL_ACTION_VALUE);
+                send_email(self, alert_item, action_what);
             }
             else {
                 log_warning("unexpected parameter received for email action (action: %s)", action);
             }
         }
         else if (streq(action_what, SMS_ACTION)) {
-            char* tmp = strtok(NULL, DELIM);
+            const char* tmp = strtok(NULL, DELIM);
             if (!tmp) { // sanity check
-                send_email(self, alert_item, SMS_ACTION_VALUE);
+                send_email(self, alert_item, action_what);
             }
             else {
                 log_warning("unexpected parameter received for sms action (action: %s)", action);
@@ -597,8 +606,8 @@ static void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
             continue;
         }
 
-        char* action_what = strtok(action_dup, DELIM);
-        log_debug("action_what: %s", action_what);
+        const char* action_what = strtok(action_dup, DELIM);
+        log_trace("action_what: %s", action_what);
 
         if (!action_what) {
             log_warning("alert action miss command (action: %s)", action);
@@ -610,20 +619,20 @@ static void action_resolve(fty_alert_actions_t* self, s_alert_cache* alert_item)
             // happily ignored
         }
         else if (streq(action_what, GPO_ACTION)) {
-            char* gpo_iname = strtok(NULL, DELIM); // asset iname
+            const char* gpo_iname = strtok(NULL, DELIM); // asset iname
             if (!gpo_iname) {
                 log_warning("GPO_ACTION miss asset iname (action: %s)", action);
                 continue;
             }
-            char* gpo_state = strtok(NULL, DELIM); // required state
+            const char* gpo_state = strtok(NULL, DELIM); // required state
             if (!gpo_state) {
                 log_warning("GPO_ACTION miss required state (action: %s)", action);
                 continue;
             }
-            char* tmp = strtok(NULL, DELIM);
+            const char* tmp = strtok(NULL, DELIM);
             log_debug("send_gpo_action: gpo_iname: %s, gpo_state: %s, tmp: %s", gpo_iname, gpo_state, tmp);
             if (!tmp) { // sanity check
-                // for resolve, opposite values are sent
+                // for resolve, values are switched
                 int stateOpen = streq(gpo_state, GPO_STATE_OPEN);
                 send_gpo_action(self, gpo_iname, const_cast<char*>(stateOpen ? GPO_STATE_CLOSE : GPO_STATE_OPEN));
             }
@@ -741,7 +750,7 @@ static void s_handle_stream_deliver_alert(fty_alert_actions_t* self, fty_proto_t
         || streq(fty_proto_state(alert), "ACK-PAUSE")
         || streq(fty_proto_state(alert), "ACK-IGNORE")
         || streq(fty_proto_state(alert), "ACK-SILENCE")
-    ){
+    ) {
         if (!search) {
             // create new alert object in cache
             log_debug("new alarm deliver %s (state: %s)", subject, fty_proto_state(alert));
@@ -771,7 +780,7 @@ static void s_handle_stream_deliver_alert(fty_alert_actions_t* self, fty_proto_t
                     || streq(fty_proto_state(alert), "ACK-PAUSE")
                     || streq(fty_proto_state(alert), "ACK-IGNORE")
                     || streq(fty_proto_state(alert), "ACK-SILENCE"))
-            ){
+            ) {
                 changed = true; // state has changed
             }
 
@@ -964,7 +973,7 @@ void s_handle_stream_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, const ch
 
 //  --------------------------------------------------------------------------
 //  Handle incoming alerts through pipe
-//  Returns  -1 if $TERM received, else 0
+//  Returns -1 if $TERM received, else 0
 
 static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint64_t& timeout)
 {
@@ -1005,38 +1014,42 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
         zstr_free(&stream);
     }
     else if (streq(cmd, "ASKFORASSETS")) {
-        log_debug("asking for assets");
-        zmsg_t* republish = zmsg_new();
-        int r = mlm_client_sendto(self->client, FTY_ASSET_AGENT_ADDRESS, "REPUBLISH", NULL, 5000, &republish);
-        zmsg_destroy(&republish);
+        const char* subject = "REPUBLISH";
+        log_debug("send %s/%s", FTY_ASSET_AGENT_ADDRESS, subject);
+        zmsg_t* m = zmsg_new(); // empty msg means '$all'
+        int r = mlm_client_sendto(self->client, FTY_ASSET_AGENT_ADDRESS, subject, NULL, 5000, &m);
+        zmsg_destroy(&m);
         // no response expected
         if (r != 0) {
-            log_error("can't send REPUBLISH message");
+            log_error("send %s/%s failed", FTY_ASSET_AGENT_ADDRESS, subject);
         }
     }
     else if (streq(cmd, "TESTTIMEOUT")) {
-        char* rcvd = zmsg_popstr(msg);
-        log_debug("setting test timeout to received value (timeout: %s)", rcvd);
+        char* s = zmsg_popstr(msg);
+        log_debug("setting test timeout to received value (timeout: %s)", s);
         uint64_t aux = 1000;
-        if (rcvd && (sscanf(rcvd, "%" SCNu64, &aux) == 1)) {
+        if (s && (sscanf(s, "%" SCNu64, &aux) == 1)) {
             timeout = aux;
         }
-        zstr_free(&rcvd);
+        zstr_free(&s);
     }
     else if (streq(cmd, "TESTCHECKINTERVAL")) {
-        char* rcvd = zmsg_popstr(msg);
-        log_debug("setting test interval for checks (rcvd: %s)", rcvd);
+        char* s = zmsg_popstr(msg);
+        log_debug("setting test interval for checks (value: %s)", s);
         uint64_t aux = 1000;
-        if (rcvd && (sscanf(rcvd, "%" SCNu64, &aux) == 1)) {
+        if (s && (sscanf(s, "%" SCNu64, &aux) == 1)) {
             self->notification_override = aux;
         }
-        zstr_free(&rcvd);
+        zstr_free(&s);
     }
     else if (streq(cmd, "INTEGRATION_TEST")) {
         char* s = zmsg_popstr(msg);
         self->integration_test = (s && (streq(s, "1") || streq(s, "true")));
-        log_debug("setting integration_test to %s", (self->integration_test ? "true" : "false"));
+        log_debug("setting integration_test to '%s'", (self->integration_test ? "true" : "false"));
         zstr_free(&s);
+    }
+    else {
+        log_debug("command not handled (%s)", cmd);
     }
 
     zstr_free(&cmd);
@@ -1061,10 +1074,16 @@ void fty_alert_actions(zsock_t* pipe, void* args)
         return;
     }
 
-    self->name                 = strdup(static_cast<char*>(args));
-    self->requestreply_name    = zsys_sprintf("%s-sendmail", self->name);
-    self->requestreply_timeout = 5000; //ms
+    // create/set clients name
+    self->name = strdup(static_cast<char*>(args));
+    if (self->name) { self->requestreply_name = zsys_sprintf("%s-sendmail", self->name); }
+    if (!(self->name && self->requestreply_name)) {
+        fty_alert_actions_destroy(&self);
+        log_error("clients name creation failed");
+        return;
+    }
 
+    // create poller
     zpoller_t* poller = zpoller_new(pipe, mlm_client_msgpipe(self->client), NULL);
     if (!poller) {
         fty_alert_actions_destroy(&self);
@@ -1072,20 +1091,20 @@ void fty_alert_actions(zsock_t* pipe, void* args)
         return;
     }
 
-    log_info("fty_alert_actions started");
+    log_info("%s started", self->name);
     zsock_signal(pipe, 0);
 
-    const uint64_t check_delay = 1000 * 60; // check every minute
+    const uint64_t check_delay = 1000 * 60; // check every minute (ms)
     uint64_t last_check = static_cast<uint64_t>(zclock_mono());
 
-    uint64_t timeout = 1000 * 10; // msg poll every 10 seconds (msec.)
+    uint64_t timeout = 1000 * 10; // msg poll every 10 seconds (ms)
 
     while (!zsys_interrupted) {
         void* which = zpoller_wait(poller, static_cast<int>(timeout));
 
         uint64_t now = static_cast<uint64_t>(zclock_mono());
         if ((now - last_check) >= check_delay) {
-            log_debug("periodic check");
+            log_debug("Ticking...");
             last_check = now;
             check_timed_out_alerts(self);
             check_alerts_and_send_if_needed(self);
@@ -1098,9 +1117,9 @@ void fty_alert_actions(zsock_t* pipe, void* args)
         }
         else if (which == pipe) { // pipe messages
             zmsg_t* msg = zmsg_recv(pipe);
-            bool term = (s_handle_pipe_deliver(self, &msg, timeout) != 0);
+            int r = s_handle_pipe_deliver(self, &msg, timeout);
             zmsg_destroy(&msg);
-            if (term) {
+            if (r != 0) {
                 break;
             }
         }
@@ -1125,8 +1144,8 @@ void fty_alert_actions(zsock_t* pipe, void* args)
         }
     }
 
+    log_info("%s ended", self->name);
+
     zpoller_destroy(&poller);
     fty_alert_actions_destroy(&self);
-
-    log_info("fty_alert_actions ended");
 }
