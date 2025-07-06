@@ -429,27 +429,30 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
 static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const std::string& rule_name)
 {
     auto buildActionList = [](const PureAlert& alert) {
-        zlist_t* al = nullptr;
-        if (!alert._actions.empty()) {
-            al = zlist_new();
-            //zlist_autofree(al);
+        zlist_t* list = alert._actions.empty() ? nullptr : zlist_new();
+        if (list) {
+            //zlist_autofree(list);
             for (const auto& action : alert._actions) {
-                zlist_append(al, const_cast<char*>(action.c_str()));
+                zlist_append(list, const_cast<char*>(action.c_str()));
             }
         }
-        return al;
+        return list;
     };
 
     const bool isWarranty{rule_name == "warranty"};
+    const auto now = static_cast<uint64_t>(::time(NULL));
 
     for (const auto& alert : alertsToSend) {
         // Asset id is missing in the rule name for warranty alarms
         const std::string fullRuleName{isWarranty ? (rule_name + "@" + alert._element) : rule_name};
 
         zlist_t* actions = buildActionList(alert);
-        zmsg_t* msg = fty_proto_encode_alert(NULL, static_cast<uint64_t>(::time(NULL)),
-            static_cast<uint32_t>(alert._ttl), fullRuleName.c_str(), alert._element.c_str(), alert._status.c_str(),
-            alert._severity.c_str(), alert._description.c_str(), actions);
+        zmsg_t* msg = fty_proto_encode_alert(NULL,
+            now, static_cast<uint32_t>(alert._ttl),
+            fullRuleName.c_str(),
+            alert._element.c_str(), alert._status.c_str(),
+            alert._severity.c_str(), alert._description.c_str(),
+            actions);
         zlist_destroy(&actions);
 
         if (msg) {
@@ -474,15 +477,15 @@ static void enable_rule_evaluation(const RulePtr& rule)
     }
 }
 
-static void add_rule(mlm_client_t* client, const char* json_representation, AlertConfiguration& ac)
+static void add_rule(mlm_client_t* client, const char* jsonPayload, AlertConfiguration& ac)
 {
-    if (!json_representation) { json_representation = ""; }
+    if (!jsonPayload) { jsonPayload = ""; }
 
     std::vector<PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int r = ac.addRule(json_representation, alertsToSend, new_rule_it);
+    int r = ac.addRule(jsonPayload, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
@@ -493,7 +496,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
         case 0: { // rule was created succesfully
             log_debug("rule added correctly");
             zmsg_addstr(reply, "OK");
-            zmsg_addstr(reply, json_representation);
+            zmsg_addstr(reply, jsonPayload);
 
             sendAlerts = true;
             updateEvaluateMetrics = true;
@@ -505,8 +508,8 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
             zmsg_addstr(reply, "ALREADY_EXISTS");
             break;
         }
-        case -5: { // error during the rule creation (lua)
-            log_warning("rule has bad lua");
+        case -5: { // error during the rule creation (Lua)
+            log_warning("rule has bad Lua");
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_LUA");
             break;
@@ -531,7 +534,7 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
         }
         case -1:
         default: { // error during the rule creation
-            log_warning("default, bad or unrecognized json for rule %s", json_representation);
+            log_warning("default, bad or unrecognized json for rule %s", jsonPayload);
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_JSON");
             break;
@@ -554,16 +557,16 @@ static void add_rule(mlm_client_t* client, const char* json_representation, Aler
     }
 }
 
-static void update_rule(mlm_client_t* client, const char* json_representation, const char* rule_name, AlertConfiguration& ac)
+static void update_rule(mlm_client_t* client, const char* jsonPayload, const char* rule_name, AlertConfiguration& ac)
 {
-    if (!json_representation) { json_representation = ""; }
+    if (!jsonPayload) { jsonPayload = ""; }
     if (!rule_name) { rule_name = ""; }
 
     std::vector<PureAlert> alertsToSend;
     AlertConfiguration::iterator new_rule_it;
 
     mtxAlertConfig.lock();
-    int r = ac.updateRule(json_representation, rule_name, alertsToSend, new_rule_it);
+    int r = ac.updateRule(jsonPayload, rule_name, alertsToSend, new_rule_it);
     mtxAlertConfig.unlock();
 
     zmsg_t* reply = zmsg_new();
@@ -574,7 +577,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
         case 0: { // rule was updated succesfully
             log_debug("rule updated");
             zmsg_addstr(reply, "OK");
-            zmsg_addstr(reply, json_representation);
+            zmsg_addstr(reply, jsonPayload);
 
             sendAlerts = true;
             updateEvaluateMetrics = true;
@@ -606,7 +609,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
         }
         case -1:
         default: { // error during the rule update
-            log_warning("bad json default for %s", json_representation);
+            log_warning("bad json default for %s", jsonPayload);
             zmsg_addstr(reply, "ERROR");
             zmsg_addstr(reply, "BAD_JSON");
             break;
@@ -629,7 +632,7 @@ static void update_rule(mlm_client_t* client, const char* json_representation, c
     }
 }
 
-static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfiguration& ac)
+static void delete_rules(mlm_client_t* client, const RuleMatcher& matcher, AlertConfiguration& ac)
 {
     std::map<std::string, std::vector<PureAlert>> alertsToSend;
     std::vector<std::string> rulesDeleted;
@@ -640,9 +643,8 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
 
     zmsg_t* reply = zmsg_new();
 
-    bool sendAlerts{false};
     if (r != 0) {
-        log_debug("can't delete rule (failure during deletion)");
+        log_debug("can't delete rule (deletion failure)");
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "FAILURE_RULE_DELETE");
     }
@@ -654,10 +656,9 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
     else {
         log_debug("deleted rule");
         zmsg_addstr(reply, "OK");
-        for (const auto& it : rulesDeleted) {
-            zmsg_addstr(reply, it.c_str());
+        for (const auto& rulename : rulesDeleted) {
+            zmsg_addstr(reply, rulename.c_str());
         }
-        sendAlerts = true;
     }
 
     r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
@@ -666,11 +667,10 @@ static void delete_rules(mlm_client_t* client, RuleMatcher* matcher, AlertConfig
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
     }
 
-    if (sendAlerts) {
-        // notify deletion (resolved alerts)
-        for (const auto& alerts : alertsToSend) {
-            send_alerts(client, alerts.second, alerts.first);
-        }
+    // in any case (success or failure)
+    // notify deletion for the resolved alerts (deleted rules)
+    for (const auto& alerts : alertsToSend) {
+        send_alerts(client, alerts.second, alerts.first);
     }
 }
 
@@ -714,7 +714,8 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
     }
 }
 
-static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMetric, const MetricList& knownMetricValues, AlertConfiguration& ac)
+// action on metric updates
+static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, const MetricList& metricList, AlertConfiguration& ac)
 {
     bool isEvaluate = false;
     mtxAlertConfig.lock();
@@ -722,16 +723,18 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
     // Go through all known rules concerned by the metric
     // try to evaluate them
 
-    std::string sTopic;
+    std::string topic;
     // end_warranty_date is the only "regex rule", for optimization purpose, use some trick for those.
-    if (triggeringMetric.getType() == "end_warranty_date")
-        { sTopic = "^end_warranty_date@.+"; }
-    else
-        { sTopic = triggeringMetric.getTopic(); }
+    if (metric.getType() == "end_warranty_date") {
+        topic = "^end_warranty_date@.+";
+    }
+    else {
+        topic = metric.getTopic();
+    }
 
-    const std::vector<std::string> rules_of_metric = ac.getRulesByTopic(sTopic);
+    const std::vector<std::string> rules_of_metric = ac.getRulesByTopic(topic);
 
-    log_debug("### evaluate topic '%s' (rules_of_metric size: %zu)", sTopic.c_str(), rules_of_metric.size());
+    log_debug("### evaluate topic '%s' (rules_of_metric size: %zu)", topic.c_str(), rules_of_metric.size());
 
     for (const auto& rulename : rules_of_metric) {
         if (ac.count(rulename) == 0) {
@@ -747,7 +750,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
 
         try {
             PureAlert pureAlert;
-            int r = rule->evaluate(knownMetricValues, pureAlert);
+            int r = rule->evaluate(metricList, pureAlert);
             if (r != 0) {
                 log_debug("### Cannot evaluate the rule '%s'", rule->name().c_str());
                 continue;
@@ -759,17 +762,16 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                 log_debug("### alert updated, nothing to send");
                 continue;
             }
-            alertToSend._ttl = triggeringMetric.getTtl() * 3;
+            alertToSend._ttl = metric.getTtl() * 3;
 
-            // NOTE: Warranty rule is not processed by configurator which adds info about asset. In order to send the
-            // current message to stream alert description is modified
+            // NOTE: Warranty rule is not processed by configurator which adds info about asset.
+            // In order to send the current message to stream, the alert description is modified.
             if (rule->name() == "warranty") {
-                int remaining_days = static_cast<int>(triggeringMetric.getValue());
-                remaining_days = abs(remaining_days);
+                int days_elapsed = abs(static_cast<int>(metric.getValue())); // above/below the limit
 
                 const std::map<std::string, std::string> dict = {
-                    { "__name__", triggeringMetric.getAssetName() },
-                    { "__remaining_days__", std::to_string(remaining_days) },
+                    { "__name__", metric.getAssetName() },
+                    { "__days_elapsed__", std::to_string(days_elapsed) },
                     { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
                     { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
                 };
@@ -778,14 +780,14 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& triggeringMe
                 if (ad.find("Warranty expired") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_is_expired__",
-                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__remaining_days__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__days_elapsed__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
                 else if (ad.find("Warranty expires in") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_expires_in__",
-                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__remaining_days__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__days_elapsed__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
@@ -1122,14 +1124,14 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                     char* param0 = zmsg_popstr(zmsg);
                     log_debug("%s: Requested %s '%s'", name, command, param0);
                     RuleNameMatcher matcher(param0 ? param0 : "");
-                    delete_rules(client, &matcher, alertConfiguration);
+                    delete_rules(client, matcher, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else if (streq(command, "DELETE_ELEMENT")) {
                     char* param0 = zmsg_popstr(zmsg);
                     log_debug("%s: Requested %s '%s'", name, command, param0);
                     RuleElementMatcher matcher(param0 ? param0 : "");
-                    delete_rules(client, &matcher, alertConfiguration);
+                    delete_rules(client, matcher, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else {
@@ -1147,6 +1149,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
     }
 
     log_info("%s ended", name);
+
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }

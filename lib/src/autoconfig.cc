@@ -31,11 +31,10 @@
 #include <cxxtools/serializationinfo.h>
 #include <filesystem>
 
-std::string Autoconfig::StateFilePath;
-std::string Autoconfig::RuleFilePath;
-std::string Autoconfig::StateFile;
-std::string Autoconfig::AlertEngineName;
-std::string Autoconfig::AlertFlexibleName;
+std::string Autoconfig::TemplatesDir; // rule templates location
+std::string Autoconfig::StateFile; // state file (full path)
+std::string Autoconfig::AlertEngineName; // mlm address
+std::string Autoconfig::AlertFlexibleName; // mlm address
 
 inline void operator <<= (cxxtools::SerializationInfo& si, const AutoConfigurationInfo& info)
 {
@@ -50,10 +49,10 @@ inline void operator <<= (cxxtools::SerializationInfo& si, const AutoConfigurati
 inline void operator >>= (const cxxtools::SerializationInfo& si, AutoConfigurationInfo& info)
 {
     try {
-        std::string temp, dateStr;
+        std::string foo, dateStr;
 
-        si.getMember("type") >>= temp; // ignored!?
-        si.getMember("subtype") >>= temp; // ignored!?
+        si.getMember("type") >>= foo; // ignored!? (info.empty() == true)
+        si.getMember("subtype") >>= foo; // ignored!?
         si.getMember("configured") >>= info.configured;
         si.getMember("date") >>= dateStr;
         si.getMember("attributes") >>= info.attributes;
@@ -123,30 +122,6 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                 log_debug("%s: $TERM received", name);
                 term = true;
             }
-            else if (streq(cmd, "TEMPLATES_DIR")) {
-                char* dirname = zmsg_popstr(msg);
-                log_debug("TEMPLATES_DIR received (%s)", dirname);
-                if (dirname) {
-                    Autoconfig::RuleFilePath = std::string(dirname);
-                }
-                else {
-                    log_error("%s: %s frame is missing", name, cmd);
-                }
-                zstr_free(&dirname);
-            }
-            else if (streq(cmd, "CONFIG")) {
-                char* dirname = zmsg_popstr(msg);
-                log_debug("CONFIG received (%s)", dirname);
-                if (dirname) {
-                    Autoconfig::StateFilePath = std::string(dirname);
-                    Autoconfig::StateFile = Autoconfig::StateFilePath + "/state";
-                    loadState();
-                }
-                else {
-                    log_error("%s: %s frame is missing", name, cmd);
-                }
-                zstr_free(&dirname);
-            }
             else if (streq(cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr(msg);
                 log_debug("CONNECT received (%s)", endpoint);
@@ -167,27 +142,50 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                 zstr_free(&pattern);
                 zstr_free(&stream);
             }
-            else if (streq(cmd, "ALERT_ENGINE_NAME")) {
-                char* alert_engine_name = zmsg_popstr(msg);
-                log_debug("ALERT_ENGINE_NAME received (%s)", alert_engine_name);
-                if (alert_engine_name) {
-                    Autoconfig::AlertEngineName = std::string(alert_engine_name);
+            else if (streq(cmd, "TEMPLATES_DIR")) {
+                char* dirpath = zmsg_popstr(msg);
+                log_debug("TEMPLATES_DIR received (%s)", dirpath);
+                if (dirpath) {
+                    Autoconfig::TemplatesDir = std::string(dirpath);
                 }
                 else {
                     log_error("%s: %s frame is missing", name, cmd);
                 }
-                zstr_free(&alert_engine_name);
+                zstr_free(&dirpath);
+            }
+            else if (streq(cmd, "CONFIG")) {
+                char* dirpath = zmsg_popstr(msg);
+                log_debug("CONFIG received (%s)", dirpath);
+                if (dirpath) {
+                    Autoconfig::StateFile = std::string(dirpath) + "/state";
+                    loadState();
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
+                }
+                zstr_free(&dirpath);
+            }
+            else if (streq(cmd, "ALERT_ENGINE_NAME")) {
+                char* address = zmsg_popstr(msg);
+                log_debug("ALERT_ENGINE_NAME received (%s)", address);
+                if (address) {
+                    Autoconfig::AlertEngineName = std::string(address);
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
+                }
+                zstr_free(&address);
             }
             else if (streq(cmd, "ALERT_FLEXIBLE_NAME")) {
-                char* alert_flexible_name = zmsg_popstr(msg);
-                log_debug("ALERT_FLEXIBLE_NAME received (%s)", alert_flexible_name);
-                if (alert_flexible_name) {
-                    Autoconfig::AlertFlexibleName = std::string(alert_flexible_name);
+                char* address = zmsg_popstr(msg);
+                log_debug("ALERT_FLEXIBLE_NAME received (%s)", address);
+                if (address) {
+                    Autoconfig::AlertFlexibleName = std::string(address);
                 }
                 else {
                     log_error("%s: %s frame is missing", name, cmd);
                 }
-                zstr_free(&alert_flexible_name);
+                zstr_free(&address);
             }
             else {
                 log_debug("%s: command not handled (%s)", name, cmd);
@@ -298,11 +296,11 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
     info.configured = false;
 
     if (info.empty()) {
-        log_debug("Extracting empty info from asset proto (%s)", assetName.c_str());
+        log_debug("Extracted empty info from asset proto (%s)", assetName.c_str());
         return;
     }
 
-    logDebug("Decoded operatiob={}, asset={}, status={}, info.type={}, info.subtype={}",
+    logDebug("Decoded operation={}, asset={}, status={}, info.type={}, info.subtype={}",
         operation, assetName, status, info.type, info.subtype);
 
     // update containers map
@@ -310,7 +308,7 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
         if (updateAsset) {
             _containers[assetName] = fty_proto_ext_string(proto, "name", "");
         }
-        else { // remove
+        else { // delete
             if (_containers.count(assetName) != 0) {
                 _containers.erase(assetName);
             }
@@ -335,9 +333,9 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
 
         configurableDevicesAdd(assetName, info);
     }
-    else // remove
+    else // delete
     {
-        configurableDevicesRemove(assetName);
+        configurableDevicesDelete(assetName);
 
         if (info.subtype == "sensorgpio" || info.subtype == "gpo") {
             // don't do anything
@@ -460,19 +458,25 @@ void Autoconfig::loadState()
 {
     ConfigurableDevices_GUARD;
 
-    if (!std::filesystem::exists(Autoconfig::StateFile)) { return; }
+    _configurableDevices.clear();
+
+    const std::string stateFile{Autoconfig::StateFile};
+
+    if (!std::filesystem::exists(stateFile)) {
+        return; //nop
+    }
 
     try {
-        log_debug("loadState %s", Autoconfig::StateFile.c_str());
+        log_debug("loadState %s", stateFile.c_str());
 
         cxxtools::SerializationInfo si;
-        JSON::readFromFile(Autoconfig::StateFile, si);
+        JSON::readFromFile(stateFile, si);
         si >>= _configurableDevices;
 
         log_debug("loadState: %zu devices", _configurableDevices.size());
     }
     catch (const std::exception &e) {
-        log_error("loadState() failed (%s, e: %s)", Autoconfig::StateFile.c_str(), e.what());
+        log_error("loadState() failed (%s, e: %s)", stateFile.c_str(), e.what());
         if (errno != 0) { log_error("error: %s", strerror(errno)); }
     }
 }
@@ -481,17 +485,21 @@ void Autoconfig::saveState()
 {
     ConfigurableDevices_GUARD;
 
-    if (Autoconfig::StateFile.empty()) { return; }
+    const std::string stateFile{Autoconfig::StateFile};
+
+    if (stateFile.empty()) {
+        return; //nop
+    }
 
     try {
-        log_debug("saveState %s (devices: %zu)", Autoconfig::StateFile.c_str(), _configurableDevices.size());
+        log_debug("saveState %s (devices: %zu)", stateFile.c_str(), _configurableDevices.size());
 
         cxxtools::SerializationInfo si;
         si <<= _configurableDevices;
-        JSON::writeToFile(Autoconfig::StateFile, si, false);
+        JSON::writeToFile(stateFile, si, false);
     }
     catch (const std::exception &e) {
-        log_error("saveState() failed (%s, e: %s)", Autoconfig::StateFile.c_str(), e.what());
+        log_error("saveState() failed (%s, e: %s)", stateFile.c_str(), e.what());
         if (errno != 0) { log_error("error: %s", strerror(errno)); }
     }
 }
@@ -504,8 +512,7 @@ std::list<std::string> Autoconfig::getAssetsThatMatchTemplate(const std::string&
     std::list<std::string> assets;
 
     for (const auto& it : _configurableDevices) {
-        const AutoConfigurationInfo& info = it.second;
-        if (TRC.isApplicable(info, template_name)) {
+        if (TRC.isApplicable(it.second, template_name)) {
             assets.push_back(it.first); // iname
         }
     }
@@ -548,7 +555,7 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
             for (const auto& asset : assets) {
                 // PQSWMBT-4921 Xphase rule exceptions
                 if (templatAtPos != std::string::npos) {
-                    std::string ruleName{templat.first.substr(0, templatAtPos + 1) + asset};
+                    const std::string ruleName{templat.first.substr(0, templatAtPos + 1) + asset};
                     if (!ruleXphaseIsApplicable(ruleName, configurableDevicesGet(asset))) {
                         continue; // skip asset
                     }
@@ -579,8 +586,9 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     }
 }
 
-// _configurableDevices processors
+// _configurableDevices CRUD processors
 
+// read
 AutoConfigurationInfo Autoconfig::configurableDevicesGet(const std::string& assetName)
 {
     ConfigurableDevices_GUARD;
@@ -588,6 +596,7 @@ AutoConfigurationInfo Autoconfig::configurableDevicesGet(const std::string& asse
     return (it != _configurableDevices.end()) ? it->second : AutoConfigurationInfo() /*empty*/;
 }
 
+// create/update
 void Autoconfig::configurableDevicesAdd(const std::string& assetName, const AutoConfigurationInfo& info)
 {
     ConfigurableDevices_GUARD;
@@ -595,11 +604,12 @@ void Autoconfig::configurableDevicesAdd(const std::string& assetName, const Auto
     _configurableDevices[assetName] = info;
 }
 
-void Autoconfig::configurableDevicesRemove(const std::string& assetName)
+// delete
+void Autoconfig::configurableDevicesDelete(const std::string& assetName)
 {
     ConfigurableDevices_GUARD;
-    log_debug("configurableDevicesRemove %s", assetName.c_str());
     if (_configurableDevices.count(assetName) != 0) {
+        log_debug("configurableDevicesDelete %s", assetName.c_str());
         _configurableDevices.erase(assetName);
     }
 }
@@ -643,4 +653,3 @@ AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName)
     std::lock_guard<std::mutex> lock(gAgentPtrMutex);
     return gAgentPtr ? gAgentPtr->configurableDevicesGet(assetName) : AutoConfigurationInfo() /*empty*/;
 }
-

@@ -50,7 +50,7 @@ TEST_CASE("autoconfig loadAllTemplates")
     };
 
     for (auto& templatePath : testVector) {
-        Autoconfig::RuleFilePath = templatePath;
+        Autoconfig::TemplatesDir = templatePath;
 
         TemplateRuleConfigurator TRC;
         std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();

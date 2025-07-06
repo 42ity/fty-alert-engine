@@ -247,7 +247,7 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, c
         return false; // no match
     }
 
-    const std::string buf{utils::readFile(Autoconfig::RuleFilePath + "/" + templat_name)};
+    const std::string buf{utils::readFile(Autoconfig::TemplatesDir + "/" + templat_name)};
     if (buf.empty()) {
         return false; // empty/missing/unreadable file
     }
@@ -266,7 +266,7 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, c
 
 std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfigurationInfo& info, bool fast_track)
 {
-    if (!templateDirExists()) {
+    if (!templatesDirExists()) {
         return {};
     }
 
@@ -274,7 +274,7 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfi
 
     std::vector<std::string> templates;
 
-    std::filesystem::path dir(Autoconfig::RuleFilePath);
+    std::filesystem::path dir(Autoconfig::TemplatesDir);
 
     for (const auto& fn : std::filesystem::directory_iterator(dir)) {
         const std::string filename{fn.path().filename()};
@@ -303,11 +303,11 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfi
 
 std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadAllTemplates()
 {
-    if (!templateDirExists()) {
+    if (!templatesDirExists()) {
         return {};
     }
 
-    std::filesystem::path dir(Autoconfig::RuleFilePath);
+    std::filesystem::path dir(Autoconfig::TemplatesDir);
     log_info("Load templates from %s", dir.c_str());
 
     std::vector<std::pair<std::string, std::string>> templates;
@@ -333,13 +333,13 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
 
 bool TemplateRuleConfigurator::checkTemplate(const AutoConfigurationInfo& info)
 {
-    if (!templateDirExists()) {
+    if (!templatesDirExists()) {
         return false;
     }
 
     const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
 
-    std::filesystem::path dir(Autoconfig::RuleFilePath);
+    std::filesystem::path dir(Autoconfig::TemplatesDir);
 
     for (const auto& fn : std::filesystem::directory_iterator(dir)) {
         const std::string filename{fn.path().filename()};
@@ -367,13 +367,13 @@ std::string TemplateRuleConfigurator::typeSubtype2Name(const std::string& type, 
     return prefix + type + sep + subtype + prefix; // ex.: __device_ups__
 }
 
-bool TemplateRuleConfigurator::templateDirExists()
+bool TemplateRuleConfigurator::templatesDirExists()
 {
-    if (std::filesystem::exists(Autoconfig::RuleFilePath)) {
+    if (std::filesystem::exists(Autoconfig::TemplatesDir)) {
         return true;
     }
 
-    log_warning("'%s' directory does not exist", Autoconfig::RuleFilePath.c_str());
+    log_warning("'%s' directory does not exist", Autoconfig::TemplatesDir.c_str());
     return false;
 }
 
@@ -389,23 +389,21 @@ bool TemplateRuleConfigurator::sendAddRule(const std::string& rule, mlm_client_t
     zmsg_addstr(msg, "ADD");
     zmsg_addstr(msg, rule.c_str()); //json
 
-    const char* dest = Autoconfig::AlertEngineName.c_str();
-    const char* subject = RULES_SUBJECT;
-
     // redirect message to fty-alert-engine VS fty-alert-flexible
+    const char* dest = Autoconfig::AlertEngineName.c_str();
     if (rule.substr(0, 100).find("\"flexible\"") != std::string::npos) {
         dest = Autoconfig::AlertFlexibleName.c_str();
     }
 
-    log_debug("Sending '%s/ADD' to '%s'", subject, dest);
-
+    const char* subject = RULES_SUBJECT;
     const int timeout_ms{5000};
+    log_debug("Sending '%s/ADD' to '%s'", subject, dest);
     int r = mlm_client_sendto(client, dest, subject, NULL, timeout_ms, &msg);
     zmsg_destroy(&msg);
     // ignore response (no wait)
 
     if (r != 0) {
-        log_error("mlm_client_sendto() failed (dest = '%s', subject = '%s/ADD', timeout = %d)", dest, subject, timeout_ms);
+        log_error("mlm_client_sendto() failed (%s/%s/ADD, timeout = %d)", dest, subject, timeout_ms);
     }
     return (r == 0);
 }

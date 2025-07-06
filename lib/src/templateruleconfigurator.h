@@ -44,7 +44,7 @@ public:
     bool sendAddRule(const std::string& rule /*json*/, mlm_client_t* client);
 
 private:
-    bool templateDirExists();
+    bool templatesDirExists();
     bool checkTemplate(const AutoConfigurationInfo& info);
     std::vector<std::string> loadTemplates(const AutoConfigurationInfo& info, bool fast_track);
 

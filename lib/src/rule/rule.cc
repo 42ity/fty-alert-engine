@@ -71,21 +71,3 @@ int Rule::remove(const std::string& path) const noexcept
     log_debug("remove file '%s'", full_name.c_str());
     return std::remove(full_name.c_str());
 }
-
-///
-/// Rule matchers
-///
-
-RuleNameMatcher::RuleNameMatcher(const std::string& name) : _name(name) {}
-
-bool RuleNameMatcher::operator()(const Rule& rule)
-{
-    return rule.name() == _name;
-}
-
-RuleElementMatcher::RuleElementMatcher(const std::string& element) : _element(element) {}
-
-bool RuleElementMatcher::operator()(const Rule& rule)
-{
-    return rule.element() == _element;
-}

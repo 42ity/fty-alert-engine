@@ -31,13 +31,13 @@ TEST_CASE("templateruleconfigurator")
         CHECK(TRC.isApplicable(AutoConfigurationInfo()) == false);
         CHECK(TRC.sendAddRule("hello world", NULL) == false);
 
-        Autoconfig::RuleFilePath = "";
+        Autoconfig::TemplatesDir = "";
         CHECK(TRC.loadAllTemplates().empty());
 
-        Autoconfig::RuleFilePath = "/fake";
+        Autoconfig::TemplatesDir = "/fake";
         CHECK(TRC.loadAllTemplates().empty());
 
-        Autoconfig::RuleFilePath = SELFTEST_DIR_RO "/../../lib/rule_templates/";
+        Autoconfig::TemplatesDir = SELFTEST_DIR_RO "/../../lib/rule_templates/";
         CHECK(!TRC.loadAllTemplates().empty());
     }
 

@@ -26,6 +26,7 @@
 
 #include "purealert.h"
 #include "rule/rule.h"
+#include "rule/matcher.h"
 
 #include <string>
 #include <vector>
@@ -76,9 +77,9 @@ public:
     /// We need an iterator as a class,
     iterator begin() { return _alerts_map.begin(); }
     iterator end() { return _alerts_map.end(); }
-    B& at(const std::string& name) { return _alerts_map.at(name); }
+    B& at(const std::string& rulename) { return _alerts_map.at(rulename); }
     size_t size() const { return _alerts_map.size(); }
-    size_t count(const std::string& name) const { return _alerts_map.count(name); }
+    size_t count(const std::string& rulename) const { return _alerts_map.count(rulename); }
 
     /// Sets a path to configuration files
     /// @param[in] path - a directory where rules are stored
@@ -88,7 +89,7 @@ public:
 
     /// Adds a rule to the configuration
     /// alertsToSend must be sent in the order from the first element to the last element
-    /// @param[in] newRuleString - json to parse a rule
+    /// @param[in] jsonPayload - json to parse a rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
     /// @return -1 when rule has error in JSON
@@ -96,12 +97,12 @@ public:
     ///         -5 when rule has error in Lua
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and added correctly (but it can be not saved)
-    int addRule(const std::string& newRuleString, std::vector<PureAlert>& alertsToSend, iterator& it);
+    int addRule(const std::string& jsonPayload, std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Updates existing rule in the configuration
     /// alertsToSend must be sent in the order from the first element to the last element
-    /// @param[in] newRuleString - json to parse a rule (can have a new name for this rule)
-    /// @param[in] rule_name - old name of the rule
+    /// @param[in] jsonPayload - json to parse a rule (can have a new name for this rule)
+    /// @param[in] oldrulename - old name of the rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
     /// @return -2 when rule with old_name doesn't exist -> nothing to update
@@ -110,16 +111,16 @@ public:
     ///         -3 if name of the rule is changed, but for the new name rule already exists
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and updated correctly (but it can be not saved)
-    int updateRule(const std::string& newRuleString, const std::string& rule_name, std::vector<PureAlert>& alertsToSend, iterator& it);
+    int updateRule(const std::string& jsonPayload, const std::string& oldrulename, std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Touch existing rule in the configuration.
     /// Indicats that something in rule was changed implicitly.
     /// alertsToSend must be sent in the order from the first element to the last element
-    /// @param[in] rule_name - name of the rule to touch
+    /// @param[in] rulename - name of the rule to touch
     /// @param[out] alertsToSend - alerts that where affected by this rule
     /// @return -1 when rule with rule_name doesn't exist -> nothing to update
     ///          0 when rule was touched successfully
-    int touchRule(const std::string& rule_name, std::vector<PureAlert>& alertsToSend);
+    int touchRule(const std::string& rulename, std::vector<PureAlert>& alertsToSend);
 
     /// Incapsulates alert in the model
     /// @param[in] rule - the evaluated rule
@@ -127,18 +128,23 @@ public:
     /// @param[out] alert_to_send - the alert prepared to send
     /// @return -1 nothing to send
     ///          0 need to send an alert
-    int updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& it, const PureAlert& pureAlert, PureAlert& alert_to_send);
+    int updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& it, const PureAlert& pureAlert, PureAlert& alertToSend);
 
-    /// haveRule (alerts map accessor)
-    bool haveRule(const std::string& rule_name) const { return (_alerts_map.find(rule_name) != _alerts_map.end()); }
-    bool haveRule(const RulePtr& rule) const { return haveRule(rule->name()); }
+    /// Rule(s) deletion
+    /// @param[in] matcher - the rules selector
+    /// @param[out] alertsToSend - the alerts resolved on rule(s) deletion
+    /// @param[out] rulesDeleted - the deleted rule names
+    /// @return -1 one or more deletion errors occurred
+    ///          0 success
+    int deleteRules(const RuleMatcher& matcher, std::map<std::string, std::vector<PureAlert>>& alertsToSend, std::vector<std::string>& rulesDeleted);
 
-    int deleteRule(const std::string& name, std::map<std::string, std::vector<PureAlert>>& alertsToSend);
+    /// Does the rule exist?
+    bool haveRule(const std::string& rulename) const
+    {
+        return _alerts_map.find(rulename) != _alerts_map.end();
+    }
 
-    int deleteAllRules(const std::string& element, std::map<std::string, std::vector<PureAlert>>& alertsToSend);
-
-    int deleteRules(RuleMatcher* matcher, std::map<std::string, std::vector<PureAlert>>& alertsToSend, std::vector<std::string>& rulesDeleted);
-
+    /// Get the rulename(s) referencing topic as input
     const std::vector<std::string> getRulesByTopic(const std::string& topic)
     {
         const auto& it = _metrics_alerts_map.find(topic);
@@ -146,10 +152,10 @@ public:
     }
 
 private:
-    // hash map to quickly retrieve specific alert by rulename
+    // map to retrieve specific alert by rulename
     A _alerts_map;
 
-    // map to retrieve alerts that reference a metric
+    // map to retrieve alerts that reference a metric (topic)
     std::unordered_map<std::string, std::vector<std::string>> _metrics_alerts_map;
 
     // directory, where rules are stored

@@ -34,7 +34,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <algorithm>
 #include <filesystem>
 
-// returns 0 if ok, else error
+// returns 0 if ok, else error (1: not recognized, 2: bad Lua)
 int readRule(const std::string& jsonPayload, RulePtr& rule)
 {
     rule.reset();
@@ -111,8 +111,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
                 log_debug("processing file: '%s'", fn.path().c_str());
                 const std::string json{utils::readFile(fn.path())};
                 int r = readRule(json, rule);
-                if (r != 0) {
-                    // rule can't be read correctly from the file
+                if (r != 0) { // rule can't be read/recognized
                     log_warning("'%s' ignored (r = %d)", filename.c_str(), r);
                     continue;
                 }
@@ -120,16 +119,16 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 
             const std::string rulename{rule->name()};
 
-            // ASSUMPTION: name of the file is the same as name of the rule
-            // If they are different ignore this rule (5 = strlen(".rule"))
-            if (rulename != filename.substr(0, filename.length() - 5)) {
-                log_warning("'%s' differs from rule name '%s', ignore it", filename.c_str(), rulename.c_str());
+            // Sanity: rulename and filename must be equal (extension less)
+            const std::string filename_noext{filename.substr(0, filename.find_last_of('.'))};
+            if (rulename != filename_noext) {
+                log_warning("'%s' differs from rule name '%s'. Ignored", filename.c_str(), rulename.c_str());
                 continue;
             }
 
-            // ASSUMPTION: rules have unique names
-            if (haveRule(rule)) {
-                log_warning("rule '%s' already known & ignore it (file: '%s')", rulename.c_str(), filename.c_str());
+            // Sanity: rule must be unique by name
+            if (haveRule(rulename)) {
+                log_warning("rule '%s' already known. Ignored (file: '%s')", rulename.c_str(), filename.c_str());
                 continue;
             }
 
@@ -137,18 +136,17 @@ std::set<std::string> AlertConfiguration::readConfiguration()
             for (const auto& topic : rule->getNeededTopics()) {
                 result.insert(topic);
 
-                auto _it_metrics = _metrics_alerts_map.find(topic);
-                if (_it_metrics != _metrics_alerts_map.end()) {
-                    _it_metrics->second.push_back(rulename);
+                const auto& it_m = _metrics_alerts_map.find(topic);
+                if (it_m != _metrics_alerts_map.end()) {
+                    it_m->second.push_back(rulename);
                 }
                 else {
-                    _metrics_alerts_map.insert(std::make_pair(topic, std::vector<std::string>{rulename}));
+                    _metrics_alerts_map[topic] = std::vector<std::string>{rulename};
                 }
             }
 
-            // add rule to the configuration
-            const std::vector<PureAlert> emptyAlerts;
-            _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), emptyAlerts)));
+            // add rule to the configuration (without alert)
+            _alerts_map[rulename] = std::make_pair(std::move(rule), std::vector<PureAlert>{});
 
             log_debug("file '%s' read correctly", filename.c_str());
         }
@@ -162,28 +160,33 @@ std::set<std::string> AlertConfiguration::readConfiguration()
 }
 
 int AlertConfiguration::addRule(
-    const std::string& json,
+    const std::string& jsonPayload,
     std::vector<PureAlert>& /* alertsToSend */,
     AlertConfiguration::iterator& it
 )
 {
     RulePtr rule{nullptr};
-    int r = readRule(json, rule);
+    int r = readRule(jsonPayload, rule);
     if (r != 0) { // failed
         switch (r) {
             case 1:
-                log_error("nothing created, json error"); // json error !?
+                log_error("nothing created (unrecognized rule or json error, r: %d)", r);
                 return -1;
             case 2:
-                log_error("nothing created, Lua error");
+                log_error("nothing created (Lua error, r: %d)", r);
                 return -5;
             default:;
         }
-        log_error("nothing created, error: %d", r);
+        log_error("nothing created (r: %d)", r);
         return -1;
     }
 
     const std::string rulename{rule->name()};
+
+    if (haveRule(rulename)) {
+        log_debug("rule %s already exists", rulename.c_str());
+        return -2;
+    }
 
     // PQSWMBT-3723, don't instanciate sensor temp./humidity rules directly
     if ((rulename.find("humidity.default@sensor-") == 0) // starts with...
@@ -203,11 +206,6 @@ int AlertConfiguration::addRule(
 
     log_info("addRule %s", rulename.c_str());
 
-    if (haveRule(rule)) {
-        log_debug("rule %s already exists", rulename.c_str());
-        return -2;
-    }
-
     try {
         rule->save(getPersistencePath(), rulename + ".rule");
     }
@@ -217,102 +215,104 @@ int AlertConfiguration::addRule(
         return -6;
     }
 
-    // in any case we need to check new subjects
+    // handle new topics
     for (const auto& topic : rule->getNeededTopics()) {
         //log_debug("topic:", topic.c_str());
-        auto _it_metrics = _metrics_alerts_map.find(topic);
-        if (_it_metrics != _metrics_alerts_map.end()) {
-            log_debug("_it_metrics %s: add rule %s ", _it_metrics->first.c_str(), rulename.c_str());
-            _it_metrics->second.push_back(rulename);
+        const auto& it_m = _metrics_alerts_map.find(topic);
+        if (it_m != _metrics_alerts_map.end()) {
+            log_debug("_metrics_alerts_map: new rule %s for topic %s ", rulename.c_str(), topic.c_str());
+            it_m->second.push_back(rulename);
         }
         else {
-            log_debug("_metrics_alerts_map insert: topic: %s, rule %s ", topic.c_str(), rulename.c_str());
-            _metrics_alerts_map.insert(std::make_pair(topic, std::vector<std::string>{rulename}));
+            log_debug("_metrics_alerts_map: new topic %s for rule %s ", topic.c_str(), rulename.c_str());
+            _metrics_alerts_map[topic] = std::vector<std::string>{rulename};
         }
     }
 
-    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), std::vector<PureAlert>{}/*empty*/)));
+    // put the rule without alerts into the cache
+    _alerts_map[rulename] = std::make_pair(std::move(rule), std::vector<PureAlert>{});
 
     it = _alerts_map.find(rulename);
 
     return 0;
 }
 
-int AlertConfiguration::touchRule(const std::string& rule_name, std::vector<PureAlert>& alertsToSend)
+int AlertConfiguration::touchRule(const std::string& rulename, std::vector<PureAlert>& alertsToSend)
 {
     // find rule, that should be touched
-    // rule_to_update is an iterator to the rule+alerts
-    auto rule_to_update = _alerts_map.find(rule_name);
-    if (rule_to_update == _alerts_map.end()) {
-        log_error("rule '%s' doesn't exist", rule_name.c_str());
+    const auto& it = _alerts_map.find(rulename);
+    if (it == _alerts_map.end()) {
+        log_error("rule '%s' doesn't exist", rulename.c_str());
         return -1;
     }
 
-    // resolve found alerts
-    for (auto& oneAlert : rule_to_update->second.second) {
+    // resolve alerts to send
+    for (auto& oneAlert : it->second.second) {
         oneAlert._status = ALERT_RESOLVED;
-        oneAlert._description = "Rule was changed implicitly";
-        // put them into the list of alerts that had changed
+        oneAlert._description = "Rule touched";
         alertsToSend.push_back(oneAlert);
     }
 
-    // clear alert cache
-    rule_to_update->second.second.clear();
+    // finally, clear alerts cache
+    it->second.second.clear();
 
     return 0;
 }
 
 int AlertConfiguration::updateRule(
-    const std::string& newRuleString, // json
-    const std::string& old_name,
+    const std::string& jsonPayload, // json
+    const std::string& oldrulename, // rule to update
     std::vector<PureAlert>& alertsToSend,
     AlertConfiguration::iterator& it
 )
 {
-    if (!alertsToSend.empty()) {
-        log_debug("ERROR ASSUMPTION: alertsToSend is empty");
-        alertsToSend.clear();
-    }
-
     // need to find out if rule exists already or not
-    if (old_name.empty()) {
-        log_error("rule old_name is empty");
+    if (oldrulename.empty()) {
+        log_error("rule oldrulename is empty");
         return -2;
     }
-    if (!haveRule(old_name)) {
-        log_error("rule doesn't exist");
+    if (!haveRule(oldrulename)) {
+        log_error("rule '%s' doesn't exist", oldrulename.c_str());
         return -2;
     }
 
     RulePtr rule{nullptr};
-    int r = readRule(newRuleString, rule);
-    if (r != 0) { // failed
-        switch (r) {
-            case 1:
-                log_error("nothing created, json error"); // json error !?
-                return -1;
-            case 2:
-                log_error("nothing created, Lua error");
-                return -5;
-            default:;
+    {
+        int r = readRule(jsonPayload, rule);
+        if (r != 0) { // failed
+            switch (r) {
+                case 1:
+                    log_error("nothing created, json error"); // json error !?
+                    return -1;
+                case 2:
+                    log_error("nothing created, Lua error");
+                    return -5;
+                default:;
+            }
+            log_error("nothing created, error: %d", r);
+            return -1;
         }
-        log_error("nothing created, error: %d", r);
-        return -1;
     }
 
-    std::string rulename = rule->name();
+    const std::string rulename{rule->name()};
 
     // if name of the rule changed, then
     // need to find out if rule with new rulename exists already or not
-    if ((rulename != old_name) && haveRule(rulename)) {
-        // rule with new old_name
+    if ((rulename != oldrulename) && haveRule(rulename)) {
+        // rule with new oldrulename
         log_error("Rule with such name already exists");
         return -3;
     }
 
     // find rule, that should be updated
-    auto rule_to_update = _alerts_map.find(old_name);
-    const std::string rule_removed_name = rule_to_update->second.first->name();
+    auto rule_to_update = _alerts_map.find(oldrulename);
+    if (rule_to_update == _alerts_map.cend()) {
+        // secure, should not happen (see haveRule() above)
+        log_error("rule '%s' not found", oldrulename.c_str());
+        return -2;
+    }
+
+    const std::string rule_removed_name{rule_to_update->second.first->name()};
 
     // handle rule file (old & new)
     {
@@ -328,7 +328,7 @@ int AlertConfiguration::updateRule(
         }
 
         // remove the old file
-        r = rule_to_update->second.first->remove(getPersistencePath());
+        int r = rule_to_update->second.first->remove(getPersistencePath());
         if (r != 0) {
             log_error(
                 "Old rule wasn't removed, but new one stored with postfix '.new' and is not used yet. Rename *.rule.new "
@@ -338,8 +338,8 @@ int AlertConfiguration::updateRule(
         }
 
         // rename new rule file to the right name
-        const auto name1{getPersistencePath() + rule_removed_name + ".rule.new"};
-        const auto name2{getPersistencePath() + rule_removed_name + ".rule"};
+        const std::string name1{getPersistencePath() + rule_removed_name + ".rule.new"};
+        const std::string name2{getPersistencePath() + rule_removed_name + ".rule"};
         r = std::rename(name1.c_str(), name2.c_str());
         if (r != 0) {
             log_error(
@@ -349,8 +349,8 @@ int AlertConfiguration::updateRule(
         }
     }
 
-    // here, everything ok with files
-    // and we need to fix information in the memory cache
+    // here, everything is done with files
+    // and we need to update informations in the memory cache
 
     // resolve found alerts; put them into the list of alerts that changed
     for (auto& oneAlert : rule_to_update->second.second) {
@@ -359,19 +359,18 @@ int AlertConfiguration::updateRule(
     }
 
     for (const auto& topic : rule_to_update->second.first->getNeededTopics()) {
-        auto _it_metrics = _metrics_alerts_map.find(topic);
-        if (_it_metrics != _metrics_alerts_map.end()) {
+        const auto& it_m = _metrics_alerts_map.find(topic);
+        if (it_m != _metrics_alerts_map.end()) {
             int it_pos = 0;
-            for (auto& it_rule_in_metric : _it_metrics->second) {
-                if (it_rule_in_metric == rule_removed_name) {
-                    _it_metrics->second.erase(_it_metrics->second.begin() + it_pos);
+            for (const auto& it_rulename : it_m->second) {
+                if (it_rulename == rule_removed_name) {
+                    it_m->second.erase(it_m->second.begin() + it_pos);
                     break;
                 }
                 it_pos++;
             }
         }
-        else {
-            // should not happened
+        else { // should not happen
             log_error("Remove rule %s with metric %s who was never been add.",
                 rule_removed_name.c_str(), topic.c_str());
         }
@@ -383,111 +382,99 @@ int AlertConfiguration::updateRule(
     // remove entire entry
     _alerts_map.erase(rule_to_update);
 
-    // find new topics to subscribe
-    // As we changed the rule, we need to check new subjects
+    // handle new topics
     for (const auto& topic : rule->getNeededTopics()) {
-        auto _it_metrics = _metrics_alerts_map.find(topic);
-        if (_it_metrics != _metrics_alerts_map.end()) {
-            _it_metrics->second.push_back(rulename);
+        const auto& it_m = _metrics_alerts_map.find(topic);
+        if (it_m != _metrics_alerts_map.end()) {
+            it_m->second.push_back(rulename);
         }
         else {
-            _metrics_alerts_map.insert(std::make_pair(topic, std::vector<std::string>{rulename}));
+            _metrics_alerts_map[topic] = std::vector<std::string>{rulename};
         }
     }
 
-    // put the rule with empty alerts into the cache
-    _alerts_map.insert(std::make_pair(rulename, std::make_pair(std::move(rule), std::vector<PureAlert>{})));
+    // put the rule without alerts into the cache
+    _alerts_map[rulename] = std::make_pair(std::move(rule), std::vector<PureAlert>{});
 
     it = _alerts_map.find(rulename);
 
     return 0;
 }
 
-int AlertConfiguration::deleteRule(const std::string& name, std::map<std::string, std::vector<PureAlert>>& alertsToSend)
-{
-    RuleNameMatcher matcher(name);
-    std::vector<std::string> dummy;
-    return deleteRules(&matcher, alertsToSend, dummy);
-}
-
-int AlertConfiguration::deleteAllRules(
-    const std::string& element,
-    std::map<std::string, std::vector<PureAlert>>& alertsToSend
-)
-{
-    RuleElementMatcher matcher(element);
-    std::vector<std::string> dummy;
-    return deleteRules(&matcher, alertsToSend, dummy);
-}
-
 int AlertConfiguration::deleteRules(
-    RuleMatcher* matcher,
+    const RuleMatcher& matcher,
     std::map<std::string, std::vector<PureAlert>>& alertsToSend,
     std::vector<std::string>& rulesDeleted
 )
 {
+    size_t errCnt{0};
+
     // clean up what we can without touching the iterator
-    auto rule_to_remove = _alerts_map.begin();
-    while (rule_to_remove != _alerts_map.end()) {
-        if ((*matcher)(*(rule_to_remove->second.first))) {
+    auto it = _alerts_map.begin();
+    while (it != _alerts_map.end()) {
+        if (matcher.match(it->second.first)) {
+            const std::string rule_removed{it->second.first->name()};
+
             // delete from disk
-            int r = rule_to_remove->second.first->remove(getPersistencePath());
-            std::string rule_removed_name = rule_to_remove->second.first->name();
+            int r = it->second.first->remove(getPersistencePath());
             if (r != 0) {
-                log_error("Error while removing rule %s", rule_removed_name.c_str());
-                return -1;
+                log_error("Error while removing rule %s", rule_removed.c_str());
+                errCnt++;
+                continue;
             }
 
-            // *resolve* found alerts
-            for (auto& oneAlert : rule_to_remove->second.second) {
-                oneAlert._status = ALERT_RESOLVED;
-                oneAlert._description = "Rule deleted";
-                // put them into the list of alerts that changed
-                alertsToSend[rule_removed_name].push_back(oneAlert);
+            // *resolve* rule alerts
+            // put them in the list of alerts that have changed
+            for (auto& alert : it->second.second) {
+                alert._status = ALERT_RESOLVED;
+                alert._description = "Rule deleted";
+                alertsToSend[rule_removed].push_back(alert);
             }
 
-            for (const auto& topic : rule_to_remove->second.first->getNeededTopics()) {
-                auto _it_metrics = _metrics_alerts_map.find(topic);
-                if (_it_metrics != _metrics_alerts_map.end()) {
+            // update _metrics_alerts_map
+            for (const auto& topic : it->second.first->getNeededTopics()) {
+                const auto& it_m = _metrics_alerts_map.find(topic);
+                if (it_m != _metrics_alerts_map.end()) {
                     int it_pos = 0;
-                    for (auto& it_rule_in_metric : _it_metrics->second) {
-                        if (it_rule_in_metric == rule_removed_name) {
-                            _it_metrics->second.erase(_it_metrics->second.begin() + it_pos);
+                    for (const auto& it_rulename : it_m->second) {
+                        if (it_rulename == rule_removed) {
+                            it_m->second.erase(it_m->second.begin() + it_pos);
                             break;
                         }
                         it_pos++;
                     }
                 }
-                else {
-                    // should not happened
-                    log_error("Remove rule %s with metric %s who was never been add.", rule_removed_name.c_str(), topic.c_str());
+                else { // should not happen
+                    log_error("Remove rule %s with metric %s who was never been add.", rule_removed.c_str(), topic.c_str());
                 }
             }
-            // clear the cache
-            rule_to_remove->second.second.clear();
-            rulesDeleted.push_back(rule_removed_name);
-            rule_to_remove = _alerts_map.erase(rule_to_remove);
+
+            // clear Alert cache
+            it->second.second.clear();
+            // finally delete the rule
+            it = _alerts_map.erase(it);
+
+            rulesDeleted.push_back(rule_removed);
         }
         else {
-            ++rule_to_remove;
+            ++it;
         }
     }
 
-    return 0;
+    return (errCnt == 0) ? 0 : -1;
 }
 
-int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& oneRuleAlerts, const PureAlert& pureAlert, PureAlert& alert_to_send)
+int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& oneRuleAlerts, const PureAlert& pureAlert, PureAlert& alertToSend)
 {
-    bool alertFound{false};
+    int ret{-1}; // nop, alertToSend not set
 
-    for (auto& oneAlert : oneRuleAlerts.second) // this object can be changed -> no const
+    for (auto& oneAlert : oneRuleAlerts.second) // oneAlert can be changed (no const)
     {
         if (pureAlert._element != oneAlert._element) {
             continue; // does not apply
         }
 
         // we found the alert
-        alertFound = true;
 
         if (pureAlert._status == ALERT_START) {
             if (oneAlert._status == ALERT_RESOLVED) {
@@ -497,7 +484,7 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
                 oneAlert._description = pureAlert._description;
                 oneAlert._severity    = pureAlert._severity;
                 oneAlert._actions     = pureAlert._actions;
-                // element is the same -> no need to update the field
+
                 log_debug("RULE '%s' : OLD ALERT starts again for element '%s' with description '%s'",
                     oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
             }
@@ -507,16 +494,16 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
                 oneAlert._description = pureAlert._description;
                 oneAlert._severity    = pureAlert._severity;
                 oneAlert._actions     = pureAlert._actions;
+
                 log_debug("RULE '%s' : ALERT is ALREADY ongoing for element '%s' with description '%s'",
                     oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
             }
 
             // in both cases we need to send an alert
-            alert_to_send = oneAlert;
-            return 0;
+            alertToSend = oneAlert;
+            ret = 0;
         }
-
-        if (pureAlert._status == ALERT_RESOLVED) {
+        else if (pureAlert._status == ALERT_RESOLVED) {
             if (oneAlert._status != ALERT_RESOLVED) {
                 // Found alert is not resolved. -> resolve it
                 oneAlert._status      = pureAlert._status;
@@ -528,37 +515,29 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
                 log_debug("RULE '%s' : ALERT is resolved for element '%s' with description '%s'",
                     oneRuleAlerts.first->name().c_str(), oneAlert._element.c_str(), oneAlert._description.c_str());
 
-                alert_to_send = oneAlert;
-                return 0;
+                alertToSend = oneAlert;
+                ret = 0;
             }
-            else {
-                // alert was already resolved -> nothing to do
-                return -1;
-            }
+            // else {} // nothing to do, the alert was already resolved
         }
 
-        break; // the alert is processed (alertFound == true)
-    } // end of proceesing existing alerts
-
-    if (!alertFound) {
-        // this is completly new alert -> need to add it to the list
-        // but  only if alert is not resolved
-        // IPMVAL-2411 fix: enlarge to RESOLVED status (eg. any known status)
-        //             was: if (pureAlert._status != ALERT_RESOLVED)
-        if (PureAlert::isStatusKnown(pureAlert._status)) {
-            oneRuleAlerts.second.push_back(pureAlert);
-
-            log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'",
-                oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
-
-            alert_to_send = PureAlert(pureAlert);
-            return 0;
-        }
-        else {
-            // nothing to do, no need to add to the list resolved alerts
-            return -1;
-        }
+        return ret; // the alert was found & processed
     }
 
-    return -1;
+    // here, this is completly a new alert
+    // we need to add it to the list, but *only* if alert is not resolved
+    // IPMVAL-2411 fix: enlarge to RESOLVED status (eg. any known status)
+    //             was: if (pureAlert._status != ALERT_RESOLVED)
+    if (PureAlert::isStatusKnown(pureAlert._status)) {
+        oneRuleAlerts.second.push_back(pureAlert);
+
+        log_debug("RULE '%s' : ALERT is NEW for element '%s' with description '%s'",
+            oneRuleAlerts.first->name().c_str(), pureAlert._element.c_str(), pureAlert._description.c_str());
+
+        alertToSend = PureAlert(pureAlert);
+        ret = 0;
+    }
+    // else {} // nothing to do
+
+    return ret;
 }

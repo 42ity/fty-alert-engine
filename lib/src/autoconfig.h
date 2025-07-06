@@ -37,7 +37,7 @@ AutoConfigurationInfo getAssetInfoFromAutoconfig(const std::string& assetName);
 void autoconfig(zsock_t* pipe, void* args);
 
 ///
-///
+/// Autoconfig
 ///
 
 class Autoconfig
@@ -48,9 +48,8 @@ public:
         mlm_client_destroy(&_client);
     }
 
-    static std::string StateFile;         //!< pathfile where Autoconfig state is saved
-    static std::string StateFilePath;     //!< path to dir where Autoconfig state is saved
-    static std::string RuleFilePath;      //!< path to dir where Autoconfig rule templates are saved
+    static std::string StateFile;         //!< file to persist Autoconfig state
+    static std::string TemplatesDir;      //!< directory where rule templates are stored
     static std::string AlertEngineName;   //!< fty-alert-engine mlm client address
     static std::string AlertFlexibleName; //!< fty-alert-flexible mlm client address
 
@@ -64,7 +63,7 @@ private: // methods
     void onPoll();
 
     void configurableDevicesAdd(const std::string& assetName, const AutoConfigurationInfo& info);
-    void configurableDevicesRemove(const std::string& assetName);
+    void configurableDevicesDelete(const std::string& assetName);
 
     std::string getContainerEname(const std::string& assetName) const;
 
