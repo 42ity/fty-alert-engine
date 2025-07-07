@@ -48,8 +48,8 @@ static std::map<std::string, bool> evaluateMetrics;
 // list rules, by type and rule_class
 static void list_rules(mlm_client_t* client, const char* type, const char* rule_class, AlertConfiguration& ac)
 {
-    if (!type) type = "all";
-    if (!rule_class) rule_class = "";
+    if (!type) { type = "all"; }
+    if (!rule_class) { rule_class = ""; }
 
     bool typeIsOk = (streq(type, "all")
         || streq(type, "threshold")
@@ -62,8 +62,9 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
         zmsg_t* reply = zmsg_new();
         zmsg_addstr(reply, "ERROR");
         zmsg_addstr(reply, "INVALID_TYPE");
-        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
+        int r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
         zmsg_destroy(&reply);
+        if (r != 0) { log_error("mlm_client_sendto() %s failed", mlm_client_sender(client)); }
         return;
     }
 
@@ -96,8 +97,12 @@ static void list_rules(mlm_client_t* client, const char* type, const char* rule_
     }
     mtxAlertConfig.unlock();
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
+    // send reply
+    int r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
 }
 
 // list rules (version 2), with more filters defined in a unique json payload
@@ -111,8 +116,9 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
         zmsg_t* msg = zmsg_new(); \
         zmsg_addstr(msg, "ERROR"); \
         zmsg_addstr(msg, reason); \
-        mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &msg); \
+        int r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &msg); \
         zmsg_destroy(&msg); \
+        if (r != 0) { log_error("mlm_client_sendto() %s failed", mlm_client_sender(client)); } \
         return; \
     }
 
@@ -121,7 +127,7 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
         std::string rule_class;
         std::string asset_type;
         std::string asset_sub_type;
-        std::string in;
+        std::string in; // location
         std::string category; // list of, comma sep.
         std::vector<std::string> categoryTokens; // splitted
     };
@@ -397,8 +403,13 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
     }
     mtxAlertConfig.unlock();
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
+    // send reply
+    int r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
+
     #undef RETURN_REPLY_ERROR
 }
 
@@ -422,8 +433,12 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
     }
     mtxAlertConfig.unlock();
 
-    mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
+    // send reply
+    int r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
+    if (r != 0) {
+        log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
+    }
 }
 
 static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& alertsToSend, const std::string& rule_name)
@@ -541,7 +556,7 @@ static void add_rule(mlm_client_t* client, const char* jsonPayload, AlertConfigu
         }
     }
 
-    // send the reply
+    // send reply
     r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
@@ -616,7 +631,7 @@ static void update_rule(mlm_client_t* client, const char* jsonPayload, const cha
         }
     }
 
-    // send the reply
+    // send reply
     r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
@@ -661,6 +676,7 @@ static void delete_rules(mlm_client_t* client, const RuleMatcher& matcher, Alert
         }
     }
 
+    // send reply
     r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
@@ -702,6 +718,7 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
             log_warning("touch_rule:%s: result not handled (r: %d)", rule_name, r);
     }
 
+    // send reply
     r = mlm_client_sendto(client, mlm_client_sender(client), RULES_SUBJECT, NULL, 1000, &reply);
     zmsg_destroy(&reply);
     if (r != 0) {
@@ -767,7 +784,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
             // NOTE: Warranty rule is not processed by configurator which adds info about asset.
             // In order to send the current message to stream, the alert description is modified.
             if (rule->name() == "warranty") {
-                int days_elapsed = abs(static_cast<int>(metric.getValue())); // above/below the limit
+                int days_elapsed = std::abs(static_cast<int>(metric.getValue())); // above/below the limit
 
                 const std::map<std::string, std::string> dict = {
                     { "__name__", metric.getAssetName() },
@@ -809,7 +826,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
 
 static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, mlm_client_t* client)
 {
-    const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+    const uint64_t now{static_cast<uint64_t>(std::time(nullptr))};
 
     // process read metrics (fty_proto)
     for (const auto& it_m : metrics) {
