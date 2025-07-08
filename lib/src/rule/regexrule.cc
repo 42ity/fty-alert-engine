@@ -78,13 +78,13 @@ int RegexRule::fill(const cxxtools::SerializationInfo& si)
 /// returns 0 if ok (pureAlert initialized)
 int RegexRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
-    _metrics = {metricList.getLastMetric().getTopic()};
+    _metrics = {metricList.lastMetric().topic()};
 
     int r = LuaRule::evaluate(metricList, pureAlert);
     if (r == 0) { // ok
         // regexp rule is special, it has to generate alert for the asset
         // that trigger the evaluation
-        pureAlert._element = metricList.getLastMetric().getAssetName();
+        pureAlert._element = metricList.lastMetric().asset();
     }
     return r;
 }

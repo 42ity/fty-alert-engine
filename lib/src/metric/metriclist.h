@@ -44,9 +44,8 @@ public:
     void addMetric(const MetricInfo& metricInfo);
 
     /// Gets the last added metric
-    ///
     /// @return last added (or updated) metric
-    MetricInfo getLastMetric() const;
+    MetricInfo lastMetric() const;
 
     /// Gets metric by the topic
     /// @param[in] topic - topic we are looking for
@@ -54,8 +53,8 @@ public:
     ///         MetricInfo empty - if metric isn't found
     MetricInfo getMetricInfo(const std::string& topic) const;
 
-    /// Removes old metrics from the list
-    void removeOldMetrics();
+    /// Removes outdated metrics from the list
+    void cleanupOutdatedMetrics();
 
     /// Finds a value of the metric in the list and checks if it is still valid.
     ///
@@ -73,8 +72,8 @@ public:
     double find(const std::string& topic) const;
 
 private:
-    /// Metric list <topic, Metric>
-    std::map<std::string, MetricInfo> _knownMetrics;
+    /// Metric list <topic, MetricInfo>
+    std::map<std::string, MetricInfo> _metrics;
 
     /// Keep track of last inserted metric
     MetricInfo _lastInsertedMetric;

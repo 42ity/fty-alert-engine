@@ -742,11 +742,11 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
 
     std::string topic;
     // end_warranty_date is the only "regex rule", for optimization purpose, use some trick for those.
-    if (metric.getType() == "end_warranty_date") {
+    if (metric.type() == "end_warranty_date") {
         topic = "^end_warranty_date@.+";
     }
     else {
-        topic = metric.getTopic();
+        topic = metric.topic();
     }
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByTopic(topic);
@@ -779,15 +779,15 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
                 log_debug("### alert updated, nothing to send");
                 continue;
             }
-            alertToSend._ttl = metric.getTtl() * 3;
+            alertToSend._ttl = metric.ttl() * 3;
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset.
             // In order to send the current message to stream, the alert description is modified.
             if (rule->name() == "warranty") {
-                int days_elapsed = std::abs(static_cast<int>(metric.getValue())); // above/below the limit
+                int days_elapsed = std::abs(static_cast<int>(metric.value())); // above/below the limit
 
                 const std::map<std::string, std::string> dict = {
-                    { "__name__", metric.getAssetName() },
+                    { "__iname__", metric.asset() },
                     { "__days_elapsed__", std::to_string(days_elapsed) },
                     { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
                     { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
@@ -797,14 +797,14 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
                 if (ad.find("Warranty expired") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_is_expired__",
-                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__days_elapsed__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days_elapsed__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
                 else if (ad.find("Warranty expires in") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_expires_in__",
-                        "variables": { "asset": { "value": "", "assetLink": "__name__" }, "days": "__days_elapsed__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days_elapsed__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
@@ -862,7 +862,7 @@ static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, 
         metricList.addMetric(metric);
 
         // search if this metric is already evaluated and if this metric is evaluate
-        const std::string topic{metric.getTopic()};
+        const std::string topic{metric.topic()};
         auto it_ev = evaluateMetrics.find(topic);
         bool exist = it_ev != evaluateMetrics.end();
         bool evaluate = exist ? it_ev->second : false;
@@ -916,7 +916,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
         int64_t elapsed = zclock_mono() - timeLastPoll;
         if (elapsed >= timeout) {
             timeLastPoll = zclock_mono();
-            metricList.removeOldMetrics();
+            metricList.cleanupOutdatedMetrics();
 
             // get metrics and evaluate related alerts
             fty::shm::shmMetrics metrics;
@@ -983,6 +983,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
     }
 
     log_info("%s ended", name);
+
     zpoller_destroy(&poller);
     mlm_client_destroy(&client);
 }
@@ -1019,7 +1020,6 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
 
         if (which == NULL) {
             if (zpoller_terminated(poller) || zsys_interrupted) {
-                log_warning("%s: terminated", name);
                 break;
             }
         }

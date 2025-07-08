@@ -31,11 +31,11 @@ public:
     MetricInfo() = default;
 
     MetricInfo(
-        const std::string& asset,
-        const std::string& type,
+        const std::string& asset, // asset iname (ex.: ups-xxxx)
+        const std::string& type, // metric type (ex.: load.default)
         double value,
-        uint64_t timestamp,
-        uint64_t ttl
+        uint64_t timestamp, // sec
+        uint64_t ttl // sec
     )
         : _asset(asset) // asset iname
         , _type(type) // metric type
@@ -45,14 +45,14 @@ public:
     {}
 
     /// accessors
-    std::string getAssetName() const { return _asset; }
-    std::string getType() const { return _type; }
-    double getValue() const { return _value; }
-    uint64_t getTimestamp() const { return _timestamp; }
-    uint64_t getTtl() const { return _ttl; }
+    std::string asset() const { return _asset; }
+    std::string type() const { return _type; }
+    double value() const { return _value; }
+    uint64_t timestamp() const { return _timestamp; }
+    uint64_t ttl() const { return _ttl; }
 
-    /// topic name (built)
-    std::string getTopic() const
+    /// topic (built)
+    std::string topic() const
     {
         return _type + "@" + _asset; // <metric type>@<asset iname>
     }

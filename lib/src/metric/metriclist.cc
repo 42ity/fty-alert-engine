@@ -22,37 +22,36 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 void MetricList::addMetric(const MetricInfo& metricInfo)
 {
-    const std::string topic{metricInfo.getTopic()};
-    // try to find topic
-    auto it = _knownMetrics.find(topic);
-    if (it != _knownMetrics.cend()) {
-        it->second = metricInfo; // replace existing
+    const std::string topic{metricInfo.topic()};
+    const auto& it = _metrics.find(topic);
+    if (it != _metrics.cend()) {
+        it->second = metricInfo; // update
     }
     else {
-        _knownMetrics.emplace(topic, metricInfo); // new
+        _metrics[topic] = metricInfo; // new
     }
 
     _lastInsertedMetric = metricInfo;
 }
 
-MetricInfo MetricList::getLastMetric() const
+MetricInfo MetricList::lastMetric() const
 {
     return _lastInsertedMetric;
 }
 
 MetricInfo MetricList::getMetricInfo(const std::string& topic) const
 {
-    const auto& it = _knownMetrics.find(topic);
-    return (it != _knownMetrics.cend()) ? it->second : MetricInfo();
+    const auto& it = _metrics.find(topic);
+    return (it != _metrics.cend()) ? it->second : MetricInfo();
 }
 
-void MetricList::removeOldMetrics()
+void MetricList::cleanupOutdatedMetrics()
 {
     uint64_t now = static_cast<uint64_t>(::time(NULL));
 
-    for (auto it = _knownMetrics.cbegin(); it != _knownMetrics.cend(); /*empty*/) {
-        if (now > (it->second._timestamp + it->second._ttl)) {
-            _knownMetrics.erase(it++); // metric is outdated
+    for (auto it = _metrics.cbegin(); it != _metrics.cend(); /*empty*/) {
+        if ((now - it->second._timestamp) > it->second._ttl) {
+            _metrics.erase(it++); // erase outdated metric
         }
         else {
             ++it;
@@ -62,8 +61,8 @@ void MetricList::removeOldMetrics()
 
 double MetricList::findAndCheck(const std::string& topic) const
 {
-    const auto& it = _knownMetrics.find(topic);
-    if (it == _knownMetrics.cend()) {
+    const auto& it = _metrics.find(topic);
+    if (it == _metrics.cend()) {
         return std::nan("");
     }
 
@@ -77,6 +76,6 @@ double MetricList::findAndCheck(const std::string& topic) const
 
 double MetricList::find(const std::string& topic) const
 {
-    const auto& it = _knownMetrics.find(topic);
-    return (it != _knownMetrics.cend()) ? it->second._value : std::nan("");
+    const auto& it = _metrics.find(topic);
+    return (it != _metrics.cend()) ? it->second._value : std::nan("");
 }
