@@ -55,6 +55,7 @@ void Rule::save(const std::string& path, const std::string& name) const noexcept
 {
     try {
         const std::string full_name{path + name};
+        log_debug("save '%s'", full_name.c_str());
         JSON::writeToFile(full_name, _si, true);
     }
     catch (const std::exception& e) {
@@ -68,6 +69,6 @@ void Rule::save(const std::string& path, const std::string& name) const noexcept
 int Rule::remove(const std::string& path) const noexcept
 {
     const std::string full_name{path + _name + ".rule"};
-    log_debug("remove file '%s'", full_name.c_str());
+    log_debug("remove '%s'", full_name.c_str());
     return std::remove(full_name.c_str());
 }

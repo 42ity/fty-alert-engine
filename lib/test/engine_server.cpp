@@ -1168,7 +1168,6 @@ TEST_CASE("engine_server agent")
         REQUIRE(streq(fty_proto_rule(brecv), "rule_to_touch"));
         REQUIRE(streq(fty_proto_name(brecv), "assettouch"));
         REQUIRE(streq(fty_proto_state(brecv), "RESOLVED"));
-        REQUIRE(streq(fty_proto_severity(brecv), "CRITICAL"));
         fty_proto_destroy(&brecv);
         zmsg_destroy(&recv);
 
@@ -1367,6 +1366,7 @@ TEST_CASE("engine_server agent")
         zhash_destroy (&aux2);
         int rv = mlm_client_send (asset_producer, "row.@test2", &m);
         REQUIRE(rv == 0);
+        zstr_free(&foo);
 
         log_debug("wait for 'test2' asset processing...");
         // see Autoconfig::choosePollingInterval()

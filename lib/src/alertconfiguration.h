@@ -151,7 +151,13 @@ public:
         return (it != _metrics_alerts_map.cend()) ? it->second : std::vector<std::string>{};
     }
 
-private:
+private: /// methods
+    // new/update entry for _metrics_alerts_map
+    void registerRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename);
+    // remove entry for _metrics_alerts_map
+    void unregisterRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename);
+
+private: /// members
     // map to retrieve specific alert by rulename
     A _alerts_map;
 

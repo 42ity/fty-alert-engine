@@ -669,7 +669,7 @@ static void delete_rules(mlm_client_t* client, const RuleMatcher& matcher, Alert
         zmsg_addstr(reply, "NO_MATCH");
     }
     else {
-        log_debug("deleted rule");
+        log_debug("rules deleted (%zu)", rulesDeleted.size());
         zmsg_addstr(reply, "OK");
         for (const auto& rulename : rulesDeleted) {
             zmsg_addstr(reply, rulename.c_str());
@@ -709,7 +709,7 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
             zmsg_addstr(reply, "NOT_FOUND");
             break;
         case 0:
-            // rule was touched, send a reply back
+            // rule has been touched, send a reply back
             log_debug("touch_rule:%s: ok", rule_name);
             zmsg_addstr(reply, "OK");
             sendAlerts = true;
@@ -755,7 +755,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
 
     for (const auto& rulename : rules_of_metric) {
         if (ac.count(rulename) == 0) {
-            log_error("Rule %s must exist but was not found", rulename.c_str());
+            log_error("Rule '%s' must exist but was not found (topic: %s)", rulename.c_str(), topic.c_str());
             continue;
         }
 
