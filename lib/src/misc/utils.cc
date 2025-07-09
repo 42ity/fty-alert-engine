@@ -37,7 +37,6 @@ std::map<std::string, std::string> zhash_to_map(zhash_t* hash)
             }
         }
     }
-
     return map;
 }
 

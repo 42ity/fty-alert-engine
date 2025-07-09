@@ -92,13 +92,13 @@ int main(int argc, char** argv)
 
     log_debug ("%s starting...", ENGINE_AGENT_NAME);
 
-    // mailbox
+    // alert-engine mailbox
     zactor_t* mailbox_actor = zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME)));
     zstr_sendx(mailbox_actor, "CONFIG", RULES_PATH, NULL);
     zstr_sendx(mailbox_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(mailbox_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
-    // stream
+    // alert-engine stream
     zactor_t* stream_actor = zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME_STREAM)));
     zstr_sendx(stream_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(stream_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
@@ -107,12 +107,12 @@ int main(int argc, char** argv)
     zactor_t* autoconf_actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_AGENT_NAME)));
     zstr_sendx(autoconf_actor, "CONFIG", RULES_PATH, NULL); // persist. state file
     zstr_sendx(autoconf_actor, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(autoconf_actor, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); // rule template
+    zstr_sendx(autoconf_actor, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); // rule templates
     zstr_sendx(autoconf_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(autoconf_actor, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
     zstr_sendx(autoconf_actor, "ALERT_FLEXIBLE_NAME", "fty-alert-flexible", NULL);
 
-    // actions
+    // action
     zactor_t* action_actor = zactor_new(fty_alert_actions, static_cast<void*>(const_cast<char*>(ACTIONS_AGENT_NAME)));
     zstr_sendx(action_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(action_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
