@@ -47,7 +47,7 @@ public:
     std::string              _rule_class;
     uint64_t                 _ttl{0};
 
-    PureAlert() : _timestamp{0} {}
+    PureAlert() = default;
 
     PureAlert(
         const std::string& status,

@@ -149,9 +149,8 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
         if (status == outcome::RULE_RESULT_OK) {
             log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
             // When alert is resolved, it doesn't have new severity
-            const std::string description{"The alarm is now resolved"};
-            const std::string severity{"OK"};
-            pureAlert = PureAlert(ALERT_RESOLVED, now, description, _element, severity, {});
+            const std::string description{"The alarm is resolved"};
+            pureAlert = PureAlert(ALERT_RESOLVED, now, description, _element, "", {});
             //pureAlert.print();
             evalOK = true;
         }

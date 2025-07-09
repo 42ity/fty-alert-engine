@@ -260,7 +260,7 @@ int AlertConfiguration::touchRule(const std::string& rulename, std::vector<PureA
     // resolve alerts to send
     for (auto& alert : it->second.second) {
         alert._status = ALERT_RESOLVED;
-        alert._severity = "OK";
+        alert._severity = "";
         alert._description = "Rule touched";
         alertsToSend.push_back(alert);
     }
@@ -348,7 +348,7 @@ int AlertConfiguration::updateRule(
     // resolve found alerts; put them into the list of alerts that changed
     for (auto& alert : oldrule->second.second) {
         alert._status = ALERT_RESOLVED;
-        alert._severity = "OK";
+        alert._severity = "";
         alert._description = "Rule updated";
         alertsToSend.push_back(alert);
     }
@@ -397,7 +397,7 @@ int AlertConfiguration::deleteRules(
             // put them in the list of alerts that have changed
             for (auto& alert : it->second.second) {
                 alert._status = ALERT_RESOLVED;
-                alert._severity = "OK";
+                alert._severity = "";
                 alert._description = "Rule deleted";
                 alertsToSend[rulename].push_back(alert);
             }
