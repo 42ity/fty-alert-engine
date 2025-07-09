@@ -39,10 +39,9 @@ std::string AutoConfigurationInfo::getAttr(const std::string& attrName, const st
 // dbg, dump with filter on ext. attributes
 std::string AutoConfigurationInfo::dump(const std::vector<std::string>& attrFilter) const
 {
-    if (empty()) { return "<empty>"; } // not initialized
-
     std::ostringstream oss;
-    oss << type << "(" << subtype << ")";
+    oss << "type(" << type << ")"
+        << ",subtype(" << subtype << ")";
 
     for (const auto& it : attributes) {
         const std::string key{it.first};
@@ -57,20 +56,21 @@ std::string AutoConfigurationInfo::dump(const std::vector<std::string>& attrFilt
             if (!found) { continue; }
         }
 
-        oss << "," << key << "=" << value;
+        oss << ":" << key << "=" << value;
     }
     return oss.str();
 }
 
-// eq. w/ fty_proto object
+// eq. w/ fty_proto_t object
 bool AutoConfigurationInfo::operator == (fty_proto_t* proto) const
 {
-    bool b = (type == fty_proto_aux_string(proto, FTY_PROTO_ASSET_TYPE, ""))
-             && (subtype == fty_proto_aux_string(proto, FTY_PROTO_ASSET_SUBTYPE, ""));
-    if (!b) { return false; }
+    if (type != fty_proto_aux_string(proto, FTY_PROTO_ASSET_TYPE, ""))
+        { return false; }
+    if (subtype != fty_proto_aux_string(proto, FTY_PROTO_ASSET_SUBTYPE, ""))
+        { return false; }
 
     // test all ext attributes
-    std::map<std::string, std::string> msg_attributes = utils::zhash_to_map(fty_proto_ext(proto));
-    return attributes.size() == msg_attributes.size()
-           && std::equal(attributes.begin(), attributes.end(), msg_attributes.begin());
+    const auto msg_atts= utils::zhash_to_map(fty_proto_ext(proto));
+    return attributes.size() == msg_atts.size()
+           && std::equal(attributes.begin(), attributes.end(), msg_atts.begin());
 }

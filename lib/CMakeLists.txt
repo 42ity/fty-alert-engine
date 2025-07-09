@@ -34,6 +34,7 @@ etn_test_target(${PROJECT_NAME}-static
         test/json.cpp
         test/outcome.cpp
         test/audit.cpp
+        test/autoconfig_info.cpp
         test/autoconfig.cpp
         test/templateruleconfigurator.cpp
         test/alertconfiguration.cpp
