@@ -136,7 +136,7 @@ peer using MAILBOX SEND.
 where
 * '/' indicates a multipart frame message
 * 'type' MUST be copied from the request
-* 'ruleclass' MUST be copied from the request (empty string if it was empty)
+* 'jsonPayload' copied from the request
 * 'rule\-1',...'rule\-n' MUST be JSONs corresponding to rules of given type and rule class
 * 'reason' is string detailing reason for error. Possible values are: INVALID\_TYPE
 * subject of the message MUST be 'rfc-evaluator-rules'
