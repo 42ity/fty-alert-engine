@@ -42,17 +42,10 @@ int RegexRule::fill(const cxxtools::SerializationInfo& si)
     }
     _rex_str = JSON::getString(target);
 
-    /// build zrex object
-    ///_rex = zrex_new(_rex_str.c_str()); // TODO: what if regexp is not correct?
-    ///if (!_rex) {
-    ///    log_error("zrex_new() failed (rex: %s)", _rex_str.c_str());
-    ///    return 1; // not recognized
-    ///}
-
     log_debug("Rule class: %s, root: %s)", clazz().c_str(), rootName.c_str());
 
     _name = JSON::getStringUtf8(JSON::findMember(root, "rule_name"));
-    _element = ""; // no _element (rex runtime)
+    _element = ""; // empty _element (set runtime)
     _rule_class = JSON::getString(JSON::findMember(root, "rule_class"));
 
     // outcomes

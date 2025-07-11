@@ -106,8 +106,10 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
         && !checkThreshold(LW_TOKEN, true )
     ) {
         // if we are here -> no alert was detected (TODO actions)
-        const std::string descr{"ok"};
-        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.timestamp(), descr, _element, _rule_class);
+        const std::string description{"The alarm is resolved"};
+        const std::string severity{"OK"};
+        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.timestamp(), description, _element, _rule_class);
+        pureAlert._severity = severity;
     }
 
     log_audit_alarm(lastMetric, pureAlert);

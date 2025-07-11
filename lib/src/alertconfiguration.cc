@@ -262,7 +262,7 @@ int AlertConfiguration::touchRule(const std::string& rulename, std::vector<PureA
     // resolve alerts to send
     for (auto& alert : it->second.second) {
         alert._status = ALERT_RESOLVED;
-        alert._severity = "";
+        alert._severity = "OK";
         alert._description = "Rule touched";
         alertsToSend.push_back(alert);
     }
@@ -350,7 +350,7 @@ int AlertConfiguration::updateRule(
     // resolve found alerts; put them into the list of alerts that changed
     for (auto& alert : oldrule->second.second) {
         alert._status = ALERT_RESOLVED;
-        alert._severity = "";
+        alert._severity = "OK";
         alert._description = "Rule updated";
         alertsToSend.push_back(alert);
     }
@@ -379,6 +379,16 @@ int AlertConfiguration::deleteRules(
     std::vector<std::string>& rulesDeleted
 )
 {
+#if 0
+    {
+        log_debug("== deleteRules, _alerts_map (size: %zu):", _alerts_map.size());
+        for (const auto& it : _alerts_map) {
+            std::string s = it.first + ": " + it.second.first->name() + "/" + it.second.first->element();
+            log_debug("== %s", s.c_str());
+        }
+    }
+#endif
+
     size_t errCnt{0};
 
     // clean up what we can without touching the iterator
@@ -387,7 +397,7 @@ int AlertConfiguration::deleteRules(
         if (matcher.match(it->second.first)) {
             const std::string rulename{it->second.first->name()};
 
-            // delete from disk
+            // delete rule from disk
             int r = it->second.first->remove(getPersistencePath());
             if (r != 0) {
                 log_error("Failed to remove file for rule %s", rulename.c_str());
@@ -399,7 +409,7 @@ int AlertConfiguration::deleteRules(
             // put them in the list of alerts that have changed
             for (auto& alert : it->second.second) {
                 alert._status = ALERT_RESOLVED;
-                alert._severity = "";
+                alert._severity = "OK";
                 alert._description = "Rule deleted";
                 alertsToSend[rulename].push_back(alert);
             }
@@ -479,7 +489,7 @@ int AlertConfiguration::updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& 
             // else {} // nop (alert is resolved)
         }
 
-        return ret; // alert found & has been processed
+        return ret; // alert found & processed
     }
 
     // here, this is a new alert

@@ -473,7 +473,7 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
         if (msg) {
             const std::string topic{fullRuleName + "/" + alert._severity + "@" + alert._element};
             mlm_client_send(client, topic.c_str(), &msg);
-            log_info("Send Alert %s/%s (severity: %s)", fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str());
+            log_info("Send Alert %s/%s/%s (element: %s)", fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str(), alert._element.c_str());
         }
         else {
             log_error("Encode alert failed (%s)", fullRuleName.c_str());
@@ -740,14 +740,12 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
     // Go through all known rules concerned by the metric
     // try to evaluate them
 
-    std::string topic;
-    // end_warranty_date is the only "regex rule", for optimization purpose, use some trick for those.
-    if (metric.type() == "end_warranty_date") {
-        topic = "^end_warranty_date@.+";
-    }
-    else {
-        topic = metric.topic();
-    }
+    // end_warranty_date is the only "regex rule" that, for optimization purpose, use some trick for those.
+    const std::string topic{
+        (metric.type() == "end_warranty_date")
+        ? "^end_warranty_date@.+"
+        : metric.topic()
+    };
 
     const std::vector<std::string> rules_of_metric = ac.getRulesByTopic(topic);
 
@@ -776,7 +774,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
             PureAlert alertToSend;
             r = ac.updateAlert(it_ac, pureAlert, alertToSend);
             if (r != 0) {
-                log_debug("### alert updated, nothing to send");
+                log_debug("### rule '%s' alert updated, nothing to send", rule->name().c_str());
                 continue;
             }
             alertToSend._ttl = metric.ttl() * 3;
@@ -784,14 +782,14 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
             // NOTE: Warranty rule is not processed by configurator which adds info about asset.
             // In order to send the current message to stream, the alert description is modified.
             if (rule->name() == "warranty") {
-                // days above/below the limit
+                // days above/below the warranty date
                 int days = std::abs(static_cast<int>(metric.value()));
 
                 const std::map<std::string, std::string> dict = {
                     { "__iname__", metric.asset() },
                     { "__days__", std::to_string(days) },
-                    { "__TRLua_is_expired__", "TRANSLATE_LUA(Warranty on {{asset}} expired {{days}} days ago.)" },
-                    { "__TRLua_expires_in__", "TRANSLATE_LUA(Warranty on {{asset}} expires in less than {{days}} days.)" },
+                    { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
+                    { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
                 };
 
                 const std::string aTS_d{alertToSend._description};
@@ -817,7 +815,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
             send_alerts(client, {alertToSend}, rule->name());
         }
         catch (const std::exception& e) {
-            log_error("Evaluation failed (%s, e: '%s')", rule->name().c_str(), e.what());
+            log_error("Rule evaluation failed (%s, e: '%s')", rule->name().c_str(), e.what());
         }
     }
 
@@ -884,7 +882,7 @@ static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, 
 
 void fty_alert_engine_stream(zsock_t* pipe, void* args)
 {
-    char* name = static_cast<char*>(args);
+    const char* name = static_cast<char*>(args);
     if (!name) {
         log_error("args is NULL");
         return;
@@ -944,7 +942,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             bool term = false;
 
             if (streq(cmd, "$TERM")) {
-                log_trace("%s: $TERM", name);
+                log_debug("%s: $TERM", name);
                 term = true;
             }
             else if (streq(cmd, "CONNECT")) {
@@ -991,7 +989,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
 
 void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
 {
-    char* name = static_cast<char*>(args);
+    const char* name = static_cast<char*>(args);
     if (!name) {
         log_error("args is NULL");
         return;
@@ -1088,7 +1086,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 log_debug("%s: MAILBOX (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
 
                 if (!cmd) {
-                    log_error("%s: Received unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
+                    log_error("%s: Rx unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
                 }
                 else if (streq(cmd, "LIST")) {
                     // request: LIST/type/rule_class
@@ -1159,7 +1157,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 zstr_free(&cmd);
             }
             else {
-                log_error("%s: Unexcepted mailbox message received (sender: '%s', subject: '%s')", name, sender, subject);
+                log_error("%s: Rx unexcepted message (sender: '%s', subject: '%s')", name, sender, subject);
             }
 
             zmsg_destroy(&zmsg);

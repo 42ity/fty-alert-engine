@@ -89,8 +89,8 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
         return;
     }
 
-    log_info("%s started", name);
     zsock_signal(pipe, 0);
+    log_info("%s started", name);
 
     int64_t timestamp = 0;
 
@@ -119,7 +119,7 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                 log_error("%s: cmd is missing", name);
             }
             else if (streq(cmd, "$TERM")) {
-                log_debug("%s: $TERM received", name);
+                log_debug("%s: $TERM", name);
                 term = true;
             }
             else if (streq(cmd, "CONNECT")) {
@@ -633,8 +633,10 @@ static std::mutex gAgentPtrMutex;
 
 void autoconfig(zsock_t *pipe, void *args)
 {
-    if (!args)
-        { log_error("args is NULL"); return; }
+    if (!args) {
+        log_error("args is NULL");
+        return;
+    }
 
     const std::string name{static_cast<char*>(args)};
     log_info("%s starting", name.c_str());
