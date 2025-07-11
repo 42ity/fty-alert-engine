@@ -42,12 +42,12 @@ int RegexRule::fill(const cxxtools::SerializationInfo& si)
     }
     _rex_str = JSON::getString(target);
 
-    // build zrex object
-    _rex = zrex_new(_rex_str.c_str()); // TODO: what if regexp is not correct?
-    if (!_rex) {
-        log_error("zrex_new() failed (rex: %s)", _rex_str.c_str());
-        return 1; // not recognized
-    }
+    /// build zrex object
+    ///_rex = zrex_new(_rex_str.c_str()); // TODO: what if regexp is not correct?
+    ///if (!_rex) {
+    ///    log_error("zrex_new() failed (rex: %s)", _rex_str.c_str());
+    ///    return 1; // not recognized
+    ///}
 
     log_debug("Rule class: %s, root: %s)", clazz().c_str(), rootName.c_str());
 
@@ -82,16 +82,11 @@ int RegexRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 
     int r = LuaRule::evaluate(metricList, pureAlert);
     if (r == 0) { // ok
-        // regexp rule is special, it has to generate alert for the asset
-        // that trigger the evaluation
+        // regexp rule is special, it has to generate alert
+        // for the asset that trigger the evaluation
         pureAlert._element = metricList.lastMetric().asset();
     }
     return r;
-}
-
-bool RegexRule::isTopicInteresting(const std::string& topic) const
-{
-    return _rex ? zrex_matches(_rex, topic.c_str()) : false;
 }
 
 std::vector<std::string> RegexRule::getNeededTopics() const

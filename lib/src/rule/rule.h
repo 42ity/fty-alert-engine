@@ -57,11 +57,6 @@ public: // virtual methods
     ///         non 0 if there were some errors during the evaluation
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert) = 0;
 
-    /// Checks if topic is necessary for rule evaluation
-    /// @param[in] topic - topic to check
-    /// @return true/false
-    virtual bool isTopicInteresting(const std::string& topic) const;
-
     /// Returns the topics that are necessary for rule evaluation
     /// @return a vector of topics
     virtual std::vector<std::string> getNeededTopics() const;

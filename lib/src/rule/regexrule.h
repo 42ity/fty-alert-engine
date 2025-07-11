@@ -23,13 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #pragma once
 
 #include "luarule.h"
-#include <czmq.h> //zrex
+///#include <czmq.h> //zrex
 
 class RegexRule final : public LuaRule
 {
 public:
     RegexRule() {}
-    ~RegexRule() { zrex_destroy(&_rex); }
+    ///~RegexRule() { zrex_destroy(&_rex); }
 
     virtual std::string whoami() const { return "pattern"; }
     virtual std::string clazz() const { return LuaRule::clazz() + "/RegexRule"; }
@@ -39,11 +39,9 @@ public:
     /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
-    virtual bool isTopicInteresting(const std::string& topic) const;
-
     virtual std::vector<std::string> getNeededTopics() const;
 
 private:
-    zrex_t* _rex{nullptr};
+    ///zrex_t* _rex{nullptr};
     std::string _rex_str;
 };

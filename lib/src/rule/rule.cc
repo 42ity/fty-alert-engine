@@ -22,15 +22,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <fty_common_json.h>
 #include <fty_log.h>
 
-bool Rule::isTopicInteresting(const std::string& topic) const
-{
-    for (const auto& it : _metrics) {
-        if (it == topic)
-            { return true; }
-    }
-    return false;
-}
-
 std::vector<std::string> Rule::getNeededTopics() const
 {
     return _metrics;
