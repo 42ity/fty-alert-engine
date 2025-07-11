@@ -54,7 +54,7 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
         // else do nothing (unrecognized)
         #define TRY_RULE_FILL(newRule) \
         { \
-            std::unique_ptr<Rule> tmpRule{newRule}; \
+            RulePtr tmpRule{newRule}; \
             switch (tmpRule->fill(si)) { \
                 case 0: \
                     if (tmpRule->name().empty()) /*secure*/ \
@@ -72,6 +72,8 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
         TRY_RULE_FILL(new ThresholdRuleComplex());
         TRY_RULE_FILL(new NormalRule());
         TRY_RULE_FILL(new RegexRule());
+
+        #undef TRY_RULE_FILL
 
         // unrecognized rule
         log_error("readRule: rule not recognized");
@@ -145,7 +147,7 @@ std::set<std::string> AlertConfiguration::readConfiguration()
                 const std::string json{utils::readFile(fn.path())};
                 int r = readRule(json, rule);
                 if (r != 0) { // rule can't be read/recognized
-                    log_warning("'%s' ignored (r = %d)", filename.c_str(), r);
+                    log_warning("'%s' ignored (r: %d)", filename.c_str(), r);
                     continue;
                 }
             }
@@ -388,7 +390,7 @@ int AlertConfiguration::deleteRules(
             // delete from disk
             int r = it->second.first->remove(getPersistencePath());
             if (r != 0) {
-                log_error("Error while removing rule %s", rulename.c_str());
+                log_error("Failed to remove file for rule %s", rulename.c_str());
                 errCnt++;
                 continue;
             }

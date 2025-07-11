@@ -784,32 +784,33 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
             // NOTE: Warranty rule is not processed by configurator which adds info about asset.
             // In order to send the current message to stream, the alert description is modified.
             if (rule->name() == "warranty") {
-                int days_elapsed = std::abs(static_cast<int>(metric.value())); // above/below the limit
+                // days above/below the limit
+                int days = std::abs(static_cast<int>(metric.value()));
 
                 const std::map<std::string, std::string> dict = {
                     { "__iname__", metric.asset() },
-                    { "__days_elapsed__", std::to_string(days_elapsed) },
-                    { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
-                    { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
+                    { "__days__", std::to_string(days) },
+                    { "__TRLua_is_expired__", "TRANSLATE_LUA(Warranty on {{asset}} expired {{days}} days ago.)" },
+                    { "__TRLua_expires_in__", "TRANSLATE_LUA(Warranty on {{asset}} expires in less than {{days}} days.)" },
                 };
 
-                const std::string ad = alertToSend._description;
-                if (ad.find("Warranty expired") != std::string::npos) {
+                const std::string aTS_d{alertToSend._description};
+                if (aTS_d.find("Warranty expired") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_is_expired__",
-                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days_elapsed__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
-                else if (ad.find("Warranty expires in") != std::string::npos) {
+                else if (aTS_d.find("Warranty expires in") != std::string::npos) {
                     const std::string desc = R"xx({
                         "key": "__TRLua_expires_in__",
-                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days_elapsed__" }
+                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days__" }
                     })xx";
                     alertToSend._description = utils::replaceTokens(desc, dict);
                 }
                 else {
-                    log_error("Unable to identify Warranty alert description (description: %s)", ad.c_str());
+                    log_error("Unable to identify Warranty alert description (descr: %s)", aTS_d.c_str());
                 }
             }
 
@@ -943,7 +944,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
             bool term = false;
 
             if (streq(cmd, "$TERM")) {
-                log_debug("%s: $TERM", name);
+                log_trace("%s: $TERM", name);
                 term = true;
             }
             else if (streq(cmd, "CONNECT")) {
@@ -1083,79 +1084,79 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             // According RFC we handle messages with the subject RULES_SUBJECT
 
             if (streq(subject, RULES_SUBJECT)) {
-                char* command = zmsg_popstr(zmsg);
-                log_debug("%s: MAILBOX (sender: %s, subject: %s, cmd: %s)", name, sender, subject, command);
+                char* cmd = zmsg_popstr(zmsg);
+                log_debug("%s: MAILBOX (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
 
-                if (!command) {
-                    log_error("%s: Received unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, command);
+                if (!cmd) {
+                    log_error("%s: Received unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
                 }
-                else if (streq(command, "LIST")) {
+                else if (streq(cmd, "LIST")) {
                     // request: LIST/type/rule_class
                     // reply: LIST/type/rule_class/rule1/.../ruleN
                     // reply: ERROR/reason
                     char* param0 = zmsg_popstr(zmsg);
                     char* param1 = zmsg_popstr(zmsg);
-                    log_debug("%s: Requested %s '%s' '%s'", name, command, param0, param1);
+                    log_debug("%s: Requested %s '%s' '%s'", name, cmd, param0, param1);
                     list_rules(client, param0, param1, alertConfiguration);
                     zstr_free(&param0);
                     zstr_free(&param1);
                 }
-                else if (streq(command, COMMAND_LIST2)) { // LIST (version 2)
+                else if (streq(cmd, COMMAND_LIST2)) { // LIST (version 2)
                     // request: <command>/jsonPayload
                     // reply: <command>/jsonPayload/rule1/.../ruleN
                     // reply: ERROR/reason
                     char* param0 = zmsg_popstr(zmsg);
-                    log_debug("%s: Requested %s", name, command);
+                    log_debug("%s: Requested %s", name, cmd);
                     list_rules2(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
-                else if (streq(command, "GET")) {
+                else if (streq(cmd, "GET")) {
                     char* param0 = zmsg_popstr(zmsg);
-                    log_debug("%s: Requested %s '%s'", name, command, param0);
+                    log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     get_rule(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
-                else if (streq(command, "ADD")) {
+                else if (streq(cmd, "ADD")) {
                     char* param0 = zmsg_popstr(zmsg);
                     if (zmsg_size(zmsg) == 0) {
                         // ADD/json
-                        log_debug("%s: Requested %s", name, command);
+                        log_debug("%s: Requested %s", name, cmd);
                         add_rule(client, param0, alertConfiguration);
                     }
                     else {
                         // ADD/json/old_name
                         char* param1 = zmsg_popstr(zmsg);
-                        log_debug("%s: Requested %s w/ oldName '%s'", name, command, param1);
+                        log_debug("%s: Requested %s w/ oldName '%s'", name, cmd, param1);
                         update_rule(client, param0, param1, alertConfiguration);
                         zstr_free(&param1);
                     }
                     zstr_free(&param0);
                 }
-                else if (streq(command, "TOUCH")) {
+                else if (streq(cmd, "TOUCH")) {
                     char* param0 = zmsg_popstr(zmsg);
-                    log_debug("%s: Requested %s '%s'", name, command, param0);
+                    log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     touch_rule(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
-                else if (streq(command, "DELETE")) {
+                else if (streq(cmd, "DELETE")) {
                     char* param0 = zmsg_popstr(zmsg);
-                    log_debug("%s: Requested %s '%s'", name, command, param0);
+                    log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     RuleNameMatcher matcher(param0 ? param0 : "");
                     delete_rules(client, matcher, alertConfiguration);
                     zstr_free(&param0);
                 }
-                else if (streq(command, "DELETE_ELEMENT")) {
+                else if (streq(cmd, "DELETE_ELEMENT")) {
                     char* param0 = zmsg_popstr(zmsg);
-                    log_debug("%s: Requested %s '%s'", name, command, param0);
+                    log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     RuleElementMatcher matcher(param0 ? param0 : "");
                     delete_rules(client, matcher, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else {
-                    log_error("%s: Received unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, command);
+                    log_error("%s: Rx unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
                 }
 
-                zstr_free(&command);
+                zstr_free(&cmd);
             }
             else {
                 log_error("%s: Unexcepted mailbox message received (sender: '%s', subject: '%s')", name, sender, subject);

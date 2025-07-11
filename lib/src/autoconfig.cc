@@ -450,7 +450,7 @@ void Autoconfig::choosePollingInterval()
         }
     }
 
-    // timeout in ms (-1 as infinite)
+    // timeout in ms (-1 as infinite poll)
     _timeout = fast ? 5000 : (slow ? 60000 : -1);
 }
 
@@ -488,7 +488,7 @@ void Autoconfig::saveState()
     const std::string stateFile{Autoconfig::StateFile};
 
     if (stateFile.empty()) {
-        return; //nop
+        return; // nop
     }
 
     try {
@@ -525,7 +525,7 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     if (!correlation_id) { correlation_id = ""; }
     if (!filter) { filter = "all"; }
 
-    log_debug("LIST templates (filter='%s', correlation_id='%s')", filter, correlation_id);
+    log_debug("LIST templates (filter: '%s', correlation_id: '%s')", filter, correlation_id);
 
     zmsg_t* reply = zmsg_new();
     zmsg_addstr(reply, correlation_id);
@@ -627,7 +627,7 @@ void Autoconfig::run(zsock_t* pipe, const std::string& name)
     saveState();
 }
 
-// external Autoconfig agent object ref.
+// globals Autoconfig agent object ref. (see getAssetInfoFromAutoconfig())
 static Autoconfig* gAgentPtr(nullptr);
 static std::mutex gAgentPtrMutex;
 
