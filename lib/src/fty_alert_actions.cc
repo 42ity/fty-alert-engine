@@ -1013,11 +1013,11 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
         zstr_free(&pattern);
         zstr_free(&stream);
     }
-    else if (streq(cmd, "ASKFORASSETS")) {
+    else if (streq(cmd, "ASSETS_REPUBLISH")) {
         const char* subject = "REPUBLISH";
         log_debug("send %s/%s", FTY_ASSET_AGENT_ADDRESS, subject);
         zmsg_t* m = zmsg_new(); // empty msg means '$all'
-        int r = mlm_client_sendto(self->client, FTY_ASSET_AGENT_ADDRESS, subject, NULL, 5000, &m);
+        int r = mlm_client_sendto(self->client, FTY_ASSET_AGENT_ADDRESS, subject, NULL, 1000, &m);
         zmsg_destroy(&m);
         // no response expected
         if (r != 0) {

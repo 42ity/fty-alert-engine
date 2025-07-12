@@ -214,7 +214,7 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     onAssetStream(proto);
                 }
                 else {
-                    log_warning("Recv unexpected stream msg (id=%d, subject='%s', sender='%s')", fty_proto_id(proto), subject, sender);
+                    log_warning("Rx unexpected stream msg (id=%d, subject='%s', sender='%s')", fty_proto_id(proto), subject, sender);
                 }
                 fty_proto_destroy(&proto);
             }
@@ -233,7 +233,7 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     // see TemplateRuleConfigurator::sendAddRule'), Autoconfig::onAssetStream()
                 }
                 else {
-                    log_warning("Recv unexpected mailbox msg (cmd='%s', subject='%s', sender='%s')", cmd, subject, sender);
+                    log_warning("Rx unexpected mailbox msg (cmd='%s', subject='%s', sender='%s')", cmd, subject, sender);
                     if (zmsg_size(msg) != 0) { zmsg_print(msg); }
                 }
                 zstr_free(&cmd);
@@ -268,7 +268,7 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
     //log_debug("== onAssetStream"); fty_proto_print(proto);
 
     const std::string operation{fty_proto_operation(proto)};
-    const std::string assetName{fty_proto_name(proto)};
+    const std::string assetName{fty_proto_name(proto)}; // iname
     const std::string status{fty_proto_aux_string(proto, FTY_PROTO_ASSET_STATUS, "active")};
 
     if (operation == FTY_PROTO_ASSET_OP_INVENTORY) {
@@ -377,7 +377,7 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
 
 void Autoconfig::onPoll()
 {
-    bool save = false;
+    bool save{false};
 
     {
         ConfigurableDevices_GUARD;
@@ -393,7 +393,7 @@ void Autoconfig::onPoll()
             }
 
             bool device_configured{false};
-            if (TRC.isApplicable(it.second))
+            if (TRC.isApplicable(it.second)) // rule(s) match the device/asset
             {
                 std::string ename_la; //empty
                 const auto iname_la = it.second.getAttr("logical_asset");

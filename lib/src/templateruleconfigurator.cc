@@ -232,7 +232,7 @@ bool TemplateRuleConfigurator::isModelOk(const std::string& model, const std::st
     return !model.empty() && (templat.find(model) != std::string::npos);
 }
 
-/// /!\ NOTICE: related to template file names from template dir
+/// /!\ NOTICE: related to template file names from templates dir
 bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info)
 {
     return checkTemplate(info);
@@ -318,7 +318,7 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
         if ((filename == ".") || (filename == "..")) { continue; }
 
         try {
-            // read/register the template rule from the file
+            // read/register the template rule from file
             const std::string buf{utils::readFile(fn.path())};
             if (!buf.empty()) { // readable
                 templates.push_back(std::make_pair(filename, buf));
@@ -328,6 +328,7 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
             log_error("Load failed: %s (e: %s)", fn.path().c_str(), e.what());
         }
     }
+
     return templates;
 }
 
