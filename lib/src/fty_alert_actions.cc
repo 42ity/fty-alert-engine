@@ -283,14 +283,14 @@ static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, con
     }
 
     const char* subject = NULL;
-    const char* keyContact = NULL; // ext. key
+    const char* contactKey = NULL; // contact ext. key
     if (streq(action, EMAIL_ACTION)) {
         subject = "SENDMAIL_ALERT";
-        keyContact = "contact_email";
+        contactKey = "contact_email";
     }
     else if (streq(action, SMS_ACTION)) {
         subject = "SENDSMS_ALERT";
-        keyContact = "contact_sms";
+        contactKey = "contact_sms";
     }
     else {
         log_error("Unknown action (%s)", action);
@@ -298,9 +298,9 @@ static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, con
     }
 
     // get contact value
-    const char* contact = fty_proto_ext_string(alert_item->related_asset, keyContact, NULL);
+    const char* contact = fty_proto_ext_string(alert_item->related_asset, contactKey, NULL);
     if (!(contact && (*contact))) {
-        log_debug("%s: %s %s is empty (no sending)", subject, fty_proto_name(alert_item->alert_msg), keyContact);
+        log_debug("%s: %s %s is empty (no sending)", subject, fty_proto_name(alert_item->alert_msg), contactKey);
         return;
     }
 
@@ -330,14 +330,15 @@ static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, con
     const char* address = (self->integration_test) ? FTY_EMAIL_AGENT_ADDRESS_TEST : FTY_EMAIL_AGENT_ADDRESS;
 
     log_info("request %s/%s (rule: %s, contact: %s)", address, subject, fty_proto_rule(alert_item->alert_msg), contact);
+    log_debug("extname: %s, priority: %s", extname, priority);
     //zmsg_print(msg);
 
     // send request
-    const int timeout_ms = 5000;
-    int r = mlm_client_sendto(self->requestreply_client, address, subject, NULL, timeout_ms, &msg);
+    const int timeout = 5000; //ms
+    int r = mlm_client_sendto(self->requestreply_client, address, subject, NULL, timeout, &msg);
     zmsg_destroy(&msg);
     if (r != 0) {
-        log_error("send %s/%s message failed (r: %d)", address, subject, r);
+        log_error("send %s/%s message failed (r: %d, timeout: %d)", address, subject, r, timeout);
         zuuid_destroy(&uuid);
         return;
     }
@@ -345,7 +346,7 @@ static void send_email(fty_alert_actions_t* self, s_alert_cache* alert_item, con
     // recv reply
     void* which = zpoller_wait(self->requestreply_poller, static_cast<int>(self->requestreply_timeout));
     if (which == NULL) {
-        log_error("no reply received on %s/%s request", address, subject);
+        log_error("no reply received on %s/%s request (timeout: %dms)", address, subject, self->requestreply_timeout);
     }
     else {
         msg = mlm_client_recv(self->requestreply_client);
@@ -664,16 +665,16 @@ static void check_timed_out_alerts(fty_alert_actions_t* self)
 
     uint64_t now = static_cast<uint64_t>(zclock_mono());
 
-    for (void* item = zhash_first(self->alerts_cache); item; item = zhash_next(self->alerts_cache))
+    for (void* it = zhash_first(self->alerts_cache); it; it = zhash_next(self->alerts_cache))
     {
         if (zsys_interrupted) break;
 
-        s_alert_cache* it = static_cast<s_alert_cache*>(item);
-        uint64_t alert_ttl_ms = uint64_t(fty_proto_ttl(it->alert_msg)) * 1000;
+        s_alert_cache* c = static_cast<s_alert_cache*>(it);
+        uint64_t alert_ttl_ms = uint64_t(fty_proto_ttl(c->alert_msg)) * 1000;
 
-        if ((it->last_received + alert_ttl_ms) <= now) {
-            log_debug("found timed out alert from %s - resolving it", fty_proto_name(it->alert_msg));
-            action_resolve(self, it);
+        if ((c->last_received + alert_ttl_ms) <= now) {
+            log_debug("found timed out alert from %s - resolving it", fty_proto_name(c->alert_msg));
+            action_resolve(self, c);
             zhash_delete(self->alerts_cache, zhash_cursor(self->alerts_cache));
         }
     }
@@ -693,26 +694,26 @@ static void check_alerts_and_send_if_needed(fty_alert_actions_t* self)
 
     uint64_t now = static_cast<uint64_t>(zclock_mono());
 
-    for (void* item = zhash_first(self->alerts_cache); item; item = zhash_next(self->alerts_cache))
+    for (void* it = zhash_first(self->alerts_cache); it; it = zhash_next(self->alerts_cache))
     {
         if (zsys_interrupted) break;
 
-        s_alert_cache* it = static_cast<s_alert_cache*>(item);
+        s_alert_cache* c = static_cast<s_alert_cache*>(it);
 
-        uint64_t notification_delay = get_alert_interval(it, self->notification_override);
+        uint64_t notification_delay = get_alert_interval(c, self->notification_override);
         if ((notification_delay != 0)
-            && ((it->last_notification + notification_delay) <= now)
+            && ((c->last_notification + notification_delay) <= now)
         ) {
-            log_debug("%s action started", fty_proto_rule(it->alert_msg));
+            log_debug("%s action started", fty_proto_rule(c->alert_msg));
 
-            it->last_notification = static_cast<uint64_t>(zclock_mono());
-            action_alert_repeat(self, it);
+            c->last_notification = now;
+            action_alert_repeat(self, c);
         }
         else {
-            uint64_t remaining = it->last_notification + notification_delay - now;
+            uint64_t remaining = c->last_notification + notification_delay - now;
 
             log_debug("%s action waiting (delay: %zu s, remaining: %zu s)",
-                fty_proto_rule(it->alert_msg), notification_delay/1000, remaining/1000);
+                fty_proto_rule(c->alert_msg), notification_delay/1000, remaining/1000);
         }
     }
 }
@@ -868,16 +869,16 @@ static void s_handle_stream_deliver_asset(
     {
         log_debug("recv delete/nonactive for asset %s", assetname);
 
-        fty_proto_t* item = static_cast<fty_proto_t*>(zhash_lookup(self->assets_cache, assetname));
-        if (item) {
-            s_alert_cache* it = static_cast<s_alert_cache*>(zhash_first(self->alerts_cache));
-            while (it) {
-                if (it->related_asset == item) {
-                    // delete all alerts related to deleted asset
-                    action_resolve(self, it);
+        fty_proto_t* known = static_cast<fty_proto_t*>(zhash_lookup(self->assets_cache, assetname));
+        if (known) {
+            // asset exist in cache, delete
+            for (void* it = zhash_first(self->alerts_cache); it; it = zhash_next(self->alerts_cache)) {
+                s_alert_cache* c = static_cast<s_alert_cache*>(it);
+                if (c->related_asset == known) {
+                    // resolve/delete all alerts related to the deleted asset
+                    action_resolve(self, c);
                     zhash_delete(self->alerts_cache, zhash_cursor(self->alerts_cache));
                 }
-                it = static_cast<s_alert_cache*>(zhash_next(self->alerts_cache));
             }
             zhash_delete(self->assets_cache, assetname);
         }
@@ -886,44 +887,53 @@ static void s_handle_stream_deliver_asset(
         log_debug("recv update for asset %s", assetname);
 
         fty_proto_t* known = static_cast<fty_proto_t*>(zhash_lookup(self->assets_cache, assetname));
-        if (known) { // asset exist in cache, update
-            bool changed = false;
+        if (known) {
+            // asset exist in cache, update
+            bool changed{false};
 
-            if (!streq(fty_proto_ext_string(known, "contact_email", ""), fty_proto_ext_string(asset, "contact_email", ""))
-                || !streq(fty_proto_ext_string(known, "contact_phone", ""), fty_proto_ext_string(asset, "contact_phone", ""))
-            ){
-                changed = true; // contact changed
+            // contact changed? (contact_phone!?)
+            const std::vector<std::string> contacts = {"contact_email", "contact_sms", "contact_phone"};
+            for (const auto& key : contacts) {
+                const std::string v0{fty_proto_ext_string(known, key.c_str(), "")};
+                const std::string v1{fty_proto_ext_string(asset, key.c_str(), "")};
+                if (v0 != v1) {
+                    log_debug("contact changed (%s: %s='%s')", assetname, key.c_str(), v1.c_str());
+                    changed = true; // contact changed
+                    break;
+                }
             }
 
             if (changed) {
                 // simple workaround to handle alerts for assets changed during alert being active
-                log_debug("known asset was updated, resolving previous alert");
+                log_debug("known asset was updated, resolving previous alert (%s)", assetname);
 
-                s_alert_cache* it = static_cast<s_alert_cache*>(zhash_first(self->alerts_cache));
-                while (it) {
-                    if (it->related_asset == known) {
-                        // just resolve, will be activated again
-                        action_resolve(self, it);
+                for (void* it = zhash_first(self->alerts_cache); it; it = zhash_next(self->alerts_cache)) {
+                    s_alert_cache* c = static_cast<s_alert_cache*>(it);
+                    if (c->related_asset == known) {
+                        // just resolve, it will be activated again
+                        action_resolve(self, c);
                     }
-                    it = static_cast<s_alert_cache*>(zhash_next(self->alerts_cache));
                 }
             }
 
-            zhash_t* tmp_ext = fty_proto_get_ext(asset);
-            zhash_t* tmp_aux = fty_proto_get_aux(asset);
-            fty_proto_set_ext(known, &tmp_ext);
-            fty_proto_set_aux(known, &tmp_aux);
+            // update ext/aux attributes for known asset
+            {
+                zhash_t* tmp;
+                tmp = fty_proto_get_ext(asset);
+                fty_proto_set_ext(known, &tmp);
+                tmp = fty_proto_get_aux(asset);
+                fty_proto_set_aux(known, &tmp);
+            }
 
             if (changed) {
-                log_debug("known asset was updated, sending notifications");
+                log_debug("known asset was updated, sending alert actions (%s)", assetname);
 
-                s_alert_cache* it = static_cast<s_alert_cache*>(zhash_first(self->alerts_cache));
-                while (it) {
-                    if (it->related_asset == known) {
+                for (void* it = zhash_first(self->alerts_cache); it; it = zhash_next(self->alerts_cache)) {
+                    s_alert_cache* c = static_cast<s_alert_cache*>(it);
+                    if (c->related_asset == known) {
                         // force an alert since contact info changed
-                        action_alert(self, it);
+                        action_alert(self, c);
                     }
-                    it = static_cast<s_alert_cache*>(zhash_next(self->alerts_cache));
                 }
             }
         }

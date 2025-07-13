@@ -39,13 +39,13 @@ class PureAlert
 {
 public:
     std::string              _status{ALERT_UNKNOWN};
-    uint64_t                 _timestamp{0};
+    uint64_t                 _timestamp{0}; // epoch time (sec)
     std::string              _description;
     std::string              _element; // asset iname
-    std::string              _severity;
+    std::string              _severity; // CRITICAL, WARNING, OK
     std::vector<std::string> _actions;
     std::string              _rule_class;
-    uint64_t                 _ttl{0};
+    uint64_t                 _ttl{0}; // time to live (sec)
 
     PureAlert() = default;
 

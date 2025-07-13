@@ -74,45 +74,44 @@ int ThresholdRuleSimple::evaluate(const MetricList& metricList, PureAlert& pureA
     static const std::string HC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_CRITICAL)};
 
     const auto GV = globalVariables();
-    const MetricInfo lastMetric = metricList.lastMetric();
+    const MetricInfo metric = metricList.getMetric(_metrics[0]);
 
-    auto checkThreshold = [this, &GV, &lastMetric, &pureAlert] (const std::string& TOKEN, bool ltCond) {
-        auto threshold = GV.find(TOKEN);
+    auto checkThreshold = [this, &GV, &metric, &pureAlert] (const std::string& TOKEN, bool htCond) {
+        const auto& threshold = GV.find(TOKEN);
         if (threshold != GV.cend()) {
-            auto metricValue = lastMetric.value();
+            auto metricValue = metric.value();
             auto thresholdValue = threshold->second;
-            if (    (!ltCond && (metricValue > thresholdValue)) // higher than
-                 || ( ltCond && (metricValue < thresholdValue)) // lower than
+            if (    ( htCond && (metricValue > thresholdValue)) // higher than
+                 || (!htCond && (metricValue < thresholdValue)) // lower than
             ) {
-                const auto outcome = _outcomes.find(TOKEN);
+                const auto& outcome = _outcomes.find(TOKEN);
                 if (outcome != _outcomes.cend()) {
-                    pureAlert = PureAlert(ALERT_START, lastMetric.timestamp(), outcome->second._description, _element, _rule_class);
+                    pureAlert = PureAlert(ALERT_START, metric.timestamp(), outcome->second._description, _element, _rule_class);
                     pureAlert._severity = outcome->second._severity;
-                    pureAlert._actions  = outcome->second._actions;
-                    return true; // ALERT_START
+                    pureAlert._actions = outcome->second._actions;
+                    return false; // ALERT_START
                 }
                 else {
                     log_error("%s: outcome %s is missing", _name.c_str(), TOKEN.c_str());
                 }
             }
         }
-        return false;
+        return true;
     };
 
     // in order
-    if (   !checkThreshold(HC_TOKEN, false) // higher than
-        && !checkThreshold(HW_TOKEN, false)
-        && !checkThreshold(LC_TOKEN, true ) // lower than
-        && !checkThreshold(LW_TOKEN, true )
+    if (   checkThreshold(HC_TOKEN, true) // higher than
+        && checkThreshold(HW_TOKEN, true)
+        && checkThreshold(LC_TOKEN, false) // lower than
+        && checkThreshold(LW_TOKEN, false)
     ) {
-        // if we are here -> no alert was detected (TODO actions)
+        // here, no alert was detected (TODO actions)
         const std::string description{"The alarm is resolved"};
-        const std::string severity{"OK"};
-        pureAlert = PureAlert(ALERT_RESOLVED, lastMetric.timestamp(), description, _element, _rule_class);
-        pureAlert._severity = severity;
+        pureAlert = PureAlert(ALERT_RESOLVED, metric.timestamp(), description, _element, _rule_class);
+        pureAlert._severity = "OK";
     }
 
-    log_audit_alarm(lastMetric, pureAlert);
+    log_audit_alarm(metric, pureAlert);
     return 0;
 }
 

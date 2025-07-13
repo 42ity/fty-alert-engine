@@ -62,7 +62,7 @@ public:
 private:
     std::string _asset; /// asset iname
     std::string _type; /// metric type
-    double      _value{0};
+    double      _value{0.0};
     uint64_t    _timestamp{0}; /// latest update (epoch time, sec.)
     uint64_t    _ttl{0}; /// time to live (sec)
 };

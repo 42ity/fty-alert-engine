@@ -143,8 +143,8 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
     bool evalOK{false};
 
     if (valuesOK) {
-        int status = static_cast<int>(luaEvaluate(values));
-        auto now = static_cast<uint64_t>(::time(NULL));
+        const int status{static_cast<int>(luaEvaluate(values))};
+        auto now{static_cast<uint64_t>(::time(NULL))};
 
         if (status == outcome::RULE_RESULT_OK) {
             log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
@@ -213,10 +213,10 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 double LuaRule::luaEvaluate(const std::vector<double>& arguments)
 {
     if (!_valid) {
-        throw std::runtime_error("Lua rule is not valid!");
+        throw std::runtime_error("Lua rule is not valid");
     }
     if (!_lstate) { // secure
-        throw std::runtime_error("Lua state is NULL!");
+        throw std::runtime_error("Lua state is NULL");
     }
 
     lua_settop(_lstate, 0);
@@ -231,11 +231,11 @@ double LuaRule::luaEvaluate(const std::vector<double>& arguments)
         const char* luaError = lua_tostring(_lstate, -1);
         log_error("Lua error: %s", luaError);
         lua_pop(_lstate, 1);
-        throw std::runtime_error("Lua calling main failed!");
+        throw std::runtime_error("Lua calling main failed");
     }
 
     if (!lua_isnumber(_lstate, -1)) {
-        throw std::runtime_error("Lua function main did not return a number!");
+        throw std::runtime_error("Lua function main did not return a number");
     }
 
     double ret = lua_tonumber(_lstate, -1);

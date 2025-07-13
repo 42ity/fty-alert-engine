@@ -20,34 +20,40 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cmath>
 #include <ctime>
 
-void MetricList::addMetric(const MetricInfo& metricInfo)
+void MetricList::addMetric(const MetricInfo& metric)
 {
-    const std::string topic{metricInfo.topic()};
+    const std::string topic{metric.topic()};
     const auto& it = _metrics.find(topic);
     if (it != _metrics.cend()) {
-        it->second = metricInfo; // update
+        it->second = metric; // update
     }
     else {
-        _metrics[topic] = metricInfo; // new
+        _metrics[topic] = metric; // add
     }
 
-    _lastInsertedMetric = metricInfo;
+    _lastAdded = metric;
 }
 
 MetricInfo MetricList::lastMetric() const
 {
-    return _lastInsertedMetric;
+    return _lastAdded;
 }
 
-MetricInfo MetricList::getMetricInfo(const std::string& topic) const
+MetricInfo MetricList::getMetric(const std::string& topic) const
 {
     const auto& it = _metrics.find(topic);
     return (it != _metrics.cend()) ? it->second : MetricInfo();
 }
 
+double MetricList::find(const std::string& topic) const
+{
+    const auto& it = _metrics.find(topic);
+    return (it != _metrics.cend()) ? it->second._value : std::nan("");
+}
+
 void MetricList::cleanupOutdatedMetrics()
 {
-    uint64_t now = static_cast<uint64_t>(::time(NULL));
+    uint64_t now{static_cast<uint64_t>(::time(NULL))};
 
     for (auto it = _metrics.cbegin(); it != _metrics.cend(); /*empty*/) {
         if ((now - it->second._timestamp) > it->second._ttl) {
@@ -57,25 +63,4 @@ void MetricList::cleanupOutdatedMetrics()
             ++it;
         }
     }
-}
-
-double MetricList::findAndCheck(const std::string& topic) const
-{
-    const auto& it = _metrics.find(topic);
-    if (it == _metrics.cend()) {
-        return std::nan("");
-    }
-
-    uint64_t now = static_cast<uint64_t>(::time(NULL));
-    if (now > (it->second._timestamp + it->second._ttl)) {
-        return std::nan(""); // metric is outdated
-    }
-
-    return it->second._value;
-}
-
-double MetricList::find(const std::string& topic) const
-{
-    const auto& it = _metrics.find(topic);
-    return (it != _metrics.cend()) ? it->second._value : std::nan("");
 }
