@@ -734,8 +734,8 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
 // action on metric updates
 static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, const MetricList& metricList, AlertConfiguration& ac)
 {
-    bool isEvaluate = false;
     mtxAlertConfig.lock();
+    bool isEvaluate = false;
 
     // Go through all known rules concerned by the metric
     // try to evaluate them
@@ -757,65 +757,65 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
             continue;
         }
 
+        log_debug("### Evaluate rule '%s'", rulename.c_str());
         isEvaluate = true;
 
-        auto& it_ac = ac.at(rulename);
-        const auto& rule = it_ac.first;
-        log_debug("### Evaluate rule '%s'", rule->name().c_str());
-
         try {
+            auto& it_ac = ac.at(rulename);
+            const auto& rule = it_ac.first;
+
             PureAlert pureAlert;
             int r = rule->evaluate(metricList, pureAlert);
             if (r != 0) {
-                log_debug("### Cannot evaluate the rule '%s'", rule->name().c_str());
+                log_debug("### Cannot evaluate the rule '%s'", rulename.c_str());
                 continue;
             }
 
             PureAlert alertToSend;
             r = ac.updateAlert(it_ac, pureAlert, alertToSend);
             if (r != 0) {
-                log_debug("### rule '%s' alert updated, nothing to send", rule->name().c_str());
+                log_debug("### rule '%s' alert updated, nothing to send", rulename.c_str());
                 continue;
             }
             alertToSend._ttl = metric.ttl() * 3;
 
             // NOTE: Warranty rule is not processed by configurator which adds info about asset.
             // In order to send the current message to stream, the alert description is modified.
-            if (rule->name() == "warranty") {
+            if (rulename == "warranty") {
                 // days above/below the warranty date
                 int days = std::abs(static_cast<int>(metric.value()));
 
                 const std::map<std::string, std::string> dict = {
-                    { "__iname__", metric.asset() },
+                    { "__ename__", getAssetInfoFromAutoconfig(alertToSend._element).getAttr("name") },
                     { "__days__", std::to_string(days) },
-                    { "__TRLua_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
-                    { "__TRLua_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
+                    { "__TRLUA_is_expired__", "TRANSLATE_LUA (Warranty on {{asset}} expired {{days}} days ago.)" },
+                    { "__TRLUA_expires_in__", "TRANSLATE_LUA (Warranty on {{asset}} expires in less than {{days}} days.)" },
                 };
 
-                const std::string aTS_d{alertToSend._description};
-                if (aTS_d.find("Warranty expired") != std::string::npos) {
-                    const std::string desc = R"xx({
-                        "key": "__TRLua_is_expired__",
-                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days__" }
+                const std::string descr{alertToSend._description};
+                if (descr.find("Warranty expired") != std::string::npos) {
+                    const std::string d = R"xx({
+                        "key": "__TRLUA_is_expired__",
+                        "variables": { "asset": "__ename__", "days": "__days__" }
                     })xx";
-                    alertToSend._description = utils::replaceTokens(desc, dict);
+                    alertToSend._description = utils::replaceTokens(d, dict);
                 }
-                else if (aTS_d.find("Warranty expires in") != std::string::npos) {
-                    const std::string desc = R"xx({
-                        "key": "__TRLua_expires_in__",
-                        "variables": { "asset": { "value": "", "assetLink": "__iname__" }, "days": "__days__" }
+                else if (descr.find("Warranty expires in") != std::string::npos) {
+                    const std::string d = R"xx({
+                        "key": "__TRLUA_expires_in__",
+                        "variables": { "asset": "__ename__", "days": "__days__" }
                     })xx";
-                    alertToSend._description = utils::replaceTokens(desc, dict);
+                    alertToSend._description = utils::replaceTokens(d, dict);
                 }
                 else {
-                    log_error("Unable to identify Warranty alert description (descr: %s)", aTS_d.c_str());
+                    log_error("Unable to identify Warranty alert description (descr: %s)", descr.c_str());
                 }
             }
 
-            send_alerts(client, {alertToSend}, rule->name());
+            send_alerts(client, {alertToSend}, rulename);
         }
         catch (const std::exception& e) {
-            log_error("Rule evaluation failed (%s, e: '%s')", rule->name().c_str(), e.what());
+            log_error("Rule evaluation failed (%s, e: '%s')", rulename.c_str(), e.what());
         }
     }
 
