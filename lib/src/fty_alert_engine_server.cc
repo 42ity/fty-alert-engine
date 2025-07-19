@@ -389,10 +389,10 @@ static void list_rules2(mlm_client_t* client, const char* jsonFilters, AlertConf
     log_debug("List rules (%s, jsonFilters: '%s')", COMMAND_LIST2, jsonFilters);
     log_debug("number of rules: %zu", ac.size());
 
-    // ac: std::vector<std::pair<RulePtr, std::vector<PureAlert>>>
+    // AlertConfiguration ac: map< <std::string>, <std::pair<RulePtr, std::vector<PureAlert>> >
     mtxAlertConfig.lock();
-    for (const auto& i : ac) {
-        const auto& rule = i.second.first;
+    for (const auto& it : ac) {
+        const auto& rule = it.second.first;
         if (match(rule)) {
             log_debug("%s add rule '%s'", COMMAND_LIST2, rule->name().c_str());
             zmsg_addstr(reply, rule->json().c_str());
@@ -418,7 +418,7 @@ static void get_rule(mlm_client_t* client, const char* name, AlertConfiguration&
     zmsg_t* reply = zmsg_new();
 
     mtxAlertConfig.lock();
-    log_debug("number of all rules = '%zu'", ac.size());
+    log_debug("number of rules: '%zu'", ac.size());
     if (name && (ac.count(name) != 0)) {
         const auto& it_ac = ac.at(name);
         const auto& rule  = it_ac.first;
@@ -446,7 +446,7 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
     auto buildActionList = [](const PureAlert& alert) {
         zlist_t* list = alert._actions.empty() ? nullptr : zlist_new();
         if (list) {
-            //zlist_autofree(list);
+            zlist_autofree(list);
             for (const auto& action : alert._actions) {
                 zlist_append(list, const_cast<char*>(action.c_str()));
             }
@@ -700,21 +700,17 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts{false};
-    switch (r) {
-        case -1:
-            log_error("touch_rule:%s: Rule was not found", rule_name);
-            // ERROR rule doesn't exist
-            zmsg_addstr(reply, "ERROR");
-            zmsg_addstr(reply, "NOT_FOUND");
-            break;
-        case 0:
-            // rule has been touched, send a reply back
-            log_debug("touch_rule:%s: ok", rule_name);
-            zmsg_addstr(reply, "OK");
-            sendAlerts = true;
-            break;
-        default:
-            log_warning("touch_rule:%s: result not handled (r: %d)", rule_name, r);
+    if (r == 0) {
+        // rule has been touched, send a reply back
+        log_debug("touch_rule:%s: ok", rule_name);
+        zmsg_addstr(reply, "OK");
+        sendAlerts = true;
+    }
+    else { // error
+        if (r == -1) { log_debug("touch_rule:%s: not found", rule_name); }
+        else { log_error("touch_rule:%s: result not handled (r: %d)", rule_name, r); }
+        zmsg_addstr(reply, "ERROR");
+        zmsg_addstr(reply, (r == -1) ? "NOT_FOUND" : "INTERNAL");
     }
 
     // send reply
@@ -724,8 +720,8 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
         log_error("mlm_client_sendto() %s failed", mlm_client_sender(client));
     }
 
+    // notify touch (resolved alerts)
     if (sendAlerts) {
-        // notify touch (resolved alerts)
         send_alerts(client, alertsToSend, rule_name);
     }
 }
@@ -896,7 +892,8 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
     int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
     int64_t timeLastPoll = zclock_mono();
 
-    MetricList metricList; // need to track incoming measurements
+    // cache of incoming metrics
+    MetricList metricList;
 
     while (!zsys_interrupted)
     {
@@ -1000,7 +997,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
     zsock_signal(pipe, 0);
     log_info("%s started", name);
 
-    int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
+    const int64_t timeout = int64_t(fty_get_polling_interval()) * 1000; // ms
 
     while (!zsys_interrupted) {
 
@@ -1012,8 +1009,8 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             }
         }
         else if (which == pipe) {
-            zmsg_t* zmsg = zmsg_recv(pipe);
-            char* cmd = zmsg_popstr(zmsg);
+            zmsg_t* msg = zmsg_recv(pipe);
+            char* cmd = zmsg_popstr(msg);
             bool term = false;
 
             if (streq(cmd, "$TERM")) {
@@ -1021,7 +1018,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 term = true;
             }
             else if (streq(cmd, "CONNECT")) {
-                char* endpoint = zmsg_popstr(zmsg);
+                char* endpoint = zmsg_popstr(msg);
                 log_debug("%s: CONNECT received %s", name, endpoint);
                 int r = mlm_client_connect(client, endpoint, 1000, name);
                 if (r != 0) {
@@ -1030,7 +1027,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 zstr_free(&endpoint);
             }
             else if (streq(cmd, "PRODUCER")) {
-                char* stream = zmsg_popstr(zmsg);
+                char* stream = zmsg_popstr(msg);
                 log_debug("%s: PRODUCER received %s", name, stream);
                 int r = mlm_client_set_producer(client, stream);
                 if (r != 0) {
@@ -1039,10 +1036,10 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                 zstr_free(&stream);
             }
             else if (streq(cmd, "CONFIG")) {
-                char* dirname = zmsg_popstr(zmsg);
+                char* dirname = zmsg_popstr(msg);
                 log_debug("%s: CONFIG received %s", name, dirname);
                 if (dirname) {
-                    // Read initial configuration
+                    // Read configuration
                     alertConfiguration.setPath(dirname);
                     log_info("Reading configuration from '%s'", alertConfiguration.getPersistencePath().c_str());
                     alertConfiguration.readConfiguration();
@@ -1057,62 +1054,69 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             }
 
             zstr_free(&cmd);
-            zmsg_destroy(&zmsg);
+            zmsg_destroy(&msg);
 
             if (term) {
                 break;
             }
         }
         else if (which == mlm_client_msgpipe(client)) {
-            zmsg_t* zmsg = mlm_client_recv(client);
-            const char* sender = mlm_client_sender(client);
+            zmsg_t* msg = mlm_client_recv(client);
+            const char* command = mlm_client_command(client);
             const char* subject = mlm_client_subject(client);
+            const char* sender = mlm_client_sender(client);
 
-            // According RFC we handle messages with the subject RULES_SUBJECT
+            // handle mailbox messages with the subject RULES_SUBJECT according RFC
 
-            if (streq(subject, RULES_SUBJECT)) {
-                char* cmd = zmsg_popstr(zmsg);
+            if (!streq(command, "MAILBOX DELIVER")) {
+                log_debug("%s: Rx unexpected %s/%s msg from %s", name, command, subject, sender);
+            }
+            else if (!streq(subject, RULES_SUBJECT)) {
+                log_error("%s: Rx unexpected %s/%s msg from %s", name, command, subject, sender);
+            }
+            else { // RFC mailbox
+                char* cmd = zmsg_popstr(msg);
                 log_debug("%s: MAILBOX (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
 
                 if (!cmd) {
-                    log_error("%s: Rx unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
+                    log_error("%s: Rx unexpected msg (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
                 }
                 else if (streq(cmd, "LIST")) {
                     // request: LIST/type/rule_class
                     // reply: LIST/type/rule_class/rule1/.../ruleN
                     // reply: ERROR/reason
-                    char* param0 = zmsg_popstr(zmsg);
-                    char* param1 = zmsg_popstr(zmsg);
+                    char* param0 = zmsg_popstr(msg);
+                    char* param1 = zmsg_popstr(msg);
                     log_debug("%s: Requested %s '%s' '%s'", name, cmd, param0, param1);
                     list_rules(client, param0, param1, alertConfiguration);
-                    zstr_free(&param0);
                     zstr_free(&param1);
+                    zstr_free(&param0);
                 }
-                else if (streq(cmd, COMMAND_LIST2)) { // LIST (version 2)
+                else if (streq(cmd, COMMAND_LIST2)) { // LIST2 (LIST version 2)
                     // request: <command>/jsonPayload
                     // reply: <command>/jsonPayload/rule1/.../ruleN
                     // reply: ERROR/reason
-                    char* param0 = zmsg_popstr(zmsg);
+                    char* param0 = zmsg_popstr(msg);
                     log_debug("%s: Requested %s", name, cmd);
                     list_rules2(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else if (streq(cmd, "GET")) {
-                    char* param0 = zmsg_popstr(zmsg);
+                    char* param0 = zmsg_popstr(msg);
                     log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     get_rule(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else if (streq(cmd, "ADD")) {
-                    char* param0 = zmsg_popstr(zmsg);
-                    if (zmsg_size(zmsg) == 0) {
+                    char* param0 = zmsg_popstr(msg);
+                    if (zmsg_size(msg) == 0) { //add
                         // ADD/json
                         log_debug("%s: Requested %s", name, cmd);
                         add_rule(client, param0, alertConfiguration);
                     }
-                    else {
+                    else { //update (assume size == 1)
                         // ADD/json/old_name
-                        char* param1 = zmsg_popstr(zmsg);
+                        char* param1 = zmsg_popstr(msg);
                         log_debug("%s: Requested %s w/ oldName '%s'", name, cmd, param1);
                         update_rule(client, param0, param1, alertConfiguration);
                         zstr_free(&param1);
@@ -1120,36 +1124,33 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
                     zstr_free(&param0);
                 }
                 else if (streq(cmd, "TOUCH")) {
-                    char* param0 = zmsg_popstr(zmsg);
+                    char* param0 = zmsg_popstr(msg);
                     log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     touch_rule(client, param0, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else if (streq(cmd, "DELETE")) {
-                    char* param0 = zmsg_popstr(zmsg);
+                    char* param0 = zmsg_popstr(msg);
                     log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     RuleNameMatcher matcher(param0 ? param0 : "");
                     delete_rules(client, matcher, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else if (streq(cmd, "DELETE_ELEMENT")) {
-                    char* param0 = zmsg_popstr(zmsg);
+                    char* param0 = zmsg_popstr(msg);
                     log_debug("%s: Requested %s '%s'", name, cmd, param0);
                     RuleElementMatcher matcher(param0 ? param0 : "");
                     delete_rules(client, matcher, alertConfiguration);
                     zstr_free(&param0);
                 }
                 else {
-                    log_error("%s: Rx unexpected message (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
+                    log_error("%s: Rx unexpected msg (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
                 }
 
                 zstr_free(&cmd);
             }
-            else {
-                log_error("%s: Rx unexcepted message (sender: '%s', subject: '%s')", name, sender, subject);
-            }
 
-            zmsg_destroy(&zmsg);
+            zmsg_destroy(&msg);
         }
     }
 
