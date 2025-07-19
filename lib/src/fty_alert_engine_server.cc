@@ -836,33 +836,24 @@ static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, 
         const char* type  = fty_proto_type(it_m); // metric type
         const char* name  = fty_proto_name(it_m); // asset iname
 
-        // check metric is a number ("string" value is not supported)
-        double dvalue = 0.0;
-        {
-            const char* value = fty_proto_value(it_m);
-
-            char* end = nullptr;
-            errno = 0;
-            dvalue = strtod(value, &end);
-            bool failed = (errno == ERANGE) || (end == value) || (end && (*end != 0));
-            if (failed) {
-                log_debug("%s@%s: '%s' ignored (NaN)", type, name, value);
-                continue;
-            }
+        // check metric is a number ('string' is not supported)
+        double value{0.0};
+        if (utils::parseDouble(fty_proto_value(it_m), value) != 0) {
+            log_debug("%s@%s: '%s' ignored (NaN)", type, name, fty_proto_value(it_m));
+            continue;
         }
 
         uint64_t ts  = fty_proto_aux_number(it_m, "time", now); //timestamp
         uint32_t ttl = fty_proto_ttl(it_m);
 
         // update metricList
-        MetricInfo metric(name, type, dvalue, ts, ttl);
+        MetricInfo metric(name, type, value, ts, ttl);
         metricList.addMetric(metric);
 
         // evaluate metric that is new or must be evaluated
         const std::string topic{metric.topic()};
         auto it_ev = evaluateMetrics.find(topic);
         const bool isNew{it_ev == evaluateMetrics.end()};
-
         if (isNew || (it_ev->second == true)) {
             // here, metric is new or must be evaluated
             bool evaluated = evaluate_metric(client, metric, metricList, alertConfiguration);

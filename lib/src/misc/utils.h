@@ -42,4 +42,10 @@ std::string replaceTokens(const std::string& text, const std::map<std::string, s
 /// @return file content (empty string if error)
 std::string readFile(const std::string& pathfile);
 
+/// parse a double from a c-string
+/// @param s the string to parse
+/// @param [out] value the parsed value
+/// @return 0 if success (value is set), else <0
+int parseDouble(const char* s, double& value);
+
 } // namespace utils

@@ -73,4 +73,17 @@ std::string readFile(const std::string& pathfile)
     return "";
 }
 
+int parseDouble(const char* s, double& value)
+{
+    if (!s) { return -1; }
+
+    char* end = nullptr;
+    errno = 0;
+    value = strtod(s, &end);
+    if ((errno == ERANGE) || (end == s) || (end && (*end != 0))) {
+        return -1;
+    }
+    return 0;
+}
+
 } // namespace utils
