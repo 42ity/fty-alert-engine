@@ -482,10 +482,9 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
     }
 }
 
-static void enable_rule_evaluation(const RulePtr& rule)
+static void enable_rule_topics_evaluation(const RulePtr& rule)
 {
-    auto topics = rule->getNeededTopics();
-    for (const auto& topic : topics) {
+    for (const auto& topic : rule->getNeededTopics()) {
         auto it = evaluateMetrics.find(topic);
         if (it != evaluateMetrics.end())
             { it->second = true; } // enabled
@@ -506,7 +505,7 @@ static void add_rule(mlm_client_t* client, const char* jsonPayload, AlertConfigu
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts{false};
-    bool updateEvaluateMetrics{false};
+    bool enableRuleTopics{false};
     switch (r) {
         case 0: { // rule was created succesfully
             log_debug("rule added correctly");
@@ -514,7 +513,7 @@ static void add_rule(mlm_client_t* client, const char* jsonPayload, AlertConfigu
             zmsg_addstr(reply, jsonPayload);
 
             sendAlerts = true;
-            updateEvaluateMetrics = true;
+            enableRuleTopics = true;
             break;
         }
         case -2: { // rule exists
@@ -567,8 +566,8 @@ static void add_rule(mlm_client_t* client, const char* jsonPayload, AlertConfigu
         send_alerts(client, alertsToSend, new_rule_it->second.first->name());
     }
 
-    if (updateEvaluateMetrics) {
-        enable_rule_evaluation(new_rule_it->second.first);
+    if (enableRuleTopics) {
+        enable_rule_topics_evaluation(new_rule_it->second.first);
     }
 }
 
@@ -587,7 +586,7 @@ static void update_rule(mlm_client_t* client, const char* jsonPayload, const cha
     zmsg_t* reply = zmsg_new();
 
     bool sendAlerts{false};
-    bool updateEvaluateMetrics{false};
+    bool enableRuleTopics{false};
     switch (r) {
         case 0: { // rule was updated succesfully
             log_debug("rule updated");
@@ -595,7 +594,7 @@ static void update_rule(mlm_client_t* client, const char* jsonPayload, const cha
             zmsg_addstr(reply, jsonPayload);
 
             sendAlerts = true;
-            updateEvaluateMetrics = true;
+            enableRuleTopics = true;
             break;
         }
         case -2: { // rule doesn't exist
@@ -642,8 +641,8 @@ static void update_rule(mlm_client_t* client, const char* jsonPayload, const cha
         send_alerts(client, alertsToSend, new_rule_it->second.first->name());
     }
 
-    if (updateEvaluateMetrics) {
-        enable_rule_evaluation(new_rule_it->second.first);
+    if (enableRuleTopics) {
+        enable_rule_topics_evaluation(new_rule_it->second.first);
     }
 }
 
@@ -735,7 +734,7 @@ static void touch_rule(mlm_client_t* client, const char* rule_name, AlertConfigu
 static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, const MetricList& metricList, AlertConfiguration& ac)
 {
     mtxAlertConfig.lock();
-    bool isEvaluate = false;
+    bool isEvaluated = false;
 
     // Go through all known rules concerned by the metric
     // try to evaluate them
@@ -758,7 +757,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
         }
 
         log_debug("### Evaluate rule '%s'", rulename.c_str());
-        isEvaluate = true;
+        isEvaluated = true;
 
         try {
             auto& it_ac = ac.at(rulename);
@@ -820,7 +819,7 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
     }
 
     mtxAlertConfig.unlock();
-    return isEvaluate;
+    return isEvaluated;
 }
 
 static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, mlm_client_t* client)
@@ -850,31 +849,30 @@ static void metrics_poll(fty::shm::shmMetrics& metrics, MetricList& metricList, 
                 log_debug("%s@%s: '%s' ignored (NaN)", type, name, value);
                 continue;
             }
-            //log_debug("Get '%s@%s' (value: %s)", type, name, value);
         }
 
         uint64_t ts  = fty_proto_aux_number(it_m, "time", now); //timestamp
         uint32_t ttl = fty_proto_ttl(it_m);
 
-        // Update metricList with new value
+        // update metricList
         MetricInfo metric(name, type, dvalue, ts, ttl);
         metricList.addMetric(metric);
 
-        // search if this metric is already evaluated and if this metric is evaluate
+        // evaluate metric that is new or must be evaluated
         const std::string topic{metric.topic()};
         auto it_ev = evaluateMetrics.find(topic);
-        bool exist = it_ev != evaluateMetrics.end();
-        bool evaluate = exist ? it_ev->second : false;
+        const bool isNew{it_ev == evaluateMetrics.end()};
 
-        if (!exist || evaluate) {
-            bool isEvaluate = evaluate_metric(client, metric, metricList, alertConfiguration);
+        if (isNew || (it_ev->second == true)) {
+            // here, metric is new or must be evaluated
+            bool evaluated = evaluate_metric(client, metric, metricList, alertConfiguration);
 
-            if (!exist) { // first time, add to the list
-                log_debug("Add '%s' (evaluate: %s)", topic.c_str(), (isEvaluate ? "true" : "false"));
-                evaluateMetrics[topic] = isEvaluate;
+            if (isNew) { // first time, add to the eval map
+                log_debug("Add '%s' (evaluated: %s)", topic.c_str(), (evaluated ? "true" : "false"));
+                evaluateMetrics[topic] = evaluated;
             }
-            else if (!isEvaluate) { // update evaluate state
-                evaluateMetrics[topic] = isEvaluate;
+            else { // update eval state
+                it_ev->second = evaluated;
             }
         }
     }
