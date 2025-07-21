@@ -50,6 +50,7 @@ class RuleElementMatcher : public RuleMatcher
 public:
     RuleElementMatcher(const std::string& element);
     bool match(const RulePtr& rule) const override;
+    std::string element() const;
 
 private:
     std::string _element;

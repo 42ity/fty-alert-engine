@@ -151,11 +151,17 @@ public:
         return (it != _metrics_alerts_map.cend()) ? it->second : std::vector<std::string>{};
     }
 
+    // dump (dbg)
+    std::string str() const;
+
 private: /// methods
     // new/update entry for _metrics_alerts_map
     void registerRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename);
     // remove entry for _metrics_alerts_map
     void unregisterRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename);
+    // resolve an alert (+ update description)
+    void resolveAlert(PureAlert& alert);
+    void resolveAlert(PureAlert& alert, const std::string& description);
 
 private: /// members
     // map to retrieve specific alert by rulename

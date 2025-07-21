@@ -33,6 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <czmq.h>
 #include <algorithm>
 #include <filesystem>
+#include <sstream>
 
 // returns 0 if ok, else error (1: not recognized, 2: bad Lua)
 int readRule(const std::string& jsonPayload, RulePtr& rule)
@@ -85,6 +86,37 @@ int readRule(const std::string& jsonPayload, RulePtr& rule)
     return 1; // failed (not recognized or internal/json error)
 }
 
+// dump (dbg)
+std::string AlertConfiguration::str() const
+{
+    std::ostringstream oss;
+
+    //_alerts_map: std::unordered_map<std::string, std::pair<RulePtr, std::vector<PureAlert>>
+    oss << "_alerts_map (size: " << _alerts_map.size() << "):"<< std::endl;
+    for (const auto& it : _alerts_map) {
+        oss << "+ " << it.second.first->name() << "/" << it.second.first->element() << ": ";
+        size_t cnt{0};
+        for (const auto& alert : it.second.second) {
+            std::string s = alert._element + "/" + alert._status + "/" + alert._severity;
+            oss << ((cnt++ == 0) ? "" : ", ") << s;
+        }
+        oss << std::endl;
+    }
+
+    //_metrics_alerts_map: std::unordered_map<std::string, std::vector<std::string>>
+    oss << "_metrics_alerts_map (size: " << _metrics_alerts_map.size() << "):" << std::endl;
+    for (const auto& it : _metrics_alerts_map) {
+        oss << "+ " << it.first << " (size: " << it.second.size() << "): "; // metric/topic
+        size_t cnt{0};
+        for (const auto& rulename : it.second) {
+            oss << ((cnt++ == 0) ? "" : ", ") << rulename;
+        }
+        oss << std::endl;
+    }
+
+    return oss.str();
+}
+
 // new/update entry for _metrics_alerts_map
 void AlertConfiguration::registerRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename)
 {
@@ -116,6 +148,19 @@ void AlertConfiguration::unregisterRuleForTopics(const std::vector<std::string>&
     }
 }
 
+// set alert to resolved state, update description
+void AlertConfiguration::resolveAlert(PureAlert& alert)
+{
+    alert._status = ALERT_RESOLVED;
+    alert._severity = "OK";
+}
+void AlertConfiguration::resolveAlert(PureAlert& alert, const std::string& description)
+{
+    resolveAlert(alert);
+    alert._description = description;
+}
+
+// read persisted rules
 std::set<std::string> AlertConfiguration::readConfiguration()
 {
     // list of topics, that are needed to be consumed for rules
@@ -261,9 +306,7 @@ int AlertConfiguration::touchRule(const std::string& rulename, std::vector<PureA
 
     // resolve alerts to send
     for (auto& alert : it->second.second) {
-        alert._status = ALERT_RESOLVED;
-        alert._severity = "OK";
-        alert._description = "Rule touched";
+        resolveAlert(alert, "Rule touched");
         alertsToSend.push_back(alert);
     }
 
@@ -349,9 +392,7 @@ int AlertConfiguration::updateRule(
 
     // resolve found alerts; put them into the list of alerts that changed
     for (auto& alert : oldrule->second.second) {
-        alert._status = ALERT_RESOLVED;
-        alert._severity = "OK";
-        alert._description = "Rule updated";
+        resolveAlert(alert, "Rule updated");
         alertsToSend.push_back(alert);
     }
 
@@ -379,38 +420,31 @@ int AlertConfiguration::deleteRules(
     std::vector<std::string>& rulesDeleted
 )
 {
-#if 0
-    {
-        log_debug("== deleteRules, _alerts_map (size: %zu):", _alerts_map.size());
-        for (const auto& it : _alerts_map) {
-            std::string s = it.first + ": " + it.second.first->name() + "/" + it.second.first->element();
-            log_debug("== %s", s.c_str());
-        }
-    }
-#endif
+    // match on rule element?
+    auto pElementMatcher = dynamic_cast<const RuleElementMatcher*>(&matcher);
 
-    size_t errCnt{0};
+    const std::string description{"Rule deleted"}; // descr. for resolved alerts
 
     // clean up what we can without touching the iterator
+    size_t errCnt{0};
     auto it = _alerts_map.begin();
     while (it != _alerts_map.end()) {
-        if (matcher.match(it->second.first)) {
-            const std::string rulename{it->second.first->name()};
+        const std::string rulename{it->second.first->name()};
 
+        if (matcher.match(it->second.first)) {
             // delete rule from disk
             int r = it->second.first->remove(getPersistencePath());
             if (r != 0) {
                 log_error("Failed to remove file for rule %s", rulename.c_str());
                 errCnt++;
+                ++it;
                 continue;
             }
 
             // *resolve* rule alerts
             // put them in the list of alerts that have changed
             for (auto& alert : it->second.second) {
-                alert._status = ALERT_RESOLVED;
-                alert._severity = "OK";
-                alert._description = "Rule deleted";
+                resolveAlert(alert, description);
                 alertsToSend[rulename].push_back(alert);
             }
 
@@ -425,6 +459,27 @@ int AlertConfiguration::deleteRules(
             rulesDeleted.push_back(rulename);
         }
         else {
+            if ((rulename == "warranty") && pElementMatcher) {
+                // warranty rule exception on delete-element
+                // iterate to resolve & erase alert that reference element
+                bool first{true};
+                for (auto it_alert = it->second.second.begin(); it_alert != it->second.second.end();) {
+                    if (pElementMatcher->element() == it_alert->_element) {
+                        resolveAlert(*it_alert, description);
+                        alertsToSend[rulename].push_back(*it_alert);
+                        // delete alert
+                        it_alert = it->second.second.erase(it_alert);
+                        if (first) {
+                            rulesDeleted.push_back(rulename + "@" + pElementMatcher->element());
+                            first = false; // once
+                        }
+                    }
+                    else {
+                        ++it_alert;
+                    }
+                }
+            }
+
             ++it;
         }
     }

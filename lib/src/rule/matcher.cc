@@ -31,3 +31,8 @@ bool RuleElementMatcher::match(const RulePtr& rule) const
 {
     return rule->element() == _element;
 }
+
+std::string RuleElementMatcher::element() const
+{
+    return _element;
+}

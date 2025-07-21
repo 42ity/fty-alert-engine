@@ -25,6 +25,7 @@
 #include "misc/utils.h"
 
 #include <fty_proto.h>
+#include <fty_shm.h>
 #include <fty_log.h>
 #include <fty_common_asset_types.h>
 #include <fty_common_json.h>
@@ -336,6 +337,25 @@ void Autoconfig::onAssetStream(fty_proto_t* proto)
     else // delete
     {
         configurableDevicesDelete(assetName);
+
+        // warranty rule exception: pre delete 'end_warranty_date' metric
+        {
+            const std::string metric{"end_warranty_date"};
+            fty_proto_t* protow{nullptr};
+            int r = fty::shm::read_metric(assetName, metric, &protow);
+            if ((r == 0) && protow) { // the metric exists
+                log_debug("delete %s@%s", metric.c_str(), assetName.c_str());
+                fty_proto_set_ttl(protow, 1); // this removes the metric on the next reading
+                r = fty::shm::write_metric(protow);
+                if (r == 0) {
+                    sleep(1); // wait for ttl expiration
+                }
+                else {
+                    log_error("write_metric failed ({}/{})", metric.c_str(), assetName.c_str());
+                }
+            }
+            fty_proto_destroy(&protow);
+        }
 
         if (info.subtype == "sensorgpio" || info.subtype == "gpo") {
             // don't do anything

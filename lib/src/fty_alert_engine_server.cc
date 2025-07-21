@@ -458,25 +458,37 @@ static void send_alerts(mlm_client_t* client, const std::vector<PureAlert>& aler
     const auto now = static_cast<uint64_t>(::time(NULL));
 
     for (const auto& alert : alertsToSend) {
-        // Asset id is missing in the rule name for warranty alarms
-        const std::string fullRuleName{isWarranty ? (rule_name + "@" + alert._element) : rule_name};
+        // warranty exception: asset iname is missing in the rule name
+        const std::string rule_name_x{isWarranty ? (rule_name + "@" + alert._element) : rule_name};
 
         zlist_t* actions = buildActionList(alert);
-        zmsg_t* msg = fty_proto_encode_alert(NULL,
-            now, static_cast<uint32_t>(alert._ttl),
-            fullRuleName.c_str(),
-            alert._element.c_str(), alert._status.c_str(),
-            alert._severity.c_str(), alert._description.c_str(),
+        zmsg_t* msg = fty_proto_encode_alert(
+            NULL, // aux
+            now,
+            static_cast<uint32_t>(alert._ttl),
+            rule_name_x.c_str(),
+            alert._element.c_str(),
+            alert._status.c_str(),
+            alert._severity.c_str(),
+            alert._description.c_str(),
             actions);
         zlist_destroy(&actions);
 
         if (msg) {
-            const std::string topic{fullRuleName + "/" + alert._severity + "@" + alert._element};
-            mlm_client_send(client, topic.c_str(), &msg);
-            log_info("Send Alert %s/%s/%s (element: %s)", fullRuleName.c_str(), alert._status.c_str(), alert._severity.c_str(), alert._element.c_str());
+            const std::string topic{rule_name_x + "/" + alert._severity + "@" + alert._element};
+            int r = mlm_client_send(client, topic.c_str(), &msg);
+            if (r != 0) {
+                log_error("Send Alert failed %s/%s/%s",
+                    rule_name_x.c_str(), alert._status.c_str(), alert._severity.c_str());
+            }
+            else {
+                log_debug("Send Alert %s/%s/%s",
+                    rule_name_x.c_str(), alert._status.c_str(), alert._severity.c_str());
+            }
         }
         else {
-            log_error("Encode alert failed (%s)", fullRuleName.c_str());
+            log_error("Encode Alert failed %s/%s/%s",
+                rule_name_x.c_str(), alert._status.c_str(), alert._severity.c_str());
         }
         zmsg_destroy(&msg);
     }
@@ -789,17 +801,11 @@ static bool evaluate_metric(mlm_client_t* client, const MetricInfo& metric, cons
 
                 const std::string descr{alertToSend._description};
                 if (descr.find("Warranty expired") != std::string::npos) {
-                    const std::string d = R"xx({
-                        "key": "__TRLUA_is_expired__",
-                        "variables": { "asset": "__ename__", "days": "__days__" }
-                    })xx";
+                    const std::string d = R"xx({"key":"__TRLUA_is_expired__","variables":{"asset":"__ename__","days":"__days__"}})xx";
                     alertToSend._description = utils::replaceTokens(d, dict);
                 }
                 else if (descr.find("Warranty expires in") != std::string::npos) {
-                    const std::string d = R"xx({
-                        "key": "__TRLUA_expires_in__",
-                        "variables": { "asset": "__ename__", "days": "__days__" }
-                    })xx";
+                    const std::string d = R"xx({"key":"__TRLUA_expires_in__","variables":{"asset":"__ename__","days":"__days__"}})xx";
                     alertToSend._description = utils::replaceTokens(d, dict);
                 }
                 else {
@@ -925,7 +931,7 @@ void fty_alert_engine_stream(zsock_t* pipe, void* args)
         else if (which == pipe) {
             zmsg_t* msg = zmsg_recv(pipe);
             char* cmd = zmsg_popstr(msg);
-            bool term = false;
+            bool term{false};
 
             if (streq(cmd, "$TERM")) {
                 log_debug("%s: $TERM", name);
@@ -1011,7 +1017,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
         else if (which == pipe) {
             zmsg_t* msg = zmsg_recv(pipe);
             char* cmd = zmsg_popstr(msg);
-            bool term = false;
+            bool term{false};
 
             if (streq(cmd, "$TERM")) {
                 log_debug("%s: $TERM", name);
@@ -1066,7 +1072,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             const char* subject = mlm_client_subject(client);
             const char* sender = mlm_client_sender(client);
 
-            // handle mailbox messages with the subject RULES_SUBJECT according RFC
+            // handle mailbox messages with the subject RULES_SUBJECT (according RFC)
 
             if (!streq(command, "MAILBOX DELIVER")) {
                 log_debug("%s: Rx unexpected %s/%s msg from %s", name, command, subject, sender);
@@ -1074,7 +1080,7 @@ void fty_alert_engine_mailbox(zsock_t* pipe, void* args)
             else if (!streq(subject, RULES_SUBJECT)) {
                 log_error("%s: Rx unexpected %s/%s msg from %s", name, command, subject, sender);
             }
-            else { // RFC mailbox
+            else { // RULES_SUBJECT mailbox
                 char* cmd = zmsg_popstr(msg);
                 log_debug("%s: MAILBOX (sender: %s, subject: %s, cmd: %s)", name, sender, subject, cmd);
 
