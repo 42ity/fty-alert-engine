@@ -5,9 +5,9 @@
         "rule_cat"      :   ["CAT_OTHER", "CAT_ALL"],
         "target"        :   ["ups.alarm@__name__"],
         "element"       :   "__name__",
-        "values"        :   [ ],
+        "values"        :   [],
         "results"       :   [
-                {"high_warning"  : { "action" : [], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} battery is aging. Consider replacement.)\", \"variables\" : {\"ename\" : \"__ename__\"} }" }}
+            {"high_warning" : { "action" : [], "severity" : "WARNING",  "description" : "{\"key\" : \"TRANSLATE_LUA(UPS {{ename}} battery is aging. Consider replacement.)\", \"variables\" : {\"ename\" : {\"value\" : \"__ename__\"}} }" }}
         ],
         "evaluation"    : "function has_bit(x,bit) local mask = 2 ^ (bit - 1); x = x % (2*mask); if x >= mask then return true else return false end end; function main(alarm) if has_bit(alarm,15) then return HIGH_WARNING end return OK end"
     }
