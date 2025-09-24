@@ -25,31 +25,30 @@
 #pragma once
 
 #include "purealert.h"
-#include "rule.h"
-#include <istream>
-#include <memory>
-#include <set>
+#include "rule/rule.h"
+#include "rule/matcher.h"
+
 #include <string>
-#include <unordered_map>
 #include <vector>
+#include <set>
+#include <unordered_map>
 
 /// Parses the input and reads the rule
 ///
-/// @param[in]  f    - an input stream to parse a rule
-/// @param[out] rule - a parsed rule
+/// @param[in]  jsonPayload - to parse a rule
+/// @param[out] rule - the parsed rule
 ///
 /// @return 1 if rule has errors in json
-///         2 if lua function has errors
-///         0 if everything is ok
-int readRule(std::istream& f, RulePtr& rule);
-
+///         2 if Lua function has errors
+///         0 if everything is ok (rule is set)
+int readRule(const std::string& jsonPayload, RulePtr& rule);
 
 /// Alert configuration is a class that manages rules and evaruted alerts
 ///
 /// ASSUMPTIONS:
 ///  1. Rules are stored in files. One rule = one file
-///  2. File name is a rule name
-///  3. Files should have extention ".rule"
+///  2. File name is the rule name
+///  3. Rule files must have extention ".rule"
 ///  4. Directory to the files is configurable. Cannot be changed without recompilation
 ///  5. If rule has at least one mistake or broke any other rule, it is ignored
 ///  6. Rule name is unique
@@ -61,151 +60,114 @@ public:
     typedef typename A::value_type                              value_type;
     typedef typename A::iterator                                iterator;
 
-    /// Creates an empty rule-alert configuration with empty path
-    AlertConfiguration()
-        : _path{} {};
-
     /// Creates an empty rule-alert configuration
     /// @param[in] path - a directory where rules are stored
     AlertConfiguration(const std::string& path)
-        : _path(path){};
+        : _path(path) {}
+
+    /// Creates an empty rule-alert configuration with empty path
+    AlertConfiguration(): AlertConfiguration("") {}
 
     /// Reads the configuration from persistence
-    ///
     /// Set of topics is empty if there are no rules or there are some errors
-    ///
+    /// NOTICE: **Exit** if failed
     /// @return a set of topics to be consumed
-    std::set<std::string> readConfiguration(void);
+    std::set<std::string> readConfiguration();
 
-    /// XXX: this exposes a lot of internal stuff - we need iterator as a class,
-    /// not just typedef
-    iterator begin()
-    {
-        return _alerts_map.begin();
-    }
-    iterator end()
-    {
-        return _alerts_map.end();
-    }
-
-    size_t size()
-    {
-        return _alerts_map.size();
-    }
-
-    B& at(std::string name)
-    {
-        return _alerts_map.at(name);
-    }
-
-    size_t count(std::string name)
-    {
-        return _alerts_map.count(name);
-    }
+    /// We need an iterator as a class,
+    iterator begin() { return _alerts_map.begin(); }
+    iterator end() { return _alerts_map.end(); }
+    B& at(const std::string& rulename) { return _alerts_map.at(rulename); }
+    size_t size() const { return _alerts_map.size(); }
+    size_t count(const std::string& rulename) const { return _alerts_map.count(rulename); }
 
     /// Sets a path to configuration files
-    ///
     /// @param[in] path - a directory where rules are stored
-    void setPath(const char* path)
-    {
-        _path = path;
-    }
+    void setPath(const std::string& path) { _path = path; }
+    /// Gets current path to configuration files
+    std::string getPersistencePath() const { return _path + '/'; }
 
     /// Adds a rule to the configuration
-    ///
     /// alertsToSend must be sent in the order from the first element to the last element
-    ///
-    /// @param[in] newRuleString - an input stream to parse a rule
-    /// @param[out] newSubjectsToSubscribe - subjects that are required by the new rule
+    /// @param[in] jsonPayload - json to parse a rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
-    ///
     /// @return -1 when rule has error in JSON
     ///         -2 when rule with such name already exists
-    ///         -5 when rule has error in lua
+    ///         -5 when rule has error in Lua
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and added correctly (but it can be not saved)
-    int addRule(std::istream& newRuleString, std::set<std::string>& newSubjectsToSubscribe,
-        std::vector<PureAlert>& alertsToSend, iterator& it);
+    int addRule(const std::string& jsonPayload, std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Updates existing rule in the configuration
-    ///
     /// alertsToSend must be sent in the order from the first element to the last element
-    ///
-    /// @param[in] newRuleString - an input stream to parse a rule
-    ///              (can have a new name for this rule)
-    /// @param[in] rule_name - old name of the rule
-    /// @param[out] newSubjectsToSubscribe - subjects that are required by the new rule
+    /// @param[in] jsonPayload - json to parse a rule (can have a new name for this rule)
+    /// @param[in] oldrulename - old name of the rule
     /// @param[out] alertsToSend - alerts that where affected by new rule
     /// @param[out] it - iterator to the new rule
-    ///
     /// @return -2 when rule with old_name doesn't exist -> nothing to update
     ///         -1 when rule has error in JSON
-    ///         -5 when rule has error in lua
-    ///         -3 if name of the rule is changed, but for the new name rule
-    ///            already exists
+    ///         -5 when rule has error in Lua
+    ///         -3 if name of the rule is changed, but for the new name rule already exists
     ///         -6 disk manipulation error (storing, moving...)
     ///          0 when rule was parsed and updated correctly (but it can be not saved)
-    int updateRule(std::istream& newRuleString, const std::string& rule_name,
-        std::set<std::string>& newSubjectsToSubscribe, std::vector<PureAlert>& alertsToSend, iterator& it);
+    int updateRule(const std::string& jsonPayload, const std::string& oldrulename, std::vector<PureAlert>& alertsToSend, iterator& it);
 
     /// Touch existing rule in the configuration.
-    ///
     /// Indicats that something in rule was changed implicitly.
-    ///
     /// alertsToSend must be sent in the order from the first element to the last element
-    ///
-    /// @param[in] rule_name - name of the rule to touch
+    /// @param[in] rulename - name of the rule to touch
     /// @param[out] alertsToSend - alerts that where affected by this rule
-    ///
     /// @return -1 when rule with rule_name doesn't exist -> nothing to update
     ///          0 when rule was touched successfully
-    int touchRule(const std::string& rule_name, std::vector<PureAlert>& alertsToSend);
+    int touchRule(const std::string& rulename, std::vector<PureAlert>& alertsToSend);
 
     /// Incapsulates alert in the model
-    ///
     /// @param[in] rule - the evaluated rule
     /// @param[in] pureAlert - the result of the evaluation (alert)
     /// @param[out] alert_to_send - the alert prepared to send
-    ///
     /// @return -1 nothing to send
     ///          0 need to send an alert
-    int updateAlert(
-        std::pair<RulePtr, std::vector<PureAlert>>& it, const PureAlert& pureAlert, PureAlert& alert_to_send);
+    int updateAlert(std::pair<RulePtr, std::vector<PureAlert>>& it, const PureAlert& pureAlert, PureAlert& alertToSend);
 
-    bool haveRule(const RulePtr& rule) const
+    /// Rule(s) deletion
+    /// @param[in] matcher - the rules selector
+    /// @param[out] alertsToSend - the alerts resolved on rule(s) deletion
+    /// @param[out] rulesDeleted - the deleted rule names
+    /// @return -1 one or more deletion errors occurred
+    ///          0 success
+    int deleteRules(const RuleMatcher& matcher, std::map<std::string, std::vector<PureAlert>>& alertsToSend, std::vector<std::string>& rulesDeleted);
+
+    /// Does the rule exist?
+    bool haveRule(const std::string& rulename) const
     {
-        return haveRule(rule->name());
+        return _alerts_map.find(rulename) != _alerts_map.end();
     }
 
-    bool haveRule(const std::string& rule_name) const
+    /// Get the rulename(s) referencing topic as input
+    const std::vector<std::string> getRulesByTopic(const std::string& topic)
     {
-        return (_alerts_map.find(rule_name) != _alerts_map.end());
+        const auto& it = _metrics_alerts_map.find(topic);
+        return (it != _metrics_alerts_map.cend()) ? it->second : std::vector<std::string>{};
     }
 
-    int updateAlertState(const char* rule_name, const char* element_name, const char* new_state, PureAlert& pureAlert);
+    // dump (dbg)
+    std::string str() const;
 
-    std::string getPersistencePath() const
-    {
-        return _path + '/';
-    }
+private: /// methods
+    // new/update entry for _metrics_alerts_map
+    void registerRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename);
+    // remove entry for _metrics_alerts_map
+    void unregisterRuleForTopics(const std::vector<std::string>& topics, const std::string& rulename);
+    // resolve an alert (+ update description)
+    void resolveAlert(PureAlert& alert);
+    void resolveAlert(PureAlert& alert, const std::string& description);
 
-    int deleteRule(const std::string& name, std::map<std::string, std::vector<PureAlert>>& alertsToSend);
-
-    int deleteAllRules(const std::string& element, std::map<std::string, std::vector<PureAlert>>& alertsToSend);
-
-    int deleteRules(RuleMatcher* matcher, std::map<std::string, std::vector<PureAlert>>& alertsToSend, std::vector<std::string>& rulesDeleted);
-
-    const std::vector<std::string> getRulesByMetric(const std::string& metric)
-    {
-        const auto& it = _metrics_alerts_map.find(metric);
-        return ((it != _metrics_alerts_map.cend()) ? it->second : std::vector<std::string>{});
-    }
-
-private:
-    // hash map to quickly retrieve specific alert by rulename
+private: /// members
+    // map to retrieve specific alert by rulename
     A _alerts_map;
-    // std::unordered_map<std::string,B> _alerts_map;
+
+    // map to retrieve alerts that reference a metric (topic)
     std::unordered_map<std::string, std::vector<std::string>> _metrics_alerts_map;
 
     // directory, where rules are stored

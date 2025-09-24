@@ -16,5 +16,23 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#include "matcher.h"
+
+RuleNameMatcher::RuleNameMatcher(const std::string& name) : _name(name) {}
+
+bool RuleNameMatcher::match(const RulePtr& rule) const
+{
+    return rule->name() == _name;
+}
+
+RuleElementMatcher::RuleElementMatcher(const std::string& element) : _element(element) {}
+
+bool RuleElementMatcher::match(const RulePtr& rule) const
+{
+    return rule->element() == _element;
+}
+
+std::string RuleElementMatcher::element() const
+{
+    return _element;
+}

@@ -4,8 +4,10 @@ cmake_policy(VERSION 3.13)
 etn_target(static ${PROJECT_NAME}-static
     PRIVATE
     SOURCES
-        src/*.h
-        src/*.cc
+        src/misc/*
+        src/rule/*
+        src/metric/*
+        src/*
     PUBLIC_INCLUDE_DIR
         src
     USES
@@ -29,11 +31,14 @@ etn_test_target(${PROJECT_NAME}-static
     SOURCES
         test/main.cpp
         test/utils.cpp
-        test/audit_test.cpp
+        test/json.cpp
+        test/outcome.cpp
+        test/audit.cpp
+        test/autoconfig_info.cpp
         test/autoconfig.cpp
-        test/ruleconfigurator.cpp
+        test/templateruleconfigurator.cpp
         test/alertconfiguration.cpp
-        test/engine_server_test.cpp
+        test/engine_server.cpp
         test/alert_actions.cpp
     SUBDIR
         test

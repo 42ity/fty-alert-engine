@@ -16,41 +16,42 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/// @file thresholdrulesimple.h
-/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
-/// @brief Simple threshold rule representation
+/*! \file luaRule.h
+ *  \author Tomas Halman <TomasHalman@eaton.com>
+ *  \brief Class implementing Lua rule evaluation
+ */
+
 #pragma once
 
 #include "rule.h"
-#include <cxxtools/serializationinfo.h>
 
-class ThresholdRuleSimple : public Rule
+#include <lua.hpp>
+#include <string>
+#include <map>
+
+class LuaRule : public Rule
 {
 public:
-    ThresholdRuleSimple(){};
+    LuaRule() {}
+    LuaRule(const LuaRule& r);
+    ~LuaRule();
 
-    std::string whoami() const
-    {
-        return "threshold";
-    }
+    virtual std::string clazz() const { return Rule::clazz() + "/LuaRule"; }
 
-    virtual int fill(const cxxtools::SerializationInfo& si);
+    virtual void globalVariables(const std::map<std::string, double>& variables);
 
+    /// returns 0 if ok (pureAlert initialized)
     virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
-    bool isTopicInteresting(const std::string& topic) const
-    {
-        return (_metric == topic);
-    }
-
-    std::vector<std::string> getNeededTopics(void) const
-    {
-        return {_metric};
-    }
+    /// get/set Lua code
+    std::string code() const { return _code; }
+    void code(const std::string& code); // throw on error
 
 private:
-    void log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const;
+    void luaSetGlobalVariables();
+    double luaEvaluate(const std::vector<double>& arguments);
 
-    // needed metric topic
-    std::string _metric;
+    bool _valid{false};
+    lua_State* _lstate{nullptr};
+    std::string _code; // Lua
 };

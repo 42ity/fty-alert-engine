@@ -19,26 +19,29 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "fty_alert_engine_server.h"
 #include "fty_alert_actions.h"
 #include "autoconfig.h"
-#include "audit_log.h"
+#include "misc/audit_log.h"
 
 #include <fty_common_mlm.h>
 #include <czmq.h>
 
-// path where rules are stored. CAUTION: **without** ending slash!
-static const char* RULES_PATH = "/var/lib/fty/fty-alert-engine";
+// rule instances storage, CAUTION: **without** ending slash!
+static const char* RULES_DIR = "/var/lib/fty/fty-alert-engine";
+// rule templates storage
+static const char* TEMPLATES_DIR = "/usr/share/bios/fty-autoconfig";
 
-// agents name
+// agent names
 static const char* ENGINE_AGENT_NAME        = "fty-alert-engine";
 static const char* ENGINE_AGENT_NAME_STREAM = "fty-alert-engine-stream";
 static const char* ACTIONS_AGENT_NAME       = "fty-alert-actions";
+static const char* AUTOCONFIG_AGENT_NAME    = "fty-autoconfig";
 
-// autoconfig name
-static const char* AUTOCONFIG_NAME = "fty-autoconfig";
+// flexible rules agent
+static const char* FLEXIBLE_AGENT_NAME = "fty-alert-flexible";
 
 int main(int argc, char** argv)
 {
-    // default cfg file path
-    const char* CFG_PATH = "/etc/fty-alert-engine/fty-alert-engine.cfg";
+    // defaults
+    const char* config_file = nullptr;
     bool verbose = false;
 
     for (int i = 1; i < argc; i++) {
@@ -60,7 +63,7 @@ int main(int argc, char** argv)
                 printf("ERROR: Missing parameter (option: %s)\n", arg.c_str());
                 return EXIT_FAILURE;
             }
-            CFG_PATH = param;
+            config_file = param;
             i++;
         }
         else {
@@ -70,14 +73,23 @@ int main(int argc, char** argv)
     }
 
     ManageFtyLog::setInstanceFtylog(ENGINE_AGENT_NAME, FTY_COMMON_LOGGING_DEFAULT_CFG);
-    if (verbose) {
-        ManageFtyLog::getInstanceFtylog()->setVerboseMode();
+
+    if (config_file) {
+        zconfig_t* config = zconfig_load(config_file);
+        if (!config) {
+            log_error("Failed to load %s", config_file);
+        }
+        else {
+            log_info("Loading %s", config_file);
+
+            // Note: server/[timeout,background,workdir] ignored
+            verbose = streq(zconfig_get(config, "server/verbose", "false"), "true");
+        }
+        zconfig_destroy(&config);
     }
 
-    if (CFG_PATH) {
-        // no cfg option allowed
-        zconfig_t* config = zconfig_load(CFG_PATH);
-        zconfig_destroy(&config);
+    if (verbose) {
+        ManageFtyLog::getInstanceFtylog()->setVerboseMode();
     }
 
     // initialize log for auditability
@@ -85,31 +97,32 @@ int main(int argc, char** argv)
 
     log_debug ("%s starting...", ENGINE_AGENT_NAME);
 
-    // mailbox
+    // alert-engine mailbox actor
     zactor_t* mailbox_actor = zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME)));
-    zstr_sendx(mailbox_actor, "CONFIG", RULES_PATH, NULL);
+    zstr_sendx(mailbox_actor, "CONFIG", RULES_DIR, NULL); // rule instances
     zstr_sendx(mailbox_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(mailbox_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
-    // Stream
+    // alert-engine stream actor
     zactor_t* stream_actor = zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME_STREAM)));
     zstr_sendx(stream_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(stream_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
-    // autoconfig
-    zactor_t* autoconf_actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_NAME)));
-    zstr_sendx(autoconf_actor, "CONFIG", RULES_PATH, NULL); // presist. state file
+    // autoconfig actor
+    zactor_t* autoconf_actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_AGENT_NAME)));
+    zstr_sendx(autoconf_actor, "CONFIG", RULES_DIR, NULL); // actor state file
     zstr_sendx(autoconf_actor, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(autoconf_actor, "TEMPLATES_DIR", "/usr/share/bios/fty-autoconfig", NULL); // rule template
+    zstr_sendx(autoconf_actor, "TEMPLATES_DIR", TEMPLATES_DIR, NULL); // rule templates
     zstr_sendx(autoconf_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(autoconf_actor, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
+    zstr_sendx(autoconf_actor, "ALERT_FLEXIBLE_NAME", FLEXIBLE_AGENT_NAME, NULL);
 
-    // actions
+    // alert actions actor
     zactor_t* action_actor = zactor_new(fty_alert_actions, static_cast<void*>(const_cast<char*>(ACTIONS_AGENT_NAME)));
     zstr_sendx(action_actor, "CONNECT", MLM_ENDPOINT, NULL);
     zstr_sendx(action_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
     zstr_sendx(action_actor, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
-    zstr_sendx(action_actor, "ASKFORASSETS", NULL);
+    zstr_sendx(action_actor, "ASSETS_REPUBLISH", NULL); // republish all assets
 
     log_info("%s started", ENGINE_AGENT_NAME);
 
@@ -117,8 +130,9 @@ int main(int argc, char** argv)
     // copy from src/malamute.c under MPL license
     while (!zsys_interrupted) {
         char* msg = zstr_recv(mailbox_actor);
-        if (!msg)
+        if (!msg) {
             break;
+        }
 
         log_debug("%s: recv msg '%s'", ENGINE_AGENT_NAME, msg);
         zstr_free(&msg);

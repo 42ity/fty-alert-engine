@@ -17,9 +17,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "luarule.h"
-#include "audit_log.h"
-#include <algorithm>
+#include "misc/audit_log.h"
+
 #include <fty_log.h>
+#include <algorithm>
 
 LuaRule::~LuaRule()
 {
@@ -30,24 +31,26 @@ LuaRule::~LuaRule()
 LuaRule::LuaRule(const LuaRule& r)
 {
     _name = r._name;
-    globalVariables(r.getGlobalVariables());
+    globalVariables(r.Rule::globalVariables());
     code(r._code);
 }
 
-void LuaRule::globalVariables(const std::map<std::string, double>& vars)
+void LuaRule::globalVariables(const std::map<std::string, double>& variables)
 {
-    Rule::globalVariables(vars);
+    Rule::globalVariables(variables);
     luaSetGlobalVariables();
 }
 
-void LuaRule::code(const std::string& newCode)
+// throw on error
+void LuaRule::code(const std::string& code)
 {
-    _valid = false;
+    #define DESTROY_LSTATE \
+        if (_lstate) { lua_close(_lstate); _lstate = NULL; }
 
-    // cleanup
+    // reet/cleanup
+    _valid = false;
     _code.clear();
-    if (_lstate)
-        { lua_close(_lstate); _lstate = NULL; }
+    DESTROY_LSTATE;
 
     // create new Lua state
 #if LUA_VERSION_NUM > 501
@@ -63,7 +66,7 @@ void LuaRule::code(const std::string& newCode)
     luaL_openlibs(_lstate);
 
     // set _code *first* then set Lua globals
-    _code = newCode;
+    _code = code;
     luaSetGlobalVariables();
 
     // compile Lua code
@@ -72,6 +75,7 @@ void LuaRule::code(const std::string& newCode)
         const char* luaError = lua_tostring(_lstate, -1);
         log_error("Lua error: %s", luaError);
         lua_pop(_lstate, 1);
+        DESTROY_LSTATE;
         throw std::runtime_error("Lua code compilation failed!");
     }
 
@@ -80,11 +84,14 @@ void LuaRule::code(const std::string& newCode)
     r = lua_isfunction(_lstate, lua_gettop(_lstate));
     if (r != 1) {
         lua_pop(_lstate, 1);
+        DESTROY_LSTATE;
         throw std::runtime_error("Lua main function not found!"); // missing
     }
     lua_pop(_lstate, 1);
 
     _valid = true; // ok
+
+    #undef DESTROY_LSTATE
 }
 
 static std::string auditValue(const std::string& metric, double value)
@@ -99,58 +106,67 @@ static std::string auditValue(const std::string& metric, double value)
     return metric.substr(0, metric.find("@")) + "=" + std::string{svalue};
 }
 
+/// returns 0 if ok (pureAlert initialized)
 int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 {
+    // outcome tokens
+    static const std::string LC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_CRITICAL)};
+
     log_debug("LuaRule::evaluate %s", _name.c_str());
-    int res = 0;
 
     std::string auditValues;
 
     std::vector<double> values;
-    int index = 0;
-    for (const auto& metric : _metrics) {
-        double value = metricList.find(metric);
+    bool valuesOK{true};
+    {
+        int index = 0;
+        for (const auto& metric : _metrics) {
+            double value = metricList.find(metric);
 
-        auditValues += (auditValues.empty() ? "" : ", ") + auditValue(metric, value);
+            auditValues += (auditValues.empty() ? "" : ", ") + auditValue(metric, value);
 
-        if (std::isnan(value)) {
-            log_debug("metric#%d: %s = NaN", index, metric.c_str());
-            log_debug("Don't have everything for '%s' yet", _name.c_str());
-            res = RULE_RESULT_UNKNOWN; // assume != 0
-            break;
+            if (std::isnan(value)) {
+                log_debug("metric#%d: %s = NaN", index, metric.c_str());
+                log_debug("Don't have everything for '%s' yet", _name.c_str());
+                valuesOK = false;
+                break;
+            }
+            values.push_back(value);
+            log_debug("metric#%d: %s = %lf", index, metric.c_str(), value);
+            index++;
         }
-        values.push_back(value);
-        log_debug("metric#%d: %s = %lf", index, metric.c_str(), value);
-        index++;
     }
 
-    if (res != RULE_RESULT_UNKNOWN) {
-        int status = static_cast<int>(luaEvaluate(values));
-        auto now = static_cast<uint64_t>(::time(NULL));
+    bool evalOK{false};
 
-        if (status == RULE_RESULT_OK) {
+    if (valuesOK) {
+        const int status{static_cast<int>(luaEvaluate(values))};
+        auto now{static_cast<uint64_t>(::time(NULL))};
+
+        if (status == outcome::RULE_RESULT_OK) {
             log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
             // When alert is resolved, it doesn't have new severity
-            const std::string description{"The alarm is now resolved"};
+            const std::string description{"The alarm is resolved"};
             const std::string severity{"OK"};
-            pureAlert = PureAlert(ALERT_RESOLVED, now, description, _element, severity, {""});
+            pureAlert = PureAlert(ALERT_RESOLVED, now, description, _element, severity, {});
             //pureAlert.print();
+            evalOK = true;
         }
         else {
-            const std::string statusText = resultToString(status);
+            const std::string statusText = outcome::resultToString(status);
 
             auto outcome = _outcomes.find(statusText);
+
             if (outcome == _outcomes.cend()) {
                 // BSOS-1570, some alerts are malformed, missing result definition gives no outcome
-                // WA: choose a similar outcome from status (if any)
-                const std::vector<std::pair<std::string, std::string>> similarStatus = {
-                    std::pair("low_critical", "low_warning"),   // see text_results[]
-                    std::pair("high_warning", "high_critical"),
-                };
-                for (const auto& it : similarStatus) {
-                    if (statusText == it.first ) { outcome = _outcomes.find(it.second); break; }
-                    if (statusText == it.second) { outcome = _outcomes.find(it.first ); break; }
-                }
+                // WA: choose a similar LOW or HIGH outcome from status (if any)
+                     if (statusText == LC_TOKEN ) { outcome = _outcomes.find(LW_TOKEN); }
+                else if (statusText == LW_TOKEN ) { outcome = _outcomes.find(LC_TOKEN); }
+                else if (statusText == HW_TOKEN ) { outcome = _outcomes.find(HC_TOKEN); }
+                else if (statusText == HC_TOKEN ) { outcome = _outcomes.find(HW_TOKEN); }
 
                 if (outcome != _outcomes.cend()) {
                     log_warning("LuaRule::evaluate %s '%s' result not defined, fallback to '%s'",
@@ -159,22 +175,23 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
             }
 
             if (outcome != _outcomes.cend()) {
-                // Some known outcome was found
+                // outcome was found
                 log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
-                pureAlert = PureAlert(ALERT_START, now, outcome->second._description, _element, outcome->second._severity, outcome->second._actions);
-                pureAlert.print();
+                const std::string description{outcome->second._description};
+                const std::string severity{outcome->second._severity};
+                pureAlert = PureAlert(ALERT_START, now, description, _element, severity, outcome->second._actions);
+                //pureAlert.print();
+                evalOK = true;
             }
             else {
-                log_error("LuaRule::evaluate %s '%s' result returned, but not defined",
-                    _name.c_str(), statusText);
-                res = RULE_RESULT_UNKNOWN;
+                log_error("LuaRule::evaluate %s '%s' result returned, but not defined", _name.c_str(), statusText);
             }
         }
     }
 
     // log audit alarm
     std::string auditDesc =
-        (res == RULE_RESULT_UNKNOWN) ? ALERT_UNKNOWN : // UNKNOWN
+        (!evalOK) ? ALERT_UNKNOWN : // UNKNOWN
         (pureAlert._status == ALERT_RESOLVED) ? ALERT_RESOLVED : // RESOLVED
         std::string{pureAlert._status + "/" + pureAlert._severity.substr(0, 1)} // ACTIVE/C ACTIVE/W
     ;
@@ -190,22 +207,22 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
     }
     audit_log_info("%8s %s (%s)", auditDesc.c_str(), alertName.c_str(), auditValues.c_str());
 
-    return res;
+    return evalOK ? 0 : -1;
 }
 
 double LuaRule::luaEvaluate(const std::vector<double>& arguments)
 {
     if (!_valid) {
-        throw std::runtime_error("Lua rule is not valid!");
+        throw std::runtime_error("Lua rule is not valid");
     }
     if (!_lstate) { // secure
-        throw std::runtime_error("Lua state is NULL!");
+        throw std::runtime_error("Lua state is NULL");
     }
 
     lua_settop(_lstate, 0);
 
     lua_getglobal(_lstate, "main");
-    for (const auto arg : arguments) {
+    for (const auto& arg : arguments) {
         lua_pushnumber(_lstate, arg);
     }
 
@@ -214,11 +231,11 @@ double LuaRule::luaEvaluate(const std::vector<double>& arguments)
         const char* luaError = lua_tostring(_lstate, -1);
         log_error("Lua error: %s", luaError);
         lua_pop(_lstate, 1);
-        throw std::runtime_error("Lua calling main failed!");
+        throw std::runtime_error("Lua calling main failed");
     }
 
     if (!lua_isnumber(_lstate, -1)) {
-        throw std::runtime_error("Lua function main did not return a number!");
+        throw std::runtime_error("Lua function main did not return a number");
     }
 
     double ret = lua_tonumber(_lstate, -1);
@@ -228,19 +245,25 @@ double LuaRule::luaEvaluate(const std::vector<double>& arguments)
 
 void LuaRule::luaSetGlobalVariables()
 {
+    // outcome tokens
+    static const std::string LC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_CRITICAL)};
+    static const std::string LW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_LOW_WARNING)};
+    static const std::string HW_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_WARNING)};
+    static const std::string HC_TOKEN{outcome::resultToString(outcome::RULE_RESULT_HIGH_CRITICAL)};
+
     if (!_lstate) {
         return; // no state to set
     }
 
     // register results name/value in state
-    for (int result = RULE_RESULT_TO_LOW_CRITICAL; result <= RULE_RESULT_UNKNOWN; result++) {
-        std::string resultName = Rule::resultToString(result);
+    for (int result = outcome::RULE_RESULT_LOW_CRITICAL; result <= outcome::RULE_RESULT_UNKNOWN; result++) {
+        std::string resultName = outcome::resultToString(result);
         transform(resultName.begin(), resultName.end(), resultName.begin(), ::toupper); // UPPER
         lua_pushnumber(_lstate, result); // value
         lua_setglobal(_lstate, resultName.c_str()); // variable name
     }
 
-    std::map<std::string, double> globals{getGlobalVariables()};
+    std::map<std::string, double> globals{Rule::globalVariables()};
 
     if (!globals.empty()) {
         // BSOS-1570, some alerts are malformed, missing values definition (thresholds)
@@ -263,41 +286,36 @@ void LuaRule::luaSetGlobalVariables()
             }
         };
 
-        const std::string LC{"low_critical"}; // see text_results[]
-        const std::string LW{"low_warning"};
-        const std::string HW{"high_warning"};
-        const std::string HC{"high_critical"};
-
-        const bool hasLC{globals.count(LC) != 0};
-        const bool hasLW{globals.count(LW) != 0};
-        const bool hasHW{globals.count(HW) != 0};
-        const bool hasHC{globals.count(HC) != 0};
+        const bool hasLC{globals.count(LC_TOKEN) != 0};
+        const bool hasLW{globals.count(LW_TOKEN) != 0};
+        const bool hasHW{globals.count(HW_TOKEN) != 0};
+        const bool hasHC{globals.count(HC_TOKEN) != 0};
 
         const double BIG{1.0E+8}; // huge threshold, >0
         const double EPS{1.0E-3}; // epsilon, >0
 
         // auto completion of required LOW globals
         if (hasLC && !hasLW) {
-            setGlobalIfUsed(LW, globals[LC] + EPS);
+            setGlobalIfUsed(LW_TOKEN, globals[LC_TOKEN] + EPS);
         }
         else if (!hasLC && hasLW) {
-            setGlobalIfUsed(LC, globals[LW] - BIG);
+            setGlobalIfUsed(LC_TOKEN, globals[LW_TOKEN] - BIG);
         }
         else if (!hasLC && !hasLW) {
-            setGlobalIfUsed(LC, -BIG);
-            setGlobalIfUsed(LW, -BIG + EPS);
+            setGlobalIfUsed(LC_TOKEN, -BIG);
+            setGlobalIfUsed(LW_TOKEN, -BIG + EPS);
         }
 
         // auto completion of required HIGH globals
         if (hasHW && !hasHC) {
-            setGlobalIfUsed(HC, globals[HW] + BIG);
+            setGlobalIfUsed(HC_TOKEN, globals[HW_TOKEN] + BIG);
         }
         else if (!hasHW && hasHC) {
-            setGlobalIfUsed(HW, globals[HC] - EPS);
+            setGlobalIfUsed(HW_TOKEN, globals[HC_TOKEN] - EPS);
         }
         else if (!hasHW && !hasHC) {
-            setGlobalIfUsed(HW, BIG - EPS);
-            setGlobalIfUsed(HC, BIG);
+            setGlobalIfUsed(HW_TOKEN, BIG - EPS);
+            setGlobalIfUsed(HC_TOKEN, BIG);
         }
 
         if (added != 0) {

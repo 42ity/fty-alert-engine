@@ -1,5 +1,5 @@
 /*  =========================================================================
-    ruleconfigurator - Rule Configurator
+    autoconfig_info
 
     Copyright (C) 2014 - 2020 Eaton
 
@@ -21,32 +21,32 @@
 
 #pragma once
 
-#include "autoconfig.h"
-#include <malamute.h>
+#include <fty_proto.h>
 #include <map>
-#include <string>
 #include <vector>
+#include <string>
 
-
-class RuleConfigurator
+struct AutoConfigurationInfo
 {
-public:
-    virtual bool configure(const std::string& name, const AutoConfigurationInfo& info, const std::string& logical_asset)
-    {
-        return configure(name, info, logical_asset, NULL);
-    }
+    std::string type;
+    std::string subtype;
+    std::string update_ts;
+    uint64_t date{0}; // *must* be 0
+    bool configured{false}; // *must* be false
 
-    virtual bool configure(const std::string& /* name */, const AutoConfigurationInfo& /* info */,
-        const std::string& /* logical_asset */, mlm_client_t* /* client */)
-    {
-        return false;
-    }
-    virtual bool isApplicable(const AutoConfigurationInfo& /*info*/)
-    {
-        return false;
-    }
+    std::map<std::string, std::string> attributes; // ext. attributes <key, value>
+    std::vector<std::string> locations; // inames (dc, room, ...)
 
-    bool sendNewRule(const std::string& rule, mlm_client_t* client);
+    // not initialized?
+    bool empty() const;
 
-    virtual ~RuleConfigurator(){};
+    // ext. attribute accessor
+    std::string getAttr(const std::string& attrName, const std::string& defValue = "") const;
+
+    // dbg, dump with/without filter on ext. attributes
+    std::string dump(const std::vector<std::string>& attrFilter) const;
+    std::string dump() const { return dump({}); }
+
+    // compare w/ fty_proto object
+    bool operator == (fty_proto_t* proto) const;
 };

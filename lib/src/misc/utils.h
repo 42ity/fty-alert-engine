@@ -20,7 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-#include <czmq.h>
+#include <czmq.h> //zhash_t
 #include <map>
 #include <string>
 
@@ -30,5 +30,22 @@ namespace utils {
 /// @param zhash to convert
 /// @return std::map
 std::map<std::string, std::string> zhash_to_map(zhash_t* hash);
+
+/// replace tokens by values in a string
+/// @param text input string
+/// @param dict dictionnary (token/value) map
+/// @return the string result
+std::string replaceTokens(const std::string& text, const std::map<std::string, std::string>& dict);
+
+/// read a file (binary mode)
+/// @param pathfile the full file path
+/// @return file content (empty string if error)
+std::string readFile(const std::string& pathfile);
+
+/// parse a double from a c-string
+/// @param s the string to parse
+/// @param [out] value the parsed value
+/// @return 0 if success (value is set), else <0
+int parseDouble(const char* s, double& value);
 
 } // namespace utils

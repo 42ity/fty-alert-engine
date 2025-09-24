@@ -16,37 +16,27 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-/*! \file luaRule.h
- *  \author Tomas Halman <TomasHalman@eaton.com>
- *  \brief Class implementing Lua rule evaluation
- */
+/// @file thresholdrulesimple.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Simple threshold rule representation
 
 #pragma once
 
 #include "rule.h"
-#include <lua.hpp>
 
-class LuaRule : public Rule
+class ThresholdRuleSimple final : public Rule
 {
 public:
-    /**
-     * \brief set the evaluation code
-     */
-    LuaRule() {}
-    LuaRule(const LuaRule& r);
-    ~LuaRule();
+    ThresholdRuleSimple() {}
 
-    std::string code() const { return _code; }
+    virtual std::string whoami() const { return "threshold"; }
+    virtual std::string clazz() const { return Rule::clazz() + "/ThresholdRuleSimple"; }
 
-    void globalVariables(const std::map<std::string, double>& vars);
-    void code(const std::string& newCode);
-    int evaluate(const MetricList& metricList, PureAlert& pureAlert);
+    virtual int fill(const cxxtools::SerializationInfo& si);
+
+    /// returns 0 if ok (pureAlert initialized)
+    virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
 
 private:
-    void luaSetGlobalVariables();
-    double luaEvaluate(const std::vector<double>& arguments);
-
-    bool _valid = false;
-    lua_State* _lstate = NULL;
-    std::string _code;
+    void log_audit_alarm(const MetricInfo& metric, const PureAlert& pureAlert) const;
 };

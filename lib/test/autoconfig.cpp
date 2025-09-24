@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2014 - 2020 Eaton
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
 #include <catch2/catch.hpp>
 
 #include "src/autoconfig.h"
@@ -9,7 +27,7 @@
 
 #define SELFTEST_DIR_RO "."
 
-TEST_CASE("autoconfig_test")
+TEST_CASE("autoconfig loadAllTemplates")
 {
     // Basic test: try to load JSON rules to see if these are well formed
     // This will avoid regression in the future, since fty-alert-engine only
@@ -21,8 +39,8 @@ TEST_CASE("autoconfig_test")
     {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) != NULL) {
-           printf("== Current working dir: %s\n", cwd);
-       }
+           log_debug("== Current working dir: %s", cwd);
+        }
     }
 
     // template paths (src/ and tests/)
@@ -32,12 +50,12 @@ TEST_CASE("autoconfig_test")
     };
 
     for (auto& templatePath : testVector) {
-        Autoconfig::RuleFilePath = templatePath;
+        Autoconfig::TemplatesDir = templatePath;
 
-        TemplateRuleConfigurator templateRuleConfigurator;
-        std::vector<std::pair<std::string, std::string>> templates = templateRuleConfigurator.loadAllTemplates();
+        TemplateRuleConfigurator TRC;
+        std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();
 
-        printf("%s : number of template rules = '%zu'\n", templatePath.c_str(), templates.size());
+        log_debug("%s : number of template rules = '%zu'", templatePath.c_str(), templates.size());
 
         REQUIRE(templates.size() != 0);
 
@@ -54,11 +72,11 @@ TEST_CASE("autoconfig_test")
                 REQUIRE(si.memberCount() == 1);
 
                 auto ruleType = si.getMember(0).name();
-                printf("1/ ruleType: %s\n", ruleType.c_str());
+                log_debug("1/ ruleType: %s", ruleType.c_str());
                 REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
             }
             catch (const std::exception& e) {
-                printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
+                log_debug("JSON parse failed ('%s', e: '%s')", ruleFilename.c_str(), e.what());
                 REQUIRE(false);
             }
 
@@ -71,11 +89,11 @@ TEST_CASE("autoconfig_test")
                 REQUIRE(si.memberCount() == 1);
 
                 auto ruleType = si.getMember(0).name();
-                printf("2/ ruleType: %s\n", ruleType.c_str());
+                log_debug("2/ ruleType: %s", ruleType.c_str());
                 REQUIRE((ruleType == "threshold" || ruleType == "single" || ruleType == "flexible"));
             }
             catch (const std::exception& e) {
-                printf("JSON parse failed ('%s', e: '%s')\n", ruleFilename.c_str(), e.what());
+                log_debug("JSON parse failed ('%s', e: '%s')", ruleFilename.c_str(), e.what());
                 REQUIRE(false);
             }
         }

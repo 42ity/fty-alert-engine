@@ -1,5 +1,24 @@
+/*
+Copyright (C) 2014 - 2020 Eaton
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
 #include <catch2/catch.hpp>
-#include "src/audit_log.h"
+
+#include "src/misc/audit_log.h"
 #include <fty_log.h>
 
 #include <sys/stat.h>
@@ -8,15 +27,15 @@
 #include <fstream>
 #include <filesystem>
 
-TEST_CASE("audit-test")
+TEST_CASE("audit")
 {
     const bool verbose = false;
-    std::cout << "Running audit-test..." << std::endl;
+    std::cout << "Running audit test..." << std::endl;
 
     {
         using std::filesystem::current_path;
         char tmp[256];
-        getcwd(tmp, 256);
+        getcwd(tmp, sizeof(tmp));
         std::cout << "Current working directory: " << tmp << std::endl;
     }
 
@@ -84,6 +103,6 @@ TEST_CASE("audit-test")
     // release audit context
     AuditLog::deinit();
 
-    printf(" * audit-test : OK\n");
+    std::cout << "audit test done" << std::endl;
 }
 

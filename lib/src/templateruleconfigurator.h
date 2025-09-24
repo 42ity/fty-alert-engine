@@ -21,30 +21,33 @@
 
 #pragma once
 
-#include "ruleconfigurator.h"
-#include <fstream>
+#include "autoconfig.h"
+
+#include <malamute.h>
 #include <string>
+#include <vector>
+#include <map>
 
 // PQSWMBT-4921 Xphase rule exceptions
 extern bool gDisable_ruleXphaseIsApplicable; // to pass selftest
 bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfigurationInfo& assetInfo);
 
-class TemplateRuleConfigurator : public RuleConfigurator
+class TemplateRuleConfigurator
 {
 public:
-    using RuleConfigurator::configure;
-    bool configure(const std::string& name, const AutoConfigurationInfo& info, const std::string& logical_asset,
-        mlm_client_t* client);
+    bool configure(const std::string& iname /*asset*/, const AutoConfigurationInfo& info, const std::string& ename_la /*logical_asset*/, mlm_client_t* client);
     bool isApplicable(const AutoConfigurationInfo& info);
     bool isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name);
+
     std::vector<std::pair<std::string, std::string>> loadAllTemplates();
-    virtual ~TemplateRuleConfigurator(){};
+
+    bool sendAddRule(const std::string& rule /*json*/, mlm_client_t* client);
 
 private:
-    bool                     checkTemplate(const char* type, const char* subtype);
-    std::vector<std::string> loadTemplates(const char* type, const char* subtype, bool fast_track = false);
-    std::string              convertTypeSubType2Name(const char* type, const char* subtype);
-    std::string              replaceTokens(const std::string& text, const std::vector<std::string>& patterns,
-                     const std::vector<std::string>& replacements) const;
-    bool                     isModelOk(const std::string& model, const std::string& templat);
+    bool templatesDirExists();
+    bool checkTemplate(const AutoConfigurationInfo& info);
+    std::vector<std::string> loadTemplates(const AutoConfigurationInfo& info, bool fast_track);
+
+    bool isModelOk(const std::string& model, const std::string& templat);
+    std::string typeSubtype2Name(const std::string& type, const std::string& subtype);
 };

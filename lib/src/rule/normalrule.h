@@ -16,5 +16,21 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+/// @file normalrule.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Representation of normal rule
+
+#pragma once
+
+#include "luarule.h"
+
+class NormalRule final : public LuaRule
+{
+public:
+    NormalRule() {}
+
+    virtual std::string whoami() const { return "single"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/NormalRule"; }
+
+    virtual int fill(const cxxtools::SerializationInfo& si);
+};

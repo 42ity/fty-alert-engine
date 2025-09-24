@@ -31,38 +31,38 @@ public:
     MetricInfo() = default;
 
     MetricInfo(
-        const std::string& element_name,
-        const std::string& source,
+        const std::string& asset, // asset iname (ex.: ups-xxxx)
+        const std::string& type, // metric type (ex.: load.default)
         double value,
-        uint64_t timestamp,
-        uint64_t ttl
+        uint64_t timestamp, // sec
+        uint64_t ttl // sec
     )
-        : _element_name(element_name) // asset iname
-        , _source(source) // metric type
+        : _asset(asset) // asset iname
+        , _type(type) // metric type
         , _value(value)
         , _timestamp(timestamp)
         , _ttl(ttl)
     {}
 
     /// accessors
-    std::string getElementName() const { return _element_name; }
-    std::string getSource() const { return _source; }
-    double getValue() const { return _value; }
-    uint64_t getTimestamp() const { return _timestamp; }
-    uint64_t getTtl() const { return _ttl; }
+    std::string asset() const { return _asset; }
+    std::string type() const { return _type; }
+    double value() const { return _value; }
+    uint64_t timestamp() const { return _timestamp; }
+    uint64_t ttl() const { return _ttl; }
 
-    /// topic name (built)
-    std::string generateTopic() const
+    /// topic (built)
+    std::string topic() const
     {
-        return _source + "@" + _element_name; // <metric type>@<asset iname>
+        return _type + "@" + _asset; // <metric type>@<asset iname>
     }
 
     friend class MetricList;
 
 private:
-    std::string _element_name; /// asset iname
-    std::string _source; /// metric type
-    double      _value{0};
+    std::string _asset; /// asset iname
+    std::string _type; /// metric type
+    double      _value{0.0};
     uint64_t    _timestamp{0}; /// latest update (epoch time, sec.)
     uint64_t    _ttl{0}; /// time to live (sec)
 };

@@ -18,12 +18,13 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
+
 #pragma once
 
 #include <malamute.h>
 #include <fty_proto.h>
 
-typedef struct _fty_alert_actions_t
+struct fty_alert_actions_t
 {
     mlm_client_t* client;
     mlm_client_t* requestreply_client;
@@ -35,20 +36,20 @@ typedef struct _fty_alert_actions_t
     bool          integration_test;
     uint64_t      notification_override;
     uint64_t      requestreply_timeout;
-} fty_alert_actions_t;
+};
 
-typedef struct
+struct s_alert_cache
 {
     fty_proto_t* alert_msg;
     uint64_t     last_notification;
     uint64_t     last_received;
     fty_proto_t* related_asset;
-} s_alert_cache;
+};
 
-///  Create a new fty_alert_actions
+///  Create a new fty_alert_actions_t object
 fty_alert_actions_t* fty_alert_actions_new();
 
-///  Destroy the fty_alert_actions
+///  Destroy the fty_alert_actions_t object ref.
 void fty_alert_actions_destroy(fty_alert_actions_t** self_p);
 
 ///  Main actor function for actions module

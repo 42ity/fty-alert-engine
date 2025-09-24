@@ -17,31 +17,37 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "purealert.h"
+
 #include <fty_log.h>
+#include <sstream>
 
-bool PureAlert::isStatusKnown(const char* status)
+//static
+bool PureAlert::isStatusKnown(const std::string& status)
 {
-    if (!status)
-        return false; // inconsistent
+    return (status == ALERT_RESOLVED)
+           || (status == ALERT_START)
+           || (status == ALERT_ACK1)
+           || (status == ALERT_ACK2)
+           || (status == ALERT_ACK3)
+           || (status == ALERT_ACK4)
+    ;
+}
 
-    if (strcmp(status, ALERT_RESOLVED) == 0)
-        return true;
-    if (strcmp(status, ALERT_START) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK1) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK2) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK3) == 0)
-        return true;
-    if (strcmp(status, ALERT_ACK4) == 0)
-        return true;
+std::string PureAlert::str() const
+{
+    std::ostringstream oss;
+    oss << "status(" << _status << ")"
+        << ", timestamp(" << _timestamp << ")"
+        << ", description(" << _description << ")"
+        << ", element(" << _element << ")"
+        << ", severity(" << _severity << ")"
+        << ", rule_class(" << _rule_class << ")"
+        << ", ttl(" << _ttl << ")";
 
-    return false;
+    return oss.str();
 }
 
 void PureAlert::print() const
 {
-    log_debug("status(%s), timestamp(%zu), descr(%s), element(%s), severity(%s)",
-        _status.c_str(), _timestamp, _description.c_str(), _element.c_str(), _severity.c_str());
+    logDebug("{}", str());
 }

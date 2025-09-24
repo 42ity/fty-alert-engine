@@ -16,5 +16,29 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+/// @file regexrule.h
+/// @author Alena Chernikava <AlenaChernikava@Eaton.com>
+/// @brief Representation of PATTERN rule
+
+#pragma once
+
+#include "luarule.h"
+
+class RegexRule final : public LuaRule
+{
+public:
+    RegexRule() {}
+
+    virtual std::string whoami() const { return "pattern"; }
+    virtual std::string clazz() const { return LuaRule::clazz() + "/RegexRule"; }
+
+    virtual int fill(const cxxtools::SerializationInfo& si);
+
+    /// returns 0 if ok (pureAlert initialized)
+    virtual int evaluate(const MetricList& metricList, PureAlert& pureAlert);
+
+    virtual std::vector<std::string> getNeededTopics() const;
+
+private:
+    std::string _rex_str;
+};
