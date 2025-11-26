@@ -148,9 +148,10 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
 
         if (status == outcome::RULE_RESULT_OK) {
             log_debug("LuaRule::evaluate %s %s", _name.c_str(), "RESOLVED");
-            // When alert is resolved, it doesn't have new severity
-            const std::string description{"The alarm is resolved"};
+
+            const std::string description{_rule_class.empty() ? "TRANSLATE_LUA(The alarm is resolved)" : _rule_class};
             const std::string severity{"OK"};
+
             pureAlert = PureAlert(ALERT_RESOLVED, now, description, _element, severity, {});
             //pureAlert.print();
             evalOK = true;
@@ -174,11 +175,12 @@ int LuaRule::evaluate(const MetricList& metricList, PureAlert& pureAlert)
                 }
             }
 
-            if (outcome != _outcomes.cend()) {
-                // outcome was found
+            if (outcome != _outcomes.cend()) { // outcome was found
                 log_debug("LuaRule::evaluate %s START %s", _name.c_str(), outcome->second._severity.c_str());
+
                 const std::string description{outcome->second._description};
                 const std::string severity{outcome->second._severity};
+
                 pureAlert = PureAlert(ALERT_START, now, description, _element, severity, outcome->second._actions);
                 //pureAlert.print();
                 evalOK = true;
