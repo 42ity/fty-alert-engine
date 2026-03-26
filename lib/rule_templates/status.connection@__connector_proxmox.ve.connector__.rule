@@ -1,0 +1,20 @@
+{
+    "flexible" : {
+        "name"          : "status.connection@__name__",
+        "description"   : "TRANSLATE_LUA(The connector is connected)",
+        "rule_cat"      : ["CAT_ALL", "CAT_OTHER"],
+        "metrics"       : ["status.connection"],
+        "assets"        : ["__name__"],
+        "results"       :  {
+            "high_warning"  : { "action" : [ ] }
+        },
+        "evaluation"    : "
+            function main(i1)
+                if i1 == 'CONNECTED' then
+                    return OK, string.format('{ \"key\": \"TRANSLATE_LUA(The connector {{ename}} is connected.)\", \"variables\": {\"ename\": {\"value\" : \"__ename__\"}}}')
+                end
+                return WARNING, string.format('{ \"key\": \"TRANSLATE_LUA(The connector {{ename}} is not connected)\", \"variables\": {\"ename\": {\"value\" : \"__ename__\"}}}')
+            end
+        "
+    }
+}
