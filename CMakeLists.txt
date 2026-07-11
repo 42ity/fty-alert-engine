@@ -35,10 +35,12 @@ etn_configure_file(
 )
 
 # install cfg file -> etc/
+set(AGENT_CONF_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PROJECT_NAME}")
+set(AGENT_CONF_FILE "${AGENT_CONF_DIR}/fty-alert-engine.cfg")
 etn_configure_file(
     ${res}/fty-alert-engine.cfg.in
     TARGET ${PROJECT_NAME}
-    DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PROJECT_NAME}/
+    DESTINATION ${AGENT_CONF_DIR}/
 )
 
 # install rule files -> usr/share/bios/fty-autoconfig

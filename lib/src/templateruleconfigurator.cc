@@ -270,14 +270,15 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfi
         return {};
     }
 
-    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
-
     std::vector<std::string> templates;
 
+    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
     std::filesystem::path dir(Autoconfig::TemplatesDir);
+    log_debug("Load '%s' templates from %s", type_name.c_str(), dir.c_str());
 
-    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
-        const std::string filename{fn.path().filename()};
+    for (const auto& it : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{it.path().filename()};
+
         if (filename.find(type_name) == std::string::npos) {
             continue; // no match
         }
@@ -291,10 +292,10 @@ std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfi
 
         log_debug("match %s", filename.c_str());
 
-        // read/register the template rule from the file
-        const std::string buf{utils::readFile(fn.path())};
-        if (!buf.empty()) { // readable
-            templates.push_back(buf);
+        // get the template rule from file
+        const std::string json{utils::readFile(it.path())};
+        if (!json.empty()) { // readable
+            templates.push_back(json);
         }
     }
 
@@ -307,25 +308,25 @@ std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadA
         return {};
     }
 
+    std::vector<std::pair<std::string, std::string>> templates;
+
     std::filesystem::path dir(Autoconfig::TemplatesDir);
     log_info("Load templates from %s", dir.c_str());
 
-    std::vector<std::pair<std::string, std::string>> templates;
-
-    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
-        const std::string filename{fn.path().filename()};
+    for (const auto& it : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{it.path().filename()};
 
         if ((filename == ".") || (filename == "..")) { continue; }
 
         try {
-            // read/register the template rule from file
-            const std::string buf{utils::readFile(fn.path())};
-            if (!buf.empty()) { // readable
-                templates.push_back(std::make_pair(filename, buf));
+            // get the template rule from file
+            const std::string json{utils::readFile(it.path())};
+            if (!json.empty()) { // readable
+                templates.push_back(std::make_pair(filename, json));
             }
         }
         catch (const std::exception& e) {
-            log_error("Load failed: %s (e: %s)", fn.path().c_str(), e.what());
+            log_error("Load failed: %s (e: %s)", it.path().c_str(), e.what());
         }
     }
 

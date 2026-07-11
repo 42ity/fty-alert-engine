@@ -557,7 +557,7 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
 
     log_debug("templates rules count: '%zu'", templates.size());
 
-    size_t count = 0;
+    size_t count{0};
     for (const auto& templat : templates) {
         // ZZZ assume filter (CAT_XXX) is *only* referenced in "rule_cat" array in rule
         if (!streq(filter, "all") && (templat.second.find(filter) == std::string::npos)) {
