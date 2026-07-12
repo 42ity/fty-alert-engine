@@ -1,7 +1,11 @@
 #   @PROJECT_NAME@ configuration
+#   settings/voltage_standard: [EUROPE, USA, AUSTRALIA, EUROPE_208]
 
 server
     timeout = 10000     #   Client connection timeout, msec
     background = 0      #   Run as background process
     workdir = .         #   Working directory for daemon
     verbose = 0         #   Do verbose logging of activity?
+
+settings
+    voltage_standard = EUROPE

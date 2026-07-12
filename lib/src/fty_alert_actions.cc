@@ -996,13 +996,13 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
     char* cmd = zmsg_popstr(msg);
     bool term{false};
 
-    log_debug("%s received", cmd);
-
     if (streq(cmd, "$TERM")) {
+        log_debug("%s received", cmd);
         term = true;
     }
     else if (streq(cmd, "CONNECT")) {
         char* endpoint = zmsg_popstr(msg);
+        log_debug("CONNECT received (%s)", endpoint);
         int r = mlm_client_connect(self->client, endpoint, 1000, self->name);
         if (r != 0) {
             log_error("can't connect to malamute endpoint '%s'", endpoint);
@@ -1016,6 +1016,7 @@ static int s_handle_pipe_deliver(fty_alert_actions_t* self, zmsg_t** msg_p, uint
     else if (streq(cmd, "CONSUMER")) {
         char* stream = zmsg_popstr(msg);
         char* pattern = zmsg_popstr(msg);
+        log_debug("CONSUMER received (%s, %s)", stream, pattern);
         int r = mlm_client_set_consumer(self->client, stream, pattern);
         if (r != 0) {
             log_error("can't set consumer on stream '%s', '%s'", stream, pattern);

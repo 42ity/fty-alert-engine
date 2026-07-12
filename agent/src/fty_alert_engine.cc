@@ -38,10 +38,12 @@ static const char* AUTOCONFIG_AGENT_NAME    = "fty-autoconfig";
 // flexible rules agent
 static const char* FLEXIBLE_AGENT_NAME = "fty-alert-flexible";
 
+static const char* SETTINGS_VOLTAGE_STD_DEFAULT = "EUROPE";
+
 int main(int argc, char** argv)
 {
     // defaults
-    const char* config_file = nullptr;
+    const char* config_file = NULL;
     bool verbose = false;
 
     for (int i = 1; i < argc; i++) {
@@ -54,25 +56,32 @@ int main(int argc, char** argv)
         else if (arg == "-h" || arg == "--help") {
             printf("%s [option] [value]\n", argv[0]);
             printf("   -v|--verbose          verbose output\n");
-            printf("   -h|--help             print help\n");
             printf("   -c|--config [path]    use custom config file\n");
+            printf("   -h|--help             print this help\n");
             return EXIT_SUCCESS;
         }
         else if (arg == "-c" || arg == "--config") {
             if (!param) {
-                printf("ERROR: Missing parameter (option: %s)\n", arg.c_str());
+                fprintf(stderr, "ERROR: Missing parameter (option: %s)\n", arg.c_str());
                 return EXIT_FAILURE;
             }
             config_file = param;
             i++;
         }
         else {
-            printf("ERROR: Unknown option (%s)\n", arg.c_str());
+            fprintf(stderr, "ERROR: Unknown option (%s)\n", arg.c_str());
             return EXIT_FAILURE;
         }
     }
 
     ManageFtyLog::setInstanceFtylog(ENGINE_AGENT_NAME, FTY_COMMON_LOGGING_DEFAULT_CFG);
+
+    char* settings_voltage_standard = strdup(SETTINGS_VOLTAGE_STD_DEFAULT); //default
+
+    #define CLEANUP \
+        do { \
+            zstr_free(&settings_voltage_standard); \
+        } while(0)
 
     if (config_file) {
         zconfig_t* config = zconfig_load(config_file);
@@ -84,6 +93,10 @@ int main(int argc, char** argv)
 
             // Note: server/[timeout,background,workdir] ignored
             verbose = streq(zconfig_get(config, "server/verbose", "false"), "true");
+
+            const char* vs = zconfig_get(config, "settings/voltage_standard", SETTINGS_VOLTAGE_STD_DEFAULT);
+            zstr_free(&settings_voltage_standard);
+            settings_voltage_standard = strdup(vs);
         }
         zconfig_destroy(&config);
     }
@@ -97,32 +110,61 @@ int main(int argc, char** argv)
 
     log_debug ("%s starting...", ENGINE_AGENT_NAME);
 
-    // alert-engine mailbox actor
-    zactor_t* mailbox_actor = zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME)));
-    zstr_sendx(mailbox_actor, "CONFIG", RULES_DIR, NULL); // rule instances
-    zstr_sendx(mailbox_actor, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(mailbox_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
+    // initialize actors
+    zactor_t* mailbox_actor = NULL;
+    zactor_t* stream_actor = NULL;
+    zactor_t* autoconf_actor = NULL;
+    zactor_t* action_actor = NULL;
+    bool actors_initOK{false};
+    do {
+        zactor_t* actor = NULL;
 
-    // alert-engine stream actor
-    zactor_t* stream_actor = zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME_STREAM)));
-    zstr_sendx(stream_actor, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(stream_actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
+        // alert-engine mailbox actor
+        mailbox_actor = actor = zactor_new(fty_alert_engine_mailbox, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME)));
+        if (!actor) break;
+        zstr_sendx(actor, "CONFIG", RULES_DIR, NULL); // rule instances
+        zstr_sendx(actor, "CONNECT", MLM_ENDPOINT, NULL);
+        zstr_sendx(actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
-    // autoconfig actor
-    zactor_t* autoconf_actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_AGENT_NAME)));
-    zstr_sendx(autoconf_actor, "CONFIG", RULES_DIR, NULL); // actor state file
-    zstr_sendx(autoconf_actor, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(autoconf_actor, "TEMPLATES_DIR", TEMPLATES_DIR, NULL); // rule templates
-    zstr_sendx(autoconf_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
-    zstr_sendx(autoconf_actor, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
-    zstr_sendx(autoconf_actor, "ALERT_FLEXIBLE_NAME", FLEXIBLE_AGENT_NAME, NULL);
+        // alert-engine stream actor
+        stream_actor = actor = zactor_new(fty_alert_engine_stream, static_cast<void*>(const_cast<char*>(ENGINE_AGENT_NAME_STREAM)));
+        if (!actor) break;
+        zstr_sendx(actor, "CONNECT", MLM_ENDPOINT, NULL);
+        zstr_sendx(actor, "PRODUCER", FTY_PROTO_STREAM_ALERTS_SYS, NULL);
 
-    // alert actions actor
-    zactor_t* action_actor = zactor_new(fty_alert_actions, static_cast<void*>(const_cast<char*>(ACTIONS_AGENT_NAME)));
-    zstr_sendx(action_actor, "CONNECT", MLM_ENDPOINT, NULL);
-    zstr_sendx(action_actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
-    zstr_sendx(action_actor, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
-    zstr_sendx(action_actor, "ASSETS_REPUBLISH", NULL); // republish all assets
+        // autoconfig actor
+        autoconf_actor = actor = zactor_new(autoconfig, static_cast<void*>(const_cast<char*>(AUTOCONFIG_AGENT_NAME)));
+        if (!actor) break;
+        zstr_sendx(actor, "CONFIG", RULES_DIR, NULL); // actor state file
+        zstr_sendx(actor, "CONNECT", MLM_ENDPOINT, NULL);
+        zstr_sendx(actor, "TEMPLATES_DIR", TEMPLATES_DIR, NULL); // rule templates
+        zstr_sendx(actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+        zstr_sendx(actor, "ALERT_ENGINE_NAME", ENGINE_AGENT_NAME, NULL);
+        zstr_sendx(actor, "ALERT_FLEXIBLE_NAME", FLEXIBLE_AGENT_NAME, NULL);
+        zstr_sendx(actor, "SETTINGS_VOLTAGE_STANDARD", settings_voltage_standard, NULL);
+
+        // alert actions actor
+        action_actor = actor = zactor_new(fty_alert_actions, static_cast<void*>(const_cast<char*>(ACTIONS_AGENT_NAME)));
+        if (!actor) break;
+        zstr_sendx(actor, "CONNECT", MLM_ENDPOINT, NULL);
+        zstr_sendx(actor, "CONSUMER", FTY_PROTO_STREAM_ASSETS, ".*", NULL);
+        zstr_sendx(actor, "CONSUMER", FTY_PROTO_STREAM_ALERTS, ".*", NULL);
+        zstr_sendx(actor, "ASSETS_REPUBLISH", NULL); // republish all assets
+
+        actors_initOK = true;
+        break;
+    } while(0);
+
+    if (!actors_initOK) {
+        log_error("%s starting failed", ENGINE_AGENT_NAME);
+        zactor_destroy(&action_actor);
+        zactor_destroy(&autoconf_actor);
+        zactor_destroy(&stream_actor);
+        zactor_destroy(&mailbox_actor);
+        CLEANUP;
+        AuditLog::deinit(); // release audit context
+        return EXIT_FAILURE;
+    }
 
     log_info("%s started", ENGINE_AGENT_NAME);
 
@@ -144,9 +186,8 @@ int main(int argc, char** argv)
     zactor_destroy(&autoconf_actor);
     zactor_destroy(&stream_actor);
     zactor_destroy(&mailbox_actor);
-
-    // release audit context
-    AuditLog::deinit();
+    CLEANUP;
+    AuditLog::deinit(); // release audit context
 
     return EXIT_SUCCESS;
 }

@@ -17,6 +17,8 @@ add_subdirectory(agent)
 
 set(AGENT_USER "bios")
 set(RULE_TEMPLATES_SHARE_DIR "${CMAKE_INSTALL_FULL_DATAROOTDIR}/bios/fty-autoconfig")
+set(AGENT_CONF_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PROJECT_NAME}")
+set(AGENT_CONF_FILE "${AGENT_CONF_DIR}/fty-alert-engine.cfg")
 
 set(res ${PROJECT_SOURCE_DIR}/resources)
 
@@ -35,8 +37,6 @@ etn_configure_file(
 )
 
 # install cfg file -> etc/
-set(AGENT_CONF_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PROJECT_NAME}")
-set(AGENT_CONF_FILE "${AGENT_CONF_DIR}/fty-alert-engine.cfg")
 etn_configure_file(
     ${res}/fty-alert-engine.cfg.in
     TARGET ${PROJECT_NAME}

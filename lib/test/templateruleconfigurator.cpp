@@ -18,6 +18,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include <catch2/catch.hpp>
 #include "src/templateruleconfigurator.h"
+#include "src/misc/json.h"
+#include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
+#include <iostream>
 
 #define SELFTEST_DIR_RO "."
 
@@ -27,18 +31,20 @@ TEST_CASE("templateruleconfigurator")
 
     SECTION("default+safe")
     {
-        CHECK(TRC.configure("asset_name", AutoConfigurationInfo(), "logical_asset", NULL) == false);
+        AutoconfigSettings settings;
+
+        CHECK(TRC.configure("asset_name", AutoConfigurationInfo(), settings, "logical_asset", NULL) == false);
         CHECK(TRC.isApplicable(AutoConfigurationInfo()) == false);
         CHECK(TRC.sendAddRule("hello world", NULL) == false);
 
         Autoconfig::TemplatesDir = "";
-        CHECK(TRC.loadAllTemplates().empty());
+        CHECK(TRC.loadAllTemplates(settings).empty());
 
         Autoconfig::TemplatesDir = "/fake";
-        CHECK(TRC.loadAllTemplates().empty());
+        CHECK(TRC.loadAllTemplates(settings).empty());
 
         Autoconfig::TemplatesDir = SELFTEST_DIR_RO "/../../lib/rule_templates/";
-        CHECK(!TRC.loadAllTemplates().empty());
+        CHECK(!TRC.loadAllTemplates(settings).empty());
     }
 
     SECTION("sendAddRule malamute")
@@ -83,5 +89,69 @@ TEST_CASE("templateruleconfigurator")
         mlm_client_destroy(&client);
         mlm_client_destroy(&autoconf);
         zactor_destroy(&server);
+    }
+}
+
+TEST_CASE("templateruleconfigurator settings voltageStandard")
+{
+    //templateruleconfigurator.cc::applySettingsOnTemplate()
+
+    for (const auto& vs : {"EUROPE", "USA", "AUSTRALIA", "EUROPE_208"})
+    {
+        AutoconfigSettings settings;
+        settings.setVoltageStandard(vs);
+        REQUIRE(settings.voltageStandard() == vs);
+
+        std::cout << "=== voltageStandard = " << settings.voltageStandard() << std::endl;
+
+        TemplateRuleConfigurator TRC;
+        Autoconfig::TemplatesDir = SELFTEST_DIR_RO "/../../lib/rule_templates/";
+        auto templates = TRC.loadAllTemplates(settings);
+        CHECK(!templates.empty());
+
+        for (const auto& it : templates) {
+            if (it.first.find("voltage.input_") == 0) {
+                std::cout << "=== " << it.first << std::endl << it.second << std::endl;
+
+                cxxtools::SerializationInfo si;
+                JSON::readFromString(it.second /*json*/, si);
+                auto root{si.findMember("threshold")};
+                auto values{root ? root->findMember("values") : nullptr};
+                REQUIRE(values);
+
+                auto m = JSON::getMapDouble(values);
+                CHECK(m.size() == 4);
+
+                // EU thresholds embeded by the voltage.input template rules (lib/rule_templates/),
+                // other thresholds are defined by applySettingsOnTemplate()
+                if (settings.voltageStandard() == "EUROPE") {
+                    CHECK(m["low_critical"]  == 210);
+                    CHECK(m["low_warning"]   == 215);
+                    CHECK(m["high_warning"]  == 265);
+                    CHECK(m["high_critical"] == 276);
+                }
+                else if (settings.voltageStandard() == "USA") {
+                    CHECK(m["low_critical"]  == 110);
+                    CHECK(m["low_warning"]   == 115);
+                    CHECK(m["high_warning"]  == 125);
+                    CHECK(m["high_critical"] == 130);
+                }
+                else if (settings.voltageStandard() == "AUSTRALIA") {
+                    CHECK(m["low_critical"]  == 210);
+                    CHECK(m["low_warning"]   == 215);
+                    CHECK(m["high_warning"]  == 245);
+                    CHECK(m["high_critical"] == 250);
+                }
+                else if (settings.voltageStandard() == "EUROPE_208") {
+                    CHECK(m["low_critical"]  == 360);
+                    CHECK(m["low_warning"]   == 385);
+                    CHECK(m["high_warning"]  == 415);
+                    CHECK(m["high_critical"] == 430);
+                }
+                else {
+                    REQUIRE(false);
+                }
+            }
+        }
     }
 }

@@ -35,18 +35,18 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
 class TemplateRuleConfigurator
 {
 public:
-    bool configure(const std::string& iname /*asset*/, const AutoConfigurationInfo& info, const std::string& ename_la /*logical_asset*/, mlm_client_t* client);
+    bool configure(const std::string& iname /*asset*/, const AutoConfigurationInfo& info, const AutoconfigSettings& settings, const std::string& ename_la /*logical_asset*/, mlm_client_t* client);
     bool isApplicable(const AutoConfigurationInfo& info);
     bool isApplicable(const AutoConfigurationInfo& info, const std::string& templat_name);
 
-    std::vector<std::pair<std::string, std::string>> loadAllTemplates();
+    std::vector<std::pair<std::string, std::string>> loadAllTemplates(const AutoconfigSettings& settings);
 
     bool sendAddRule(const std::string& rule /*json*/, mlm_client_t* client);
 
 private:
     bool templatesDirExists();
     bool checkTemplate(const AutoConfigurationInfo& info);
-    std::vector<std::string> loadTemplates(const AutoConfigurationInfo& info, bool fast_track);
+    std::vector<std::string> loadTemplates(const AutoConfigurationInfo& info, const AutoconfigSettings& settings, bool fast_track);
 
     bool isModelOk(const std::string& model, const std::string& templat);
     std::string typeSubtype2Name(const std::string& type, const std::string& subtype);
