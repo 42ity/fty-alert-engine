@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "autoconfig_settings.h"
 #include "autoconfig_info.h"
 
 #include <malamute.h>
@@ -77,6 +78,7 @@ private: // methods
 private: // properties
     mlm_client_t* _client{nullptr};
     int _timeout{5000}; // ms
+    AutoconfigSettings _settings;
 
     // list of configurable assets (related to alarms)
     std::map<std::string, AutoConfigurationInfo> _configurableDevices;

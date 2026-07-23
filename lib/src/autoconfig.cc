@@ -31,6 +31,7 @@
 #include <fty_common_json.h>
 #include <cxxtools/serializationinfo.h>
 #include <filesystem>
+#include <vector>
 
 std::string Autoconfig::TemplatesDir; // rule templates location
 std::string Autoconfig::StateFile; // state file (full path)
@@ -187,6 +188,18 @@ void Autoconfig::main(zsock_t* pipe, const std::string& name_)
                     log_error("%s: %s frame is missing", name, cmd);
                 }
                 zstr_free(&address);
+            }
+            else if (streq(cmd, "SETTINGS_VOLTAGE_STANDARD")) {
+                char* value = zmsg_popstr(msg);
+                log_debug("SETTINGS_VOLTAGE_STANDARD received (%s)", value);
+                if (value) {
+                    _settings.setVoltageStandard(std::string(value));
+                }
+                else {
+                    log_error("%s: %s frame is missing", name, cmd);
+                }
+                zstr_free(&value);
+                log_info("settings.voltageStandard: %s", _settings.voltageStandard().c_str());
             }
             else {
                 log_debug("%s: command not handled (%s)", name, cmd);
@@ -419,7 +432,7 @@ void Autoconfig::onPoll()
                 const auto iname_la = it.second.getAttr("logical_asset");
                 if (!iname_la.empty()) { ename_la = getContainerEname(iname_la); }
 
-                device_configured = TRC.configure(it.first, it.second, ename_la, _client);
+                device_configured = TRC.configure(it.first, it.second, _settings, ename_la, _client);
             }
             else {
                 log_info("No applicable configurator for device '%s'", it.first.c_str ());
@@ -553,11 +566,11 @@ void Autoconfig::listTemplates(const char* correlation_id, const char* filter)
     zmsg_addstr(reply, filter);
 
     TemplateRuleConfigurator TRC;
-    std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();
+    std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates(_settings);
 
     log_debug("templates rules count: '%zu'", templates.size());
 
-    size_t count = 0;
+    size_t count{0};
     for (const auto& templat : templates) {
         // ZZZ assume filter (CAT_XXX) is *only* referenced in "rule_cat" array in rule
         if (!streq(filter, "all") && (templat.second.find(filter) == std::string::npos)) {

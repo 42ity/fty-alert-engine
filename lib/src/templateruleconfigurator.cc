@@ -22,10 +22,13 @@
 #include "templateruleconfigurator.h"
 #include "autoconfig.h"
 #include "misc/utils.h"
+#include "misc/json.h"
 
 #include <fty_log.h>
 #include <fty_proto.h>
 #include <fty_shm.h>
+#include <fty_common_json.h>
+#include <cxxtools/serializationinfo.h>
 #include <filesystem>
 #include <algorithm>
 
@@ -158,9 +161,95 @@ bool ruleXphaseIsApplicable(const std::string& ruleName, const AutoConfiguration
     return isAppl;
 }
 
+// apply autoconfig settings on the given rule template and its json representation
+// returns true if json has been changed from settings, false otherwise
+static bool applySettingsOnTemplate(const AutoconfigSettings& settings, const std::string& ruleName, std::string& json)
+{
+    bool changed{false};
+
+    if (   (ruleName.find("voltage.input_1phase@__device_ups__") == 0)
+        || (ruleName.find("voltage.input_3phase@__device_ups__") == 0)
+        || (ruleName.find("voltage.input_1phase@__device_epdu__") == 0)
+        || (ruleName.find("voltage.input_3phase@__device_epdu__") == 0)
+    ) {
+        // apply voltage standard on threshold values
+        // for voltage.input rules (1ph/3ph, ups/epdu)
+        const std::string voltageStd{settings.voltageStandard()};
+
+        try {
+            // see rule/ThresholdRuleSimple.cc
+            cxxtools::SerializationInfo si;
+            JSON::readFromString(json, si);
+
+            auto root{si.findMember("threshold")};
+            auto values{JSON::isObject(root) ? root->findMember("values") : nullptr};
+            if (!values) { throw std::runtime_error("'values' not found"); }
+            if (!JSON::isArray(values)) { throw std::runtime_error("'values' not array"); }
+
+            // loop on values objects (see JSON::getMapDouble())
+            bool si_changed{false};
+            for (auto& it : *values) {
+                auto& o = it.getMember(0);
+                const std::string name{o.name()};
+                const std::string cvalue{JSON::getString(&o)};
+
+                std::string value{cvalue};
+                if (voltageStd == "EUROPE") {
+                    // Nop. Assume the original voltage.input template rules
+                    // embed the EU standard thresholds (lib/rule_templates/)
+                    /**  if (name == "low_critical" ) { value = "210"; }
+                    else if (name == "low_warning"  ) { value = "215"; }
+                    else if (name == "high_warning" ) { value = "265"; }
+                    else if (name == "high_critical") { value = "276"; }*/
+                }
+                else if (voltageStd == "USA") {
+                         if (name == "low_critical" ) { value = "110"; }
+                    else if (name == "low_warning"  ) { value = "115"; }
+                    else if (name == "high_warning" ) { value = "125"; }
+                    else if (name == "high_critical") { value = "130"; }
+                }
+                else if (voltageStd == "AUSTRALIA") {
+                         if (name == "low_critical" ) { value = "210"; }
+                    else if (name == "low_warning"  ) { value = "215"; }
+                    else if (name == "high_warning" ) { value = "245"; }
+                    else if (name == "high_critical") { value = "250"; }
+                }
+                else if (voltageStd == "EUROPE_208") {
+                         if (name == "low_critical" ) { value = "360"; }
+                    else if (name == "low_warning"  ) { value = "385"; }
+                    else if (name == "high_warning" ) { value = "415"; }
+                    else if (name == "high_critical") { value = "430"; }
+                }
+                else {
+                    throw std::runtime_error("voltageStd not handled");
+                }
+
+                if (value != cvalue) {
+                    o <<= value; // si changed
+                    si_changed = true;
+                }
+            }//for
+
+            if (si_changed) { // update json payload from si
+                json = JSON::writeToString(si, true);
+                changed = true;
+            }
+        }
+        catch (const std::exception& e) {
+            log_error("Exception caught: ruleName: %s (voltageStd: %s), e: %s", ruleName.c_str(), voltageStd.c_str(), e.what());
+        }
+    }
+
+    if (changed) {
+        log_debug("applySettingsOnTemplate (ruleName: %s)", ruleName.c_str());
+    }
+    return changed;
+}
+
 bool TemplateRuleConfigurator::configure (
     const std::string& iname, // asset iname
     const AutoConfigurationInfo& info,
+    const AutoconfigSettings& settings,
     const std::string& ename_la, // logical asset
     mlm_client_t* client
 )
@@ -202,7 +291,7 @@ bool TemplateRuleConfigurator::configure (
     const bool isSensorGPIO{info.subtype == "sensorgpio"};
     const std::string gpioModel{isSensorGPIO ? info.getAttr("model", "") : ""};
 
-    std::vector<std::string> templates{loadTemplates(info, fast_track)};
+    std::vector<std::string> templates{loadTemplates(info, settings, fast_track)};
 
     bool result{true};
     for (const auto& templat : templates) {
@@ -264,68 +353,73 @@ bool TemplateRuleConfigurator::isApplicable(const AutoConfigurationInfo& info, c
     return true;
 }
 
-std::vector<std::string> TemplateRuleConfigurator::loadTemplates(const AutoConfigurationInfo& info, bool fast_track)
+std::vector<std::string> TemplateRuleConfigurator::loadTemplates(
+    const AutoConfigurationInfo& info,
+    const AutoconfigSettings& settings,
+    bool fast_track
+)
 {
     if (!templatesDirExists()) {
         return {};
     }
 
-    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
-
     std::vector<std::string> templates;
 
+    const std::string type_name{typeSubtype2Name(info.type, info.subtype)};
     std::filesystem::path dir(Autoconfig::TemplatesDir);
+    log_debug("Load '%s' templates from %s", type_name.c_str(), dir.c_str());
 
-    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
-        const std::string filename{fn.path().filename()};
+    for (const auto& it : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{it.path().filename()};
+
         if (filename.find(type_name) == std::string::npos) {
             continue; // no match
         }
 
-        if (fast_track
-            && (filename == "realpower.default@__datacenter__.rule")
-        ) {
+        if (fast_track && (filename == "realpower.default@__datacenter__.rule")) {
             log_debug("match %s but not used for fast track", filename.c_str());
             continue;
         }
 
         log_debug("match %s", filename.c_str());
 
-        // read/register the template rule from the file
-        const std::string buf{utils::readFile(fn.path())};
-        if (!buf.empty()) { // readable
-            templates.push_back(buf);
+        // get the template rule from file
+        std::string json{utils::readFile(it.path())};
+        if (!json.empty()) { // readable
+            applySettingsOnTemplate(settings, filename, json);
+            templates.push_back(json);
         }
     }
 
     return templates;
 }
 
-std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadAllTemplates()
+std::vector<std::pair<std::string, std::string>> TemplateRuleConfigurator::loadAllTemplates(const AutoconfigSettings& settings)
 {
     if (!templatesDirExists()) {
         return {};
     }
 
+    std::vector<std::pair<std::string, std::string>> templates;
+
     std::filesystem::path dir(Autoconfig::TemplatesDir);
     log_info("Load templates from %s", dir.c_str());
 
-    std::vector<std::pair<std::string, std::string>> templates;
-
-    for (const auto& fn : std::filesystem::directory_iterator(dir)) {
-        const std::string filename{fn.path().filename()};
+    for (const auto& it : std::filesystem::directory_iterator(dir)) {
+        const std::string filename{it.path().filename()};
 
         if ((filename == ".") || (filename == "..")) { continue; }
 
         try {
-            // read/register the template rule from file
-            const std::string buf{utils::readFile(fn.path())};
-            if (!buf.empty()) { // readable
-                templates.push_back(std::make_pair(filename, buf));
+            // get the template rule from file
+            std::string json{utils::readFile(it.path())};
+            if (!json.empty()) { // readable
+                applySettingsOnTemplate(settings, filename, json);
+                templates.push_back(std::make_pair(filename, json));
             }
         }
         catch (const std::exception& e) {
-            log_error("Load failed: %s (e: %s)", fn.path().c_str(), e.what());
+            log_error("Load failed: %s (e: %s)", it.path().c_str(), e.what());
         }
     }
 

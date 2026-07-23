@@ -20,8 +20,8 @@ EnvironmentFile=-/etc/default/fty
 EnvironmentFile=-/etc/default/fty__%n.conf
 Environment="prefix=/usr"
 
-# exec (no arg)
-ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/@PROJECT_NAME@
+# exec
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/@PROJECT_NAME@ -c @AGENT_CONF_FILE@
 
 [Install]
 WantedBy=bios.target

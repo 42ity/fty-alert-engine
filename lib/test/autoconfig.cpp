@@ -53,7 +53,8 @@ TEST_CASE("autoconfig loadAllTemplates")
         Autoconfig::TemplatesDir = templatePath;
 
         TemplateRuleConfigurator TRC;
-        std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates();
+        AutoconfigSettings settings;
+        std::vector<std::pair<std::string, std::string>> templates = TRC.loadAllTemplates(settings);
 
         log_debug("%s : number of template rules = '%zu'", templatePath.c_str(), templates.size());
 
