@@ -131,22 +131,22 @@ TEST_CASE("templateruleconfigurator settings voltageStandard")
                     CHECK(m["high_critical"] == 276);
                 }
                 else if (settings.voltageStandard() == "USA") {
-                    CHECK(m["low_critical"]  == 110);
-                    CHECK(m["low_warning"]   == 115);
-                    CHECK(m["high_warning"]  == 125);
-                    CHECK(m["high_critical"] == 130);
+                    CHECK(m["low_critical"]  == 109);
+                    CHECK(m["low_warning"]   == 114);
+                    CHECK(m["high_warning"]  == 126);
+                    CHECK(m["high_critical"] == 132);
                 }
                 else if (settings.voltageStandard() == "AUSTRALIA") {
-                    CHECK(m["low_critical"]  == 210);
-                    CHECK(m["low_warning"]   == 215);
-                    CHECK(m["high_warning"]  == 245);
-                    CHECK(m["high_critical"] == 250);
+                    CHECK(m["low_critical"]  == 216);
+                    CHECK(m["low_warning"]   == 228);
+                    CHECK(m["high_warning"]  == 252);
+                    CHECK(m["high_critical"] == 264);
                 }
                 else if (settings.voltageStandard() == "EUROPE_208") {
-                    CHECK(m["low_critical"]  == 360);
-                    CHECK(m["low_warning"]   == 385);
-                    CHECK(m["high_warning"]  == 415);
-                    CHECK(m["high_critical"] == 430);
+                    CHECK(m["low_critical"]  == 188);
+                    CHECK(m["low_warning"]   == 198);
+                    CHECK(m["high_warning"]  == 218);
+                    CHECK(m["high_critical"] == 228);
                 }
                 else {
                     REQUIRE(false);

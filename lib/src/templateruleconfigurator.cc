@@ -203,22 +203,25 @@ static bool applySettingsOnTemplate(const AutoconfigSettings& settings, const st
                     else if (name == "high_critical") { value = "276"; }*/
                 }
                 else if (voltageStd == "USA") {
-                         if (name == "low_critical" ) { value = "110"; }
-                    else if (name == "low_warning"  ) { value = "115"; }
-                    else if (name == "high_warning" ) { value = "125"; }
-                    else if (name == "high_critical") { value = "130"; }
+                    // 120V range 5%
+                         if (name == "low_critical" ) { value = "109"; }
+                    else if (name == "low_warning"  ) { value = "114"; }
+                    else if (name == "high_warning" ) { value = "126"; }
+                    else if (name == "high_critical") { value = "132"; }
                 }
                 else if (voltageStd == "AUSTRALIA") {
-                         if (name == "low_critical" ) { value = "210"; }
-                    else if (name == "low_warning"  ) { value = "215"; }
-                    else if (name == "high_warning" ) { value = "245"; }
-                    else if (name == "high_critical") { value = "250"; }
+                    // 240V range 5%
+                         if (name == "low_critical" ) { value = "216"; }
+                    else if (name == "low_warning"  ) { value = "228"; }
+                    else if (name == "high_warning" ) { value = "252"; }
+                    else if (name == "high_critical") { value = "264"; }
                 }
                 else if (voltageStd == "EUROPE_208") {
-                         if (name == "low_critical" ) { value = "360"; }
-                    else if (name == "low_warning"  ) { value = "385"; }
-                    else if (name == "high_warning" ) { value = "415"; }
-                    else if (name == "high_critical") { value = "430"; }
+                    // 208V range 5%
+                         if (name == "low_critical" ) { value = "188"; }
+                    else if (name == "low_warning"  ) { value = "198"; }
+                    else if (name == "high_warning" ) { value = "218"; }
+                    else if (name == "high_critical") { value = "228"; }
                 }
                 else {
                     throw std::runtime_error("voltageStd not handled");
